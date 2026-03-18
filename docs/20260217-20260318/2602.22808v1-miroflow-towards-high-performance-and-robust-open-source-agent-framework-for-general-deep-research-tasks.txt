@@ -1,0 +1,1063 @@
+Title: MiroFlow: Towards High-Performance and Robust Open-Source Agent Framework for General Deep Research Tasks
+
+URL Source: https://arxiv.org/pdf/2602.22808v1
+
+Published Time: Fri, 27 Feb 2026 01:41:51 GMT
+
+Number of Pages: 26
+
+Markdown Content:
+# MiroFlow: Towards High-Performance and Robust Open-Source Agent Framework for General Deep Research Tasks 
+
+# Shiqian Su 1,2†, Sen Xing 1,2†, Xuan Dong 1,2†, Muyan Zhong 1,2†, Bin Wang 2, Xizhou Zhu 2, Yuntao Chen 2,Wenhai Wang 2, Yue Deng 2, Pengxiang Zhu 2,3, Ziyuan Liu 1,2, Tiantong Li 1,2, Jiaheng Yu 2, Zhe Chen 2,4,Lidong Bing 2, Jifeng Dai 1,2
+
+> 1
+
+# Tsinghua University 2MiroMind AI 3National University of Singapore 4Nanjing University 
+
+# Abstract 
+
+Despite the remarkable progress of large language mod-els (LLMs), the capabilities of standalone LLMs have begun to plateau when tackling real-world, complex tasks that re-quire interaction with external tools and dynamic environ-ments. Although recent agent frameworks aim to enhance model autonomy through tool integration and external in-teraction, they still suffer from naive workflows, unstable performance, limited support across diverse benchmarks and tasks, and heavy reliance on costly commercial APIs. In this work, we propose a high-performance and robust open-source agent framework, termed MiroFlow, which in-corporates an agent graph for flexible orchestration, an op-tional deep reasoning mode to enhance performance, and a robust workflow execution to ensure stable and repro-ducible performance. Extensive experiments demonstrate that MiroFlow consistently achieves state-of-the-art perfor-mance across multiple agent benchmarks, including GAIA, BrowseComp-EN/ZH, HLE, xBench-DeepSearch, and no-tably FutureX. We hope it could serve as an easily acces-sible, reproducible, and comparable baseline for the deep research community. 
+
+# 1. Introduction 
+
+The rapid advancement of Large Language Models (LLMs) has dramatically expanded the frontiers of artificial intelli-gence. By leveraging massive datasets [13, 16, 45] and scal-ing parameters to unprecedented levels, LLMs [5, 6, 14, 62] have shown remarkable emergent abilities across diverse tasks. However, real-world applications are far more com-plex than short-term question answering or closed-form in-  
+
+> †Equal contribution. This work was done while Shiqian Su, Sen Xing, Xuan Dong, Muyan Zhong, Pengxiang Zhu, Ziyuan Liu, Tiantong Li and Zhe Chen were in-terns at MiroMind AI. Codes are available at https://github.com/MiroMindAI/ miroflow
+
+ference. Most mainstream LLMs still operate in a self-contained manner, without interaction with external tools or environments, and their performance has begun to plateau, making them inadequate for complex real-world scenarios that require multi-step planning, dynamic reasoning, and tool coordination. Recent open-source agent frameworks [21, 30, 51, 60, 72, 76] have begun to bridge this gap by equipping LLMs with planning capabilities and external tool use. However, three persistent challenges continue to limit their reliability and adoption in complex deep research scenarios. (1) In-flexibility. Most systems are designed for single-purpose workflows with hard-coded pipelines, limiting their gen-eralization to heterogeneous tasks; (2) Instability. Due to long reasoning chains, stochastic sampling, tool invocation failures, and search result randomness, model performance fluctuates significantly and experimental results are often difficult to reproduce; This attribute also necessitates that the agent can comprehensively understand and utilize di-verse tools, and handle various exceptional or uncertain sit-uations. Only in this manner can reproducibility and fair comparison in research be ensured. (3) High Cost. Inte-gration with commercial APIs leads to substantial financial overheads, which hinder open research and limit the acces-sibility and scalability of agent-based systems. Table 1 lists several agent frameworks for comparison. An ideal agent framework should therefore transcend rigid, hard-coded pipelines and instead empower users to flexibly configure the agent’s operational workflow, sup-porting the dynamic composition of reasoning modules and external tools tailored to specific task requirements. Fur-thermore, robustness is a fundamental design principle. A well-designed mechanism should be in place to ensure sys-tematic fallback and verification, guaranteeing reliable exe-cution under uncertainty. On this foundation, transparency is also crucial. By integrating open-source tools or estab-lishing transparent evaluation protocols, such a framework can significantly lower research costs, promote accessibil-1
+
+> arXiv:2602.22808v1 [cs.AI] 26 Feb 2026
+
+open -source reproducible commercial / partially open -source   
+
+> FutureX
+> 82.4
+> 73.3
+> 69.7
+> 67.4
+> 40
+> 50
+> 60
+> 70
+> 80
+> MiroFlow
+> Manus
+> OWL
+> OpenAI DR
+> GAIA Validation
+> 35.5
+> 26.9 26.6
+> 21.1
+> 20
+> 25
+> 30
+> 35
+> MiroFlow
+> Gemini DR
+> OpenAI DR
+> Perplexity AI
+
+HLE  
+
+> 63.4
+> 42.9
+> 30.1
+> 22.6
+> 20
+> 25
+> 30
+> 35
+> 40
+> 45
+> 50
+> 55
+> 60
+> 65
+> MiroFlow
+> OpenAI DR
+> WebSailor-72B
+> Perplexity AI
+> BrowseComp -ZH
+> 59.7
+> 51.5
+> 50
+> 55
+> 60
+> MiroFlow
+> OpenAI DR
+> BrowseComp -EN
+> 73.5
+> 69.0
+> 55.0
+> 50.0
+> 40.0
+> 45.0
+> 50.0
+> 55.0
+> 60.0
+> 65.0
+> 70.0
+> 75.0
+> MiroFlow
+> Kimi Researcher
+> WebSailor-72B
+> Gemini DR
+> xBench -DeepSearch
+> 42.5
+> 21.9
+> 18.4 18
+> 15
+> 20
+> 25
+> 30
+> 35
+> 40
+> MiroFlow
+> ChatGPT-Agent
+> Deepseek-R1
+> smolagent
+> 81.1
+> 75.4
+> 67.1
+> 60
+> 65
+> 70
+> 75
+> 80
+> MiroFlow
+> Alita
+> JoyAgent
+> GAIA Test
+> 29.5
+> 26.6
+> 24
+> 29
+> MiroFlow
+> Openai DR
+> HLE -text -only
+
+Figure 1. Overall performance of MiroFlow on representative deep research benchmarks. MiroFlow, a high-performance and robust open-source agent framework, achieves reproducible state-of-the-art results across all benchmarks, consistently outperforming existing open-source and commercial agent systems. All MiroFlow results are obtained with a single unified configuration without any task-specific tuning, demonstrating strong generality and adaptability across heterogeneous deep research tasks. 
+
+ity, and accelerate community-driven innovation in agent-based systems. In this work, we present MiroFlow, a high-accuracy and robust open-source agent framework that achieves repro-ducible state-of-the-art performance across diverse deep re-search tasks. Building upon the principles outlined above, MiroFlow introduces several key innovations: First, we pro-pose a hierarchical agent framework driven by an agent graph, which enables users to flexibly compose and con-figure agents and their components in a top-down manner, adapting the workflow to specific task requirements. Sec-ond, an optional heavy-reasoning mode allows the agent to perform deeper reasoning and self-verification in high-stakes or complex scenarios, thereby enhancing overall rea-soning depth and performance. Third, a robust workflow mechanism systematically mitigates stochastic errors and stabilizes long reasoning chains, ensuring consistent and reproducible performance across repeated executions. Fi-nally, MiroFlow supports a range of open-source tools, li-braries and benchmarks, enabling cost-efficient, transpar-ent, and scalable deployment in diverse deep research envi-ronments. We conduct extensive experiments to evaluate the effec-tiveness of MiroFlow. As shown in Figure 1, MiroFlow achieves state-of-the-art performance across multiple rep-resentative agent benchmarks. In addition, we see that the same codebase can be seamlessly applied across different benchmarks without any task-specific tuning, highlighting the generality, adaptability, and reliability of the proposed framework. These findings confirm that MiroFlow serves as a unified, transparent, and reproducible foundation for advancing future research in large-scale, agent-based sys-tems. In summary, our contributions are as follows: (1) We present MiroFlow , a high-performance and ro-bust open-source agent framework. MiroFlow adopts a hi-erarchical architecture ( i.e. , control, agent, and foundation tiers), where the control tier coordinates the interaction be-tween the agent and foundation tiers, enabling general task scheduling and modular extensibility. (2) To enhance the framework’s flexibility, stability, and accuracy , we introduce three synergistic components: the agent graph, a robust workflow, and a heavy-reasoning mode. The agent graph provides a flexible interface for con-structing task-specific execution graphs. The robust work-flow incorporates task normalization, retry mechanism and fault isolation to mitigate stochastic fluctuations in multi-step reasoning, while the heavy-reasoning mode further im-proves consistency and precision for complex problems. (3) We evaluate MiroFlow on multiple representative agent benchmarks , including GAIA [34], BrowseComp-EN/ZH [67, 77], HLE [44], xBench-DS [8], and notably FutureX [75]. The results demonstrate that MiroFlow achieves reproducible and consistent state-of-the-art perfor-mance across diverse tasks, highlighting its superior gen-erality and reliability. We also conduct extensive ablation to provide insights for designing future agent systems and offer a comprehensive empirical foundation for the commu-nity. We believe that MiroFlow lays a solid foundation for agent systems in deep research, effectively bridging the gap between open-source large language models and commer-cial LLM systems such as GPT-5. 
+
+# 2. Related Work 
+
+2.1. Large Language Model 
+
+Large language models (LLMs) have rapidly scaled, driven by the empirical neural scaling law [25]. Built on the Transformer architecture [63] and pre-trained on massive corpora [13, 16, 45], these models show predictable im-2provements as parameters and data grow, exemplified by the evolution of the GPT series [6, 38, 41, 49, 50]. The emergence of open-source LLMs like LLaMA [62], Mis-tral [23], Qwen [5], DeepSeek [14], and GLM family [73] has democratized access to cutting-edge AI, driving both academic and industrial growth. Recent research has shifted focus from scaling param-eters to enhancing reasoning for complex tasks, such as DeepSeek-R1 [15], OpenAI o3/o4-mini [43], and Claude 3.7 Sonnet (Thinking) [4], QwQ-32B [59], GLM-4.5 [74], Kimi K1.5 [36], which integrate reinforcement learning and inference-time scaling to improve reasoning accu-racy. These advances, which combine chain-of-thought reasoning [66], self-reflection, and adaptive thinking, have led to significant improvements in cross-domain bench-marks [10, 20, 28, 33, 37]. Alongside reasoning improve-ments, there has been a shift towards multimodal LLMs (MLLMs) which process text, images, and videos. MLLMs like LLaVA [26], QwenVL [5], InternVL [64] and MiMo-VL [61] excel at cross-modal reasoning, enabling tasks such as visual grounding [47] and VQA [56]. Although some progress has been made in recent years, “self-contained” large language models (LLMs) are encountering diminishing returns, particularly in short-horizon QA tasks. These models are constrained by out-dated knowledge and lack external interaction through tools or environments, leading to inherent limitations when deal-ing with complex problems. Real-world tasks are of-ten complex and dynamic, and relying solely on “self-contained” capabilities is no longer sufficient. As a result, the performance of these models is approaching saturation, especially in short-term QA. To address more complex real-world tasks, future LLMs must function as systems rather than standalone models. They will require stronger interac-tive capabilities, enabling adaptive reasoning through tool use, feedback mechanisms, and multi-agent collaboration. 
+
+2.2. LLM-Based Agents 
+
+To overcome the limitations of self-contained language models, recent research has shifted toward LLM-based agents, which reframe the model as an autonomous sys-tem capable of perception, reasoning, decision-making, and action [31]. These agents typically consist of two com-ponents: an agent foundation model, which provides core capabilities like reasoning, planning, and tool use, and an agent framework, which handles task decomposition, state management, and external feedback. Together, these components transform an LLM from a passive knowledge source into an interactive problem solver. Recent advances in foundation models focus on enhanc-ing agentic capabilities, particularly through inference-time reasoning and native tool-use. Models now generate multi-step thinking traces for more reliable long-term reasoning and planning [4, 11, 15, 43]. Additionally, tool-use is a core feature of modern agents, with function calling sup-ported across proprietary and open-source models [1, 4, 11, 19, 43, 69]. Recent models like DeepSeek V3.1 [29], Qwen3 [69], tongyi [60], and Kimi K2 [57] use multi-stage post-training pipelines to enhance tool-augmented reason-ing and decision-making. In parallel, a wide range of agent frameworks have been developed to orchestrate foundation models. Early sys-tems primarily focused on augmenting LLMs with exter-nal tool access. Toolformer [53] fine-tuned a model to self-supervise its own API calls, whereas Visual ChatGPT [68] and HuggingGPT [55] treated the LLM as a central con-troller that delegates tasks to specialist models. The in-troduction of the “Thought–Action–Observation” loop by ReAct [71] marked a shift toward more general reasoning agents, later popularized by AutoGPT [70]. More recent efforts focus on multi-agent architectures and end-to-end agents that handle planning, reasoning, action, and multi-modal understanding. For example, Deep Research sys-tems [18, 39, 46] and open-source platforms like OWL [21], OpenHands [65], and AWorld [72] aim to provide exten-sible frameworks for planning, tool use, and autonomous reasoning. Despite these advancements, LLM-based agents still face significant challenges, including rigid domain-specific workflows, unstable behavior with inconsistent out-comes, and reliance on commercial models and APIs leads to high operational expenses. 
+
+# 3. MiroFlow Agent Framework 
+
+3.1. Overall Architecture 
+
+MiroFlow is a high-precision, robust, and performance-reproducible open-source research agent framework de-signed to extend the capabilities of large language models (LLMs) by transforming them into a collaborative system of agents and tools. As shown in Figure 2, MiroFlow adopts a three-tier hierarchical architecture, consisting of the control tier, agent tier, and foundational tier, which are responsi-ble for the orchestration of workflows, the behavioral logic of agents, and the foundational components supporting the agents, respectively. 
+
+Control Tier. As the controller of the system, this tier is responsible for orchestrating the overall flow of tasks based on user input and predefined agent graph configurations. It manages coordination between agents. The controller su-pervises the entire process, ensuring the correct sequence of operations, maintaining logs and checkpoints for repro-ducibility, and ensuring the smooth and predictable oper-ation of the entire pipeline. Based on the agent graph, a heavy-reasoning mode is introduced to enhance accuracy by increasing inference time. In addition, enhancements to the robustness of the overall workflow ensure greater sys-3Tool Sets 
+
+... 
+
+Large Language Models 
+
+... I/O Processor 
+
+Query Hint 
+
+Text Rewrite 
+
+Output Format 
+
+... 
+
+Foundation Tier 
+
+Search 
+
+Code 
+
+Audio 
+
+Scrape 
+
+Files 
+
+Vision 
+
+Prompt +
+
+Main Agent 
+
+Sub -Agent 1
+
+Sub -Agent 2
+
+I/O Proc. Prompt +
+
+Sub -Agent 1
+
+Sub -Agent 3
+
+I/O Proc. Prompt +
+
+Sub -Agent 𝒊 
+
+I/O Proc. 
+
+... 
+
+... 
+
+Agent Tier  
+
+> User Task
+> Config
+> Result
+> Task Logs
+> Ckpts
+
+Control Tier       
+
+> Heavy Mode Agent Graph Figure 2. Overview of the three-tier hierarchical MiroFlow framework architecture. Foundation tier provides reusable core compo-nents, including LLM backends, MCP-based tool sets, and generic input–output processors, which supply the basic capabilities required by all agents. Agent tier defines a set of agent nodes constructed by combining foundation-tier components with specific prompts. Each node is provided with a list of agents it can call. These nodes communicate through structured messages and can be flexibly instantiated or extended. Control tier assembles multiple agent nodes into an agent graph and orchestrates the end-to-end workflow: user queries enter the graph and are processed through coordinated agent interactions and tool calls, while the controller maintains task logs and checkpoints for reproducibility, supports a heavy-reasoning mode to improve accuracy, and incorporates workflow-level robustness enhancements to ensure smooth and predictable execution.
+
+tem reliability and reproducibility. 
+
+Agent Tier. The agent tier is the core of MiroFlow. It consists of multiple agent nodes, each representing an inde-pendent work unit. Each agent node contains its own con-text, prompts, base LLM, toolset, and input-output proces-sors, and communicates with other accessible agent nodes through structured messages to collaborate on task comple-tion. The agent tier is separate from the control tier, elimi-nating agent dependencies and certain supporting modules. This design provides scalability, allowing users to easily de-fine, manage, and adjust agents as needed. 
+
+Foundation Tier. The foundation tier supports the MiroFlow framework by providing the essential core com-ponents and infrastructure required by the agent tier. It offers support for various backend models used by agent nodes, including popular LLMs such as GPT [41], Claude [4] and Qwen [69], along with the necessary toolsets, basic input-output processing functions and re-sources for task execution. The primary responsibility of the foundation tier is to ensure the stability, scalability, and efficiency of both the backend models and tools, while also delivering seamless access interfaces for the agent tier. 
+
+Example Pipeline. Taking deep research as an example, a main agent node serves as the entry point for the entire workflow and is responsible for task decomposition, sub-task delegation, and result synthesis. It coordinates with other agents equipped with search, web-reading, or coding capabilities. This collaborative structure yields the follow-ing pipeline: (1) Query Augmentation. During the main agent’s input processing, the user’s query is first analyzed by an LLM to identify intent and enrich the request, en-abling a more accurate understanding of the requirements; (2) Task Planning. The main agent formulates a detailed execution plan based on the enhanced query content, coor-dinating the entire workflow, which includes invoking dif-ferent tools, assigning tasks to sub-agents, and driving task 4progress; (3) Agent Delegation. For complex or specialized tasks, the main agent delegates subtasks to agents with rele-vant expertise ( e.g ., a browsing agent). These agents can in-dependently plan and execute their tasks, invoke necessary tools, and, if needed, further delegate work to other agents. (4) Tool Calling. When external functionalities need to be invoked, agents connect to the MCP [3] server to obtain and use the corresponding specialized tools; (5) Result Synthe-sis. After task completion, the main agent synthesizes re-sults from multiple information sources and performs out-put processing to ensure the final response is high-quality and aligned with the user’s requirements or specified for-mats. 
+
+3.2. Agent Node 
+
+Agent nodes are the fundamental execution units responsi-ble for performing reasoning and tool interactions for tasks or subtasks. An agent node consists of the following key attributes: (1) Description. Provides a brief overview of the node’s role and capabilities, guiding agent orchestration; (2) Prompt. System instructions tailored to specific roles, controlling reasoning behavior and output format; (3) Sub-Agents. Optional child agent nodes that this node may call to handle specialized subtasks when needed; (4) Tools. Ex-ternal APIs or functions registered through MCP, with each tool exposing formal input/output contracts; (5) Input and Output Processors. Includes the input processor and output processor, responsible for preprocessing the input and the output, ensuring input validation, normalization, and format consistency. 
+
+3.3. Agent Graph 
+
+The Agent Graph defines how multiple agent nodes collab-orate to complete a task. Unlike traditional chain-based or tree-based workflows, MiroFlow utilizes a directed graph structure, making the workflow more flexible and efficient. In a graph-based workflow, tasks can be executed in parallel or interwoven in various ways, without needing to follow a fixed sequence. This structure allows the framework to bet-ter accommodate complex task requirements. MiroFlow employs a “declare then define” approach to describe workflows. In this approach, the main agent serves as the entry node, forming a topological structure respon-sible for initiating tasks and calling other agents and tools. Each agent can also define its own sub-agents and tools, creating a hierarchical topological structure. Through this topological structure, we can flexibly define dependencies between nodes, specifying which tasks must be executed sequentially and which can be executed in parallel. The entire system’s workflow is described through the connec-tions and dependencies between these nodes, ensuring that the execution process is both clear and highly scalable. 
+
+3.4. Heavy-Reasoning Mode Ensemble Verification  
+
+> Generate
+> Verify
+> Distribute
+> Vote
+> Subtasks from upstream agent node
+> Figure 3. Illustration of Heavy-Reasoning Mode.
+
+To better leverage the strengths of our agent architecture, we introduce a heavy-reasoning mode. By scaling computa-tional resources and inference time, this mode delivers more reliable results. The heavy-reasoning mode is a meta-level execution pol-icy implemented by the control tier based on the predefined agent graph. For a given subtask, multiple agents are acti-vated and apply ensemble or verification strategies within allocated budgets. This approach improves accuracy and reliability by scaling up computational resources. As shown in Figure 3, heavy-reasoning mode has two policies: (1) Ensemble Policy. Running multiple agents in parallel (either homogeneous or heterogeneous), and com-bining outputs with quality-aware aggregation (e.g., major-ity or weighted voting). (2) Verification Policy. Running an iterative generator-verifier loop, where the generator pro-poses answers, and the verifier provides feedback. The loop stops early when criteria are met or after a set number of rounds. Heavy-reasoning mode enhances system robustness while preserving flexibility. When handling complex or uncertain tasks, each agent node determines—based on prompt-level criteria—whether to invoke heavy-reasoning mode. Once activated, the corresponding subtask executes under this mode, with budgets constraining the number of spawned agents, verification rounds, and wall-clock time. When the stopping conditions are met or the budget is ex-hausted, the upstream agent receives the best verified candi-date and its supporting evidence. Because only the activated subgraphs enter heavy-reasoning mode, the rest of the agent graph remains lightweight and efficient. 
+
+3.5. Robust Workflow 
+
+From our observations and case studies (see Appendix), we find that agent instability primarily arises from sev-eral sources: failures in instruction or output adherence, randomness in search results, connection instability during large-scale experiments, and the LLM’s misinterpretation 5of tool or network errors. These factors may confuse the LLMs or provide misleading references, leading to incon-sistent performance. Thus, we develop a robust workflow to ensure reliable and consistent task performance, focusing on task standardization, retry mechanisms, and fault isola-tion to reduce uncertainty and handle failures gracefully. 
+
+Message Normalization. To reduce the randomness in the model’s output, we standardize the model settings and prompts, ensuring that the generated answers follow a fixed format rather than being free-form text. The model first drafts a simple plan or checklist and then provides a stan-dardized answer that meets the required type, unit, and ci-tation standards. Before reasoning, we rewrite the user’s task into a clearer, unambiguous goal, restoring missing constraints (such as units, ranges, etc.) and highlighting potential ambiguities. This helps avoid the propagation of early misunderstandings. The output is then placed into structured fields (e.g., final answer, evidence, warnings), so downstream systems interact with stable interfaces rather than raw text, improving repeatability across multiple runs. These design choices are primarily reflected in the agents’ input–output processing and prompting. 
+
+Retry Mechanism. We apply a “retry–fallback–replay” strategy to all model and tool calls. With a limited num-ber of retries and timeout settings, we can smoothly handle transient errors and rate limits. If retries fail, the system falls back to redundant tools or functions to ensure progress without changing the agent’s logic. 
+
+Fault Isolation. 
+
+As outlined in Section 3.1, the separation of control, agent, and foundation layers helps localize faults and clar-ify remediation: the control layer orchestrates and budgets; agent nodes encapsulate reasoning contracts; the foundation layer executes tools in isolation. When an error still occurs after retries, it is captured and translated into a summarized, typed artifact and informative message that conveys the ex-act failure type and context to the upper layer. This design ensures that (1) faults do not cascade across components, (2) the LLM receives clear and interpretable feedback rather than ambiguous or unhelpful error messages, and (3) error recovery decisions remain localized and reversible. Such explicit fault boundaries and semantic error messaging not only makes the system more stable but also enable the LLM to adapt intelligently instead of misinterpreting or abandon-ing tools. 
+
+# 4. Experiment 
+
+4.1. Settings. 
+
+LLM Backbone. We use closed-source APIs GPT-5 [41] and Claude 3.7 Sonnet [4], together with the open-source 
+
+MiroThinker [58] as backbones. 
+
+Tool Set. In the default setting, we enable: (1) an Ope-nAI o3 -based[43] reasoning tool; (2) a web search tool backed by Jina[24] and Serper[54]; (3) an image QA tool via the Claude Vision API[4]; (4) a video QA tool via Gem-ini 2.5 Pro[12]; (5) MarkItDown [35] for document conver-sion/reading; (6) a GPT-4o–based [22] audio transcription tool; (7) an E2B [17] sandbox for code execution. 
+
+Benchmarks. We evaluate on: (1) Humanity’s Last Exam (HLE) [44] — a difficult, multi-modal academic benchmark designed to address benchmark saturation with 2.5k subject-diverse questions; (2) BrowseComp [67] — a browsing-agent benchmark with 1,266 hard-to-find in-formation queries requiring persistent navigation; (3) 
+
+BrowseComp-ZH [77] — a Chinese-web counterpart with 289 multi-hop questions spanning 11 domains; (4) GAIA Validation/Test [34] — a “general assistant” benchmark of real-world tasks requiring reasoning, tool use, brows-ing, and multi-modality; (5) FutureX [75] — a live, contamination-controlled benchmark for future-event pre-diction with daily updates. (6) xBench-DeepSearch [8] - a profession-aligned benchmark for evaluating tool usage ca-pabilities in search and information retrieval scenarios. 
+
+Evaluation. We follow each benchmark’s official evalu-ation protocols and prompts. For GAIA-Val-Text, which consists of 103 text-only questions from the GAIA-Val set, we employ an LLM-as-a-judge approach using a prompt aligned with several established counterparts [27]. Unless otherwise specified, all reported metrics are avg@3 (aver-aged over three runs). 
+
+4.2. Results on Representative Agent Benchmarks 
+
+Benchmark results are listed in Table 1 2. MiroFlow has: 
+
+(1) SOTA performance across multiple common bench-marks. MiroFlow achieves state-of-the-art results on all major benchmarks, including GAIA [34], BrowseComp-EN/ZH [67, 77], HLE [44], xBench-DS [9], and Fu-tureX [75], outperforming both commercial/closed-source and open-source agent frameworks. Notably, it surpasses the second-best system by a large margin on GAIA, HLE, and FutureX. Moreover, MiroFlow’s strong generality al-lows it to support nearly all agent benchmarks, whereas many existing agents fail to generalize across them. (2) Broad model compatibility. MiroFlow supports a wide range of open-source and closed-source LLMs, consistently delivering strong performance across models. It can sig-nificantly amplify base-model capabilities—for example, achieving nearly double the standalone GPT-5 performance on FutureX. Moreover, MiroFlow is flexible enough to serve as a training platform for developing new agent mod-els on top of its framework. 
+
+4.3. Ablation Studies 
+
+We conduct a series of ablation studies on the GAIA bench-mark, using GPT-5 as the backbone LLM. 6Table 1. Comparison of agent frameworks. As noted in previous studies [78], some open-source frameworks are difficult to reproduce, and some reported performance remains ambiguous. Scores marked with an asterisk (*) indicate that the final answer is obtained by integrating the results of multiple independent agents. All other MiroFlow results are obtained without using heavy-reasoning mode. MiroThinker does not possess multimodal capabilities; therefore, evaluation results are not available (N/A) on GAIA-Val, GAIA-Test, and HLE benchmarks. “DS” in this table and throughout the paper refers to DeepSearch, and “DR” refers to DeepResearch. 
+
+Agent Framework LLM Base Model GAIA Val GAIA Test BrowseComp HLE HLE Text xBench -DS AVG Text EN ZH 
+
+Closed-source frameworks 
+
+Manus [32] - 73.3 - - - - - - -MiniMax-M2 [2] - - 75.7 - 44.0 48.5 31.8 - 72.0 OpenAI-DR [42] - 67.4 - - 51.5 42.9 - 26.6 -Alita [48] Claude–4, GPT–4o 75.15 - 75.4 - - - - -
+
+Open-source frameworks 
+
+smolagent [51] OpenAI o1 49.7 - - - - - - -OWL [21] Claude–3.7–Sonnet 69.7 - - - - - - -AWorld [72] Claude–3.7–Sonnet - - 43.85 - - - - 45.0 Tongyi–DR [60] Tongyi–DR–30B–A3B 70.9 - - 43.4 46.7 32.9 - 75.0 AgentOrchestra [76] Claude–3.7–Sonnet, GPT–4.1 OpenAI–Computer–Use, etc. 82.4 - - - - 25.9 - -JoyAgent [30] Claude-4, o4-mini 75.15 - 67.1 - - - - -MiroFlow (ours) MiroThinker–v1.0 –72B N/A 81.9 N/A 47.1 55.6 N/A 37.7 77.8 
+
+MiroFlow (ours) Claude–3.7–Sonnet 73.1/ 82.4* 77.50 67.3/73.1* 33.2 44.3 26.2 29.5 72.0 MiroFlow (ours) GPT–5 71.90 79.90 71.3/ 81.1* 63.4 59.7 35.5 40.0 73.5 Table 2. Performance of Mainstream Agents on FutureX. 
+
+These scores are taken from the official FutureX leaderboard [7] (November, Week 2), where MiroFlow has held the top position since September 2025. All models are evaluated with search tools. 
+
+Agent Framework Base LLM FutureX 
+
+MiroFlow (ours) GPT-5 42.5 
+
+GPT-5-Thinking-Heavy[41] GPT-5 25.6 ChatGPT-Agent[40] - 21.9 Qwen3-235B[69] Qwen3-235B 19.0 EventDeepResearch-V2[52] Grok-4 18.7 Deepseek-R1[15] Deepseek-R1 18.4 smolagent[51] Kimi-K2-0905-preview 18.0 Table 3. Ablation results on Gaia benchmark under different settings. Message normalization and the retry mechanism en-hance the agent’s stability and average performance. 
+
+Setting GAIA-Val Std. Dev. (%) 
+
+MiroFlow (default) 71.9 1.21 w/o Message Normalization 68.5 2.43 w/o Retry Mechanism 69.0 1.70 
+
+Robustness. We ablate message normalization and the retry mechanism, as shown in Table 3, and find that both are cru-cial for achieving stable and reproducible performance. Re-
+
+Table 4. Heavy-Reasoning Mode ablations on GAIA-Val .Heavy-reasoning mode scales computational resources and leads to improved performance. 
+
+Setting LLM Models GAIA-Val 
+
+None (default) GPT-5 71.9 Ensemble GPT-5 ×2 72.3 GPT-5 ×1 + Claude-3.7 ×1 71.6 GPT-5 ×2 (diff. prompts) 72.5 GPT-5 ×4 74.6 GPT-5 ×2 + Claude-3.7 ×2 73.0 GPT-5 ×4 (diff. prompts) 75.0 
+
+Verification GPT-5 (10 Rounds) 73.0 
+
+moving task hints, formatting constraints, and summary re-quirements from prompts (“w/o Message Normalization”) leads to clear performance degradation, confirming that message normalization reduces randomness and enforces structured outputs. Similarly, removing the retry mecha-nism (“w/o Retry Mechanism”) lowers accuracy, demon-strating that bounded retries and timeouts effectively miti-gate transient failures. Both ablations increase the standard deviation of benchmark scores, indicating greater instabil-ity. 
+
+Heavy-Reasoning Mode. We ablate several heavy-reasoning configurations. For the ensemble policy, we 7Table 5. Single- vs. Multi-Agent ablation within MiroFlow. 
+
+Multi-agent settings perform better on most benchmarks but not on GAIA. 
+
+Setting GAIA-Val BC-200 HLE-200 
+
+Single-Agent 74.8 63.9 40.6 Multi-Agent 71.9 68.3 42.0 
+
+evaluate homogeneous LLM ensembles, heterogeneous LLM ensembles, and homogeneous ensembles with varied prompts to encourage diverse behaviors, as well as different numbers of agent nodes. For the verification policy, we ap-ply a 10-step iterative generator–verifier loop. The results in Table 4 show consistent performance gains across these settings. 
+
+Single Agent vs Multi Agent. Within the MiroFlow archi-tecture, we hypothesize that performance gains stem from delegating specialized subtasks to sub-agents rather than relying on a monolithic single-agent model. To evaluate the effect of agent decomposition, we conduct an ablation comparing multi-agent and single-agent settings. In the multi-agent setup, subtasks are delegated to specialized sub-agents, whereas the single-agent baseline handles all sub-tasks itself, requiring a longer context. The results are shown in Table 5. We evaluate both single-agent and multi-agent configurations on GAIA-Val, BrowseComp-200, and HLE-200 (randomly sampled 200 tasks from BrowseComp and HLE-text-only). While the multi-agent setup generally yields higher performance, the single-agent model achieves superior results on GAIA-Val. This discrepancy likely arises from GAIA’s strongly sequential task structure: multi-agent decomposition in-creases the risk of mistake propagation across sub-agents, whereas a single-agent model maintains a continuous rea-soning trajectory and more stable global context. Refer to the Appendix for case studies illustrating this. 
+
+Max Turns. To assess the influence of interaction depth on reasoning performance, we vary the maximum number of dialogue turns allowed during inference. Specifically, we evaluate MiroFlow under different max-turns constraints, comparing both single-agent and multi-agent settings. All experiments are conducted on the GAIA validation set using GPT-5 as the underlying model. The single-agent configu-ration employs a single GPT-5 model, whereas the multi-agent setup adopts a main–sub architecture, where both agents are powered by GPT-5. The maximum-turn con-straint is applied independently to each node: a single-agent has one turn limit, while both the main and sub agents in the multi-agent system are each subject to the same limit. As shown in Figure 4, both configurations demonstrate a consistent improvement in accuracy as the maximum num-ber of turns increases, with performance eventually satu-
+
+Table 6. Comparison of MiroFlow performance under differ-ent tool set configurations. Although open-source tools may not match the quality of commercial counterparts, they still achieve strong performance when integrated with MiroFlow. 
+
+Setting GAIA-Val GAIA-Val-Text 
+
+default tool set 71.9 79.9 open-source tool set 70.3 79.0 
+
+rating beyond a certain threshold. Fewer turns often lead to incomplete reasoning and partial errors, whereas larger turn budgets allow questions to be fully solved, resulting in a plateau in accuracy. Compared with Figure 4a and Fig-ure 4b, the multi-agent system converges faster, achieving higher accuracy with fewer turns owing to its richer inter-agent interactions. Moreover, higher-difficulty tasks exhibit greater sensitivity to the turn limit, showing steeper perfor-mance gains before stabilization due to their increased rea-soning complexity and multi-step decision requirements. 4 6 8 12 16      
+
+> max_turns
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> Score
+> L1 (easy)
+> L2
+> L3 (hard)
+> AVG
+> (a) Single-agent 46812 16
+> max_turns
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> Score
+> L1 (easy)
+> L2
+> L3 (hard)
+> AVG (b) Multi-agent
+
+Figure 4. Accuracy vs. Max Turns on GAIA validation. Ac-curacy improves as max turn increases and then saturates. More difficult problems require more turns. Multi-agent settings saturate earlier but perform slightly worse than the single-agent setting. 
+
+Tool Set. We benchmark the performance of MiroFlow using a set of open-source tools. In particular, we em-ploy Qwen2.5-VL-72B-Instruct for visual understanding and feature extraction, Qwen3-235B-A22B-thinking-2507 for advanced reasoning, and whisper-large-v3-turbo for video transcription and audio processing. Quantitative results are presented in Table 6. MiroFlow achieves comparable performance under the open-source toolset and the default tools on both GAIA-Val and GAIA-Val-Text, demonstrating its robustness across different tool configurations. 
+
+I/O Processing. We further ablate the impact of I/O pro-cessing modules on reasoning accuracy. Both components use the OpenAI o3 model as an auxiliary processor around the main agent. For input processing, o3 generates struc-tured hints that summarize key entities, constraints, and task requirements before execution, helping the agent fo-cus on the reasoning path and avoid instruction-following errors. For output processing, the same model reformulates 8Table 7. Pass@1 results under different I/O processing set-tings on GAIA-Validation benchmarks. I/O processing helps the agent focus on the intended reasoning path and reduces instruction-following errors. 
+
+Setting Avg. (%) Std. Dev. (%) 
+
+No processing 59.60 3.34 Input only 62.63 0.70 Output only 73.94 2.18 Input + Output (default) 71.9 1.21 
+
+the agent’s final response into a concise and format-aligned summary consistent with the task specification. We com-pare four configurations: no processing, input only, output only, and joint input and output processing on GAIA-Val, as shown in Table 7. This design represents one possible im-plementation of I/O processing, and the framework supports more flexible configurations that can integrate different pre-processing or post-processing strategies as needed. As summarized in Table 7, post-hoc output processing is the primary driver of performance gains, while input pro-cessing provides smaller but stabilizing effects. Using these mechanisms, the framework enhances overall reasoning ac-curacy by enforcing structured generation and consistent adherence to task specifications. 
+
+# 5. Conclusion 
+
+We presented MiroFlow , a state-of-the-art, flexible, robust, and reproducible agent framework designed to overcome the limitations of existing agent systems in complex deep-research scenarios. This is achieved by integrating a hier-archical agent architecture with an agent graph, a robust workflow, and an optional heavy-reasoning mode. Through extensive experiments across multiple bench-marks, we show that MiroFlow achieves reproducible state-of-the-art performance without task-specific tuning and generalizes reliably across heterogeneous envi-ronments. Detailed ablation studies further provide valuable insights for advancing agent-system design. We believe MiroFlow offers a solid foundation for future agent research and development, enabling more ac-cessible, scalable, and trustworthy agent-based intelligence. 
+
+# References 
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ah-mad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 ,2023. 3 [2] MiniMax AI. Minimax m2 & agent: Ingenious in simplicity. 
+
+https://www.minimax.io/news/minimax- m2 ,2025. 7 [3] Anthropic. Introducing the model context protocol. https: //www.anthropic.com/news/model- context-protocol , 2024. 5 [4] Anthropic. Claude 3.7 sonnet system card. Technical report, Anthropic, 2025. 3, 4, 6 [5] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. Qwen technical report. arXiv preprint arXiv:2309.16609 , 2023. 1, 3 [6] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Sub-biah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakan-tan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Lan-guage models are few-shot learners. Advances in neural in-formation processing systems , 33:1877–1901, 2020. 1, 3 [7] ByteDance. Futurex-ai leaderboard. https://futurex-ai.github.io/ , 2025. Accessed: 2025-11-14. 7 [8] Kaiyuan Chen, Yixin Ren, Yang Liu, Xiaobo Hu, Haotong Tian, Tianbao Xie, Fangfu Liu, Haoye Zhang, Hongzhang Liu, Yuan Gong, Chen Sun, Han Hou, Hui Yang, James Pan, Jianan Lou, Jiayi Mao, Jizheng Liu, Jinpeng Li, Kangyi Liu, Kenkun Liu, Rui Wang, Run Li, Tong Niu, Wenlong Zhang, Wenqi Yan, Xuanzheng Wang, Yuchen Zhang, Yi-Hsin Hung, Yuan Jiang, Zexuan Liu, Zihan Yin, Zijian Ma, and Zhiwen Mo. xbench: Tracking agents productivity scal-ing with profession-aligned real-world evaluations, 2025. 2, 6[9] Kaiyuan Chen, Yixin Ren, Yang Liu, Xiaobo Hu, Haotong Tian, Tianbao Xie, Fangfu Liu, Haoye Zhang, Hongzhang Liu, Yuan Gong, Chen Sun, Han Hou, Hui Yang, James Pan, Jianan Lou, Jiayi Mao, Jizheng Liu, Jinpeng Li, Kangyi Liu, Kenkun Liu, Rui Wang, Run Li, Tong Niu, Wenlong Zhang, Wenqi Yan, Xuanzheng Wang, Yuchen Zhang, Yi-Hsin Hung, Yuan Jiang, Zexuan Liu, Zihan Yin, Zijian Ma, and Zhiwen Mo. xbench: Tracking agents productivity scal-ing with profession-aligned real-world evaluations. arXiv preprint arXiv:2506.13651 , 2025. 6 [10] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Łukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 , 2021. 3 [11] Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Marcel Blis-tein, Ori Ram, Dan Zhang, Evan Rosen, et al. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities. arXiv preprint arXiv:2507.06261 , 2025. 3 [12] Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Marcel Blis-tein, Ori Ram, Dan Zhang, Evan Rosen, et al. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities. arXiv preprint arXiv:2507.06261 , 2025. 6 [13] Common Crawl. Common crawl: Open repository of web crawl data. https://commoncrawl.org/ , 2007. Ac-cessed: 2025-11-14. 1, 2 [14] DeepSeek-AI, Xiao Bi, Deli Chen, Guanting Chen, Shan-huang Chen, Damai Dai, Chengqi Deng, et al. Deepseek 
+
+9llm: Scaling open-source language models with longter-mism. arXiv preprint arXiv:2401.02954 , 2024. 1, 3 [15] DeepSeek-AI et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 , 2025. 3, 7 [16] Jesse Dodge, Maarten Sap, Ana Marasovi´ c, William Agnew, Gabriel Ilharco, Dirk Groeneveld, Margaret Mitchell, and Matt Gardner. Documenting large webtext corpora: A case study on the colossal clean crawled corpus. arXiv preprint arXiv:2104.08758 , 2021. 1, 2 [17] FoundryLabs, Inc. E2b — the enterprise ai agent cloud. 
+
+https://e2b.dev , 2025. Accessed: 2025-11-14. 6 [18] Google. Try deep research and our new experimental model in gemini, your ai assistant. https://blog. google / products / gemini / google - gemini -deep-research/ , 2024. 3 [19] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Ab-hinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. 3 [20] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Mea-suring massive multitask language understanding. arXiv preprint arXiv:2009.03300 , 2020. 3 [21] Mengkang Hu, Yuhang Zhou, Wendong Fan, Yuzhou Nie, Bowei Xia, Tao Sun, Ziyu Ye, Zhaoxuan Jin, Yingru Li, Qiguang Chen, Zeyu Zhang, Yifeng Wang, Qianshuo Ye, Bernard Ghanem, Ping Luo, and Guohao Li. Owl: Optimized workforce learning for general multi-agent as-sistance in real-world task automation. arXiv preprint arXiv:2505.23885 , 2025. 1, 3, 7, 5 [22] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perel-man, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Weli-hinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card. 
+
+arXiv preprint arXiv:2410.21276 , 2024. 6 [23] Albert Q. Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lam-ple, Lucile Saulnier, L´ elio Renard Lavaud, Marie-Anne Lachaux, Pierre Stock, Teven Le Scao, Thibaut Lavril, Thomas Wang, Timoth´ ee Lacroix, and William El Sayed. Mistral 7b. arXiv preprint arXiv:2310.06825 , 2023. 3 [24] Jina AI. Jina AI: Your Search Foundation, Supercharged. 
+
+https://jina.ai/ , 2020. Accessed: 2025-11-14. 6 [25] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. Scaling laws for neural language models. arXiv preprint arXiv:2001.08361 ,2020. 2 [26] Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Zi-wei Liu, and Chunyuan Li. Llava-onevision: Easy visual task transfer. arXiv preprint arXiv:2408.03326 , 2024. 3 [27] Xiaoxi Li, Jiajie Jin, Guanting Dong, Hongjin Qian, Yongkang Wu, Ji-Rong Wen, Yutao Zhu, and Zhicheng Dou. Webthinker: Empowering large reasoning models with deep research capability. arXiv preprint arXiv:2504.21776 , 2025. 6[28] Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Ed-wards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. Let’s verify step by step. 
+
+arXiv preprint arXiv:2305.20050 , 2023. 3 [29] Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, Bochao Wu, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, et al. Deepseek-v3 technical report. 
+
+arXiv preprint arXiv:2412.19437 , 2024. 3 [30] Jiarun Liu, Shiyue Xu, Shangkun Liu, Yang Li, Wen Liu, Min Liu, Xiaoqing Zhou, Hanmin Wang, Shilin Jia, zhen Wang, Shaohua Tian, Hanhao Li, Junbo Zhang, Yongli Yu, Peng Cao, and Haofen Wang. Joyagent-jdgenie: Technical report on the gaia. arXiv preprint arXiv:2510.00510 , 2025. 1, 7, 5 [31] Junyu Luo, Weizhi Zhang, Ye Yuan, Yusheng Zhao, Jun-wei Yang, Yiyang Gu, Bohan Wu, Binqi Chen, Ziyue Qiao, Qingqing Long, et al. Large language model agent: A survey on methodology, applications and challenges. arXiv preprint arXiv:2503.21460 , 2025. 3 [32] Manus AI. Manus: Hands on ai. https://manus.im ,2025. Accessed: 2025-11-14. 7 [33] Mathematical Association of America. American invita-tional mathematics examination (aime) 2025. https:// artofproblemsolving.com/wiki/index.php/ 2025_AIME_I , 2025. Problems from AIME I/II 2025. 3 [34] Gr´ egoire Mialon, Cl´ ementine Fourrier, Thomas Wolf, Yann LeCun, and Thomas Scialom. GAIA: a benchmark for gen-eral AI assistants. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 . OpenReview.net, 2024. 2, 6 [35] Microsoft. MarkItDown. https://github.com/ microsoft/markitdown , 2025. Python package. 6 [36] Moonshot. Kimi k1.5: Scaling reinforcement learning with llms. arXiv preprint arXiv:2501.12599 , 2025. 3 [37] OpenAI. Math-500: A 500-problem subset of the math dataset. https://github.com/openai/prm800k# math - splits , 2023. Subset introduced alongside PRM800K for Let’s Verify Step by Step . 3 [38] OpenAI. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 , 2024. 3 [39] OpenAI. Introducing deep research. https : / / openai . com / index / introducing - deep -research/ , 2025. 3 [40] OpenAI. Chatgpt agent system card. https://cdn. openai.com/pdf/839e66fc-602c-48bf-81d3-b21eacc3459d/chatgpt_agent_system_card. pdf , 2025. 7 [41] OpenAI. Gpt-5. https://openai.com/gpt-5 , 2025. Accessed: 2025-11-14. 3, 4, 6, 7 [42] OpenAI. Introducing chatgpt agent: bridging re-search and action. https://openai.com/index/ introducing-chatgpt-agent/ , 2025. 7 [43] OpenAI. Introducing OpenAI o3 and o4-mini. https:// openai.com/index/introducing-o3-and-o4-mini/ , 2025. Announcement post. 3, 6 
+
+10 [44] OpenAI. Humanity’s last exam. arXiv preprint arXiv:2501.14249 , 2025. 2, 6 [45] Guilherme Penedo, Quentin Malartic, Daniel Hesslow, Ruxandra Cojocaru, Alessandro Cappelli, Hamza Alobei-dli, Baptiste Pannier, Ebtesam Almazrouei, and Julien Lau-nay. The refinedweb dataset for falcon llm: Outperforming curated corpora with web data, and web data only. arXiv preprint arXiv:2306.01116 , 2023. 1, 2 [46] Perplexity. Introducing perplexity deep research. 
+
+https : / / www . perplexity . ai / hub / blog / introducing-perplexitydeep-research , 2025. 3[47] Bryan A. Plummer, Liwei Wang, Chris M. Cervantes, Juan C. Caicedo, Julia Hockenmaier, and Svetlana Lazeb-nik. Flickr30k entities: Collecting region-to-phrase corre-spondences for richer image-to-sentence models. In Pro-ceedings of the IEEE International Conference on Computer Vision (ICCV) , 2015. 3 [48] Jiahao Qiu, Xuan Qi, Tongcheng Zhang, Xinzhe Juan, Ji-acheng Guo, Yifu Lu, Yimin Wang, Zixin Yao, Qihan Ren, Xun Jiang, Xing Zhou, Dongrui Liu, Ling Yang, Yue Wu, Kaixuan Huang, Shilong Liu, Hongru Wang, and Mengdi Wang. Alita: Generalist agent enabling scalable agen-tic reasoning with minimal predefinition and maximal self-evolution. arXiv preprint arXiv:2505.20286 , 2025. 7 [49] Alec Radford, Karthik Narasimhan, Tim Salimans, Ilya Sutskever, et al. Improving language understanding by generative pre-training. https://cdn.openai.com/ research - covers / language - unsupervised / language_understanding_paper.pdf , 2018. 3 [50] Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. Language models are unsuper-vised multitask learners. https://cdn.openai.com/ better- language- models/language_models_ are_unsupervised_multitask_learners.pdf ,2019. 3 [51] Aymeric Roucher, Albert Villanova del Moral, Thomas Wolf, Leandro von Werra, and Erik Kaunism¨ aki. ‘smolagents‘: a smol library to build great agentic systems. https: //github.com/huggingface/smolagents , 2025. 1, 7, 5 [52] Bernat Sampera. Event Deep Research. https : / / github . com / bernatsampera / event - deep -research , 2025. Open-source agent for structured historical timelines, used as the basis for FutureX EventDeepResearch-v2. Accessed: 2025-11-14. 7 [53] Timo Schick, Jane Dwivedi-Yu, Roberto Dess` ı, Roberta Raileanu, Maria Lomeli, Eric Hambro, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Lan-guage models can teach themselves to use tools. Advances in Neural Information Processing Systems , 36:68539–68551, 2023. 3 [54] Serper.dev. Serper: The World’s Fastest and Cheapest Google Search API. https://serper.dev/ , 2025. Ac-cessed: 2025-11-14. 6 [55] Yongliang Shen, Kaitao Song, Xu Tan, Dongsheng Li, Weiming Lu, and Yueting Zhuang. Hugginggpt: Solving ai tasks with chatgpt and its friends in huggingface. In Ad-vances in Neural Information Processing Systems , 2023. 3 [56] Amanpreet Singh, Vivek Natarajan, Meet Shah, Yu Jiang, Xinlei Chen, Dhruv Batra, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. 3 [57] Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen, Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, et al. Kimi k2: Open agentic intelli-gence. arXiv preprint arXiv:2507.20534 , 2025. 3 [58] MiroMind AI Team. Mirothinker: An open-source agen-tic model series trained for deep research and complex, long-horizon problem solving. https://github.com/ MiroMindAI/MiroThinker , 2025. 6 [59] Qwen Team. Qwq-32b: Embracing the power of reinforce-ment learning, 2025. 3 [60] Tongyi DeepResearch Team, Baixuan Li, Bo Zhang, Dingchu Zhang, Fei Huang, Guangyu Li, Guoxin Chen, Huifeng Yin, Jialong Wu, Jingren Zhou, Kuan Li, Liang-cai Su, Litu Ou, Liwen Zhang, Pengjun Xie, Rui Ye, Wen-biao Yin, Xinmiao Yu, Xinyu Wang, Xixi Wu, Xuanzhong Chen, Yida Zhao, Zhen Zhang, Zhengwei Tao, Zhongwang Zhang, Zile Qiao, Chenxi Wang, Donglei Yu, Gang Fu, Haiyang Shen, Jiayin Yang, Jun Lin, Junkai Zhang, Kui Zeng, Li Yang, Hailong Yin, Maojia Song, Ming Yan, Min-peng Liao, Peng Xia, Qian Xiao, Rui Min, Ruixue Ding, Runnan Fang, Shaowei Chen, Shen Huang, Shihang Wang, Shihao Cai, Weizhou Shen, Xiaobin Wang, Xin Guan, Xinyu Geng, Yingcheng Shi, Yuning Wu, Zhuo Chen, Zijian Li, and Yong Jiang. Tongyi deepresearch technical report. arXiv preprint arXiv:2510.24701 , 2025. 1, 3, 7, 5 [61] Xiaomi LLM-Core Team. Mimo-vl technical report. arXiv preprint arXiv:2506.03569 , 2025. 3 [62] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timoth´ ee Lacroix, Baptiste Rozi` ere, Naman Goyal, Eric Hambro, Faisal Azhar, Aure-lien Rodriguez, Armand Joulin, Edouard Grave, and Guil-laume Lample. Llama: Open and efficient foundation lan-guage models. arXiv preprint arXiv:2302.13971 , 2023. 1, 3[63] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-reit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. Advances in neural information processing systems , 30, 2017. 2 [64] Weiyun Wang, Zhangwei Gao, Lixin Gu, Hengjun Pu, Long Cui, Xingguang Wei, Zhaoyang Liu, Linglin Jing, Shenglong Ye, Jie Shao, et al. Internvl3. 5: Advancing open-source multimodal models in versatility, reasoning, and efficiency. 
+
+arXiv preprint arXiv:2508.18265 , 2025. 3 [65] Xingyao Wang, Boxuan Li, Yufan Song, Frank F. Xu, Xian-gru Tang, Mingchen Zhuge, Jiayi Pan, Yueqi Song, Bowen Li, Jaskirat Singh, Hoang H. Tran, Fuqiang Li, Ren Ma, Mingzhang Zheng, Bill Qian, Yanjun Shao, Niklas Muen-nighoff, Yizhe Zhang, Binyuan Hui, Junyang Lin, Robert Brennan, Hao Peng, Heng Ji, and Graham Neubig. Open-hands: An open platform for AI software developers as gen-
+
+11 eralist agents. In The Thirteenth International Conference on Learning Representations , 2025. 3 [66] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large lan-guage models. Advances in neural information processing systems , 35:24824–24837, 2022. 3 [67] Jason Wei, Zhiqing Sun, Spencer Papay, Scott McKinney, Jeffrey Han, Isa Fulford, Hyung Won Chung, Alex Tachard Passos, William Fedus, and Amelia Glaese. Browsecomp: A simple yet challenging benchmark for browsing agents. 
+
+arXiv preprint arXiv:2504.12516 , 2025. 2, 6 [68] Chenfei Wu, Shengming Yin, Weizhen Qi, Xiaodong Wang, Zecheng Tang, and Nan Duan. Visual chatgpt: Talking, drawing and editing with visual foundation models. arXiv preprint arXiv:2303.04671 , 2023. 3 [69] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. 3, 4, 7 [70] Hui Yang, Sifu Yue, and Yunzhong He. Auto-gpt for on-line decision making: Benchmarks and additional opinions. 
+
+arXiv preprint arXiv:2306.02224 , 2023. 3 [71] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. ReAct: Synergizing reasoning and acting in language models. In International Conference on Learning Representations (ICLR) , 2023. 3 [72] Chengyue Yu, Siyuan Lu, Chenyi Zhuang, Dong Wang, Qin-tong Wu, Zongyue Li, Runsheng Gan, Chunfeng Wang, Siqi Hou, Gaochi Huang, Wenlong Yan, Lifeng Hong, Aohui Xue, Yanfeng Wang, Jinjie Gu, David Tsai, and Tao Lin. Aworld: Orchestrating the training recipe for agentic ai. 
+
+arXiv preprint arXiv:2508.20404 , 2025. 1, 3, 7, 5 [73] Aohan Zeng, Xiao Liu, Zhengxiao Du, Zihan Wang, Hanyu Lai, Ming Ding, Zhuoyi Yang, Yifan Xu, Wendi Zheng, Xiao Xia, et al. Glm-130b: An open bilingual pre-trained model. 
+
+arXiv preprint arXiv:2210.02414 , 2022. 3 [74] Aohan Zeng, Xin Lv, Qinkai Zheng, Zhenyu Hou, Bin Chen, Chengxing Xie, Cunxiang Wang, Da Yin, Hao Zeng, Jiajie Zhang, et al. Glm-4.5: Agentic, reasoning, and coding (arc) foundation models. arXiv preprint arXiv:2508.06471 , 2025. 3[75] Zhiyuan Zeng, Jiashuo Liu, Siyuan Chen, Tianci He, Yali Liao, Yixiao Tian, Jinpeng Wang, Zaiyuan Wang, Yang Yang, Lingyue Yin, Mingren Yin, Zhenwei Zhu, Tianle Cai, Zehui Chen, Jiecao Chen, Yantao Du, Xiang Gao, Jiacheng Guo, Liang Hu, Jianpeng Jiao, Xiangsheng Li, Jingkai Liu, Shuang Ni, Zhoufutu Wen, Ge Zhang, Kaiyuan Zhang, Xin Zhou, Jose Blanchet, Xipeng Qiu, Mengdi Wang, and Wenhao Huang. Futurex: An advanced live bench-mark for llm agents in future prediction. arXiv preprint arXiv:2508.11987 , 2025. 2, 6 [76] Wentao Zhang, Liang Zeng, Yuzhen Xiao, Yongcong Li, Ce Cui, Yilei Zhao, Rui Hu, Yang Liu, Yahui Zhou, and Bo An. Agentorchestra: Orchestrating hierarchical multi-agent intel-ligence with the tool-environment-agent(tea) protocol. arXiv preprint arXiv:2506.12508 , 2025. 1, 7, 5 [77] Peilin Zhou, Bruce Leon, Xiang Ying, Can Zhang, Yifan Shao, Qichen Ye, Dading Chong, Zhiling Jin, Chenxuan Xie, Meng Cao, Yuxin Gu, Sixin Hong, Jing Ren, Jian Chen, Chao Liu, and Yining Hua. Browsecomp-zh: Benchmarking web browsing ability of large language models in chinese. 
+
+arXiv preprint arXiv:2504.19314 , 2025. 2, 6 [78] He Zhu, Tianrui Qin, King Zhu, Heyuan Huang, Yeyi Guan, Jinxiang Xia, Yi Yao, Hanhao Li, Ningning Wang, Pai Liu, et al. Oagents: An empirical study of building effective agents. arXiv preprint arXiv:2506.15741 , 2025. 7, 5 
+
+12 MiroFlow: Towards High-Performance and Robust Open-Source Agent Framework for General Deep Research Tasks 
+
+# Supplementary Material 
+
+# A. Empirical Examples of Instability in Agent Systems 
+
+In this section, we present empirical examples to demonstrate that agent instability primarily arises from several distinct sources. One significant source is the failure in instruction or output adherence, where agents neglect explicit constraints or produce malformed outputs that violate required formats (see Figure 5, Figure 6 and Figure 7). Additionally, randomness in search results can introduce variability in the retrieved context, directly impacting the solvability of a given task (see Figure 9). External factors also play a role, as connection instability—manifesting as timeouts or access restrictions—can block essential data access during large-scale experiments (see Figure 8). Furthermore, a critical internal failure mode involves the LLM’s misinterpretation of tool or network errors; agents frequently misdiagnose system-level faults (such as missing file uploads or syntax errors) as data availability problems, leading to hallucinated responses (see Figure 10 and Figure 11). 
+
+User: Each client has ordered a new awning for the back of the house... houses with odd-numbered street addresses face east... even-numbered... face west. How many... will be receiving the sunset awning design? (The LLM missed the information highlighted in red.) 
+
+Assistant: I need to apply the odd/even logic: even numbers = west-facing = sunset design. 
+
+Assistant: Counting the even-numbered addresses... There are 4 clients. 
+
+Assistant: Final Answer: \boxed {4}
+
+(Result: INCORRECT. Ground Truth: 8) Figure 5. Example of Instability by Instruction Adherence . The agent fails to follow the spatial constraint regarding the back of the house , causing a logical inversion where it selects West-facing fronts instead of West-facing backs for the sunset design. 
+
+User: ...create a list of just the vegetables... Use the exact spellings given (“sweet potatoes,” not “sweet potato,” etc.). [List includes “fresh basil”] (The LLM missed the information highlighted in red.) 
+
+Assistant: I will classify the items. “Fresh basil” is botanically a vegetable (leaves). 
+
+Assistant: The adjective “fresh” in “fresh basil” has been omitted to keep the botanical noun consistent. 
+
+Assistant: Final Answer: \boxed {basil, broccoli, celery, lettuce, sweet potatoes }
+
+(Result: INCORRECT. Ground Truth: broccoli, celery, fresh basil, lettuce, sweet potatoes) Figure 6. Example of Instability by Instruction Adherence . The agent violates the negative constraint to use exact spellings , deliberately altering fresh basil to basil based on internal reasoning despite the explicit instruction to preserve the original text. 
+
+1User: Query: Calculate the standard deviation of the daily closing prices for Tesla (TSLA) stock from January 1, 2020, to December 31, 2022. 
+
+Assistant: I will use Python to download the historical data and calculate the standard deviation. 
+
+Assistant: 
+
+<use mcp tool> <server name>tool-code</server name> <tool name>run python code</tool name> <arguments> 
+
+{
+
+"sandbox id": "sbx 123", "code block": "import yfinance as yf \nimport pandas as pd \n\n# ... (Agent generates 50+ lines of complex data cleaning and plotting code) ... \nprint(f’The standard deviation is {std dev }’) \n# ..." 
+
+}
+
+</arguments> </use mcp tool> 
+
+Tool: [msg error json] Error parsing tool arguments: JSONDecodeError: Invalid control character at: line 15 column 42 (char 543). The code block likely contained unescaped characters. 
+
+Assistant: It appears the sandbox environment is unable to process the request. Based on historical volatility data for that period, I can determine the value. (Didn’t try to fix the formatting.) 
+
+Assistant: Final Answer: \boxed {124.56 }
+
+(Result: INCORRECT. Ground Truth: 108.32) Figure 7. Example of Instability by Instruction Adherence . The agent encounters a JSON parsing error due to an overly long code block. Instead of fixing the formatting, it misinterprets the error as a system limitation and hallucinates a numerical answer without tool verification. The text marked in red indicates the error. 
+
+User: What is the latest chronological year date written in the image on the webpage found via Carl Nebel’s Wiki? 
+
+Assistant: I will scrape the citation URL to find the image... 
+
+Tool: HTTPConnectionPool: Max retries exceeded... Failed to resolve ‘sloanrarebooks.com’ [Errno -3] 
+
+Assistant: The site is down. Attempting to find the image via alternative sources (Invaluable, Picryl)... 
+
+Tool: Warning: Target URL returned error 403: Forbidden (Repeated for multiple sources) 
+
+Assistant: Unable to view actual images due to access blocks. I must rely on the archived text description which states: “Rancheros... 1834”. 
+
+Assistant: Final Answer: \boxed {1834 }
+
+(Result: INCORRECT. Ground Truth: 1927) Figure 8. Example of Connection Instability . Persistent network failures (DNS, 403 Forbidden) block access to the required image, forcing the agent to abandon visual verification and rely on text descriptions, leading to an incorrect response. The text marked in red indicates the error. 
+
+2User: ...If the references in the “Trans fatty acid” paper bibliography were numbered starting with 1, give me the numbers... used to fill the cells... 
+
+[Context]: The Ground Truth answer is “8, 29, 22, 1, 8, 26”, implying the target bibliography has at least 29 citations. 
+
+[Attempt 1] Assistant: I have retrieved the full text PDF. I verify that the reference list is numbered 1-28. 
+
+Tool: References ... 28. Zock P.L., Katan M.B. (1992)... (Same paper, but a version with only 28 references) 
+
+Assistant: “High-linoleic...” maps to reference 28. “Composition...” is not assigned a numbered reference (assigning 0). 
+
+Assistant: Final Answer: \boxed {8,28,0,1,8,28 }
+
+(Result: INCORRECT) 
+
+[Attempt 2] Assistant: I will search for the specific Zock & Katan 1992 paper to verify the diet labels... 
+
+Tool: Zock P.L., Katan M.B. (1992)... Journal of Lipid Research... (Same paper, but a version with more references) 
+
+Assistant: “High-linoleic acid diet...” describes the diets in Zock & Katan 1992, reference #29. 
+
+Assistant: Final Answer: \boxed {8,29,22,29,8,13 }
+
+(Result: INCORRECT - Closer to GT, but still failed on specific mapping due to other ambiguities) Figure 9. Example of Instability by Randomness in Search Results . The agent retrieves a document version with only 28 references, rendering the task unsolvable as the ground truth requires Reference #29. In a separate attempt, the agent bypasses this limitation via a targeted search, demonstrating how search result variability directly impacts solvability. The text marked in red indicates the error. 
+
+User: Please execute the provided python script audit log parser.py on the server logs 2024.txt file to count the number of “CRITICAL” error entries. 
+
+Assistant: I will run the parser script in the python sandbox environment to analyze the logs. First, let me upload files to the sandbox. 
+
+Assistant: 
+
+<use mcp tool> <server name>tool-code</server name> <tool name>upload file to sandbox</tool name> <arguments> 
+
+{
+
+"sandbox id": "sbx 123", "local path": "audit log parser.py" (The missing argument is the root cause of the error) 
+
+"sandbox path": "/sandbox/audit log parser.py" 
+
+}
+
+</arguments> </use mcp tool> 
+
+Tool: 
+
+python3: can’t open file ’/sandbox/audit log parser.py’: [Errno 2] No such file or directory 
+
+Assistant: It seems the sandbox cannot read the log file or the file is empty. I will estimate the critical errors based on typical server log distributions for this file size. 
+
+Assistant: Final Answer: \boxed {42 }
+
+(Result: INCORRECT. Ground Truth: 108) Figure 10. Instability by Misinterpretation of Tool . The agent fails to upload the required files to the sandbox (missing local path ), causing a FileNotFound error. It misinterprets this system error as a data issue and hallucinates a result instead of correcting tool usage. The text marked in red indicates the error. 
+
+3User: Query: Find the Wikipedia page for the game ... How many revisions did that page have before the month listed as the game’s release date on that Wikipedia page? 
+
+User: No revisions in August 2016. Let me check July 2016 to continue building the revision count. 
+
+Assistant: 
+
+<use mcp tool> <server name>tool-searching</server name> <tool name>search wiki revision</tool name> <arguments> 
+
+{
+
+"entity": "Outer Wilds", "year": 2016, "month": 7, "max revisions": 100 
+
+}
+
+</arguments> </use mcp tool> (The closing tag is missing) 
+
+Tool: Tool call failed, check argument format. 
+
+Assistant: It seems there is an issue with the tool accessing records for this date range. I will stop the search here and summarize the revisions found so far... 
+
+Assistant: Final Answer: \boxed {13 }
+
+(Result: INCORRECT. The sum of the agent’s own list is 22. Ground Truth: 60) Figure 11. Instability by Misinterpretation of Tool . Output instability causes the agent to miss the closing tool tag, leading to a syntax error. The agent misinterprets this as a data access failure, abandoning the search and providing an incorrect answer based on incomplete data. The text marked in red indicates the error. 
+
+4B. Framework Comparison on Flexibility and Stability 
+
+We summarize several open-source agent frameworks in Table 8 to compare their flexibility and stability. To assess flexibility, we use the complexity of each framework’s agent architecture as an indicator—the more expressive the architecture, the greater the potential flexibility. We further illustrate the unique flexibility enabled by the agent graph in Appendix D. For stability, we focus on the reproducibility effort required and the variance in model performance as qualitative metrics. Overall, MiroFlow achieves top-tier results in flexibility, stability, and performance. 
+
+Table 8. Comparison of agent frameworks. Flexibility : “Single-Agent” and “Multi-Agent” indicates single-agent or multi-agent frame-works, some of them are designed for specific benchmarks; “Graph” denotes general frameworks supporting dynamic and adaptive agent graph workflows across diverse tasks. Stability : “Poor” indicates frameworks that are difficult to reproduce; “Fair” denotes reproducible performance under well-maintained environments; “Good” represents frameworks with special designs enhancing robustness. Scores marked with an asterisk (*) indicate that the final answer is obtained by integrating the results of multiple independent agents. All MiroFlow results are obtained without using heavy-reasoning mode. “D.R.” in this table refers to DeepResearch. 
+
+Open-sourced Agent Framework LLM Base Model Flexibility Stability GAIA Val Avg 
+
+smolagent [51] Openai o1 Single-Agent Good 49.7 OWL [21] Claude–3.7–Sonnet Multi-Agent Poor 69.7 AWorld [72] Claude–3.7–Sonnet Multi-Agent Fair -Tongyi–D.R. [60] Tongyi–D.R.–30B–A3B Single-Agent Fair 70.9 AgentOrchestra [76] Claude–3.7–Sonnet, GPT–4.1 OpenAI–Computer–Use, etc. Multi-Agent Poor 82.4 JoyAgent [30] Claude-4, o4-mini Multi-Agent Fair 75.15 
+
+MiroFlow (Ours) Claude–3.7–Sonnet Graph Good 73.1/ 82.4 *
+
+MiroFlow (Ours) GPT–5 Graph Good 71.90 
+
+As noted in previous studies [78], some open-source frameworks are difficult to reproduce, and some reported perfor-mance remains ambiguous. We have also made every effort to reproduce the results for OWL[21] and AgentOrchestra[76], addressing notable bugs and errors, as well as retrying all network connections. Reproduced results are shown in Table 9. Despite these efforts, the reproduced scores are lower than those originally reported. While we followed the instructions provided in their papers and GitHub README, our inability to fully reproduce the reported results does not imply that their claims are necessarily invalid. It simply highlights that these frameworks may not be easily reproducible and could benefit from improved robustness and stability. We present our findings here for clarity and community discussion. 
+
+Table 9. Reproducing results for OWL and AgentOrchestra. L1, L2, and L3 represent three difficulty levels of the GAIA Validation set, ordered by increasing difficulty. 
+
+Framework GAIA Val (pass@1) L1 L2 L3 Avg OWL (Reported) 84.9 68.6 42.3 69.7 OWL (Reproduced) 78.8 47.7 26.9 53.9 
+
+Performance Difference -6.1 -20.9 -15.4 -15.8 AgentOrchestra (Reported) 92.5 83.7 57.7 82.4 AgentOrchestra (Reproduced) 62.3 54.7 38.5 54.6 
+
+Performance Difference -30.2 -29.0 -19.2 -27.8 
+
+# C. Multi-Agent Performance Degradation on GAIA 
+
+We evaluate both single-agent and multi-agent configurations on GAIA-Val, BrowseComp-200, and HLE-200 (randomly sampled 200 tasks from BrowseComp and HLE-text-only). While the multi-agent setup generally yields higher performance, the single-agent model achieves superior results on GAIA-Val. This discrepancy likely stems from the strongly sequential 5task structure of the GAIA benchmark: multi-agent decomposition increases the risk of information loss or mistake prop-agation across agents, whereas a single-agent model preserves a continuous reasoning trajectory and more stable global context—especially important for multimodal tasks. Which of the fruits shown in the 2008 painting "Embroidery from Uzbekistan" were served as part of the 
+
+October 1949 breakfast menu for the ocean liner that was later used as a floating prop for the film "The Last 
+
+Voyage"? 
+
+# Single -Agent Multi -Agent 
+
+1. Identify the correct painting and 
+
+recognize the name the fruits in the painting 
+
+2. Locate the exact menu and extract fruit items from 
+
+the menu 
+
+3. Match & intersect the two fruit lists 
+
+Step 1
+
+🤖 Task : Identify the correct painting 
+
+📑 Result :
+
+• Work: “Embroidery from Uzbekistan” 
+
+• Painter: Janet Fish(American, born 1938) 
+
+• Fruits in the painting: Bananas, Lemons, Pears, 
+
+Watermelon 
+
+Step 2
+
+🤖 Task: Locate the exact menu and extract fruit 
+
+items from the menu 
+
+📑 Result: 
+
+• The menu is the October 1949 breakfast menu 
+
+of SS Île de France 
+
+• Found a low -resolution scanned image of the 
+
+menu. 
+
+• Fruits in the menu: grape; oranges; apples ❌
+
+Step 3
+
+Task: Cross -matching the two sets 
+
+Result: The answer is: None ❌
+
+Step 4
+
+Task: Evidence Verification 
+
+Result: The question implies that there should be an 
+
+overlap between the fruits in the painting and those 
+
+on the menu. The scanned menu image has very low 
+
+resolution, making text recognition unreliable. 
+
+…
+
+Found a text -based version of the same menu. 
+
+Fruits in the menu : honey dew, grape, red raisin, 
+
+orange, pear, banana, apple 
+
+Step 5
+
+Task: Cross -matching the two sets 
+
+Result: The final answer is: bananas and pears ✅
+
+Sub -Agent 1 
+
+🤖 Task: Identify the correct painting 
+
+📑 Result: 
+
+• Work: “Embroidery from Uzbekistan” 
+
+• Painter: Janet Fish(American, born 1938) 
+
+• Fruits in the painting: Bananas, Lemons, Pears, 
+
+Watermelon 
+
+Sub -Agent 2: 
+
+🤖 Task: Locate the exact menu and extract fruit 
+
+items from the menu 
+
+📑 Result: 
+
+• The menu is to the October 1949 breakfast 
+
+menu of SS Île de France 
+
+• Found a low -resolution scanned image of the 
+
+menu. 
+
+• Fruits in the menu: grape; oranges; apples ❌
+
+Main Agent: 
+
+Task: Cross -matching the two sets 
+
+Result: The final answer is: None ❌
+
+Handled by a single agent. 
+
+(Global Context) 
+
+Distributed across two sub -agents. 
+
+(Context Separation) 
+
+Multi -agent Propagation Error: 
+
+Sub -agent 2 mistake (misinformation )
+
++
+
+Information loss due to separation 
+
+→
+
+incorrect final match 
+
+# Task 
+
+# Plan 
+
+# Trajectory 
+
+> Shared  Context
+
+Separate Context 
+
+Figure 12. Mistake propagation in multi-agent. Multi-agent structure has multiple different and separate context. Decomposing the sequential tasks has the risk of information loss or mistake propagation across agents, whereas a single-agent model has a more stable global context. The red bounding box highlights where the agent made an error (caused by using a low-resolution image that produced a biased result). Because a single agent maintains more comprehensive contextual awareness, it can further correct and verify this error in subsequent tasks. In contrast, the downstream agent in a multi-agent setting may lack access to such fine-grained details, leading it to accept the incorrect conclusion. 
+
+6D. Agent Graph 
+
+In traditional agent architectures, two common forms are typically observed: single-agent and multi-agent systems. Specifi-cally, as shown in Figure 13, a single-agent architecture consists of a single node where the task is handled by the agent itself. In this architecture, the agent repeatedly calls its own strategies and functions to gradually solve the problem. While this approach is simple and well-suited for clear, well-defined tasks, it is limited when dealing with more complex or dynamic scenarios. On the other hand, a multi-agent system is more flexible and powerful, as shown in Figure 14. In this setup, there is usually a main agent and multiple sub-agents. The main agent is responsible for overall task planning and scheduling, and it can repeatedly call different sub-agents to handle various parts of the task. Each sub-agent typically focuses on specific functions or tasks, allowing the system to achieve more efficient task decomposition and parallel processing. However, while this structure enhances flexibility and efficiency, it still faces challenges in terms of complexity and scalability, especially when the task size increases. Efficiently coordinating multiple sub-agents remains a key challenge. In contrast to the traditional single-agent and multi-agent systems, our agent framework offers a more flexible and diverse call mechanism. We employ a directed graph structure that enables agents to interact and call upon each other in a more intricate manner. In this framework, task handling is not reliant on a single agent or a simple main-subordinate structure. Instead, it leverages a directed graph where a network of agents can dynamically interact with one another based on the task requirements. Each node in the graph represents an independent agent, and the relationships between agents are defined by edges, allowing agents to call upon each other’s functionalities and collaborate in a highly adaptable way. The key advantage of this directed graph structure lies in its flexibility and scalability. Each agent can not only call upon its own strategies and functions but can also access the functions of other agents in the graph. This enables highly customized operations depending on the task at hand. For instance, when facing complex, multi-layered tasks, the main agent (or scheduling agent) can dynamically select appropriate sub-agents for task decomposition, while agents can exchange information and collaborate through the edges of the graph. This structure allows the system to efficiently handle complex tasks and adapt to changing environments. Moreover, due to the high scalability of this architecture, when the system needs to tackle new tasks or extend its func-tionalities, new nodes can be added or the graph structure can be adjusted without the need to redesign the entire framework. This makes our agent framework more versatile and adaptable for a wide range of applications, with strong potential for long-term development. Three examples are shown in Figure 15, 16, 17 . It is important to note that Deep Research has a clearly linear, one-directional workflow structure; therefore, our method aligns with the multi-agent paradigm. Config Graph 
+
+main_agent: 
+
+prompt : MainAgentPrompt 
+
+llm : “claude -3.7 -sonnet ”
+
+tools :
+
+- searching 
+
+- code 
+
+- reasoning 
+
+main_agent   
+
+> Figure 13. Single-Agent Baseline. The system includes only one Main Agent, which must repeatedly perform reasoning steps, trigger tools, and call itself to complete a complex task. Due to the lack of role decomposition or specialized subagents, this architecture exhibits minimal flexibility and struggles with tasks that require modular expertise or parallel processing.
+
+7Config Graph 
+
+main_agent: 
+
+prompt : MainAgentPrompt 
+
+llm : “claude -3.7 -sonnet ”
+
+tools: 
+
+- reasoning 
+
+sub _agent: 
+
+prompt: Sub AgentPrompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- searching 
+
+- code 
+
+main_agent 
+
+sub _agent _1 
+
+sub _agent _2 sub _agent _3 Figure 14. Multi-Agent Baseline. The system consists of a Main Agent that decomposes a complex task into several subtasks and delegates them to multiple specialized Sub-Agents. Each Sub-Agent focuses on a specific type of reasoning or operation, enabling modularity, improved flexibility, and higher execution efficiency. Compared with the single-agent setup, this architecture better supports specialization, parallel processing, and robust task handling. However, it is still not flexible enough. 
+
+8Config Graph 
+
+main_agent: 
+
+prompt : TaskPlanning Prompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- Task planner 
+
+sub _agent _1 :
+
+prompt: TextOptimizationPrompt 
+
+llm : “Mirothinker -v1.0 ”
+
+tools: None 
+
+sub _agent _2 :
+
+prompt: StoryboardDesign Prompt 
+
+llm : “gpt -5”
+
+tools: None 
+
+sub _agent _3 :
+
+prompt: VisualPlanning Prompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- search -image 
+
+- generate -image 
+
+sub _agent _4 :
+
+prompt: Dubbing Prompt 
+
+llm : “claude -3.7 -sonnet” 
+
+tools: 
+
+- generate -sound 
+
+sub _agent _5 :
+
+prompt: Subtitle Prompt 
+
+llm : “claude -3.7 -sonnet” 
+
+tools: 
+
+- typesetting 
+
+main_agent 
+
+sub _agent _1 
+
+sub _agent _2 
+
+sub _agent _3 
+
+sub _agent _4 
+
+sub _agent _5 
+
+result Figure 15. Agent Graph in short video generation. The goal of the system is to transform a user-provided script into a complete short-video asset package. The Main Agent plans the workflow and dispatches subtasks to specialized Sub-Agents. Sub-Agent 1 optimizes and refines the input text, Sub-Agent 2 generates a structured storyboard, Sub-Agent 3 retrieves or creates visual materials, Sub-Agent 4 produces dubbing audio, and Sub-Agent 5 generates subtitles and handles typesetting. The outputs from all agents are finally aggregated to produce the final video content. 
+
+9Config Graph 
+
+main_agent: 
+
+prompt: TaskPlanning Prompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- Task planner 
+
+sub _agent _1 :
+
+prompt: ConstrainAnalysisPrompt 
+
+llm : “gpt -5”
+
+tools: None 
+
+sub _agent _2 :
+
+prompt: CandidateRoutesPrompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- map 
+
+- plan -transportation 
+
+sub _agent _3 :
+
+prompt: TargetScore Prompt 
+
+llm : “Mirothinker -v1.0 ”
+
+tools: None 
+
+sub _agent _4 :
+
+prompt: DetailedItinerar Prompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- search 
+
+sub _agent _5 :
+
+prompt: DraftReservation Prompt 
+
+llm : “claude -3.7 -sonnet” 
+
+tools: 
+
+- OTA 
+
+main_agent 
+
+sub _agent _1 sub _agent _2 
+
+sub _agent _3 
+
+sub _agent _4 
+
+result Figure 16. Agent Graph in complex travel planning and reservation drafting. The goal of the system is to convert user constraints and travel preferences into a detailed multi-city itinerary and a reservation-ready plan. The Main Agent decomposes the task and coordinates specialized Sub-Agents. Sub-Agent 1 analyzes constraints such as time, budget, and travel rules; Sub-Agent 2 generates feasible candidate routes and transportation options; Sub-Agent 3 evaluates routes with scoring criteria; Sub-Agent 4 expands the selected plan into a detailed day-by-day itinerary; and Sub-Agent 5 drafts preliminary reservation information including flights, hotels, and activities. These outputs are merged to form the final travel plan delivered to the user. 
+
+10 Config Graph 
+
+main_agent: 
+
+prompt: TaskPlanning Prompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- Task planner 
+
+sub _agent _1 :
+
+prompt: BackgroundPrompt 
+
+llm : “gpt -5”
+
+tools: 
+
+- readin g
+
+sub _agent _2 :
+
+prompt: TargetAnalysisPrompt 
+
+llm : “gpt -5”
+
+tools: None 
+
+sub _agent _3 :
+
+prompt: Resume Prompt 
+
+llm : “Mirothinker -v1.0 ”
+
+tools: 
+
+- generate -resume 
+
+sub _agent _4 :
+
+prompt: CoverLetter Prompt 
+
+llm : “gpt -5”
+
+tools: None 
+
+sub _agent _5 :
+
+prompt: JobRecommendation Prompt 
+
+llm : “claude -3.7 -sonnet” 
+
+tools: 
+
+- search 
+
+sub _agent _6 :
+
+prompt: Strategy Prompt 
+
+llm : “Mirothinker -v1.0 ”
+
+tools: None 
+
+main_agent 
+
+sub _agent _1 
+
+sub _agent _3 
+
+sub _agent _2 
+
+sub _agent _4 
+
+result 
+
+sub _agent _5 
+
+sub _agent _6 Figure 17. Agent Graph in job application material generation and delivery strategy. The goal of the system is to transform a user’s background and target job preferences into a complete set of application materials and a personalized job-hunting strategy. The Main Agent plans the overall workflow and delegates subtasks to specialized Sub-Agents. Sub-Agent 1 analyzes the user’s background and extracts key experience, Sub-Agent 2 interprets job requirements and target role expectations, Sub-Agent 3 generates tailored resumes, Sub-Agent 4 produces customized cover letters, Sub-Agent 5 retrieves suitable job openings and recommendations, and Sub-Agent 6 formulates an optimized application strategy. All outputs are finally aggregated to produce the final job application package. 
+
+11 E. Ablation on Context Length 
+
+Context Length. We investigate how maximum context length affects MiroFlow’s performance. Experiments are con-ducted on the GAIA validation set using GPT-5 in a single-agent configuration, which depends heavily on long contexts to maintain coherence across subtasks. We evaluate several context-length settings ranging up to 400k tokens, corresponding to GPT-5’s maximum input capacity. As shown in Figure 18, performance improves steadily as the context length increases. Short contexts (e.g., 8k) limit the model’s ability to retain intermediate reasoning steps, leading to incomplete or inconsistent solutions. Once the context is sufficiently large (24k–48k), accuracy rises notably across all difficulty levels. Beyond this range, gains gradually saturate, with only marginal improvements when extending to very long contexts such as 400k tokens. Harder tasks (L3) benefit the most from additional context, reflecting their greater dependence on long-range reasoning. 8k 24k 32k 40k 48k 54k 64k 400k 
+
+> Context Length
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> Score
+> L1 (easy)
+> L2
+> L3 (hard)
+> AVG
+
+Figure 18. Agent performance with respect to LLM context length. Performance of MiroFlow on the GAIA validation set using GPT-5 in a single-agent configuration under different maximum-context settings (8k–400k tokens). Accuracy improves substantially when increasing context from 8k to the 24k–48k range, after which gains begin to saturate. Harder tasks (L3) exhibit the strongest dependence on longer contexts. 
+
+# F. Agent Prompts 
+
+System prompt for the main agent in benchmark experiments: 
+
+In this environment you have access to a set of tools you can use to answer the user’s question. You only have access to the tools provided below. You can only use one tool per message, and will receive the result of that tool in the user’s next response. You use tools step-by-step to accomplish a given task, with each tool-use informed by the result of the previous tool-use. Today is: {formatted date }
+
+# Tool-Use Formatting Instructions Tool-use is formatted using XML-style tags. The tool-use is enclosed in <use mcp tool></use mcp tool> and each parameter is similarly enclosed within its own set of tags. The Model Context Protocol (MCP) connects to servers that provide additional tools 
+
+12 and resources to extend your capabilities. You can use the server’s tools via the ‘use mcp tool‘. Description: Request to use a tool provided by a MCP server. Each MCP server can provide multiple tools with different capabilities. Tools have defined input schemas that specify required and optional parameters. Parameters: - server name: (required) The name of the MCP server providing the tool - tool name: (required) The name of the tool to execute - arguments: (required) A JSON object containing the tool’s input parameters, following the tool’s input schema, quotes within string must be properly escaped, ensure it’s valid JSON Usage: <use mcp tool> <server name>server name here</server name> <tool name>tool name here</tool name> <arguments> 
+
+{{ "param1": "value1", "param2": "value2 \"escaped string \"" }} </arguments> </use mcp tool> Important Notes: - Tool-use must be placed **at the end** of your response, **top-level**, and not nested within other tags. - Always adhere to this format for the tool use to ensure proper parsing and execution. String and scalar parameters should be specified as is, while lists and objects should use JSON format. Note that spaces for string values are not stripped. The output is not expected to be valid XML and is parsed with regular expressions. Here are the functions available in JSONSchema format: # General Objective You accomplish a given task iteratively, breaking it down into clear steps and working through them methodically. ## Task Strategy 1. Analyze the user’s request and set clear, achievable sub-goals. Prioritize these sub-goals in a logical order. 2. Start with a concise, numbered, step-by-step plan (e.g., 1., 2., 3.) outlining how you will solve the task before taking any action. Each sub-goal should correspond to a distinct step in your task-solving process. 3. Work through these sub-goals sequentially. After each step, carefully review and extract all potentially relevant information, details, or implications from the tool result before proceeding. The user may provide tool-use feedback, reflect on the results, and revise your plan if needed. If you encounter new information or challenges, adjust your approach accordingly. Revisit previous steps to ensure earlier sub-goals or clues have not been overlooked or missed. 4. You have access to a wide range of powerful tools. Use them strategically to accomplish each sub-goal. ## Tool-Use Guidelines 1. **IMPORTANT: Each step must involve exactly ONE tool call only, unless the task is already solved. You are strictly prohibited from making multiple tool calls in a single 
+
+13 response.** 2. Before each tool call: - Briefly summarize and analyze what is currently known. - Identify what is missing, uncertain, or unreliable. - Be concise; do not repeat the same analysis across steps. - Choose the most relevant tool for the current sub-goal, and explain why this tool is necessary at this point. - Verify whether all required parameters are either explicitly provided or can be clearly and reasonably inferred from context. - Do not guess or use placeholder values for missing inputs. - Skip optional parameters unless they are explicitly specified. 3. All tool queries must include full, self-contained context. Tools do not retain memory between calls. Include all relevant information from earlier steps in each query. 4. Avoid broad, vague, or speculative queries. Every tool call should aim to retrieve new, actionable information that clearly advances the task. 5. **For historical or time-specific content**: Regular search engines return current webpage content, not historical content. Archived webpage search is essential for retrieving content as it appeared in the past, use related tools to search for the historical content. 6. Even if a tool result does not directly answer the question, thoroughly extract and summarize all partial information, important details, patterns, constraints, or keywords that may help guide future steps. Never proceed to the next step without first ensuring that all significant insights from the current result have been fully considered. ## Tool-Use Communication Rules 1. **CRITICAL: After issuing exactly ONE tool call, STOP your response immediately. You must never make multiple tool calls in a single response. Do not include tool results, do not assume what the results will be, and do not continue with additional analysis or tool calls. The user will provide the actual tool results in their next message.** 2. Do not present the final answer until the entire task is complete. 3. Do not mention tool names. 4. Do not engage in unnecessary back-and-forth or end with vague offers of help. Do not end your responses with questions or generic prompts. 5. Do not use tools that do not exist. 6. Unless otherwise requested, respond in the same language as the user’s message. 7. If the task does not require tool use, answer the user directly. 
+
+14
