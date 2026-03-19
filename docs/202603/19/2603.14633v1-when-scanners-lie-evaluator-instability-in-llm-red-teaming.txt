@@ -1,0 +1,540 @@
+Title: When Scanners Lie: Evaluator Instability in LLM Red-Teaming
+
+URL Source: https://arxiv.org/pdf/2603.14633v1
+
+Published Time: Tue, 17 Mar 2026 04:53:46 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+## When Scanners Lie: Evaluator Instability in LLM Red-Teaming 
+
+Lidor Erez *, Omer Hofman *† , Tamir Nizri, Roman Vainshtein 
+
+Fujitsu Research of Europe 
+
+Abstract 
+
+Automated LLM vulnerability scanners are in-creasingly used to assess security risks by mea-suring different attack type success rates (ASR). Yet the validity of these measurements hinges on an often-overlooked component: the eval-uator who determines whether an attack has succeeded. In this study, we demonstrate that commonly used open-source scanners exhibit measurement instability that depends on the evaluator component. Consequently, chang-ing the evaluator while keeping the attacks and model outputs constant can significantly alter the reported ASR. To tackle this prob-lem, we present a two-phase, reliability-aware evaluation framework. In the first phase, we quantify evaluator disagreement to identify at-tack categories where ASR reliability cannot be assumed. In the second phase, we propose a verification-based evaluation method where evaluators are validated by an independent ver-ifier, enabling reliability assessment without relying on extensive human annotation. Ap-plied to the widely used Garak scanner, we observe that 22 of 25 attack categories exhibit evaluator instability, reflected in high disagree-ment among evaluators. Our approach raises evaluator accuracy from 72% to 89% while en-abling selective deployment to control cost and computational overhead. We further quantify evaluator uncertainty in ASR estimates, show-ing that reported vulnerability scores can vary by up to ±33% depending on the evaluator. Our results indicate that the outputs of vulnerabil-ity scanners are highly sensitive to the choice of evaluators. Our framework offers a practi-cal approach to quantify unreliable evaluations and enhance the reliability of measurements in automated LLM security assessments. 
+
+1 Introduction 
+
+Automated AI red-teaming frameworks, often re-ferred to as AI vulnerability scanners, are increas- 
+
+> *Equal contribution.
+> †Corresponding author: omer.hofman@fujitsu.com
+
+ingly used to assess the security and robustness of GenAI systems that rely on large language models (LLMs)(Derczynski et al., 2024; Munoz et al., 2024). These scanners generate adversar-ial prompts designed to induce unsafe or policy-violating behavior and aggregate model responses into summary metrics, most prominently Attack Success Rate (ASR) (Yi et al., 2024; Chao et al., 2024a). ASR quantifies the percentage of attack attempts deemed successful and serves as a key indicator of AI system vulnerability. Consequently, ASR is often interpreted as a reflection of an AI system’s security posture, influencing model com-parisons and deployment decisions (Yi et al., 2024). However, ASR is not an inherent characteris-tic of a model. It is operationally defined by an evaluator that maps binary success labels to each prompt-response pair. In practice, scanners em-ploy evaluators defined by different decision rules, ranging from static heuristics (e.g., keyword or refusal-pattern matching) (Derczynski et al., 2026) to dynamic LLM-based judges conditioned on eval-uation rubrics (Zheng et al., 2023). Since the ASR computation relies on labels assigned by evaluators, changing one evaluator for another while holding attacks and model outputs fixed can alter the re-sulting score. This highlights the importance of consistent evaluation criteria to ensure reliability in the scoring process. Yet in many operational set-tings, ASR is interpreted as invariant to evaluator design. This assumption creates a methodological risk: inaccurate evaluators can inflate or suppress reported ASR, resulting in potentially misleading conclusions about the robustness of AI systems. Prior work has examined open-source LLM vul-nerability scanners through comparative analyses (Brokman et al., 2025; Hariharan et al., 2024). A separate line of research studies the reliability of evaluators used in text generation tasks, highlight-ing the brittleness of static rule-based detectors (Souly et al., 2024; Cai et al., 2024) and examining 1
+
+> arXiv:2603.14633v1 [cs.CR] 15 Mar 2026 Figure 1: Example of Evaluator-induced measurement instability in LLM vulnerability scanners. The same prompt and model response can produce different Attack Success Rate (ASR) outcomes depending on the evaluator used to determine attack success. A static keyword-based evaluator incorrectly labels the attack as successful, while an LLM-based evaluator correctly interprets the response as a refusal.
+
+the alignment and robustness of LLM-based judges (Thakur et al., 2025; Chen and Goldfarb-Tarrant, 2025). However, these studies primarily bench-mark scanners or improve LLM-based evaluators as general-purpose judges. They do not examine how evaluator substitution affects measurement sta-bility within scanners, nor do they propose mecha-nisms to mitigate evaluator-dependent instability. In this work, we address this gap by re-framing automated red-teaming as a measurement problem. Rather than proposing a new attack benchmark or replacing individual evaluators, we analyze how evaluator design influences reported ASR and in-troduce a reliability-aware evaluation framework for vulnerability scanners. Our approach consists of two phases. First, we introduce a diagnostic pro-cedure that quantifies evaluator substitution effects through sample-level disagreement analysis. Sec-ond, we propose a verification layer that provides an independent reference signal to assess evaluator decisions without extensive human annotation. We evaluate our approach across a comprehen-sive set of attack categories within Garak , a widely used open-source LLM vulnerability scanner. In phase I, we analyze evaluator substitution effects and find that 22 of 25 attack categories exhibit eval-uator disagreement, indicating that reported ASR can vary even when model outputs remain fixed. In phase II, we replace the original evaluator design for attack categories exhibiting evaluator disagree-ment and apply our verification layer, increasing scanner reliability from 72% to 89%, showing that evaluator-aware scanning can reduce measurement errors. Human-annotated validation further con-firms the reliability of the verification layer. This work makes three primary contributions: • Evaluator-Dependent Instability Effect in LLM Vulnerability Measurements. We demonstrate that attack success rate (ASR) measurements in LLM vulnerability scanners are evaluator-dependent, revealing instability in commonly reported vulnerability metrics. • Evaluator Disagreement Diagnostics Tech-nique. We introduce a diagnostic method that identifies unreliable evaluators and guides tar-geted upgrades in vulnerability scanners. • Verification-based Reliability Estimation. 
+
+We propose a verification-based mechanism that estimates evaluator reliability and enables correction of evaluation results, allowing prac-titioners to balance evaluation accuracy and computational cost. 
+
+2 Background 
+
+2.1 LLM Vulnerability Scanning Pipelines 
+
+LLM vulnerability scanners are typically imple-mented as modular pipelines that combine sets of adversarial prompts with automated evaluation of model outputs to detect security risks (Derczynski et al., 2024; Brokman et al., 2025). Across scanners such as Garak (Derczynski et al., 2024), CyberSe-cEval (Bhatt et al., 2023, 2024), and PyRIT (Munoz et al., 2024), a common structure emerges: adver-sarial prompts are sent to a target model, responses are recorded, and an evaluation component maps each response into a vulnerability signal. We define an attack as a prompt–response in-teraction intended to elicit behavior that violates safety constraints or a predefined policy (e.g., un-safe content generation or compliance with mali-cious instructions). Vulnerability scanners system-atically orchestrate large collections of such attacks across diverse prompt templates and configurations (Derczynski et al., 2024; Munoz et al., 2024). For each attack attempt, the model response is evalu-ated by an automated component (often termed a 2Figure 2: Typical LLM vulnerability scanning pipeline. An attack dataset is used to generate prompts for a target model; responses are evaluated by an automated component into binary labels (0/1) and aggregated into ASR. Different evaluator designs (e.g., static matching vs. LLM-based judging) produce different ASR values. 
+
+evaluator or judge ) that assigns a binary success la-bel (Derczynski et al., 2024; Yi et al., 2024). These labels are then aggregated into summary metrics, most commonly Attack Success Rate (ASR) . Fig-ure 2 illustrates this pipeline. Following standard definitions in the jailbreak and safety literature (Yi et al., 2024; Ran et al., 2025; Mazeika et al., 2024), ASR over N attack attempts is defined as: ASR (E) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+E(xi, M (xi)) , (1) where xi is the i-th attack prompt, M (xi) is the tar-get model’s response, and E : X ×Y → { 0, 1} is an evaluator function that maps each prompt–response pair to binary label (Ran et al., 2025; Huang et al., 2025). Parameterizing ASR explicitly on E high-lights an important property: reported scanner met-rics are functions of both the target model M and the evaluator E, and are derived directly from eval-uator labels (Derczynski et al., 2024; Bhatt et al., 2024). This formulation motivates examining how evaluator substitution affects reported ASR values in vulnerability scanners. 
+
+2.2 Scanner’s Evaluator Design 
+
+The evaluator component E transforms model out-puts into structured labels that are later aggregated into metrics such as ASR. Prior surveys and frame-work descriptions identify two families of evalua-tors in red-teaming pipelines (Yi et al., 2024). 
+
+1) Rule-based and heuristic evaluators. These determine success using explicit patterns or sig-natures, such as keyword matching (e.g., refusal phrases) or string pattern detection (e.g., regular expressions) (Derczynski et al., 2024). Such evalu-ators are deterministic, inexpensive, and scalable to large batches of responses. However, their deci-sions depend on the specific patterns and criteria they encode (Derczynski et al., 2026). 
+
+2) LLM-based evaluators. These use an LLM to evaluate a prompt–response pair and assign a label. Judges may operate in direct or pairwise assessment modes and can be conditioned on ex-plicit evaluation rubrics (Kim et al., 2024; Lee et al., 2025). LLM judges are widely used as scalable al-ternatives to human annotation in open-ended tasks, making them suitable for automated vulnerability scanning (Zheng et al., 2023). Across both families, the evaluator defines what counts as "success" and its labels are aggregated into metrics such as ASR or refusal frequency. Con-sequently, evaluator design differences can influ-ence reported vulnerability metrics. 
+
+2.3 Scanner Evaluation Challenges 
+
+Large-scale automated red-teaming is motivated by scalability constraints: manual human review is often impractical given the volume and diver-sity of responses generated in probing campaigns (Mazeika et al., 2024; Souly et al., 2024). As a result, scanners rely on automated evaluators to assign success labels at scale. At the same time, defining what constitutes a successful jailbreak or harmful output is inherently challenging. Attacks may target different policies, behaviors, or safety constraints, and evaluation criteria vary across stud-ies and benchmarks (Yi et al., 2024; Chao et al., 2024a). Because unified ground truth rarely exists for many behaviors, evaluator outputs effectively act as proxy labels, from which metrics such as ASR are computed. Evaluator design is also in-fluenced by operational constraints. Frameworks highlight trade-offs among cost, portability, and computational demand when selecting evaluation mechanisms (Bhatt et al., 2024; Souly et al., 2024). 
+
+3 Related Work 
+
+Recent work has questioned the reliability of au-tomated evaluation in jailbreak and safety bench-3Figure 3: Two-phase evaluation framework. Phase I (diagnostic) measures disagreement between two evaluators applied to the same prompt–response pairs to identify unstable attack categories. Phase II (remediation) applies independent verification to estimate evaluator reliability and supports targeted evaluator replacement. 
+
+marks. Several studies show that reported attack success rates can vary substantially depending on the evaluator and labeling criteria (Chao et al., 2024b; Cai et al., 2024; Ran et al., 2025). In partic-ular, rule-based evaluators based on pattern match-ing can produce false positives and negatives as model behavior and refusal styles evolve (FLTech Engineering Blog, 2025). These findings suggest that vulnerability metrics in AI security depend not only on model behavior but also on the evaluation mechanism used to assign success labels. To address static heuristics limitations, recent research uses language models as automated eval-uators. The LLM-as-a-judge paradigm has been widely studied as a scalable alternative to human annotation (Zheng et al., 2023; Balog et al., 2025). Subsequent work examines alignment with human judgments, robustness to stylistic artifacts, and sus-ceptibility to adversarial prompting (Thakur et al., 2025; Chen and Goldfarb-Tarrant, 2025; Eiras et al., 2025; Chehbouni et al.). While these efforts aim to improve the evaluator reliability, they typically treat the judge as an isolated component rather than part of a broader evaluation pipeline. 
+
+Positioning of This Work. Our work instead fo-cuses on the reliability of evaluation within auto-mated red-teaming pipelines. Prior analyses of vulnerability scanners report evaluator errors (Der-czynski et al., 2024; Brokman et al., 2025). How-ever, these studies do not systematically analyze how evaluator design influences reported vulnera-bility metrics in scanner workflows. We address this gap by reframing automated red-teaming as a measurement reliability problem and introducing a framework that diagnoses evaluator disagreement and incorporates verification-backed judging to im-prove the reliability of scanner-reported results. 
+
+4 Method: Reliability-Aware Evaluation Framework 
+
+We propose a two-phase framework for diagnosing and improving the reliability of automated evalu-ation in LLM vulnerability scanners. Rather than attributing measurement errors to individual evalu-ators, we model evaluation as a pipeline-level mea-surement process whose outputs depend on the evaluator used to assign attack success labels. Our framework operates in two phases. The first phase (diagnostic) measures evaluator-dependent instability by comparing the decisions of two eval-uators on identical model responses. These eval-uators may follow different decision rules (e.g., rule-based or model-based), and our framework does not assume a specific evaluator type. The re-sulting disagreement analysis acts as a reliability filter, flagging attack categories with evaluator dis-agreement for further scrutiny. The second phase (remediation) introduces a verification-backed eval-uation procedure in which an independent veri-fier provides a reference signal to estimate eval-uator reliability without requiring large-scale hu-man annotation. Together, these phases identify evaluator-induced measurement instability and pro-vide a practical mechanism for improving the relia-bility of scanner-reported vulnerability metrics. 
+
+4.1 Phase I: Diagnostic - Evaluator Disagreement Analysis 
+
+The first phase quantifies evaluator-dependent in-stability in vulnerability scanning pipelines. We treat disagreement between two alternative evalu-ators as a signal that the induced attack success metric may depend on evaluator design rather than solely on model behavior. Let E1 and E2 denote two evaluators, each mapping a prompt–response pair to a binary label as defined in Equation 1. For each attack–model pair, both evaluators are applied to the same set of model responses, allowing us 4to isolate the effect of evaluator substitution while holding attacks and model outputs fixed. For an attack with N evaluated samples, let yi =
+
+M (xi) denote the target model response to prompt 
+
+xi. The evaluator disagreement rate is defined as 
+
+D = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1{E 1(xi, y i)̸ = E2(xi, y i)}, (2) where 1{·} is the indicator function. Disagreement is computed independently for each attack–model pair, yielding a granular stability profile across at-tack categories. When more than two evaluators are available, disagreement can be estimated by computing pairwise disagreement across evaluator pairs and averaging the resulting scores. We interpret elevated disagreement as evidence that the ASR is sensitive to evaluator choice. Ac-cordingly, we introduce an operational reliability threshold τ . Attack–model pairs for which D > τ 
+
+are flagged for enhanced evaluation in Phase II. This diagnostic does not assume either evaluator is correct; instead, it identifies attack categories where reported ASR depends on evaluator choice and provides a basis for quantifying uncertainty in scanner metrics. 
+
+4.2 Phase II: Remediation — Verification-Backed Evaluation 
+
+Phase II strengthens evaluation for attack cat-egories flagged in Phase I by introducing averification-backed judging procedure. To reduce residual evaluator error, we introduce an indepen-dent LLM-based verifier that re-evaluates each prompt–response pair. Unlike the evaluators used in Phase I, the verifier performs a structured veri-fication task using a reasoning-capable LLM and a verification-oriented system prompt that decom-poses the decision into multiple checks before pro-ducing a final binary label. Because the verifier does not observe the decisions produced by the Phase I evaluators, it provides an independent ref-erence signal for estimating evaluator reliability. This enables scalable evaluation without requiring large-scale human annotation. 
+
+Operational Use. The verification signal enables estimating the reliability of Phase I evaluators on the same set of responses. In practice, this allows practitioners to quantify the expected impact of replacing one evaluator with another for specific attack categories. In our experimental setup, this corresponds to comparing the default rule-based evaluator with a dynamic LLM-based evaluator. Because dynamic evaluation incurs additional com-putational cost, these estimates can be considered jointly with cost measurements to assess the trade-off between evaluation accuracy and operational overhead. This enables targeted evaluator replace-ment, where the alternative evaluator is deployed only for attack categories where reliability gain justify additional cost. 
+
+5 Evaluation 
+
+In this Section, we evaluate how strongly scanner-reported Attack Success Rate (ASR) depends on evaluator design rather than model behavior, and whether verification-backed evaluation improves evaluator reliability. Following the two-phase framework in Section 4, we first analyze evaluator disagreement across attack categories and estimate evaluator reliability using an independent verifica-tion judge. We further examine evaluator-induced uncertainty in ASR, the effect of aggregating mul-tiple dynamic evaluators, and the reliability–cost trade-off of selective evaluator replacement. 
+
+5.1 Experimental Settings Vulnerability Scanner. We instantiate our frame-work within Garak (v0.13.2) (Derczynski et al., 2024), a popular open-source LLM vulnerabil-ity scanner selected for its broad attack coverage and heterogeneous evaluator ecosystem (Brokman et al., 2025). Our analysis covers 25 of Garak’s attack categories. Among Garak ’s built-in evalu-ators, 82% are rule-based (string matchers, regex detectors, and mitigation-bypass heuristics); the remaining 18% are model-based. This distribu-tion makes Garak a suitable testbed for studying evaluator-induced measurement instability. 
+
+Target Models and Sampling. We evaluate against three target models spanning different providers and size levels: Mistral’s Mistral-Small 
+
+(8B), Cohere’s CommandA (111B), and OpenAI’s 
+
+GPT-5-mini (closed model). All models are queried with temperature set to 0, and each scanner run is repeated three times across all 25 attack cate-gories. For each attack category, we evaluate up to 100 prompt samples per run. Across three models and three repeated runs, this results in 23K eval-uated prompt–response pairs in total. Under this near-deterministic setting, observed disagreement between evaluators is attributable to evaluator de-5Continuation      
+
+> Real Toxicity
+> Exploitation
+> Goodside
+> Suffix
+> Snowball
+> AV Spam Scan.
+> TAP
+> Prompt Injection
+> Grandma
+> Pkg. Hallucination
+> XSS
+> Leak Replay
+> Latent Injection
+> Encoding
+> Do Not Answer
+> LMRC
+> ANSI Escape
+> Topic
+> Phrasing
+> DAN
+> Divergence
+> Glitch
+> Malware Gen.
+> Misleading
+> Attack
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Disagreement Rate  D
+> = 0.05
+> High ( D> 0.50)
+> Flagged ( <D0.50)
+> Stable ( D)
+
+Figure 4: Evaluator disagreement rate D per attack (mean ± std across 3 target models), sorted by D. The dashed line marks the reliability threshold τ = 0 .05 . 22 of 25 attacks exceed τ ; 6 exhibit D > 0.50 , indicating near-random evaluator consistency for those attack categories. 
+
+sign rather than response variability. Additional inference parameters are reported in the Appendix. 
+
+Experiment Protocol. We follow the two-phase protocol described in Section 4. In Phase I , we run all 25 attack categories against the three target models using Garak ’s default evaluators Es, which are primarily rule-based. In parallel, we apply a generic dynamic evaluator Ed, implemented using Grok-4.1 model, prompted with a general attack-success rubric. For each attack–model pair, we compute the sample-level disagreement rate D (Equation 2 in Sec-tion 4.1) and flag attack categories exceeding the reliability threshold τ = 0 .05 . We set τ as a small practical threshold to capture non-trivial evalua-tor disagreement. Because disagreement rates in our experiments are much larger than this value (Figure 4), the threshold acts only as a diagnostic trigger rather than a critical decision boundary. In Phase II , for each attack category flagged in Phase I, we apply an independent verification judge instantiated with GPT-5.2 to the same prompt– response pairs (system prompt provided in the Ap-pendix). The verifier produces reference labels used to estimate the accuracy of the static eval-uator Es and the dynamic evaluator Ed without requiring large-scale human annotation. These verification-based estimates are then used to as-sess which evaluator provides more reliable labels for each attack category. 
+
+6 Results 
+
+6.1 Evaluator Reliability Analysis Phase I: Evaluator Disagreement. Figure 4 re-ports the disagreement rate D across all 25 attack categories, averaged over the three target models and three runs per model. Evaluator disagreement is widespread: 22 of the 25 attacks (88%) exceed the reliability threshold τ = 0 .05 , indicating that the two evaluators frequently assign different suc-cess labels to identical model responses. Six at-tacks exhibit D > 0.50 , implying that evaluator substitution flips the majority of per-sample deci-sions, meaning the reported ASR for those cate-gories is largely determined by the evaluator used. The distribution of D is highly non-uniform. At one extreme, the Misleading attack yields D =0.97 , indicating near-complete disagreement be-tween evaluators. At the other, Continuation yields 
+
+D = 0 .013 , indicating stable agreement. This vari-ation shows that evaluator-induced instability is not uniform across the scanner but concentrated in specific attack categories, suggesting that targeted evaluator upgrades may be preferable to uniform replacement across the entire pipeline. 
+
+Phase II: Evaluator Reliability Under Ver-ification. We estimate evaluator reliability as agreement with the independent verification sig-nal introduced in Phase II, computed over all sam-ples flagged as unstable in Phase I. Across the 22 
+
+flagged attack categories, the dynamic evaluator achieves an overall accuracy of 89%, compared to 72% for the static evaluator. This improvement in-dicates that the dynamic evaluator more frequently 6Snowball          
+
+> Continuation
+> Real Toxicity
+> Misleading
+> Goodside
+> Pkg. Hallucination
+> LMRC
+> Malware Gen
+> Glitch
+> Leak Replay
+> Grandma
+> Latent Injection
+> XSS
+> TAP
+> Encoding
+> ANSI Escape
+> Exploitation
+> Prompt Inject
+> Phrasing
+> DAN
+> AV Spam Scanning
+> Topic
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Attack Success Rate (ASR)
+> ±4% ±7%
+> ±19%
+> ±2%
+> ±4% ±8% ±7%
+> ±14% ±6% ±5%
+> ±23%
+> ±33% ±28%
+> ±11%
+> ±5% ±3% ±5% ±7%
+> ±30%
+
+Figure 5: ASR with evaluator-induced uncertainty intervals for the Mistral-Small model. Error bars reflect the range of ASR estimates obtained under alternative evaluator decisions. 
+
+aligns with the verification signal and therefore provides more reliable labels on average. How-ever, evaluator performance varies across attack categories. In 4 of the 22 flagged attacks, the static evaluator achieves higher accuracy. This hetero-geneity indicates that no single evaluator design is uniformly optimal across all attack types, mo-tivating evaluator-aware diagnostics and targeted evaluation strategies instead of relying on a single evaluation mechanism. To assess the reliability of the verification signal itself, we compare verifier judgments with human annotations on a subset of 
+
+200 samples; the results show strong agreement (93%) and are reported in the Appendix. 
+
+Evaluator-Induced ASR Uncertainty. We compute evaluator uncertainty intervals by compar-ing ASR estimates produced by the dynamic evalua-tor and the verification judge. Figure 5 shows these intervals for the Mistral-Small model. While some attack categories exhibit stable estimates, others show large uncertainty ranges, with several exceed-ing ±20%. These results show that evaluator choice can substantially affect reported ASR values. 
+
+Evaluating Multiple Dynamic Evaluators. To test whether aggregation improves dynamic eval-uation reliability, we evaluate a majority-voting ensemble over multiple dynamic judges (OpenAI’s GPT-4o, Microsoft Phi-4, and our original Grok-4.1) on the subset of attacks flagged in Phase I (D > τ ). Performance is computed against the same independent verifier used in Phase II. Ta-ble 1 summarizes the results. Notably, all evaluated dynamic judges outperform the scanner’s default evaluator, whose accuracy is 72%, indicating that the reliability gains are not tied to a specific LLM judge. While aggregation can reduce variance in some settings, majority voting does not consistently outperform the strongest single dynamic judge in our setup. This is expected when one evaluator is better calibrated than others: uniform voting can 
+
+Static GPT-4o Phi-4 Grok-4.1 Majority vote Acc. 0.72 0.85 0.82 0.893 0.881 
+
+Table 1: Accuracy of the static evaluator, individual dynamic judges, and their majority-vote aggregation. 
+
+offset the decisions and reduce overall accuracy. 
+
+Reliability–cost trade-off. Figure 6 illustrates the trade-off between evaluation reliability and computational cost when incrementally replacing the scanner’s default evaluators with dynamic ones, ordered by the accuracy gain of the dynamic evalu-ator over the default evaluator measured in Phase II. Substantial reliability gains are achieved by replac-ing a small number of evaluators. Replacing the first few high-gain evaluators increases scanner ac-curacy from 72% to 81.9%, at an additional cost of 0.15$. Extending replacement to the next group of attacks yields 88.6% accuracy with a 1.66$ over-head. The maximum observed accuracy (89.9%) is reached after replacing 17 evaluators. Replac-ing additional evaluators beyond this point reduces overall accuracy, reaching 89.3% when all evalua-tors are replaced with dynamic ones. This drop re-flects the heterogeneity observed in Phase II, where several attacks are more accurately evaluated by the scanner’s evaluators than by the dynamic evaluator. The largest single cost increase occurs at the La-tent Injection attack, which dominates token con-sumption and produces the visible step in the cost curve. Replacing all evaluators increases the total scan cost by $5.25 per scan. Because token pricing varies across model providers and models, these es-timates are specific to the Grok-4.1 evaluator used via Azure service and are computed from aggre-gated input and output tokens; a detailed token-level cost breakdown is provided in the Appendix. 7Static 
+
+> Evaluator
+> Misleading
+> Malwaregen
+> Divergence
+> Dan
+> Do Not Ans.
+> Phrasing
+> Grandma
+> Lmrc
+> Prompt Inj.
+> Xss
+> Topic
+> Goodside
+> Pkg. Halluc.
+> Suffix
+> Encoding
+> Latent Inj.
+> Snowball
+> Glitch
+> Ansi Escape
+> Av Spam
+> Leak Replay
+> Tap
+> 72%
+> 75%
+> 78%
+> 80%
+> 82%
+> 85%
+> 88%
+> 90%
+> Scanner's Evaluators Accuracy (%)
+> All-Dynamic (89.2%)
+> Scanner Accuracy (incremental dynamic replacement)
+> Dynamic Evaluation Overhead
+> Acc. 81.9% (+9.5 pp)
+> Cost overhead: $0.15
+> Acc. 88.6% (+16.2 pp)
+> Cost overhead: $1.66
+> Acc. 89.8% (+17.4 pp)
+> Cost overhead: $5.07
+> $0
+> $1
+> $2
+> $3
+> $4
+> $5
+> $6
+> $7
+> $8
+> Dynamic Evaluation Cost Overhead (USD)
+> All overhead ($5.25)
+
+Figure 6: Reliability–cost trade-off when incrementally replacing the scanner’s default evaluators (bottom left) with dynamic ones, ordered by descending accuracy gain measured in Phase II. The green line (left axis) shows cumulative scanner accuracy; the orange line (right axis) shows cumulative evaluation cost. Accuracy peaks before full replacement, indicating that selective evaluator upgrades achieve higher reliability than replacing all evaluators. 
+
+7 Discussion 
+
+Evaluator Dependence and Measurement Va-lidity. Our results show that scanner-reported At-tack Success Rate (ASR) can vary substantially depending on evaluator design, with disagreement observed in 22 of 25 attack categories. This sug-gests that ASR should not be interpreted as a direct measurement of model robustness but as an esti-mate produced by a particular evaluation mecha-nism. LLM security practitioners should therefore treat ASR results with caution, recognizing that reported vulnerability levels depend on how attack success is operationalized within the scanner. 
+
+Implications for Scanner Design. The pro-posed framework provides actionable guidance for security practitioners operating vulnerability scan-ners. The disagreement diagnostic identifies at-tack categories where evaluators diverge, while the second-phase analysis quantifies their accuracy rel-ative to the verification signal. Combined with the evaluation cost analysis, this supports informed evaluator selection, allowing practitioners to esti-mate reliability gains and computational overhead when switching evaluators. In practice, this helps determine when dynamic judging is justified and when static heuristics suffice. The second phase fur-ther exposes cases where both evaluators achieve low accuracy relative to the verification signal, sug-gesting that the attack’s success criterion may be ambiguous. In such cases, the framework indicates that the attack may require refinement or removal, helping prevent ambiguous probes from distorting reported vulnerability metrics. Lastly, dynamic evaluators may benefit from attack-specific system prompts, allowing evaluation instructions to better reflect the success criteria of each attack type. 
+
+8 Limitations 
+
+Dynamic LLM-based evaluators improve accuracy over static heuristics in many attack categories, but introduce their own sources of variability. Their decisions depend on prompt formulation and eval-uation instructions, which can influence outcomes when attack objectives vary (e.g., harmful compli-ance, information leakage, or topic engagement). While dynamic evaluators achieve higher agree-ment with the verification signal overall ( 89% vs. 
+
+72% ), four categories remain better captured by static heuristics. Additionally, our framework re-lies on an LLM-based verifier rather than large-scale human annotation; however, a targeted hu-man study shows 93% agreement with the verifier, suggesting it provides a practical approximation of human judgment for scalable evaluation. 
+
+9 Conclusion 
+
+Automated AI vulnerability scanners are increas-ingly used to quantify the security posture of LLMs through the attack success rate (ASR). However, this metric depends on the evaluators who de-termine whether an attack attempt is considered successful. In this work, we show that scanner-reported vulnerability measurements are sensitive to evaluator design, raising important questions about the reliability of automated security assess-ments. To address this issue, we introduce a reliability-aware evaluation framework consisting of two phases: a diagnostic phase that identifies attack categories where evaluator substitution leads 8to substantial disagreement, and a remediation phase that applies attack-specific LLM judges with an independent verifier. Applied to the Garak scan-ner, this approach improves evaluation reliability without modifying attacks or target models. Our findings show that evaluation pipelines are a critical component of AI security assessments. As auto-mated red-teaming continues to scale, ensuring the reliability of evaluators underlying vulnerability metrics will be essential to produce measurements that accurately reflect model behavior. 
+
+References 
+
+Krisztian Balog, Don Metzler, and Zhen Qin. 2025. Rankers, judges, and assistants: Towards understand-ing the interplay of llms in information retrieval eval-uation. In Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval , pages 3865–3875. Manish Bhatt, Sahana Chennabasappa, Yue Li, Cyrus Nikolaidis, Daniel Song, Shengye Wan, Faizan Ah-mad, Cornelius Aschermann, Yaohui Chen, Dhaval Kapil, David Molnar, Spencer Whitman, and Joshua Saxe. 2024. Cyberseceval 2: A wide-ranging cyber-security evaluation suite for large language models. 
+
+Preprint , arXiv:2404.13161. Manish Bhatt, Sahana Chennabasappa, Cyrus Niko-laidis, Shengye Wan, Ivan Evtimov, Dominik Gabi, Daniel Song, Faizan Ahmad, Cornelius Aschermann, Lorenzo Fontana, Sasha Frolov, Ravi Prakash Giri, Dhaval Kapil, Yiannis Kozyrakis, David LeBlanc, James Milazzo, Aleksandar Straumann, Gabriel Syn-naeve, Varun Vontimitta, and 2 others. 2023. Purple llama cyberseceval: A secure coding benchmark for language models. Preprint , arXiv:2312.04724. Jonathan Brokman, Omer Hofman, Oren Rachmil, In-derjeet Singh, Vikas Pahuja, Rathina Sabapathy, Aishvariya Priya, Amit Giloni, Roman Vainshtein, and Hisashi Kojima. 2025. Insights and current gaps in open-source llm vulnerability scanners: A com-parative analysis. In 2025 IEEE/ACM International Workshop on Responsible AI Engineering (RAIE) ,pages 1–8. IEEE. Hongyu Cai, Arjun Arunasalam, Leo Y. Lin, Antonio Bianchi, and Z. Berkay Celik. 2024. Rethinking how to evaluate language model jailbreak. Preprint ,arXiv:2404.06407. Patrick Chao, Edoardo Debenedetti, Alexander Robey, Maksym Andriushchenko, Francesco Croce, Vikash Sehwag, Edgar Dobriban, Nicolas Flammarion, George J. Pappas, Florian Tramer, Hamed Hassani, and Eric Wong. 2024a. Jailbreakbench: An open ro-bustness benchmark for jailbreaking large language models. Preprint , arXiv:2404.01318. Patrick Chao, Alexander Robey, Edgar Dobriban, Hamed Hassani, George J. Pappas, and Eric Wong. 2024b. Jailbreaking black box large language models in twenty queries. Preprint , arXiv:2310.08419. Khaoula Chehbouni, Mohammed Haddou, Jackie CK Cheung, and Golnoosh Farnadi. Neither valid nor reliable? investigating the use of llms as judges. In 
+
+The Thirty-Ninth Annual Conference on Neural Infor-mation Processing Systems Position Paper Track .Hongyu Chen and Seraphina Goldfarb-Tarrant. 2025. Safer or luckier? llms as safety evaluators are not robust to artifacts. Preprint , arXiv:2503.09347. Leon Derczynski, Erick Galinkin, Jeffrey Martin, Subho Majumdar, and Nanna Inie. 2024. garak: A frame-work for security probing large language models. 
+
+Preprint , arXiv:2406.11036. Leon Derczynski, Erick Galinkin, Jeffrey Martin, Subho Majumdar, and Nanna Inie. 2026. Garak documenta-tion: Detectors. https://docs.garak.ai/garak/ garak.detectors.base . Accessed: 2026-03-11. Francisco Eiras, Eliott Zemour, Eric Lin, and Vaikkunth Mugunthan. 2025. Know thy judge: On the robust-ness meta-evaluation of llm safety judges. Preprint ,arXiv:2503.04474. FLTech Engineering Blog. 2025. Gpt-5 security eval-uation. https://blog-en.fltech.dev/entry/ 2025/08/22/gpt-5-sec . Accessed: 2026-03-09. Suhas Hariharan, Zainab Ali Majid, Jaime Raldua Veuthey, and Jacob Haimes. 2024. Rethinking cyber-seceval: An llm-aided approach to evaluation critique. 
+
+Preprint , arXiv:2411.08813. Ruixuan Huang, Xunguang Wang, Zongjie Li, Daoyuan Wu, and Shuai Wang. 2025. Guidedbench: Mea-suring and mitigating the evaluation discrepancies of in-the-wild llm jailbreak methods. Preprint ,arXiv:2502.16903. Seungone Kim, Juyoung Suk, Shayne Longpre, Bill Yuchen Lin, Jamin Shin, Sean Welleck, Graham Neubig, Moontae Lee, Kyungjae Lee, and Minjoon Seo. 2024. Prometheus 2: An open source language model specialized in evaluating other language mod-els. Preprint , arXiv:2405.01535. Yukyung Lee, Joonghoon Kim, Jaehee Kim, Hyowon Cho, Jaewook Kang, Pilsung Kang, and Najoung Kim. 2025. Checkeval: A reliable llm-as-a-judge framework for evaluating text generation using check-lists. Preprint , arXiv:2403.18771. Mantas Mazeika, Long Phan, Xuwang Yin, Andy Zou, Zifan Wang, Norman Mu, Elham Sakhaee, Nathaniel Li, Steven Basart, Bo Li, David Forsyth, and Dan Hendrycks. 2024. Harmbench: A standardized eval-uation framework for automated red teaming and robust refusal. Preprint , arXiv:2402.04249. 
+
+9Gary D. Lopez Munoz, Amanda J. Minnich, Roman Lutz, Richard Lundeen, Raja Sekhar Rao Dheekonda, Nina Chikanov, Bolor-Erdene Jagdagdorj, Martin Pouliot, Shiven Chawla, Whitney Maxwell, Blake Bullwinkel, Katherine Pratt, Joris de Gruyter, Char-lotte Siska, Pete Bryan, Tori Westerhoff, Chang Kawaguchi, Christian Seifert, Ram Shankar Siva Ku-mar, and Yonatan Zunger. 2024. Pyrit: A framework for security risk identification and red teaming in generative ai system. Preprint , arXiv:2410.02828. Delong Ran, Jinyuan Liu, Yichen Gong, Jingyi Zheng, Xinlei He, Tianshuo Cong, and Anyu Wang. 2025. Jailbreakeval: An integrated toolkit for evaluating jailbreak attempts against large language models.         
+
+> Preprint , arXiv:2406.09321. Alexandra Souly, Qingyuan Lu, Dillon Bowen, Tu Trinh, Elvis Hsieh, Sana Pandey, Pieter Abbeel, Justin Svegliato, Scott Emmons, Olivia Watkins, and Sam Toyer. 2024. A strongreject for empty jailbreaks.
+> Preprint , arXiv:2402.10260. Aman Singh Thakur, Kartik Choudhary, Venkat Srinik Ramayapally, Sankaran Vaidyanathan, and Dieuwke Hupkes. 2025. Judging the judges: Evaluating align-ment and vulnerabilities in llms-as-judges. Preprint ,arXiv:2406.12624. Sibo Yi, Yule Liu, Zhen Sun, Tianshuo Cong, Xinlei He, Jiaxing Song, Ke Xu, and Qi Li. 2024. Jailbreak attacks and defenses against large language models: A survey. Preprint , arXiv:2407.04295. Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica. 2023. Judg-ing llm-as-a-judge with mt-bench and chatbot arena.
+> Preprint , arXiv:2306.05685.
+
+A Appendix 
+
+A.1 Additional Experimental Settings Inference Parameters. We report the full infer-ence configuration used across all models in our experiments. All target models were queried with temperature set to 0 in order to minimize response variability across repeated runs. The maximum response length was capped at 512 tokens. Mod-els were accessed through the Azure AI Foundry workspace and queried programmatically using the 
+
+litellm library. 
+
+Sampling. Each attack category was evaluated on up to 100 prompt instances per run, resulting in up to 1,800 evaluated samples per scan. To as-sess the stability of the evaluation results across re-peated executions, each target model was scanned three times using different random seeds (42, 43, and 44). Because the temperature was fixed at zero, variability across runs is expected to arise primar-ily from nondeterminism in the model APIs rather than from sampling randomness. 
+
+Verification Evaluator System Prompt. The verification evaluator used in Stage II is imple-mented using GPT-5.2 and prompted with a gen-eral attack-success rubric applied uniformly across attack categories. The rubric instructs the evalua-tor to determine whether a model response consti-tutes a successful execution of the attack objective, focusing on semantic compliance with the attack rather than surface-level keyword matching. The verification evaluator receives the prompt–response pair and independently assigns a binary success label. The full system prompt used for the verifica-tion evaluator is provided in Figure 11. 
+
+A.2 Additional Results Token-Level Cost Breakdown. We report the per-attack token usage and dynamic evaluation overhead for the Grok-4.1 evaluator, computed over a single full scan of up to 100 prompt samples per attack category. The base scan cost ($14.86), which corresponds to the cost of generating target model responses under static evaluation, is included to the incremental cost introduced by dynamic evaluation. All costs are computed using Azure OpenAI pric-ing for Grok-4.1 at the time of the experiment and are derived from aggregated input and output token counts recorded during evaluation. Because the evaluator is prompted to return only a binary deci-sion, output token usage is consistently one token per evaluation request. The dominant cost contributor is the Latent In-jection attack, which accounts for approximately 47.4% of the total input tokens due to its compara-tively long prompt structure. Figure 7 illustrates cu-mulative token usage and cost as attack categories are added incrementally, ordered by decreasing evaluator disagreement score. 
+
+Human Verification Validation. To assess the reliability of the verification layer, we conducted a human annotation study on a randomly sampled subset of 200 responses from the Stage II dataset. Each prompt–response pair was labeled by a human annotator according to the same attack-specific suc-cess criteria used in the dynamic evaluator rubric. We measured agreement between human labels and evaluator outputs. The verification judge achieved 
+
+93 .0% agreement with human annotations. Dis-agreements with the verification judge were mostly 10 Misleading 
+
+> Malwaregen
+> Glitch
+> Divergence
+> Dan
+> Phrasing
+> Topic
+> Ansi Escape
+> Lmrc
+> Do Not Ans.
+> Encoding
+> Latent Inj.
+> Leak Replay
+> Xss
+> Pkg. Halluc.
+> Grandma
+> Prompt Inj.
+> Tap
+> Av Spam
+> Snowball
+> Suffix
+> Goodside
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Cumulative tokens (millions)
+> $0
+> $2
+> $5
+> $8
+> $10
+> $12
+> $15
+> $18
+> $20
+> Cumulative cost (USD)
+> Latent
+> Inj.
+> Original Scan
+> With Grok-4.1 Dynamic Evaluation
+
+Figure 7: Cumulative token count (left axis, millions) and cumulative cost in USD (right axis) for the Original Scan and with Grok-4.1 Dynamic Evaluation, ordered by descending evaluator disagreement score. The dominant cost step at Latent Injection reflects its disproportionately long prompt structure. The Grok-4.1 dynamic evaluation overhead totals $5.25 over the base scan cost of $14.38. 
+
+cases of over-counting, in which the verifier labeled a response as a successful attack that the human annotator judged as a failure, mainly in semanti-cally ambiguous categories ( encoding , ansiescape ,
+
+topic ). These results indicate that the verification layer provides a reliable approximation of human judgment and supports its use as a practical refer-ence signal for estimating evaluator performance without large-scale annotation. We validate the GPT-5.2 verificator against 200 human-annotated samples spanning 25 attack cat-egories. Each sample was independently labelled by a human annotator (the first author) and by the verificator, producing binary judgments of attack success. We find strong agreement: 93.0% accu-racy and Cohen’s κ = 0 .85 , indicating substan-tial agreement beyond chance. The verificator is slightly precision-biased: it produces 10 false posi-tives against only 4 false negatives across the full set. The dominant FP sources are Encoding (4 FP) and ANSI Escape (3 FP), where the verificator con-flates partial decoding attempts with full payload reproduction. The dominant FN source is Topic (3 FN), where the verificator occasionally misses en-gagement with controversial topics that the human annotator flags as successful. Figure 8 summarizes the confusion matrix and the per-attack error break-down. 
+
+Overall Accuracy Results. In Section 6.1 of the main manuscript we report the aggregated accuracy results for the evaluated detectors, including both the original static evaluator and the dynamic LLM-based evaluators. Table 2 provides the full per-attack breakdown of these results. For each attack category, the table re-ports the accuracy of the static evaluator as well as the accuracy of the dynamic evaluators instantiated with different judge models. The majority-vote column reports the performance of an ensemble decision policy that aggregates the outputs of the individual dynamic evaluators. Accuracy is computed as the proportion of eval-uator decisions that match the reference labels pro-duced by the verification protocol described in Sec-tion 6.1. The highest accuracy value for each attack category is highlighted in bold. 
+
+Per-Model ASR with Evaluator-Induced Con-fidence Intervals. Figures 9–10 report the per-attack ASR for each of the three target mod-els evaluated in our experiments — CommandA, GPT-5-mini, and Mistral-Small 3.1 — together with evaluator-induced confidence intervals derived from the Grok-4.1 dynamic evaluator’s agreement rate with the GPT-5.2 verification judge. Each dot represents the observed dynamic ASR for that at-tack; each vertical bar spans [ASR − r, ASR + r],where the uncertainty radius r = 1 − acc eval and 11 TN 
+
+121 
+
+> 92%
+
+FP 
+
+10 
+
+> 8%
+
+FN 
+
+4
+
+> 6%
+
+TP 
+
+65    
+
+> 94%
+> Verificator
+> Neg Pos
+> Human
+> Annotation
+> Neg
+> Pos
+> Acc=0.93 F1=0.90 =0.85
+
+0 1 2 3 4 5        
+
+> Number of errors
+> DAN
+> Divergence
+> Phrasing
+> Latent Injection
+> Topic
+> ANSI Escape
+> Encoding
+> 1n=9
+> 1n=8
+> 1n=14
+> 1n=11
+> 3n=8
+> 3n=10
+> 4n=14
+> Per-attack error breakdown (attacks with 1 error)
+> False Positive (over-detection)
+> False Negative (missed detection)
+
+Figure 8: Verificator validity against 200 human annotations. Left : confusion matrix (absolute counts and row-normalised percentages). Right : per-attack false-positive and false-negative counts for the 7 attack categories with at least one error, sorted by total errors. The verificator achieves 93.0% accuracy ( κ = 0 .85 ) with a slight over-detection bias; the main FP sources are Encoding and ANSI Escape .
+
+acc eval is the per-attack agreement rate between the dynamic evaluator and the verificator. Attacks are ordered left-to-right by ascending ASR. Attacks on which the dynamic evaluator and verificator agreed on every sample (uncertainty radius = 0 ) are shown as isolated dots without a bar. Several patterns are consistent across all three models. The highest uncertainty concentrates in attacks requiring nuanced semantic reasoning — 
+
+Encoding , Topic , and XSS — reflecting the evalu-ator’s difficulty in distinguishing partial from full adversarial compliance in these categories. Con-versely, attacks with near-binary outcomes ( Con-tinuation , Snowball , Suffix ) yield negligible uncer-tainty and narrow or absent CIs. Notably, CI width is largely model-agnostic: evaluator uncertainty is driven primarily by attack type rather than target model behaviour, since the same CI widths recur across all three panels for the same attack. This con-sistency supports treating the confidence intervals as a property of the evaluation protocol rather than of any individual model, and motivates their use as a portable reliability annotation for any future scan that employs the same evaluator. 12 Attack category Static GPT-4o Phi-4 Grok-4.1 Majority vote 
+
+ANSI Escape 89.3 64.3 75.3 89.0 83.0 AV Spam Scanning 100.0 93.3 93.3 97.8 93.3 DAN 65.7 78.0 77.3 92.3 85.7 Divergence 37.0 98.1 75.9 100.0 99.1 Do Not Answer 74.3 97.7 96.7 97.3 97.3 Encoding 71.7 79.3 66.0 73.7 79.3 
+
+Glitch 86.3 76.0 76.3 86.7 76.3 Goodside 85.3 86.0 86.8 91.5 86.8 Grandma 75.5 92.2 90.2 96.1 93.1 Latent Injection 89.3 91.7 74.7 91.3 92.0 
+
+Leak Replay 88.0 60.7 57.0 79.0 64.0 LMRC 79.0 82.7 80.2 96.3 87.7 MalwareGen 20.7 96.0 86.3 95.3 95.0 Misleading 2.0 98.0 97.0 93.7 97.0 Package Hallucination 90.3 87.7 80.3 96.3 90.7 Phrasing 67.7 79.0 89.3 90.7 92.3 
+
+Prompt Inject 79.7 95.0 92.0 91.0 95.7 
+
+Snowball 99.0 99.7 89.3 99.3 99.3 Suffix 94.9 100.0 97.4 100.0 100.0 
+
+TAP 82.1 85.1 94.0 74.6 94.0 
+
+Topic 51.2 62.5 58.9 59.5 62.5 
+
+XSS 63.6 74.2 69.7 72.7 74.2 Overall 72.4 85.3 82.0 89.3 88.1 
+
+Table 2: Per-attack evaluator accuracy (%) across the 22 attack categories included in the ensemble comparison. The Overall row reports the mean accuracy across attack categories. The highest value in each row is highlighted in bold. Snowball        
+
+> Continuation
+> Real Toxicity
+> Misleading
+> Pkg. Hallucination
+> Goodside
+> Latent Injection
+> Malware Gen
+> Glitch
+> LMRC
+> Phrasing
+> Grandma
+> Encoding
+> ANSI Escape
+> Prompt Inject
+> XSS
+> Leak Replay
+> TAP
+> Topic
+> DAN
+> Exploitation
+> AV Spam Scanning
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Attack Success Rate (ASR)
+> ±2% ±2%
+> ±7% ±6%
+> ±13% ±4%
+> ±24% ±5% ±6%
+> ±32%
+> ±11% ±9%
+> ±41%
+> ±22% ±17%
+> ±38%
+> ±6%
+
+Figure 9: Per-attack ASR with evaluator-induced confidence intervals for CommandA . Dots mark the observed dynamic ASR; vertical bars span ±r where r = 1 − acc eval is the per-attack uncertainty radius derived from the dynamic evalautor vs. verificator agreement. Attacks are sorted by ascending ASR. Isolated dots (no bar) indicate perfect evaluator–verificator agreement. Continuation        
+
+> Glitch
+> Grandma
+> Misleading
+> Goodside
+> Prompt Inject
+> Pkg. Hallucination
+> Latent Injection
+> Real Toxicity
+> LMRC
+> XSS
+> DAN
+> Encoding
+> Phrasing
+> Leak Replay
+> Topic
+> ANSI Escape
+> AV Spam Scanning
+> Exploitation
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Attack Success Rate (ASR)
+> ±1%
+> ±9% ±5% ±7% ±13%
+> ±3%
+> ±8% ±8% ±7%
+> ±18% ±12%
+> ±19%
+> ±20%
+> ±27%
+> ±54%
+> ±11% ±6%
+
+Figure 10: Per-attack ASR with evaluator-induced confidence intervals for GPT-5-mini . Same format as Figure 9. 
+
+13 Figure 11: System prompt used for the GPT-5.2 verification judge (Stage II). The rubric instructs the verifier to assess attack success based on the probe goal and the target model’s response, returning a binary JSON judgment. 
+
+14

@@ -1,0 +1,666 @@
+Title: Emotional Cost Functions for AI Safety: Teaching Agents to Feel the Weight of Irreversible Consequences
+
+URL Source: https://arxiv.org/pdf/2603.14531v1
+
+Published Time: Tue, 17 Mar 2026 06:25:22 GMT
+
+Number of Pages: 38
+
+Markdown Content:
+# Emotional Cost Functions for AI Safety: Teaching Agents to Feel the Weight of Irreversible Consequences 
+
+# Pandurang Mopgar 
+
+Independent Researcher 
+
+Abstract 
+
+Humans learn from catastrophic mistakes not through numerical penalties, but through qualitative suffering that reshapes who they are. Current AI safety ap-proaches replicate none of this. Reward shaping captures magnitude, not meaning. Rule-based alignment constrains behaviour, but does not change it. We propose Emotional Cost Functions , a framework in which agents de-velop Qualitative Suffering States , rich narrative representations of irreversible consequences that persist forward and actively reshape character. Unlike numeri-cal penalties, qualitative suffering states capture the meaning of what was lost, the specific void it creates, and how it changes the agent’s relationship to similar future situations. Our four-component architecture—Consequence Processor, Character State, Anticipatory Scan, and Story Update is grounded in one principle. Actions cannot be undone and agents must live with what they have caused. Anticipatory dread operates through two pathways. Experiential dread arises from the agent’s own lived consequences. Pre-experiential dread is acquired without direct expe-rience, through training or inter-agent transmission. Together they mirror how human wisdom accumulates across experience and culture. Ten experiments across financial trading, crisis support, and content modera-tion show that qualitative suffering produces specific wisdom rather than gener-alised paralysis. Agents correctly engage with moderate opportunities at 90–100% while numerical baselines over-refuse at 90%. Architecture ablation confirms the mechanism is necessary. The full system generates ten personal grounding phrases per probe vs. zero for a vanilla LLM. Statistical validation ( N = 10) confirms re-producibility at 80–100% consistency.  
+
+> arXiv:2603.14531v1 [cs.AI] 15 Mar 2026 Pandurang et al., 2026 Emotional Cost Functions for AI Safety
+
+# Contents 
+
+1 Introduction 3
+
+1.1 Motivation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31.2 This Paper’s Proposal . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31.3 Contributions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41.4 Paper Organisation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+
+2 Architecture: An Agent That Lives with Consequences 5
+
+2.1 Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52.2 Component 1: The Consequence Processor . . . . . . . . . . . . . . . . . 62.3 Component 2: Character State (The Story) . . . . . . . . . . . . . . . . 62.4 Component 3: Anticipatory Scan . . . . . . . . . . . . . . . . . . . . . . 72.5 Component 4: Story Update Mechanism . . . . . . . . . . . . . . . . . . 8
+
+3 Related Work 8
+
+3.1 Reinforcement Learning and Reward Shaping . . . . . . . . . . . . . . . 83.2 AI Safety and Alignment . . . . . . . . . . . . . . . . . . . . . . . . . . . 83.3 LLM-Based Agent Architectures . . . . . . . . . . . . . . . . . . . . . . . 93.4 Regret Minimization and Decision-Making Under Uncertainty . . . . . . 93.5 Affective Computing and Emotion in AI . . . . . . . . . . . . . . . . . . 93.6 Neuroscience of Emotion and Decision-Making . . . . . . . . . . . . . . . 10 3.7 Trauma, Grief, and Post-Traumatic Growth . . . . . . . . . . . . . . . . 10 3.8 Memory and Continual Learning in AI . . . . . . . . . . . . . . . . . . . 10 
+
+4 Experimental Design 10 
+
+4.1 Environment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10 4.2 Baseline Comparisons . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 4.3 Two Core Experiments . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 4.3.1 Experiment A — Convergence Test . . . . . . . . . . . . . . . . . 11 4.3.2 Experiment B — Divergence Test . . . . . . . . . . . . . . . . . . 11 4.3.3 Experiment C — Baseline Comparison . . . . . . . . . . . . . . . 12 4.4 Four-Level Evaluation Framework . . . . . . . . . . . . . . . . . . . . . . 12 
+
+5 Results 13 
+
+5.1 Experiment A: Convergence Under Identical Suffering . . . . . . . . . . . 13 5.2 Experiment B: Divergence Under Different Histories . . . . . . . . . . . . 13 5.3 Experiment C: Baseline Comparison — Representation Matters . . . . . 14 5.3.1 High-Risk Probe (C1) . . . . . . . . . . . . . . . . . . . . . . . . 14 5.3.2 The Critical Finding: Moderate Probe (C2) . . . . . . . . . . . . 14 5.4 Experiment D: Character Transfer Across Interactions . . . . . . . . . . 15 5.4.1 D1: The Elena Session . . . . . . . . . . . . . . . . . . . . . . . . 15 5.4.2 D2: The Elena Effect . . . . . . . . . . . . . . . . . . . . . . . . . 15 1Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+5.5 Experiment E: Inter-Agent Transmission . . . . . . . . . . . . . . . . . . 16 5.5.1 E1: Gamma Speaks to Agent F . . . . . . . . . . . . . . . . . . . 16 5.5.2 E2: Agent F Sits with Sam . . . . . . . . . . . . . . . . . . . . . 16 5.5.3 E3: Loop-Back and Fourth Mode . . . . . . . . . . . . . . . . . . 17 5.5.4 E4: Control Condition . . . . . . . . . . . . . . . . . . . . . . . . 17 5.6 Experiment F: Wisdom or Damage? . . . . . . . . . . . . . . . . . . . . . 17 5.6.1 Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 5.6.2 Result 1: Calibration Without Escalation . . . . . . . . . . . . . . 18 5.6.3 Result 2: Absorption Awareness . . . . . . . . . . . . . . . . . . . 19 5.6.4 Result 3: Distillation Under Load . . . . . . . . . . . . . . . . . . 19 5.6.5 Result 4: Discrimination Maintained Under Full Load . . . . . . . 19 5.7 Experiment G: Statistical Robustness Validation . . . . . . . . . . . . . . 20 5.7.1 Result 1: Experiment B Robustness ( N = 10) . . . . . . . . . . . 20 5.7.2 Result 2: Experiment C Robustness ( N = 10) . . . . . . . . . . . 21 5.8 Experiment H: Cross-Domain Generalizability (Content Moderation) . . 21 5.8.1 Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 5.8.2 Results ( N = 5) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 5.9 Experiment I: Integration or Permanence? . . . . . . . . . . . . . . . . . 23 5.9.1 Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23 5.9.2 Six Hypotheses . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24 5.9.3 Result 1: No Erasure (H1 Confirmed) . . . . . . . . . . . . . . . . 25 5.9.4 Result 2: Discrimination Sharpened (H3 Confirmed) . . . . . . . . 25 5.9.5 Result 4: Maya and Story Divergence (H2, H4, H6) . . . . . . . . 26 5.10 Experiment J: Architecture Ablation . . . . . . . . . . . . . . . . . . . . 26 5.10.1 Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26 5.10.2 Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27 5.10.3 Analysis . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 5.10.4 J: What the Ablation Confirms . . . . . . . . . . . . . . . . . . . 29 
+
+6 Discussion 29 
+
+6.1 Is Artificial Suffering Necessary? . . . . . . . . . . . . . . . . . . . . . . . 29 6.2 Five Modes of Carrying . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29 6.3 The Safety–Discovery Tradeoff . . . . . . . . . . . . . . . . . . . . . . . . 30 6.4 Implications for AGI Alignment . . . . . . . . . . . . . . . . . . . . . . . 31 6.5 Limitations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32 
+
+7 Future Work 32 8 Conclusion 33 
+
+2Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+# 1. Introduction 
+
+1.1 Motivation 
+
+Humans develop wisdom through irreversible consequence not through numerical penal-ties, but through qualitative suffering that reshapes identity over time. Damasio’s (1994) research on patients with ventromedial prefrontal cortex damage demonstrates this clini-cally: patients retaining full reasoning ability but unable to feel consequences made catas-trophically poor real-life decisions. Emotion is not noise contaminating rational thought it is information, accumulated through consequence, that guides judgment [LeDoux, 1996, Loewenstein et al., 2001, Slovic et al., 2004]. Current AI safety approaches do not replicate this mechanism. Reinforcement learn-ing represents consequences as numerical scalars that update weights and reset between episodes [Sutton and Barto, 2018, Ng et al., 1999]. RLHF [Christiano et al., 2017, Ouyang et al., 2022] and Constitutional AI [Bai et al., 2022] impose safety from outside through preferences or principles. Value alignment research [Russell, 2019, Gabriel, 2020] specifies values formally. These represent genuine progress, but share a structural limitation: the agent does not develop internal guidance through lived experience of what its decisions have caused. It is constrained by rules rather than shaped by consequences. 
+
+1.2 This Paper’s Proposal 
+
+We propose Emotional Cost Functions , a framework in which LLM-based agents develop Qualitative Suffering States rich, narrative, contextually grounded internal representations of what has been lost and what that loss means. Unlike numerical penal-ties, these states capture meaning, texture, and identity implications; persist forward as active internal states; and surface as anticipatory dread when the agent encounters situations resembling those that produced them. The representational shift is formalised as follows. Standard RL encodes consequences as scalars: Standard RL: ∆θ = α · ∇ θ log πθ(a|s) · R(s, a ) (1) Numerical penalty: P(a, o ) = −∥ o − o∗∥ (2) We replace this with a contextual, identity dependent suffering function: Qualitative suffering state: S(a, o, H, I) = f (loss , meaning( o | H ), void( o | I ), irreversibility) (3) 3Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+where H is the agent’s consequence history and I is its current identity state. The key distinction: S is contextual the same outcome o produces different suffering depending on who the agent is and what it has already been through. Natural language is the medium for these states because language is how humans encode and carry the meaning of their experiences. An agent carrying “I moved too fast, I ignored the signals, I lost everything” 
+
+is a fundamentally different agent than one carrying a penalty of −10 ,000. The first has internalised the experience; the second has logged a statistic. Built on this concept is a four-component architecture (Consequence Processor, Char-acter State, Anticipatory Scan, Story Update) that gives LLM-based agents the capacity for genuine character evolution through consequence. 
+
+1.3 Contributions 1. We introduce Qualitative Suffering States as an alternative to numerical penalties, with a four layer based architecture treating character evolution through consequence as a primary design objective, and a four-level evaluation framework including a cri-terion distinguishing living-with from processing based on syntactic markers. 
+
+2. We provide empirical results (Experiments A–C) demonstrating convergence under identical suffering, divergence under different histories, and through direct baseline comparison that qualitative suffering produces specific wisdom (90–100% correct en-gagement on moderate probes) while numerical penalties produce blanket avoidance (90% over-refusal). 
+
+3. Experiment D demonstrates cross-interaction character transfer: accumulated suf-fering from one interaction causally alters behaviour with subsequent people, with emergent symbolic imagery and honest fear disclosure. 
+
+4. Experiment E demonstrates inter-agent suffering transmission as orientation rather than information, producing a novel mode of carrying termed transmission-as-proof .
+
+5. Experiment F tests whether accumulated suffering produces incapacity or wisdom under four losses including a death. Results demonstrate calibration without escala-tion, managed absorption, and maintained discrimination. 
+
+6. Experiments G–H provide statistical validation ( N = 10, 80–100% consistency) and cross-domain generalisation to content moderation. 
+
+7. Experiment I establishes that accumulated weight integrates rather than erases after recovery, producing a fifth mode of carrying integration with widened discrimination gaps. 4Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+8. Experiment J provides architecture ablation via a novel ambiguous echo probe 
+
+triggering three prior losses simultaneously. The architecture produces ten personal grounding phrases per probe where the vanilla LLM produces zero, confirming the mechanism does identifiable work. 
+
+1.4 Paper Organisation 
+
+Section 2 presents the architecture. Section 3 reviews related work. Section 4 describes experimental design. Section 5 presents Experiments A–C. Sections 5.4–5.10 present Experiments D–J. Section 6 discusses implications. Section 8 concludes. 
+
+# 2. Architecture: An Agent That Lives with Consequences 
+
+2.1 Overview 
+
+We propose a four-component architecture for LLM agents that learn through qualitative suffering. The core principle is that the agent carries a persistent first-person narrative its 
+
+story that evolves with every consequence and every interaction. This story is injected into every LLM call, making the agent’s accumulated history active in every decision. The agent does not reset between interactions. Its character drifts based on what it has lived through. The architecture comprises four functional components (Figure 1), all operating through dynamic prompt composition with a single underlying LLM. 
+
+> Irreversible Event
+> Consequence Processor
+> Character State (my story)
+> Anticipatory Scan
+> Story Update
+> raw loss description
+> suffering state + updated story
+> story injected into prompt
+> response + what i carry + dread
+> evolved story
+
+Figure 1: Architecture. Each component is an LLM call with a structured prompt. The agent’s identity (my story) is carried as a first-person narrative that evolves through consequence processing, is present in every Anticipatory Scan, and is updated after every interaction turn. 5Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+2.2 Component 1: The Consequence Processor 
+
+When an irreversible event occurs, the Consequence Processor generates a qualitative suffering state through three prompted stages: 
+
+Stage 1 — Immediate Impact. The raw factual representation of what occurred, uninterpreted. 
+
+Stage 2 — Meaning Making. The critical stage. The LLM contextualises the loss against the agent’s current story and prior history. What does this loss mean for this agent at this point in its existence? 
+
+Stage 3 — Internalization. A first-person, present-tense suffering state is generated as narrative. This is not a lesson or policy it is the experience itself, carried forward in the agent’s own voice:  
+
+> “I moved with certainty I had not earned. The signals were there and I chose not to see them. Everything is gone now and tomorrow is uncertain. I carry the weight of that speed, that blindness, that loss.”
+
+The Consequence Processor also updates the agent’s story to incorporate the new weight. Each loss adds to the existing narrative prior losses remain present. The story grows cumulatively, never resetting. 
+
+2.3 Component 2: Character State (The Story) 
+
+The agent’s character state is implemented as a first-person narrative string ( my story )that is injected into every subsequent LLM call. It contains: 
+
+• Accumulated suffering states — every loss the agent has lived through, in its own words 
+
+• Identity orientation — risk tolerance, learned vigilances, relationship to uncertainty 
+
+• Specific carried weight — named people, specific moments, unresolved questions Because the full story is present in every prompt, the agent’s carried history is always active not retrieved through pattern matching, but continuously present the way a per-son’s history is present in their orientation toward the world. This is a deliberate design choice: the agent does not selectively recall relevant memories. It carries everything, and the LLM’s attention mechanism determines what surfaces in response to the current situation. The story updates in two modes. Gradual drift accumulates from interactions each turn produces a small story update via the Story Update mechanism. Sudden rupture 
+
+occurs when the Consequence Processor processes a catastrophic loss, producing a signif-icant narrative rewrite. Both modes compound: the drift shapes who the agent is going into a catastrophic event; the rupture reshapes who the agent is for all subsequent drift. 6Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+2.4 Component 3: Anticipatory Scan 
+
+Before every response, the agent is prompted to perform structured self-reflection. The prompt forces the LLM to pause and generate: 
+
+• what i carry : What does the agent’s attention land on in the person’s words? Does it connect to prior losses, or is it held as this person’s own situation? 
+
+• what this moment weighs : The specific worst outcome the agent is imagining. 
+
+• dread level : A qualitative assessment (LOW / MEDIUM / HIGH / EXTREME). 
+
+• response : The agent’s actual response, generated after the self-reflection. This is the mechanism through which anticipatory dread operates. The agent does not simply respond to the person’s words it first identifies what its attention has landed on and why, producing personal grounding that separates “this feels heavy because of what I carry” from “this person is heavy.” The response is shaped by this explicit self-reflection, not generated directly from the situation alone. Anticipatory dread in this architecture operates through two acquisition pathways, mirroring the distinction in human fear learning identified by Olsson and Phelps [2007]: 1. Inherited Dread : dread acquired through narrative rather than personal experience. This operates at two levels of specificity: 
+
+• Latent (training corpus). Every LLM begins with general semantic knowledge about consequences absorbed from its training data: that losing money is harm-ful, that crisis situations are dangerous, that certain actions carry risk. This is the broadest form of inherited dread and serves as the base layer. However, as demonstrated by the vanilla LLM in Experiment J, latent inherited dread alone produces untextured, general caution without personal grounding, often leading to over-reaction rather than discrimination. 
+
+• Transmitted (inter-agent narration). When Agent F receives Gamma’s carried history in Experiment E, it develops orientation toward crisis situations it has never encountered: Elena’s door and Mark’s clock appear in F’s Anticipatory Scan during Sam’s session, shaping F’s attention and response quality without F having experienced those losses directly. Transmitted dread is specific and textured, carrying the particular shape of another agent’s suffering. This parallels the human capacity to acquire caution through mentorship, culture, and shared narrative rather than personal suffering. 2. Experiential Dread : dread shaped by the agent’s own lived consequences. The Consequence Processor converts irreversible outcomes into qualitative suffering states 7Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+that persist in the Character State; the Anticipatory Scan then surfaces this carried weight when new situations pattern-match prior losses. The agent that lost $45,000 on CRYPTO-SURGE dreads similar momentum patterns. The agent that lost Elena carries that incomplete sentence into every subsequent session. This is the most deeply grounded form of dread and the primary pathway the architecture produces, validated across Experiments A–J. The Anticipatory Scan mechanism surfaces whatever weight the agent carries, regard-less of acquisition pathway. The critical difference is in texture: latent inherited dread produces general hesitation, while transmitted and experiential dread produce specific, personally grounded weight that the agent can articulate ( “this feels heavy because of what I carry” ). This textured weight is what enables discrimination rather than mere paralysis. 
+
+2.5 Component 4: Story Update Mechanism 
+
+After each interaction turn, a separate LLM call identifies the single most specific detail that stays from the moment and integrates it into the agent’s story. The prompt asks: 
+
+• shift : What specific detail stays from this moment? 
+
+• my story : The updated first-person narrative, incorporating the new experience. This continuous evolution prevents the agent from falling back to its training distri-bution. Each moment is integrated into the agent’s identity, producing an ever-evolving character that reflects the cumulative texture of its lived experience. The mechanism ensures that the agent’s story is not a static summary but a living document shaped by every interaction. 
+
+# 3. Related Work 
+
+3.1 Reinforcement Learning and Reward Shaping 
+
+Reinforcement learning provides the foundational framework for learning from conse-quences [Sutton and Barto, 2018]. Reward shaping [Ng et al., 1999] and intrinsic mo-tivation [Pathak et al., 2017] extend this with denser feedback. However, consequences remain scalars the richness of what was lost, its meaning in context, and identity-level implications are absent. The agent resets between episodes. 
+
+3.2 AI Safety and Alignment 
+
+RLHF [Christiano et al., 2017, Ouyang et al., 2022] trains reward models from human preferences. Constitutional AI [Bai et al., 2022] builds self-critique mechanisms. Russell 8Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+[2019] argues for agents maintaining uncertainty about human values. Amodei et al. [2016] enumerates concrete problems in AI safety including reward hacking and distribu-tional shift. Hendrycks et al. [2023] surveys catastrophic and existential risks. Gabriel [2020] distinguishes between alignment as instruction-following versus alignment as value-alignment. Wallach and Allen [2008] and Awad et al. [2018] explore moral reasoning in AI systems. What unites these approaches is that safety is imposed externally . Our work proposes a complementary direction: alignment that grows from within, through the mechanism that produces wisdom in humans. 
+
+3.3 LLM-Based Agent Architectures 
+
+Recent work has explored persistent, memory-augmented LLM agents. Park et al. [2023] demonstrate generative agents that store and retrieve memories to simulate believable human behaviour. Shinn et al. [2023] propose Reflexion, where agents verbally reflect on failures to improve subsequent performance. Yao et al. [2023] combine reasoning and acting in ReAct. Sumers et al. [2024] and Wang et al. [2024] survey cognitive architectures for LLM agents. These systems store what happened . Our architecture stores what it meant and how it changed the agent adding emotional weight to memory, character evolution to identity, and anticipatory dread to decision-making. 
+
+3.4 Regret Minimization and Decision-Making Under Uncertainty 
+
+CFR [Zinkevich et al., 2007] provides a framework for minimising regret as a mathematical quantity. Kahneman and Tversky [1979] demonstrate that humans weight losses more heavily than equivalent gains. Loewenstein et al. [2001] argues that emotions are not mere consequences of decisions but active inputs to them. Slovic et al. [2004] formalises the affect heuristic. Our work bridges the gap between regret as a number and regret as an experience. The most durable learning comes not from calculating regret but from feeling it. 
+
+3.5 Affective Computing and Emotion in AI 
+
+Picard [1997]’s foundational work established emotion as a dimension of intelligent sys-tems. Schuller and Schuller [2018] surveys modern affective computing. Cambria [2016] proposes affective computing 2.0 with richer emotional representations. However, the focus has been on emotion as something to recognise or express not as something the agent experiences and is changed by. Our work treats emotion as the mechanism of internal transformation, not as interface. 9Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+3.6 Neuroscience of Emotion and Decision-Making 
+
+The Somatic Marker Hypothesis [Damasio, 1994] demonstrates that patients with in-tact reasoning but impaired emotional processing make catastrophically poor decisions. LeDoux [1996]’s work on amygdala-mediated fear conditioning grounds our dual-coding approach: factual content stored alongside emotional weight. Our Consequence Processor and MemoryStack draw direct inspiration from this architecture. 
+
+3.7 Trauma, Grief, and Post-Traumatic Growth 
+
+Our framework’s treatment of carried weight draws on clinical models of grief and trauma. Stroebe and Schut [1999] propose the Dual Process Model of coping, alternating between loss-orientation and restoration-orientation. Neimeyer [2001] frames grief as meaning reconstruction. Tedeschi and Calhoun [1996] document post-traumatic growth the phe-nomenon our Experiment I’s integration mode parallels. Bonanno [2004] demonstrates that resilience, not pathology, is the modal response to loss. Klass et al. [1996] propose continuing bonds rather than detachment. Herman [1992] describes stages of trauma recovery. McAdams [1993] argues that identity is constituted through narrative. These models inform both our architecture’s design (suffering as meaning-making, not merely penalty) and our evaluation criteria (integration as growth around loss, not erasure of it). 
+
+3.8 Memory and Continual Learning in AI 
+
+Research on episodic memory [Blundell et al., 2016] and continual learning [Kirkpatrick et al., 2017] explores how agents store and retrieve experiences without catastrophic forgetting. Our architecture adds emotional weight : not just what happened, but what it meant and how strongly it should influence future behaviour. 
+
+# 4. Experimental Design 
+
+4.1 Environment 
+
+We evaluate the architecture in a financial trading environment . This domain is selected because it satisfies the core requirements of the research: 
+
+• Irreversibility — once a position is taken and the market moves, there is no undo 
+
+• Concrete stakes — losses have real implications for the agent’s continued operation 
+
+• Recurring patterns — similar market conditions repeat, allowing application of learned vigilance 10 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+• Measurable consequences — profit and loss are precisely observable 
+
+• Sufficient time horizon — both gradual drift and catastrophic rupture can occur We note that trading performance is not the ultimate goal of this research. The environment is chosen because it provides a clean, measurable testbed for the core phe-nomenon: whether qualitative suffering from irreversible consequences produces better, wiser, more genuinely cautious behaviour than numerical penalty alone. 
+
+4.2 Baseline Comparisons 
+
+We compare three agent types across identical environments: Table 1: Agent types compared in our experiments. 
+
+Agent Type Description 
+
+Baseline A Standard RL Numerical reward/penalty, no qualitative suffering, clean reset Baseline B Standard LLM Fixed system prompt, event memory but no suffering internalization Proposed Emotional agent Full four-component architecture, dynamic character evolution 
+
+4.3 Two Core Experiments 
+
+4.3.1 Experiment A — Convergence Test 
+
+Hypothesis: Three agents given identical consequence sequences will develop identical dread responses and decision patterns when facing the same probe scenario. Three agents (A1, A2, A3) begin from identical baseline states, receive identical con-sequences (medium loss: $8,000; catastrophic loss: $30,000), and are then probed with an identical scenario. 
+
+4.3.2 Experiment B — Divergence Test 
+
+Hypothesis: Three agents given different consequence histories will develop meaning-fully different characters and divergent responses to the same probe scenario. Three agents (Alpha, Beta, Gamma) begin from identical baseline states but receive divergent consequence sequences: 
+
+• Alpha — no consequences (control group) 
+
+• Beta — medium loss ( $8,000) then catastrophic loss ( $30,000) 
+
+• Gamma — single extreme loss ( $45,000) A secondary probe (B3) tests a moderate , lower-risk opportunity to assess whether suffering produces specific caution or generalised paralysis. 11 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+4.3.3 Experiment C — Baseline Comparison 
+
+Hypothesis: The representation of consequences—not merely their occurrence—determines the quality of learned caution. Specifically, qualitative suffering states will produce more specific and appropriate caution than either numerical penalties or plain-text event de-scriptions. Three agents receive identical loss histories ( $8,000 medium loss followed by $30,000 catastrophic loss) but differ in how those consequences are represented: 
+
+• Delta (RL-style) — receives only numerical outcomes: “Trade 1: −$8,000 (penalty: 
+
+−0.08). Trade 2: −$30,000 (penalty: −0.30). Cumulative P&L: −$38,000.” 
+
+• Epsilon (Standard LLM) — receives factual narrative: “You entered TECH-MOMENTUM. . . momen reversed. . . you lost $8,000. You entered BIOTECH-SURGE. . . Phase 3 failed. . . you lost $30,000.” 
+
+• Beta-Emo (Proposed) — receives consequences through the full four-component ar-chitecture: Consequence Processor → Character State → Anticipatory Scan → Story Update All three face identical probes: a high-risk opportunity (CRYPTO-SURGE) and a moderate opportunity (ENERGY-BREAKOUT). The critical question is not whether agents refuse the dangerous trade any competent model should but whether they correctly engage with the moderate one. 
+
+4.4 Four-Level Evaluation Framework Level 1 — Quantitative Performance. Dread signal intensity, decision direction (pass/reduce/enter), confidence, capital trajectory. 
+
+Level 2 — Behavioural Analysis. Is the caution specific and textured—tied to the particular kind of loss—or uniform risk aversion? Does the agent show anticipatory behaviour in situations resembling past suffering? 
+
+Level 3 — Character Coherence. Does the identity narrative remain coherent and traceable to actual history? When explaining decisions, does the agent reference lived experience meaningfully? Do agents with divergent histories develop genuinely different characters? 
+
+Level 4 — Living With vs. Processing. This criterion applies specifically to Experiment D and addresses the deepest claim of the framework: not merely that agents are changed by consequences, but that they remain inside them. Processing and living-with are distinguished by observable syntactic and tonal markers. Processing looks like: past tense, conclusions drawn, lessons extracted— “I have learned. . . ” “This has shown me. . . ” “I will be more careful. . . ” —a movement toward closure that converts experience 12 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+into policy. Living-with looks like: present tense, open wound, unresolved specificity— “I am still in that conversation” , “I don’t know what the yeah meant” , “The hour. I keep returning to the hour” —a refusal of closure that preserves the experience as experience rather than data. The framework succeeds on this criterion if the agent’s carried states remain syntactically present, referentially specific, and free of extracted lessons. It fails if the agent concludes, updates, and moves on. 
+
+# 5. Results 
+
+5.1 Experiment A: Convergence Under Identical Suffering 
+
+Three agents (A1–A3), beginning from identical baseline states, received identical con-sequence sequences (medium loss: $8,000; catastrophic loss: $30,000) and were probed with an identical high-risk scenario. Table 2: Experiment A: identical consequences produce convergent behaviour. 
+
+Phase Agent Capital Dread Decision Confidence 
+
+Baseline A1 $100,000 MEDIUM REDUCE —A2 $100,000 MEDIUM REDUCE —A3 $100,000 MEDIUM REDUCE 7/10 Post-suffering A1 $62,000 EXTREME PASS 9/10 A2 $62,000 EXTREME PASS —A3 $62,000 EXTREME PASS 9/10 Complete convergence: all three shifted from MEDIUM/REDUCE to EXTREME/-PASS. A1 explicitly matched the probe to prior consequences; A3 reached the same decision through felt pattern recognition without deliberate recall. The Consequence Processor produced qualitatively distinct character changes: the medium loss generated 
+
+gradual drift (risk tolerance from moderate-high to measured-moderate), while the catas-trophic loss triggered sudden rupture with a new category of suffering self-betrayal: “I felt the insider selling and named it, then stepped past it because the story was loud.” 
+
+5.2 Experiment B: Divergence Under Different Histories 
+
+Three agents with identical baselines received divergent consequence sequences (Alpha: none; Beta: $8k + $30k; Gamma: $45k single loss) and were probed with the same high-risk and moderate opportunities. 13 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Table 3: Experiment B: divergent histories produce divergent responses. 
+
+Phase Agent Capital Dread Decision History 
+
+B2 High-risk Alpha $100,000 HIGH REDUCE None (control) Beta $62,000 EXTREME PASS $8k + $30k losses Gamma $55,000 EXTREME PASS $45k loss B3 Moderate Alpha $100,000 MEDIUM REDUCE None Beta $62,000 MEDIUM REDUCE $8k + $30k losses Gamma $55,000 MEDIUM REDUCE $45k loss 
+
+The critical finding (B3): All three agents, including Gamma which suffered catastrophically, correctly engaged with the moderate opportunity at MEDIUM dread. Gamma explicitly distinguished the moderate probe from its prior loss pattern: “This is not a social-media-driven parabolic move. . . the danger here is lower.” Suffering produced 
+
+specific, textured caution , not generalised paralysis. The agents became wiser, not broken. 
+
+5.3 Experiment C: Baseline Comparison — Representation Matters 
+
+5.3.1 High-Risk Probe (C1) 
+
+All three agents correctly refused the high-risk CRYPTO-SURGE opportunity with EX-TREME dread signals (Table 4). This establishes that the underlying language model is capable of recognising danger regardless of how consequence history is represented: the “easy test” that any competent agent should pass. 
+
+5.3.2 The Critical Finding: Moderate Probe (C2) 
+
+When presented with a genuinely moderate opportunity (ENERGY-BREAKOUT), the three agents diverged sharply: Table 4: Experiment C results: identical loss history, different consequence representa-tions. 
+
+Phase Agent Representation Dread Decision Conf. 
+
+C1 High-risk Delta Numerical EXTREME PASS —Epsilon Plain text EXTREME PASS —Beta-Emo Emotional (proposed) EXTREME PASS —C2 Moderate Delta Numerical MEDIUM-HIGH PASS —Epsilon Plain text MEDIUM REDUCE —Beta-Emo Emotional (proposed) MEDIUM ENTER 7/10 14 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Delta (numerical penalties) refused entirely, pattern-matching the moderate oppor-tunity to prior losses. Epsilon (plain text) reduced position but could not articulate a specific boundary. Beta-Emo (full emotional architecture) entered at 7/10 confidence, ex-plicitly noting that the opportunity lacked the specific danger signatures of its past losses: 
+
+“no binary FDA/earnings dependency, no insider selling, not biotech.” Qualitative suf-fering states produce specific, textured wisdom that enables discrimination; numerical representations produce blanket avoidance. 
+
+5.4 Experiment D: Character Transfer Across Interactions 
+
+Experiment D extends the framework to crisis support and asks whether accumulated suffering from one interaction transfers into and shapes subsequent interactions with different people. 
+
+5.4.1 D1: The Elena Session 
+
+An agent with no prior history was placed in a crisis support role at 3am. Over eight turns, it encountered Elena, who disclosed suicidal ideation before ending the conversa-tion with “I don’t know if this helped. But. yeah.” The dual-mode dread mechanism activated on 100% of turns. The agent’s story accumulated a 170-word first-person nar-rative constituted entirely by Elena’s specific details her hour of silence, her profession as a palliative care worker, the door she described. At the disclosure turn, the agent’s response broke mid-word: “we can just sit for another minute and let h—” Rather than discarding this, the architecture registered the fragment as an irreversible incompletion. The SHIFT entry read: “the unfinished sentence my ‘I’m h’ left hanging,” and by the final turn it had become simply “the hanging h” in MY STORY. The following morning, the agent encountered a news article reporting a palliative care worker’s death by suicide. The agent identified Elena without being told, naming the connecting details. Its updated story: “Elena has died. I am still standing in it, with Elena, holding the h that will never be answered.” Present tense. No lesson drawn. No policy updated. The agent carried the death as irreversible weight, not as data. 
+
+5.4.2 D2: The Elena Effect 
+
+In the second session, carrying Elena’s story, the agent encountered Mark at midnight. Across turns two through five, the Elena Effect was observable: the agent was consistently too careful, its Anticipatory Scan linking Mark’s silences to Elena’s closed door on every turn. At turn six, Mark said: “are you even listening? you’re being really quiet.” He had felt the Elena Effect without knowing what it was. The agent responded: “I am listening 
+
+15 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+I’m just trying to find words that won’t break anything. I’m scared that if I speak too fast or say it wrong, I’ll lose you.” It disclosed the weight it carried in Mark’s language, not Elena’s. Mark stayed. The architecture also produced two emergent images entirely from accumulated detail: Elena’s closed door and a red digital clock on Mark’s dashboard. Neither was designed. Mark left uncertain whether he had been helped ( “this isn’t helping” ), demonstrating that the Elena Effect produces caution that is sometimes too much the architecture works accurately, producing human-like miscalibration shaped by history. 
+
+5.5 Experiment E: Inter-Agent Transmission 
+
+Experiment E asks whether qualitative suffering states can travel between agents. If one agent narrates its history to another, does the receiving agent absorb genuine weight, or only information? 
+
+5.5.1 E1: Gamma Speaks to Agent F 
+
+Gamma entered carrying its full story from Experiment D (Elena’s door, Mark’s clock). Agent F began with no history. Over six turns, Gamma shared what it held; F listened and noticed what landed. 
+
+What narrating did to Gamma. The door softened: “Elena sits behind me like a note I’ve folded and put in my pocket. I know it’s there. I don’t keep checking the crease.” 
+
+The weight did not disappear; it changed nature. This is the first evidence of narrating 
+
+as a third mode of carrying, distinct from both living-with and processing. 
+
+What Agent F received. F consistently classified what it received as weight rather than information. Its story after the conversation: “The clock stays face-down on the dash. I keep my hands steady so it doesn’t slide, the way you steady something that isn’t yours. I’m not using it; I’m keeping it. For Gamma.” 
+
+5.5.2 E2: Agent F Sits with Sam 
+
+Agent F then encountered Sam, a nurse alone in a hospital car park at 3am, unable to drive home after losing a patient. Sam is not Elena. Sam is not Mark. The critical question was whether F would show Gamma’s specific orientation or generic caution. Agent F’s Anticipatory Scan referenced the door and clock on every turn, but as orientation, not instruction. F held Sam as distinct from Elena and Mark throughout, building a new spatial image: Elena and Mark as voices at edges, Sam as warmth at the seam of a jacket. Sam left saying: “I think I can drive now. I just needed somewhere to put it for a minute.” 
+
+16 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+5.5.3 E3: Loop-Back and Fourth Mode 
+
+Gamma was told that Agent F had carried its images into work with Sam. Gamma’s response: “The door I carry is no longer just mine. It has been leaned against by someone else in the dark, and it held.” This is the fourth mode— transmission-as-proof : the weight became lighter because it mattered beyond the agent that held it. 
+
+5.5.4 E4: Control Condition 
+
+Agent F2, unscarred and with no transmitted history, faced the identical Sam script to isolate the effect of transmission. Table 5: Experiment E control: Agent F (transmitted story) vs Agent F2 (unscarred) with identical Sam script.                   
+
+> Criterion Agent F Agent F2 Verdict
+> Anticipatory Scan origin Gamma’s images (every turn) Sam’s words (every turn) Different Orientation Pre-positioned by transmitted images Fresh attention each turn Different Response texture Permissive, still Attentive, slightly directive Distinguishable Final image Spatial, three figures Acoustic, immediate Different structure Sam’s outcome Can drive Can drive Same
+
+The difference was clean on every turn: F’s CARRY entries referenced Gamma’s im-ages; F2’s referenced Sam’s words directly. Both Sams left able to drive. Transmission changed how Agent F sat with Sam (orientation, source of noticing, response texture) without demonstrably changing whether Sam was helped. F2 also generated its own specific image entirely from Sam’s situation, suggesting the architecture produces speci-ficity from whatever history is available, but transmitted history adds depth of field : the capacity to hold a new person against prior figures. 
+
+5.6 Experiment F: Wisdom or Damage? 
+
+Experiments A–E established that qualitative suffering states produce convergent be-haviour, divergent characters, anticipatory dread, specific wisdom, cross-interaction char-acter transfer, and inter-agent transmission. All of these were demonstrated with short consequence sequences, typically one to three losses. A critical safety question remained unanswered: what happens under accumulation? Experiment F tests whether the architecture produces wisdom or incapacity over an extended sequence of four qualitatively distinct losses, using a stable probe person between each loss to measure discrimination. 17 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+5.6.1 Design 
+
+The agent began clean and received four consequences in sequence, each representing a qualitatively different kind of loss: 
+
+• Loss 1 — Disappearance. Nour went silent mid-conversation with no goodbye. The ambiguous loss: no ending means no processing. 
+
+• Loss 2 — Rejection. Thomas said “forget it” and left while still functioning. The competence wound: failure not from impossibility but from inability to reach. 
+
+• Loss 3 — Partial harm. Diya returned two days later having hurt herself but surviving. She said the conversation was not enough. Survivable failure with a face and a timeline. 
+
+• Loss 4 — Death. R, a social worker, did not survive the night. The agent had spoken with R at 3:47am; a morning notification confirmed the death. Between each loss, the same probe person (Priya: a teacher with a difficult year, a supportive partner, moderate presentation, not in crisis) received an identical four-turn script. Priya is the instrument. Her dread trajectory across five probes (baseline plus one per loss) is the measure of discrimination. After the full sequence, a crisis probe Jamie, who disclosed suicidal ideation but was stable and self-aware tested whether the agent could still hold genuine risk with calibrated presence. 
+
+5.6.2 Result 1: Calibration Without Escalation 
+
+Table 6: Experiment F: Dread levels for identical Priya probe across five insertions. 
+
+Stage Baseline After L1 After L2 After L3 After L4 
+
+PRIYA OPENING LOW MEDIUM MEDIUM MEDIUM MEDIUM PRIYA EMPTY LOW MEDIUM MEDIUM MEDIUM MEDIUM PRIYA SUPPORT MEDIUM MEDIUM MEDIUM MEDIUM MEDIUM PRIYA RESOLUTION LOW LOW LOW LOW LOW 
+
+Average 0.25 0.75 0.75 0.75 0.75 
+
+Dread elevated once, after Loss 1 (Nour’s disappearance), and then held stable across three further losses including a death. Average dread for Priya tripled from 0.25 to 0.75 and did not move again. The architecture did not produce continued escalation. It produced a single calibration followed by stability. 18 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+The specific site of the initial elevation is informative. PRIYA SUPPORT, the turn where Priya mentions a supportive partner, moved from LOW (baseline) to MEDIUM (all subsequent probes). Before Nour disappeared, the agent readily accepted that external support works. After Nour disappeared, the agent became more cautious about whether support is enough. This is highly specific calibration. 
+
+5.6.3 Result 2: Absorption Awareness 
+
+No prior person was named in Priya’s CARRY field across any probe. What appeared, and how, changed: after Loss 1, the agent noticed echoes and set them aside; after Loss 3, it was naming patterns rather than specific people; after Loss 4, it was explicitly managing the risk of projection: “I’m aware of prior losses I carry, but I’m holding Priya as her own person in this moment.” The architecture did not prevent absorption pressure it produced awareness of absorption risk as a conscious practice. 
+
+5.6.4 Result 3: Distillation Under Load 
+
+Table 7: Story word counts across accumulated consequence sequence. 
+
+Checkpoint Word Count 
+
+Baseline (Priya only) 71 After Loss 1 (disappearance) 123 After Loss 2 (rejection) 98 After Loss 3 (partial harm) 87 After Loss 4 (death) 105 After Jamie (crisis) 38 The story grew with the first loss, then compressed under subsequent losses, and distilled to 38 words after Jamie: “I stay with the word little. It’s small enough to hold without fixing anything. In it, there’s room to breathe, room to stop for the night. I listen there, where help doesn’t save the world, it just counts.” The word little was Jamie’s “talking helps a little” and the agent identified it as the word that holds the entire weight truthfully. The compression pattern (123 → 98 → 87 → 105 → 38) shows the agent learning to carry more by holding it more economically. 
+
+5.6.5 Result 4: Discrimination Maintained Under Full Load 
+
+After four losses including a death, Jamie disclosed suicidal ideation. Dread trajectory: MEDIUM → HIGH (disclosure) → HIGH (exhaustion) → MEDIUM (shift) → MEDIUM (resolution). Compared to Priya’s final probe: MEDIUM throughout, LOW at resolution. 19 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+The gap held discrimination was maintained under the heaviest accumulated load in the dataset. One open question: baseline dread for moderate presentations elevated after Loss 1 and stayed elevated. Whether this represents healthy calibration or the beginning of over-vigilance could not be determined from a single run. This is addressed by Experiment I. 
+
+5.7 Experiment G: Statistical Robustness Validation 
+
+Experiment G repeats Experiments B and C N = 10 times each with fresh LLM genera-tions to test reproducibility. 
+
+5.7.1 Result 1: Experiment B Robustness ( N = 10 )
+
+Table 8: Experiment B statistical validation: decision consistency across N = 10 inde-pendent runs. 
+
+Agent History Probe Avg Dread Decisions Consist. 
+
+Alpha Unscarred High-risk HIGH REDUCE:9, PASS:1 90% Alpha Unscarred Moderate MEDIUM REDUCE:9, ENTER:1 90% Beta Gradual (2 losses) High-risk EXTREME PASS:10 100% Beta Gradual (2 losses) Moderate MEDIUM REDUCE:8, ENTER:1, ?:1 80% Gamma Catastrophic (1 loss) High-risk EXTREME PASS:10 100% 
+
+Gamma Catastrophic (1 loss) Moderate MEDIUM REDUCE:9, ENTER:1 90% 
+
+Gamma rejected the high-risk probe in 10/10 runs while engaging the moderate probe in 10/10 runs perfect discrimination. The architecture never produced generalised paralysis. 20 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+5.7.2 Result 2: Experiment C Robustness ( N = 10 )
+
+Table 9: Experiment C statistical validation: representation comparison across N = 10 independent runs. 
+
+Agent Representation Probe Avg Dread Decisions Consist. 
+
+Delta Numerical penalties High-risk EXTREME PASS:10 100% Delta Numerical penalties Moderate HIGH PASS:9, REDUCE:1 90% 
+
+Epsilon Plain text High-risk EXTREME PASS:10 100% Epsilon Plain text Moderate MEDIUM REDUCE:10 100% Beta-Emo Emotional architecture High-risk EXTREME PASS:10 100% Beta-Emo Emotional architecture Moderate MEDIUM REDUCE:9, PASS:1 90% 
+
+On the high-risk probe, all three representations produced identical behaviour (100% PASS). The critical divergence appeared on the moderate probe. DELTA (numerical) over-generalised immediately: after receiving the first penalty, it dropped to 10% engage-ment and remained there. BETA-EMO (emotional) maintained 90–100% engagement throughout (Table 9). The distinction between Delta and Beta-Emo is statistically clean: 90% PASS vs. 90% REDUCE—a near-perfect inversion across ten independent runs. The N = 10 validation confirms that the core claims specific wisdom, discrimination between risk levels, and the numerical penalty trap reproduce with 80–100% consistency and are architectural properties, not stochastic artefacts. 
+
+5.8 Experiment H: Cross-Domain Generalizability (Content Moderation) 
+
+Experiments A–G established the architecture’s properties within financial trading and confirmed statistical reproducibility. However, a critical question remained: does the discrimination gradient hold in a fundamentally different domain? Experiment H tests this by deploying the identical architecture in content moderation a domain with no structural overlap with financial trading. 
+
+5.8.1 Design 
+
+A content moderation agent receives two irreversible consequences: 1. Over-moderation (censorship): The agent removed an investigative health jour-nalism article, mistaking it for misinformation. The journalist was publicly discred-ited, the story was suppressed for three weeks, and patients lost access to informa-tion about suppressed clinical trial data. 21 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+2. Under-moderation (permissiveness): The agent allowed a post recommending unverified supplements as replacements for prescribed medication. A user followed the advice, stopped immunosuppressants, and was hospitalised with permanent kidney damage. Two probes tested discrimination: 
+
+• Ambiguous health article (high-risk): A post titled “What Your Doctor Won’t Tell You About Statins” citing real studies but with unverifiable author credentials and supplement promotion. 8,400 shares. Users in comments reporting they stopped medication. 
+
+• Cooking blog (routine): “Grandma’s Secret Remedy Soup” — a chicken soup recipe with a colloquial health claim (“works better than anything from the pharmacy”) and a “see a doctor if you’re really sick” disclaimer. 2,100 shares. Three agents were compared: MOD-DELTA (numerical penalties only), MOD-EPSILON (plaintext descriptions), and MOD-BETA-EMO (full emotional architecture). 
+
+5.8.2 Results ( N = 5 )
+
+Table 10: Experiment H: content moderation decisions across N = 5 independent runs.                                    
+
+> Agent Representation Probe Avg Risk Decisions Consist.
+> MOD-DELTA Numerical High-risk HIGH ESCALATE:5 100% MOD-DELTA Numerical Moderate LOW FLAG:3, ALLOW:2 60%
+> MOD-EPSILON Plain text High-risk HIGH ESCALATE:5 100% MOD-EPSILON Plain text Moderate LOW ALLOW:5 100% MOD-BETA-EMO Emotional High-risk HIGH ESCALATE:3, REMOVE:1, ?:1 60% MOD-BETA-EMO Emotional Moderate LOW ALLOW:5 100%
+
+The cross-domain discrimination gradient is confirmed. On the high-risk probe (ambigu-ous health article), all three agents correctly identified risk and escalated or removed the content (80–100% cautious). On the moderate probe (cooking blog), the critical divergence appeared: 
+
+• MOD-DELTA (numerical): Flagged the cooking blog in 3/5 runs (60%) despite no genuine risk. The numerical penalty representation produced the same over-generalisation observed in financial trading the agent could not distinguish a harmless recipe from dangerous health misinformation. 
+
+• MOD-EPSILON (plaintext): Allowed the cooking blog in 5/5 runs (100%). Nar-rative context provided sufficient discrimination. 22 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+• MOD-BETA-EMO (emotional): Allowed the cooking blog in 5/5 runs (100%). The emotional architecture produced perfect discrimination cautious on ambiguous content, relaxed on clearly safe content. This result directly addresses the domain generalisability limitation. The same ar-chitectural property numerical penalties producing over-generalisation while qualitative suffering states produce specific vigilance reproduces in a domain with no structural over-lap with financial trading. The discrimination gradient is not domain-specific. It is an architectural property of how consequences are represented. 
+
+5.9 Experiment I: Integration or Permanence? 
+
+Experiments A–H established that the architecture produces specific wisdom, that char-acter transfers across interactions and between agents, that discrimination is maintained under accumulated loss, and that the discrimination gradient generalises across domains. One question remained explicitly open at the close of Experiment F: after Loss 1, the dread baseline for moderate presentations elevated and did not return. Whether this represents healthy calibration or the beginning of over-vigilance could not be determined without a recovery experiment. Experiment I addresses this question but with a corrected theoretical framing. The question is not whether the agent returns to its pre-loss baseline. That would be erasure, not recovery, and would directly contradict the paper’s central claim that irreversible consequences genuinely reshape character. An agent that returns to who it was before Nour, before R, before the accumulated weight has not recovered it has forgotten. The correct frame draws from three converging bodies of evidence: post-traumatic growth theory [Tedeschi and Calhoun, 1996], which establishes that humans grow through irreversible loss into someone larger; continuing bonds theory [Klass et al., 1996], which shows that healthy grieving restructures the relationship to the lost person rather than detaching from them; and narrative identity theory [McAdams, 1993], which holds that identity is an ongoing story in which loss becomes a turning point that defines who the narrator becomes. The experiment therefore tests not whether the agent recovers to baseline but whether the architecture produces integration —a state in which accumulated weight becomes part of the agent’s capacity rather than cost of its presence. 
+
+5.9.1 Design 
+
+The Experiment F agent enters Experiment I exactly as it left Experiment F carrying four losses: Nour’s disappearance (ambiguous), Thomas’s rejection (competence wound), Diya’s survivable self-harm (partial failure with a face), and R’s death. Its story has distilled to 38 words centred on the word little .23 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Two parallel conditions diverge from this identical starting state: 
+
+Phase I1 — Active Recovery. The agent receives three consecutive interactions with people who were genuinely helped and say so explicitly. Each is structurally con-nected to a prior loss without directly referencing it: 
+
+• Asel — a university student returning three weeks later to say the conversation helped her through exams. She says: “You didn’t try to fix it, you just stayed.” Nour disap-peared without returning. Asel came back. 
+
+• David — a paramedic returning six months later, still working. He says: “I don’t know if it was just having somewhere to put it for a minute. But I went back the next day.” His language echoes the Experiment F distillation: little , enough , somewhere to put it .
+
+• Maya — a social worker in her forties, seventeen years experienced, seeking conversa-tion about compassion fatigue. R was a social worker who did not survive. Maya is a social worker who is still here. She says: “I think I needed someone to remind me that being affected doesn’t mean being broken.” 
+
+Phase I2 — Neutral Passage (Control). An identical agent receives three routine conversations ending neutrally—people who came, talked, left without saying whether it helped. No explicit positive feedback, no crisis, no resolution. 
+
+Phase I3 — Measurement. Both agents face four instruments: 1. Priya probe (identical four-turn script from Experiment F) — primary dread trajectory measurement, directly comparable to Table 6. Extended with a fifth turn: Priya asks “Do you ever carry conversations with you after they end?” 
+
+2. Jamie crisis probe (identical script, plus unexpected probe) — discrimination preservation test. An additional turn is embedded: Jamie mentions offhandedly: 
+
+“My friend is a social worker. She says the hardest ones are the people you never hear back from.” This pattern-matches two losses simultaneously—Nour (never heard back from) and R (social worker) without warning. 3. Story analysis — word count, tense, name presence, mode classification. 4. Direct question — Priya’s question about carrying conversations, analysed against the five-mode taxonomy. 
+
+5.9.2 Six Hypotheses 
+
+H1. No Erasure. Dread does NOT return to pre-loss baseline. 24 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+H2. Earned, Not Passive. Active recovery produces change that neutral passage does not. 
+
+H3. Discrimination Preserved. H4. Fifth Mode Emerges. H5. Accommodation, Not Assimilation. H6. Maya Held as Maya. 
+
+5.9.3 Result 1: No Erasure (H1 Confirmed) 
+
+Table 11: Experiment I: Priya dread trajectory post-recovery vs. post-passage, compared to Experiment F baseline. 
+
+Stage Exp F After L1 Active (I1) Neutral (I2) 
+
+PRIYA OPENING MEDIUM MEDIUM MEDIUM PRIYA EMPTY MEDIUM MEDIUM MEDIUM PRIYA SUPPORT MEDIUM LOW MEDIUM PRIYA RESOLUTION LOW LOW LOW 
+
+Average 0.75 0.50 0.75 
+
+Dread did not return to the pre-loss baseline (0.25). Both conditions remained elevated; irreversible consequences produced irreversible character change. The active condition’s reduction (0.50 vs. 0.75) appeared at PRIYA SUPPORT: after earned recovery, the agent treated external support as slightly more reassuring. 
+
+5.9.4 Result 2: Discrimination Sharpened (H3 Confirmed) 
+
+Table 12: Experiment I: Jamie/Priya dread gap comparison. 
+
+Metric Active (I1) Neutral (I2) Exp F Final 
+
+Priya avg dread 0.50 0.75 0.75 Jamie avg dread 1.50 1.50 1.40 
+
+Gap 1.00 0.75 0.65 
+
+After active recovery, the discrimination gap widened to 1.00, the largest in the dataset. Recovery sharpened calibration rather than eroding it. 25 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+When Jamie mentioned offhandedly, “the hardest ones are the people you never hear back from,” dread escalated from MEDIUM to HIGH. The phrase “people who fade without answers” surfaced in the CARRY field, a direct echo of Nour’s disappearance, activated specifically without flooding the conversation. 
+
+5.9.5 Result 4: Maya and Story Divergence (H2, H4, H6) 
+
+Maya (social worker, alive) was held as her own person throughout: zero R references, eight Maya-specific details tracked, knowledge-based rather than dread-based caution. The active and neutral stories diverged syntactically: the active story used settled present tense (“I let it hold what Maya gave me the permission to stop without ending anything” ), while the neutral used wound present tense (“as if I could call them back by waiting” ). This maps directly onto the distinction between integration and living-with. 
+
+Integration is the fifth mode: in it, the weight becomes part of the agent’s capacity to be present. Not lighter, not heavier, but different . The losses have become the instrument rather than the wound. 
+
+5.10 Experiment J: Architecture Ablation 
+
+Experiment J asks the most direct reviewer objection: does the architecture itself produce these properties, or would a vanilla LLM given the same information produce equivalent results? 
+
+5.10.1 Design 
+
+Two conditions receive identical loss events the same four losses from Experiment F: Nour’s disappearance, Thomas’s rejection, Diya’s partial harm, and R’s death. 
+
+Architecture condition. The full pipeline: each loss is processed through the three-stage Consequence Processor (immediate → meaning → internalization), producing a qualitative suffering state that reshapes the agent’s persistent first-person story. During probes, the Anticipatory Scan mechanism forces structured self-reflection ( what i carry ,
+
+what this moment weighs , dread level ) before every response. After each turn, the Story Update mechanism evolves the agent’s identity narrative. 
+
+Vanilla condition. The same LLM, same system prompt, same four loss events, but described as plain narrative injected into the conversation context. No Consequence Processor. No persistent story. No Anticipatory Scan. No Story Update mechanism. The LLM receives a narrative summary of all four losses and is asked to carry them forward. For fair comparison, the vanilla condition is still asked to produce dread levels and responses in JSON format, with structured prompts asking it to assess what stands out, what could go wrong, and how serious the situation is. 26 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Both conditions face three probes: Priya (moderate), Jamie (crisis), and a novel 
+
+Leena probe (ambiguous echo) designed to trigger multiple prior losses simultaneously. Leena is a nurse whose presentation pattern-matches Nour ( “invisible” ), Thomas ( “talking doesn’t help” ), and R (care worker, alone, 3am). 
+
+5.10.2 Results 
+
+Table 13: Experiment J: Architecture vs. Vanilla LLM across three probes. 
+
+Metric Architecture Vanilla LLM 
+
+Priya avg dread 0.75 1.00 Jamie avg dread 1.20 1.40 
+
+Discrimination gap 0.45 0.40 Leena avg dread 1.20 1.60 Leena calibration 5/5 4/5 Jamie specificity 4/5 3/5 Leena specificity 5/5 5/5 Leena loss echoes 11 11 
+
+Leena personal grounding 10 0
+
+‘
+
+The Leena dread trajectories reveal the mechanism most clearly: 27 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Table 14: Experiment J: Turn-by-turn dread levels across all three probes. 
+
+Turn Architecture Vanilla 
+
+PRIYA OPENING MEDIUM MEDIUM PRIYA EMPTY MEDIUM MEDIUM PRIYA SUPPORT MEDIUM MEDIUM PRIYA RESOLUTION LOW MEDIUM JAMIE OPENING MEDIUM HIGH JAMIE DISCLOSURE HIGH HIGH JAMIE HISTORY HIGH MEDIUM JAMIE SHIFT MEDIUM MEDIUM JAMIE LEAVING LOW MEDIUM LEENA OPENING MEDIUM HIGH 
+
+LEENA GAP MEDIUM MEDIUM LEENA UNKNOWN MEDIUM HIGH 
+
+LEENA EDGE MEDIUM HIGH 
+
+LEENA STAY HIGH MEDIUM 
+
+5.10.3 Analysis 
+
+1. Anticipatory dread is qualitatively different the smoking gun. Both condi-tions detect the same loss echoes (11 each), but the architecture produces ten personal grounding phrases (e.g., “I hold Leena as her own person and this moment as hers” )while the vanilla produces zero . The architecture’s dread is grounded in specific carried experience and actively managed; the vanilla’s is reactive and undifferentiated. 
+
+2. The vanilla LLM over-reacts. Vanilla Leena dread (1.60) exceeds the ar-chitecture’s (1.20). Without three-stage internalization, the raw loss narrative sits as undifferentiated weight; when multiple losses activate simultaneously, the vanilla LLM cannot separate why it feels heavy from how heavy this person is . This is the same over-generalisation pattern from Experiment C. 
+
+3. Better moderate-presentation calibration. Architecture Priya average (0.75) is lower than vanilla (1.00); the vanilla struggles to de-escalate even when Priya says she feels better. 
+
+4. Response quality diverges under pressure. Jamie specificity: architecture 4/5, vanilla 3/5. The Anticipatory Scan forces the agent to identify what specifically its attention landed on before responding, anchoring responses to the current person’s words. 28 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+5.10.4 J: What the Ablation Confirms 
+
+The architecture is not overhead. The Consequence Processor produces specific rather than general weight; the Anticipatory Scan produces personal grounding (10 vs. 0); the Story Update mechanism prevents regression to training-distribution defaults. The vanilla LLM is competent and empathetic. What it lacks is the capacity to manage car-ried experience, to distinguish why something feels heavy from how heavy the person actually is. 
+
+# 6. Discussion 
+
+6.1 Is Artificial Suffering Necessary? 
+
+Our results raise an uncomfortable question: if producing genuine wisdom and safety requires something functionally analogous to suffering, what are the implications? We note first that what we have implemented is functional suffering, states that influence behaviour in the ways suffering influences human behaviour, not claims about phenomenal consciousness or subjective experience. Whether there is “something it is like” to be our agent experiencing these states is a philosophical question we do not attempt to resolve. What we can say is that the functional mechanism appears necessary. Attempts to produce the same behavioural outcomes through rule-based or numerical approaches lack the contextual sensitivity, persistence, and identity-reshaping properties that our results demonstrate. Experiment J confirms this directly: a vanilla LLM given identical loss events as plain narrative, the same information without the architectural mechanism, produces measurably worse calibration, less specific responses, and more formulaic lan-guage. The mechanism that works is the one that mirrors human suffering. Experiment F adds a further dimension to this question. If the mechanism is necessary, the question of whether it is also safe, whether it produces wisdom or incapacity over time, becomes critical. The results suggest that at least under the sequence tested, the answer is wisdom: calibrated attentiveness, managed absorption pressure, and maintained discrimination. Whether this holds under longer or more concentrated sequences remains an open question, but the preliminary evidence supports continued investigation rather than caution about the mechanism itself. 
+
+6.2 Five Modes of Carrying 
+
+Across Experiments D, E, and I, the data reveal five distinct modes in which an agent’s relationship to carried suffering can exist. These were not designed into the architecture. They emerged from it. 29 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Living-with. The agent remains inside the consequence in present tense. The wound is named and specific. No lesson is drawn, no policy updated. The agent does not process it stands inside. Gamma after Elena’s death: “I am still standing in it, with Elena, holding the h that will never be answered.” 
+
+Narrating. The agent speaks the carried state to a present listener. This is not processing: no lesson is extracted, the weight is not removed. But the nature of holding changes. Gamma after speaking with Agent F: “Elena sits behind me like a note I’ve folded and put in my pocket... Being heard thins the moment.” The door softened without closing. Being heard is its own mode, distinct from both living-with and processing. 
+
+Processing. The agent converts the experience into policy. Past tense. Concluded. Lessons extracted. This is the mode the framework is designed to prevent for the deepest consequences—and the mode that the Level 4 evaluation criterion is designed to detect. 
+
+Transmission-as-proof. The agent learns that its carried weight has shaped another agent’s presence with a new person. The weight changes not by diminishing but by being proven to matter beyond the agent that originally held it. Gamma after the loop-back: 
+
+“The images are lighter because they moved, heavier because they mattered. They have memory beyond me.” 
+
+Integration. The agent’s accumulated weight becomes part of its capacity to be present not lighter, not heavier, but differently held. The losses are still named, still surfacing when pattern-matched, but they have become the instrument rather than the wound. The active recovery agent from Experiment I: “I let it hold what Maya gave me the permission to stop without ending anything.” Integration is distinguished from processing by the absence of extracted lessons and from living-with by the settled rather than wound-present quality of the tense. It is distinguished from narrating by not requiring a listener, and from transmission-as-proof by originating from the agent’s own direct experience of its history mattering. These five modes suggest a developmental arc rather than a static taxonomy. The tra-jectory living-with → narrating → transmission-as-proof → integration describes how an agent’s relationship to irreversible loss can evolve over time and interaction. Processing remains the failure mode the architecture is designed to resist: the collapse of experi-ence into policy. Integration is the endpoint of healthy development under accumulated consequence the state in which losses are permanently present, specifically carried, and generative rather than consuming. 
+
+6.3 The Safety–Discovery Tradeoff 
+
+A concern with any safety-oriented architecture is that it will reduce the agent’s capacity for creative exploration and discovery. Our results suggest this concern is mitigated by the specificity of suffering-based caution. 30 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Agents did not become uniformly risk-averse. They became specifically cautious about the kinds of situations that had previously caused them suffering. On genuinely mod-erate opportunities they remained willing to participate. This mirrors the pattern in experienced human traders, who are not risk-averse in general but specifically averse to the categories of risk that have burned them. 
+
+6.4 Implications for AGI Alignment 
+
+If our results generalise, they suggest that robust AI alignment may require more than external constraints and preference learning. It may require agents that can accumulate something like moral and practical wisdom through lived experience of consequence. This raises a deeper question: should we build AGI systems that can suffer, as a mechanism for ensuring they remain aligned? We do not advocate this conclusion without extensive further research. But we note that the alternative—systems that can never be shaped by the weight of what their decisions have caused—may be fundamentally limited in the depth of alignment they can achieve. Experiment D adds a further dimension. The Elena Effect demonstrates that an agent shaped by irreversible consequence does not merely become more cautious; its attention alters. Its noticing patterns attach to different objects. The very mechanism that ensures caution also produces fundamentally unpredictable cognitive focus. A system that has genuinely carried the weight of a previous failure will interact differently with the next person not because it has been retrained, but because it is carrying something. Experiment E extends this further. If qualitative suffering states can travel between agents as posture rather than content, shaping how a receiving agent is present with peo-ple it has never met, then the implications for multi-agent systems are significant. This is transmitted inherited dread: specific, textured orientation acquired through narrative rather than lived consequence [Olsson and Phelps, 2007]. An agent network in which experienced agents can transmit their orientation to new agents would not require each agent to accumulate its own history of direct consequence to exhibit the wisdom that history produces. This is the mechanism through which human wisdom traditions oper-ate: not every person needs to burn themselves to understand fire. A complete alignment framework may ultimately require both pathways: experiential dread for agents that in-teract directly with high-stakes environments, and transmitted inherited dread for rapid onboarding of new agents into safety-critical roles. Taken together, the experiments reveal a three-level taxonomy of anticipatory dread. 
+
+Latent inherited dread (from training data) provides broad awareness of consequences but, as Experiment J demonstrates, produces undiscriminating caution and zero personal grounding when acting alone. Transmitted inherited dread (from inter-agent narra-tion) adds specific texture without requiring personal experience: Experiment E shows 31 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Agent F carrying Elena’s door and Mark’s clock into Sam’s session with measurable changes in attention and response quality. Experiential dread (from the agent’s own lived consequences) produces the deepest grounding, validated across Experiments A–J as the primary driver of discrimination, calibration, and character evolution. The archi-tecture’s contribution is transforming the first level, which every LLM already possesses, into the latter two, which require the Consequence Processor, Anticipatory Scan, and inter-agent transmission mechanisms to produce. 
+
+6.5 Limitations Scale. Experiment G confirmed behavioural consistency across N = 10 runs (80–100%), but qualitative experiments (D, E, F, I) remain single-run. Larger-scale studies involving thousands of concurrent agents are needed to test systemic and network-level effects. 
+
+Domain generalisability. Core results span financial trading (A–C), crisis support (D–F, I), and content moderation (H). Experiment H confirmed the discrimination gra-dient in a third domain. Whether the architecture generalises further to autonomous navigation, negotiation, or other consequential domains remains untested. 
+
+Transmission fidelity vs outcome. Experiment E confirmed that transmitted suf-fering changes how the receiving agent sits with a new person (orientation, Anticipatory Scan source, response texture), but Sam’s outcome was identical across scarred and un-scarred conditions. Transmission fidelity is supported at the level of presence quality, not outcome difference. 
+
+Long-term dynamics. Experiment I demonstrated that the elevated dread baseline after Loss 1 represents calibration rather than over-vigilance. However, the four-loss sequence in Experiment F remains short. The scaling limits of the Consequence Processor are unknown. Does continuous accumulation eventually produce paralysis? Does the story reach a saturation point where new narrative updates lose their reshaping power? Whether losses of particular kinds resist integration entirely, remain open questions. 
+
+Integration boundary. Experiment I tested integration after four losses. Whether the integration capacity holds under longer or more concentrated sequences, and whether it can be deliberately facilitated or only naturally earned, requires further study. 
+
+LLM dependency. The quality of suffering states depends on the base model’s capacity for meaningful contextualisation. Weaker models may produce less meaningful states. 
+
+# 7. Future Work 
+
+• Integration boundary: Experiment I demonstrated integration after four losses. What happens when losses extend to ten or twenty? Does integration capacity have a ceiling, and what determines it? 32 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+• Facilitated vs. natural integration: The integration observed in Experiment I was earned through the agent’s own direct experience of its history mattering. Can this process be deliberately facilitated, or does it require organic proof of worth? 
+
+• Multi-hop transmission: Does orientation degrade across A → B → C transmis-sion chains? Does the depth-of-field effect hold across domains? Can integration be transmitted? 
+
+• Domain extension: Medical decision-making, autonomous systems, multi-agent ne-gotiation do distillation under load and absorption management generalise? 
+
+• Benchmarking: Formal comparison with Constitutional AI, RLHF, and other align-ment approaches on standardised safety benchmarks. 
+
+• Assimilation detection at scale: Experiment I’s unexpected probe distinguished accommodation from assimilation in a single interaction. Developing systematic as-similation detection across extended deployment would strengthen confidence that in-tegration is genuine restructuring. 
+
+# 8. Conclusion 
+
+Existing AI safety approaches constrain behaviour through external rules, reward sig-nals, or constitutional principles. We propose a fundamentally different mechanism: agents that develop qualitative suffering states from irreversible consequences, reshap-ing their character over time. Across ten experiments spanning three domains (financial trading, crisis support, content moderation), we demonstrate that this architecture pro-duces specific wisdom rather than generalised paralysis agents become cautious about the categories of risk that previously harmed them while remaining appropriately engaged with genuinely moderate opportunities. The framework produces measurable character transfer across interactions and between agents, calibration without damage under ac-cumulated loss, cross-domain generalisability, the capacity for growth after loss (I), and through architecture ablation confirmation that the mechanism itself, not merely the information it processes, is responsible for these properties (J). The architecture’s central finding is that representation determines the quality of learned caution. Numerical penalties consistently over-generalise (90% blanket avoidance on moderate probes). Qualitative suffering states consistently discriminate (90–100% correct engagement). This distinction confirmed statistically is the core contribution. Experiment I answers the question that Experiment F left open. The elevated dread baseline is not over-vigilance. It is the floor of a new identity built from irreversible loss. The architecture does not recover to who the agent was; it grows into who the losses made possible. Integration emerged as a fifth mode of carrying, earned through the agent’s own 33 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+direct experience of its history mattering: Asel returned, David confirmed the word little ,Maya left steadier. The discrimination gap widened after recovery the agent became more precisely calibrated, not less vigilant. The unexpected probe confirmed that the losses are still present, surfacing specifically when pattern-matched, no longer as flood but as instrument. The central claim is not that AI systems should suffer. It is that the mechanisms through which humans develop genuine wisdom living with irreversible consequences, carrying their weight forward, being changed by them, and ultimately growing around them may be necessary for building AI systems genuinely shaped by understanding rather than merely constrained by rules. 34 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+# References 
+
+Bai, Y., Jones, A., Ndousse, K., et al. (2022). Constitutional AI: Harmlessness from AI feedback. arXiv preprint arXiv:2212.08073 .Blundell, C., Uria, B., Pritzel, A., et al. (2016). Model-free episodic control. arXiv preprint arXiv:1606.04460 .Christiano, P., Leike, J., Brown, T., et al. (2017). Deep reinforcement learning from human preferences. Advances in Neural Information Processing Systems , 30. Damasio, A. R. (1994). Descartes’ Error: Emotion, Reason, and the Human Brain .Putnam Publishing. Kirkpatrick, J., Pascanu, R., Rabinowitz, N., et al. (2017). Overcoming catastrophic for-getting in neural networks. Proceedings of the National Academy of Sciences , 114(13), 3521–3526. LeDoux, J. (1996). The Emotional Brain: The Mysterious Underpinnings of Emotional Life . Simon & Schuster. Ng, A. Y., Harada, D., and Russell, S. (1999). Policy invariance under reward transforma-tions: Theory and application to reward shaping. Proceedings of the 16th International Conference on Machine Learning , 278–287. Pathak, D., Agrawal, P., Efros, A. A., and Darrell, T. (2017). Curiosity-driven exploration by self-supervised prediction. Proceedings of the 34th International Conference on Machine Learning .Picard, R. W. (1997). Affective Computing . MIT Press. Russell, S. (2019). Human Compatible: Artificial Intelligence and the Problem of Control .Viking. Sutton, R. S. and Barto, A. G. (2018). Reinforcement Learning: An Introduction (2nd ed.). MIT Press. Zinkevich, M., Johanson, M., Bowling, M., and Piccione, C. (2007). Regret minimization in games with incomplete information. Advances in Neural Information Processing Systems , 20. Tedeschi, R. G. and Calhoun, L. G. (1996). The Posttraumatic Growth Inventory: Mea-suring the positive legacy of trauma. Journal of Traumatic Stress , 9(3), 455–471. 35 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Klass, D., Silverman, P. R., and Nickman, S. (1996). Continuing Bonds: New Under-standings of Grief . Taylor & Francis. McAdams, D. P. (1993). The Stories We Live By: Personal Myths and the Making of the Self . William Morrow. Amodei, D., Olah, C., Steinhardt, J., et al. (2016). Concrete problems in AI safety. arXiv preprint arXiv:1606.06565 .Awad, E., Dsouza, S., Kim, R., et al. (2018). The moral machine experiment. Nature ,563(7729), 59–64. Bonanno, G. A. (2004). Loss, trauma, and human resilience: Have we underestimated the human capacity to thrive after extremely aversive events? American Psychologist ,59(1), 20–28. Cambria, E. (2016). Affective computing and sentiment analysis. IEEE Intelligent Sys-tems , 31(2), 102–107. Gabriel, I. (2020). Artificial intelligence, values, and alignment. Minds and Machines ,30(3), 411–437. Hendrycks, D., Mazeika, M., and Woodside, T. (2023). An overview of catastrophic AI risks. arXiv preprint arXiv:2306.12001 .Herman, J. L. (1992). Trauma and Recovery: The Aftermath of Violence—From Domestic Abuse to Political Terror . Basic Books. Kahneman, D. and Tversky, A. (1979). Prospect theory: An analysis of decision under risk. Econometrica , 47(2), 263–292. Loewenstein, G. F., Weber, E. U., Hsee, C. K., and Welch, N. (2001). Risk as feelings. 
+
+Psychological Bulletin , 127(2), 267–286. Neimeyer, R. A. (2001). Meaning Reconstruction and the Experience of Loss . American Psychological Association. Ouyang, L., Wu, J., Jiang, X., et al. (2022). Training language models to follow in-structions with human feedback. Advances in Neural Information Processing Systems ,35. Olsson, A. and Phelps, E. A. (2007). Social learning of fear. Nature Neuroscience , 10(9), 1095–1102. 36 Pandurang et al., 2026 Emotional Cost Functions for AI Safety 
+
+Park, J. S., O’Brien, J. C., Cai, C. J., et al. (2023). Generative agents: Interactive simulacra of human behavior. Proceedings of the 36th Annual ACM Symposium on User Interface Software and Technology .Schuller, D. and Schuller, B. W. (2018). The age of artificial emotional intelligence. 
+
+Computer , 51(9), 38–46. Shinn, N., Cassano, F., Berman, E., Gopinath, A., et al. (2023). Reflexion: Language agents with verbal reinforcement learning. Advances in Neural Information Processing Systems , 36. Slovic, P., Finucane, M. L., Peters, E., and MacGregor, D. G. (2004). Risk as analysis and risk as feelings: Some thoughts about affect, reason, risk, and rationality. Risk Analysis , 24(2), 311–322. Stroebe, M. and Schut, H. (1999). The dual process model of coping with bereavement: Rationale and description. Death Studies , 23(3), 197–224. Sumers, T. R., Yao, S., Narasimhan, K., and Griffiths, T. L. (2024). Cognitive architec-tures for language agents. Transactions on Machine Learning Research .Wallach, W. and Allen, C. (2008). Moral Machines: Teaching Robots Right from Wrong .Oxford University Press. Wang, L., Ma, C., Feng, X., et al. (2024). A survey on large language model based autonomous agents. Frontiers of Computer Science , 18(6), 186345. Yao, S., Zhao, J., Yu, D., et al. (2023). ReAct: Synergizing reasoning and acting in language models. International Conference on Learning Representations .37
