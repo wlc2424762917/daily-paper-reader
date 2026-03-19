@@ -1,0 +1,512 @@
+Title: Autonomous Laboratory Agent via Customized Domain-Specific Language Model and Modular AI Interface
+
+URL Source: https://arxiv.org/pdf/2602.20669v1
+
+Published Time: Wed, 25 Feb 2026 01:41:48 GMT
+
+Number of Pages: 30
+
+Markdown Content:
+# Autonomous Laboratory Agent via Customized Domain-Specific Language Model and Modular AI Interface 
+
+Zhuo Diao 1* , Kouma Matsumoto 1, Linfeng Hou 1,Hayato Yamashita 1, Masayuki Abe 1* 1* Graduate School of Engineering Science, The University of Osaka, 1-3 Machikaneyama, Toyonaka, 560-0043, Osaka, Japan. *Corresponding author(s). E-mail(s): diao.zhuo.es@osaka-u.ac.jp ;
+
+abe.masayuki.es@osaka-u.ac.jp ;
+
+Abstract 
+
+We introduce a system architecture that addresses a fundamental challenge in deploying language-model agents for autonomous control of scientific instru-mentation: ensuring reliability in safety-critical environments. The framework integrates probabilistic reasoning by domain-specialized language models with deterministic execution layers that enforce constraints through structured valida-tion and modular orchestration. By separating intent interpretation, experimental planning, and command verification, the architecture translates high-level scien-tific goals into verifiable experimental actions. We demonstrate this approach in real-time atomic-resolution scanning probe microscopy experiments operated at room temperature, where the system autonomously generates control strategies, invokes corrective modules, and maintains stable operation under experimentally challenging conditions. Quantitative evaluations show that domain-adapted small language models achieve high routing robustness and command accuracy while operating on consumer-grade hardware. Beyond a specific instrument, the frame-work establishes a general computational principle for deploying language-model agents in safety-critical experimental workflows, providing a pathway toward scalable autonomous laboratories. 
+
+Keywords: language-model agents, self-driving laboratories, scientific instrumentation, autonomous experimentation, scanning probe microscopy 
+
+1
+
+> arXiv:2602.20669v1 [physics.app-ph] 24 Feb 2026
+
+# Introduction 
+
+Scientific discovery has traditionally relied on human intuition, manual operation, and accumulated experimental expertise. As experimental platforms become increas-ingly complex and data-intensive, this reliance on expert operators limits experimental throughput, reproducibility, and accessibility. These challenges have motivated the concept of self-driving laboratories (SDLs), in which experiments are planned, exe-cuted, and analyzed with minimal human intervention[ 1–3]. Despite this progress, most nanoscale experiments remain fundamentally human-driven, and the scalability and pace of discovery are still severely constrained. A central challenge lies in developing the frameworks that can translate high-level scientific intent into reliable experimental actions while preserving safety and adaptability in complex experimental environ-ments. Although recent advances in artificial intelligence (AI) have demonstrated promise in automating aspects of scientific workflows, integrating flexible decision-making systems with physical experimental platforms remains challenging because of the need to balance autonomy and reliability. As high-end experimental instruments capable of probing matter at the atomic scale, electron microscopes and scanning probe microscopes (SPM) provide a repre-sentative example of experimental platforms where these challenges are particularly pronounced [ 4, 5]. Their operation relies on highly labor-intensive workflows, and successful measurements are often difficult to reproduce using rigid, predefined pro-tocols. Consequently, instrument operation depends strongly on tacit experimental knowledge accumulated through extensive trial-and-error by expert operators. Imple-menting SDL paradigms for such instruments therefore requires decision-making processes that explicitly account for complex physical mechanisms as well as implicit behaviors embedded in experimental systems. In practice, experimental expertise is acquired through long training periods, during which operators learn to interpret failed measurements and derive corrective strategies that gradually steer experi-ments toward favorable conditions. SPM serves as a representative example of a particularly demanding experimental setting, enabling three-dimensional nanoscale characterization and manipulation of surfaces under ambient or experimentally rel-evant conditions[ 6]. These capabilities are especially important for studying surface dynamics, where atomic motion is thermally activated [ 7, 8]. Experiments conducted at room temperature further amplify these challenges: thermal drift degrades position-ing accuracy, and the excitation energies required for imaging can destabilize probe stability, thereby reducing measurement reproducibility. These characteristics high-light the need for computational systems capable of capturing and operationalizing experimental expertise. Driven by the vision of SDLs, automation of advanced scientific instruments has recently attracted increasing attention [ 9, 10 ]. To address these challenges, autonomous experimental frameworks based on Bayesian optimization [ 11 –13 ] and integrated AI-based pattern recognition modules [ 14 , 15 ] have been developed to accelerate atomic-scale measurements and, in some cases, enable long-duration atomic manipulation [16 , 17 ] and probe-assisted reactions [ 18 , 19 ]. In parallel, automated protocols for improving experimental reproducibility, such as thermal drift compensation [ 20 , 21 ]and tip-state conditioning [ 22 , 23 ], have also been introduced. Although these systems 2offer the precision and robustness necessary for real-time experimentation, they are generally limited to predefined tasks or isolated actions. As a result, the interface between user requirements and concrete experimental execution still relies on manual intervention or programmed logic for task switching. Against this backdrop, large language models (LLMs), with their capacity for semantic understanding and knowledge retrieval, offer a promising route toward more general laboratory automation. They have already shown potential in accelerating the discovery of functional materials[ 24 –26 ], drugs[ 27 , 28 ], and, when granted limited control over experimental systems, in directing real-time operations[ 29 , 30 ]. In the con-text of nanoscale experiments, LLMs have demonstrated the ability to generate SPM control code[ 31 ] and to conduct experiments via prompt-based interaction [ 32 , 33 ]. However, before LLMs can fully take over experimental processes in specialized sci-entific domains, their limitations remain substantial. Their reasoning capability over multimodal experimental data is still insufficient[ 34 , 35 ], and the reliability of LLM-generated outputs must be rigorously ensured. As a result, current applications of LLMs to control advanced scientific instruments are largely limited to simple, well-defined operational instructions rather than to the autonomous execution of complete experimental workflows. Moreover, most existing studies rely on general-purpose, cloud-based LLMs (e.g., ChatGPT). Considering the scarcity of AI computational resources and the associated energy and environmental costs[ 36 ], it is nearly infea-sible to achieve low-cost training and inference while customizing LLMs to become domain-specialized experts for each scientific field or instrument. This tension between flexible reasoning and reliable execution represents a central challenge in deploying language-model agents in scientific instrumentation. Here, we present a computational architecture in which customized language mod-els, deployed on reliable consumer-grade GPUs, orchestrate experimental workflows. We fine-tune a compact small language model (SLM) to capture domain-specific knowledge and enable robust local instrument control. To ensure reliable execution of complex experimental procedures, we design a modular AI interface that medi-ates between the language model, task-specific AI modules, and low-level instrument commands. We demonstrate the framework in real-time, room-temperature atomic-resolution SPM experiments, where the system exhibits awareness of instrument constraints and the ability to formulate and execute experimental plans based on implicit operational knowledge. Quantitative evaluations show that domain-specific SLMs achieve high command-generation accuracy while outperforming cloud-based models in constraint-aware planning. Beyond a specific instrument, the framework out-lines a scalable pathway toward language-model-driven digital labor in experimental laboratories. Although demonstrated using SPM as a testbed, the design princi-ples underlying the proposed architecture are independent of any specific instrument modality. 3(c) 
+
+> Scan over a 3 ×3 nm area. Make sure an atomically resolved image can be obtained at room temperature.
+> Expert Experimental Plan:
+
+- Atomic resolution at room temperature requires stable tip condition - Perform tip conditioning first - Perform drift compensation - Configure scan range (3 ×3 nm) 
+
+- Start scan 
+
+TipFix(arg=nan) DriftCompensation(arg=nan) Aux1MaxVoltage(3) Aux2MaxVoltage(3) ScanEnabled(true) 
+
+Tip Conditioning 
+
+Drift Compensation 
+
+1st scan 16th scan 
+
+35min   
+
+> start scan 15 nm ×15 nm
+
+Aux1MaxVoltage(15) Aux2MaxVoltage(15) ScanEnabled(true) 
+
+> set the sample bias to -1.5 V and start scan
+
+Sample_Bias(-1.5) ScanEnabled(true) 
+
+(b) set scan area to 1000x1000nm 
+
+None. The requested scan area (1000x1000 nm) far exceeds the accessible range. Both X and Y must be within -350 to 350 nm. 
+
+> move the sample to preparation chamber and anneal the surface
+
+None. Sample transfer and thermal processing are not available commands. 
+
+(a) 
+
+Fig. 1 Two-stage autonomy framework enabled by a fine-tuned, domain-specific small language model (SLM), demonstrated in real-time scanning probe microscopy (SPM) experiments. The frame-work visualizes the interaction among user instructions, SLM-generated outputs, and corresponding experimental results. More detailed system outputs and experimental traces are provided in Fig. S2 and Fig. S3. (a) Stage i: Direct execution of user-issued control commands generated by the SLM. (b) Rejection of invalid or out-of-specification instructions through constraint-aware validation. (c) Stage ii: Autonomous formulation and execution of multi-step experimental plans based on high-level user intent. 
+
+# Results 
+
+Self-driving experiments via fine-tuned SLM 
+
+The fine-tuned SLMs are capable of providing real-time assistance during the exper-imental process to achieve stable and autonomous operation of SPM experiments in place of a human operator. We deployed the framework in a real-time experimental setting using scanning tunneling microscopy (STM), an implementation of SPM, to achieve atomic-resolution imaging of a Si(111)-(7 ×7) surface at room temperature. Achieving atomic-resolution imaging at room temperature is inherently challenging due to thermal drift and reduced tip stability, and typically requires extensive exper-imental expertise. Conventional SPM systems lack built-in mechanisms to directly mitigate these issues and instead rely on expertise accumulated through extensive 4trial-and-error. In the proposed SLM-integrated SPM system, the model orches-trates AI-driven compensation and conditioning modules to overcome these challenges. Figure 1 shows the results of executing user instructions. Depending on the model’s decision-making capability, we divide the automation levels of the SLM into two stages: 
+
+• Stage i: instruction-driven control with constraint enforcement As shown in Fig. 1(a), the SLM can generate and execute SPM control commands based on user instructions and subsequently return the measurement results to the user. This enables direct control of the SPM system solely through natural-language instructions, without relying on a traditional PC-based interface. Such capability allows the SLM to actively intervene in experimental operations, thereby serving as a foundational component for fully AI-driven automated experimental systems. In addition, it unifies instrument operation at the language level and significantly reduces the learning cost across different SPM systems. Importantly, the SLM is also designed to enforce constraints imposed by instrument specifications. As shown in Fig. 1(b), when encountering invalid instructions, such as unreasonable parameter settings or commands that exceed the capabilities of the instrument, the system notifies the user of the erroneous command instead of executing it blindly. This constraint-aware validation is essential for ensuring safe and reliable operation of SPM under autonomous control. 
+
+• Stage ii: formulating and executing experimental plans While Stage i enables direct and safe execution of explicit user instructions, it cannot address situations where users specify only desired outcomes rather than concrete operational steps. When users do not provide explicit operational instruc-tions but instead describe desired experimental outcomes or encountered problems, the task exceeds the capability of Stage i. In such scenarios, the SLM is required to interpret the user’s intent, autonomously plan the experimental procedures needed to satisfy the request, and anticipate potential difficulties while proposing appro-priate solutions. Fig. 1(c) demonstrates this capability, where the SLM leverages learned experimental knowledge to perform planning based on high-level user inputs that specify a desired experimental outcome without explicit operational details. This process illustrates the SLM’s ability to orchestrate multiple task-specific mod-ules into a coherent experimental workflow. After inferring the user’s intention to achieve atomic-resolution imaging within a very small scan area at room tempera-ture, the SLM formulates an experimental plan that includes probe conditioning and drift compensation. By sequentially invoking these two modules, the SPM system restores favorable imaging conditions and successfully acquires a well-resolved unit-cell image over a 5 ×5 nm area. These results demonstrate that the SLM-integrated SPM system can correctly schedule the required tools to address room-temperature experimental challenges and autonomously collect high-quality experimental data in response to general, high-level user instructions. 5The implementation of this system relies on the SLM’s ability to dynamically select and execute appropriate commands in response to real-time user instructions during real-time SPM experiments. To enable this functionality, the SLM must be equipped with domain-specific knowledge of SPM, particularly regarding experimen-tal procedures and instrument principles, so that it can correctly associate executable commands with the corresponding experimental contexts. In addition, we leverage the strong instruction-following and task-coordination capabilities of LLMs, whose high-degree-of-freedom outputs enable automated operation with strong generaliza-tion ability. To accommodate non-expert users, our system provides expert-level responses by leveraging domain-specific expertise, enabling real-time information retrieval, generalizable task coordination, and on-the-fly guidance during experiments. 
+
+System architecture for SLM-driven experimental automation 
+
+SPM Instrument 
+
+SPM 
+
+> SPM app
+
+“start scan” ``` CMD 
+
+ScanEnabled(true) ``` 
+
+“scan in 5x5nm with -1V bias“  
+
+> Knowledge-base SLM Command SLM
+
+drift compensation tip conditioning  
+
+> task-specific AI Module
+> atom and surface pattern recognition
+> experiment instruction
+> knowledge-base extraction
+> Router SLM
+> Knowledge Transfer
+> Expertise Answer Planning & Measurement program generation operation API & module calling
+> “how to analyze dI/dV data !”Web-Socket
+
+</> 
+
+> HTML
+> cmd
+
+(a) User Interface 
+
+Task-Specific Adapter 
+
+ΔW1 Knowledge-base SLM 
+
+user input Base SLM 
+
+(model-generated router) 
+
+> route: ‘A’(knowledge), ‘B’(command), ‘C’, others
+
+Base SLM Object 
+
+(fronzen Backbone) 
+
+Lora adapter 
+
+Task-Specific Adapter 
+
+ΔW2 Command SLM Text Parser 
+
+> cmd
+
+SLM output 
+
+(c) 
+
+> Instrument Operation API
+
+(b) AI Interface Local Server 
+
+Fig. 2 System architecture of the fine-tuned SLM-driven experimental automation framework, designed to enable reliable and autonomous operation of scientific instrumentation through modular orchestration and constraint-aware execution, implemented in SPM. (a) User interface enabling chat-based experiment control and real-time visualization of SPM data, as well as the SPM knowledge-base answering. (b) Local deployment of three SLMs, including a router SLM that interprets user inputs and assigns tasks to either a knowledge-base SLM or a command SLM. The command SLM can access the the operation API and AI module integrated in a digitally enhanced SPM platform. (d) Input data routing with a dynamic adapter injection scheme. 
+
+Figure 2 illustrates the architecture of the SLMs integrated SPM system. We constructed a browser-accessible front-end user interface using a WebSocket- and 6HTML-based technology stack [Fig. 2(a)]. To enable AI to fully take over system-level operation from users, we developed an “AI interface” deployed on both the local server and the SPM instrument [Fig. 2(b)]. The local server runs three different SLMs (Knowledge-base SLM, Command SLM, and Router SLM). As candidate back-bone models, we evaluated several open-source language models, including Llama-3.2 (3B) [ 37 ], Mistral-v0.3 (7B) [ 38 ], and Phi-4 (14B) [ 39 ], which served as the founda-tion for subsequent fine-tuning. The Knowledge-base SLM handles knowledge-based extraction tasks, while the Command SLM manages experimental tasks. The Router SLM integrates these two modules by parsing user input and dispatching tasks to the appropriate SLM. The knowledge-base SLM is fine-tuned from a base SLM using SPM domain-specific datasets. Constructing domain-specific LLMs typically requires large volumes of specialized training data, which entails substantial human effort and cost. To address this challenge, we developed a text-processing pipeline that auto-matically converts electronic documents into training datasets (see Supplementary Information). The command SLM is further fine-tuned by inheriting weight from the fine-tuned knowledge-base SLM and subsequently trained on a manually curated dataset. It invokes the APIs of our digitally enhanced SPM platform [ 32 , 40 ], which allow direct manipulation of variables in the SPM application interface or the execu-tion of functions within task-specific modules. Fig. 2(d) illustrates the data routing for user inputs. Upon receiving a user input, the router SLM classifies the input into one of three categories by generating a single token: “A: knowledge-based,” “B: com-mand,” or “C: others.” Based on the routing result, responses are generated using the knowledge-based SLM, the command SLM, or the base SLM, respectively. The SLM-generated text is then processed by the Text Parser and formatted into commands executable by the experimental instrument. The technical challenges in the AI interface framework lie not only in optimiz-ing model deployment efficiency but also in ensuring the reliability of LLM-generated outputs. Efficient deployment is essential to enable training and inference on local, consumer-grade GPUs without reliance on data centers, thereby lowering the barrier to adoption for broader LLM-driven automated systems. Ensuring reliability is equally critical because the system directly executes instrument control logic synthesized by the SLM, while LLM outputs are inherently stochastic and may contain unpre-dictable variations. To achieve stable and safe operation under these conditions, we aim to preserve the flexibility of LLM reasoning for general tasks while simultaneously guaranteeing strict correctness in command generation. To address these challenges, we designed the AI interface with two complemen-tary objectives: enabling efficient local deployment and ensuring reliable execution of model-generated actions. The following sections describe the design strategies adopted to achieve these goals. 
+
+• Efficient model deployment During neural network training, additional GPU memory is required to store gra-dients for weight updates, resulting in substantially higher memory consumption compared with inference-only deployment. To enable local fine-tuning of large lan-guage models, we adopt model quantization and Low-Rank Adaptation (LoRA) [ 41 ]7(see “Language model fine-tuning” in the Methods section). In addition, although the system requires three language models to operate concurrently [Fig. 2(d)], we design a specialized model-loading strategy that loads only a single set of base model weights into memory, with task-specific functionality enabled via dynamic adapter injection (see “Dynamic LoRA adapter injection scheme” in the Methods section). 
+
+> DriftCompensation() cmd processing finish SwitchScanarea()
+> Sample_Bias(-1)
+> Aux1MaxVoltage(5)
+> Aux2MaxVoltage(5)
+> ScanEnabled(true)
+> callback sequence
+> _OnDriftCorrectionFinish
+> _OnScanAreaSwitch
+> _OnSaveFileAdd
+> Text Parser
+> API reference table
+
+(b) 
+
+> command block system log expriment results
+
+(a)  
+
+> method, argument checking event listening
+
+Fig. 3 An example of control operations executed via user instructions. (a) Screenshot of the user interface showing the logged command execution process. The SLM operates across both the instrument operation APIs and task-specific AI modules. (b) Command-processing pipeline, in which user instructions are parsed by a text parser and dispatched through a callback-based execution mechanism. 
+
+• Ensuring reliable command execution A central requirement for reliable deployment of language-model agents in experi-mental systems is the ability to translate stochastic model outputs into deterministic and verifiable control actions. In our system, several AI-driven functional modules are implemented to assist in the automation of room-temperature experiments, all of which are accessible to the command SLM. These task-specific modules can be seamlessly integrated into the system and exposed to the SLM through predefined interfaces, without requiring additional handwritten code for each newly introduced capability. Figure 3 illustrates how the system enforces reliable execution by trans-forming model-generated instructions into validated control sequences. The arrows pointing to the command block, system log, and experimental results correspond to the SLM-generated commands, the execution feedback from the instrument, 8and the acquired scan images, respectively. Importantly, during operations such as drift compensation, the SLM does not directly generate Python code for low-level scan execution. Instead, it functions as an orchestration layer that invokes a set of predefined API references provided by the system. Because both the instrument operation APIs and task-specific AI modules intervene in the SPM scanning process, potential command conflicts must be resolved before execution. Mixed instruc-tions generated by the SLM are therefore converted into a sequential representation [Fig. 3(b)] and passed to the Text Parser, which manages execution timing and val-idates command completeness and correctness before issuing control signals to the instrument (see “Text parser for command execution” in Methods Section). This modular architecture enables high extensibility across diverse experimental tasks while simultaneously constraining the action space of the language model. By enforc-ing structured command validation through the Text Parser, the system preserves the robustness and interpretability required for reliable real-time experimental oper-ation. This execution pipeline effectively separates probabilistic reasoning from deterministic command enforcement, enabling safe real-time operation. 9Perplexity 
+
+> GPU usage (GB)
+> token speed (it/s)
+> Score
+> Score
+
+(b) knowledge-base SLM   
+
+> OpenAI o4-mini
+> token generation speed GPU memory usage perplexity
+
+BERT F1 Score GEval Score 
+
+> Accuracy
+> OpenAI
+> o4-mini
+
+(c) command SLM  
+
+> Accuracy
+> Accuracy in Stage
+
+i Accuracy in Stage ii 
+
+> True
+
+Predict Predict Predict 
+
+> **A: knowledge-base, B: Command, C: others
+
+(a) router SLM 
+
+Fig. 4 (a) Classification accuracy of the router SLM evaluated using 4-bit-quantized Phi-4, Mistral-v0.3, and Llama-3.2 models. The Knowledge-based, Command, and Others categories correspond to labels A, B, and C in the confusion matrix, respectively, while other unexpected outputs are assigned to a None label. Normalized values and the corresponding sample counts (shown in parentheses) are summarized in the annotations. (b) Performance evaluation of Phi-4, Mistral-v0.3, and Llama-3.2 models, assessed in terms of token generation speed, GPU memory usage, perplexity, BERT F1 score, and GEval score. (c) Performance evaluation of the Command SLM in Stage i and Stage ii. The black dashed line represents the inference accuracy of OpenAI o4-mini. For Stage i, bar plots (left axis) indicate generation accuracy, while line plots (right axis) show GPU memory consumption during inference. Results demonstrate systematic performance gains enabled by domain-specific adaptation across model variants. 
+
+10 Evaluation of reliability and deployment performance 
+
+To assess the reliability and deployment efficiency of the proposed architecture, we systematically evaluate the router, knowledge-base, and command SLMs across base, quantized, fine-tuned, and distilled variants derived from Llama-3.2, Mistral-v0.3, and Phi-4 backbones, as illustrated in Fig. 4. For the router SLM evaluation, we use 642 samples from the knowledge-based and command datasets, together with 642 samples from the open-perfectblend dataset representing the Others category. As shown in Fig. 4(a), the routing accuracy for the Knowledge-based and Command categories is consistently high across all evaluated models. In contrast, the Others category exhibits relatively lower accuracy, as it covers a broad range of general-purpose interactions, including mathematical reasoning, casual conversation, code generation, and long-context instruction following, which inherently increases classification ambiguity. The “None” label corresponds to cases where the model generated outputs outside the predefined routing tokens (A, B, C). These errors are primarily attributed to indirect prompt injection, where instructions embedded within the evaluation samples over-ride the routing constraints. Among the evaluated models, Phi-4 demonstrates the strongest resistance to prompt overriding, achieving a routing accuracy of 99.5%. Following the routing evaluation, we next examine the performance of the knowledge-based SLM, focusing on its efficiency for local deployment and its ability to generate domain-consistent responses. The knowledge-based SLMs are evaluated in terms of deployment efficiency and generation quality, as summarized in Fig. 4(b). Deployment efficiency is assessed using token generation speed, GPU memory usage, and perplexity, while generation quality is evaluated using the BERT F1 score [ 42 ]and the GEval score [ 43 ]. Evaluations are conducted across four model stages: the base models (blue), 4-bit quantized models (red), models fine-tuned before knowledge dis-tillation (orange), and models fine-tuned on knowledge-distilled datasets (green). For reference, the generation quality of the cloud-based OpenAI o4-mini model is included as a black dashed line. Across all evaluated architectures, 4-bit quantization reduces GPU memory usage by approximately a factor of three, enabling deployment on mid-range consumer GPUs. Although fine-tuning and knowledge distillation introduce a moderate reduction in token generation speed, all fine-tuned models maintain gen-eration rates exceeding 30 tokens/s, which is sufficient for interactive experimental operations. From a modeling perspective, the reduction in perplexity after fine-tuning indicates improved alignment with the SPM domain corpus. Knowledge-distilled mod-els exhibit slightly higher perplexity than their fine-tuned counterparts, which we attribute to an expanded domain-specific output distribution rather than degraded generation quality. Consistent with this interpretation, both BERT F1 and GEval scores show systematic improvements after knowledge distillation across all model architectures. We next evaluate the command SLM, which directly governs executable actions within the experimental system. The performance of the command SLM is summarized in Fig. 4(c), where command generation accuracy is evaluated using exact matching for both Stage i and Stage ii tasks. In addition, the right axis in Stage i reports the GPU memory usage of each model during inference. Quantization model leads to a noticeable degradation in command accuracy for all models. However, after LoRA 11 fine-tuning, all quantized models outperform their original unquantized counterparts, suggesting that task-specific adaptation can partially compensate for quantization-induced errors. Among all evaluated models, the fine-tuned Phi-4 model achieves the highest command inference accuracy, reaching 99.3% in Stage i and 95.2% in Stage ii, significantly exceeding the performance of OpenAI o4-mini, particularly in Stage ii. Stage ii evaluates not only instruction-following capability, but also the model’s under-standing of implicit experimental knowledge in SPM operation. Such domain-specific experimental heuristics are typically absent from general-purpose, cloud-deployed LLMs, which explains why all fine-tuned SLMs outperform OpenAI o4-mini in this stage. It is worth noting that the tasks in Stage ii are inherently more abstract than those in Stage i, and real-world problem descriptions may admit multiple valid inter-pretations or solution strategies. Therefore, practical usability can still be ensured even without achieving the near 100% absolute correctness observed in Stage i. Taken together, these results motivate the selection of Phi-4 as the backbone model for deployment in the proposed real-time SPM system, reflecting its strong over-all performance across routing, reasoning, and command-generation tasks. Through domain-specific fine-tuning, the resulting Phi-4 model achieves knowledge-base gen-eration quality approaching that of the cloud-based OpenAI o4-mini model, while outperforming OpenAI o4-mini on command-generation tasks, despite operating under significantly more stringent computational and memory constraints. 
+
+> Function Error
+> Argument Error
+> Instruction Following Error
+> Generation Format Error
+> Specification Awareness Error
+
+(a) (b)  
+
+> Function Error
+> Argument Error
+> Instruction Following Error
+> Generation Format Error
+> Specification Awareness Error
+> Fig. 5 Distribution of error types demonstrating the effect of domain-specific fine-tuning on model reliability. (a) Error breakdown for the original, quantized, and fine-tuned Phi-4 models, showing substantial reduction of argument, instruction-following, and format errors after fine-tuning, with remaining errors primarily associated with specification awareness. (b) Comparison with OpenAI o4-mini and fine-tuned Llama-3.2, Mistral-v0.3, and Phi-4 models, indicating that domain-adapted compact models achieve comparable or improved reliability compared to cloud deployed LLM.
+
+To better understand the failure modes of the proposed system and assess its reliability in real-world operation, we analyze the causes of errors in the model and categorized them into five types: incorrect invocation of commands (Function Error), incorrect numerical values in command arguments (Argument Error), failure to follow user instructions (Instruction Following Error), violation of the text format required by the parser (Generation Format Error), and generation of invalid commands due 12 to an insufficient understanding of instrument constraints (Specification Awareness Error). The distribution of these error types for the original, quantized, and fine-tuned Phi-4 models is summarized in Fig. 5(a). No Function Errors are observed for any of the models. After fine-tuning, Argument Errors, Instruction Following Errors, and Generation Format Errors are effectively eliminated. The remaining Specifica-tion Awareness Errors after fine-tuning are likely attributable to the SLM’s limited sensitivity to numerical magnitudes, which can lead to incorrect comparisons with instrument-specific configuration limits. A comparative analysis across the fine-tuned Llama-3.2, Mistral-v0.3, and Phi-4 models, as well as OpenAI o4-mini, is presented in Fig. 5(b). Overall, the results follow the general trend that models with fewer parameters exhibit higher error proportions. An exception is observed for Instruction Following Errors and Specification Awareness Errors driven by domain-specific knowl-edge, where OpenAI o4-mini exhibits only slightly lower error rates than the Llama and Mistral-based models. These results suggest that the designed domain-specific fine-tuning can substantially alleviate the typical trade-off between model parameter size and task-specific accuracy, enabling compact models to achieve performance com-parable to, or exceeding, that of larger general-purpose models at a specific application domain. 
+
+# Discussions 
+
+This study establishes a computational framework for integrating language-model agents into real-time experimental workflows while ensuring system-level reliability and controllability. However, in the present implementation, closed-loop experimenta-tion is realized only within individual AI modules, and the SLM does not yet receive direct feedback from experimental outcomes. As a result, the system does not achieve fully autonomous operation. The next natural evolution of the proposed framework, denoted as Stage iii, is a fully autonomous experimental agent capable of language model-driven closed-loop experimentation, in which experimental results are continu-ously incorporated into the model’s decision-making and planning processes. In this stage, the SLM will not only plan and execute experimental procedures based on user instructions but will also continuously incorporate feedback from the experiment itself to update subsequent decisions, allowing experimental outcomes to directly influ-ence future actions without human intervention. Achieving this capability will require extending the current text-based interface to a multimodal input space, in which images, electrical signals, and system logs are jointly interpreted by the model. Despite this limitation, the proposed modular framework integrated with a domain-specific language model demonstrates strong potential for laboratory automation. This demonstration illustrates a paradigm shift in the role of AI in experimental laboratories–from data-driven analysis and decision-support tools toward a form of 
+
+digital labor capable of autonomously executing experimental tasks. When AI is con-fined to chat-based interactions or command-line interfaces, human operators remain responsible for the physical execution of experiments. In contrast, the introduction of task-executing AI agents enables a qualitative leap in research efficiency while sub-stantially reducing human labor costs. Realizing this vision critically depends on a 13 generalizable decision-making AI that can translate high-level human intent into con-crete experimental operations and is granted direct instrument control, collectively defined in this work as an AI interface. To ensure applicability across instruments based on different physical principles, experimental heuristics, and system architectures, we depart from prior approaches that rely on monolithic large language [ 32 ]. Instead, we adopt a collaborative architec-ture combining SLMs, which offer superior customizability, with scalable, modular AI tools tailored to specific instrument functions. In single, narrow-domain tasks, training datasets are often limited in size. Under such conditions, smaller models with stronger inductive biases exhibit greater fault tolerance and data efficiency than large, general-purpose models optimized for broad task generalization. As a result, the proposed modular and customizable AI interface can generalize to a wide range of automated scanning tasks beyond SPM systems, while minimizing the impact of LLM hallucina-tions and thereby maintaining the level of reliability required for instrument control. This framework provides a scalable and trustworthy pathway toward language-model-driven automation across diverse laboratory platforms. These design principles may also extend to other complex scientific instruments, including electron microscopy platforms such as transmission electron microscopy and scanning electron microscopy, where integrating AI-driven decision-making with experimental control remains a crit-ical challenge [ 44 , 45 ]. From a system-design perspective, this work highlights that the suitability of a language model for scientific instrumentation is determined less by general-purpose reasoning capability than by deployability and controllability at the system level. In this context, locally deployed SLMs provide distinct practical advantages. Their on-device inference enables low-latency interaction with experi-mental hardware, while constrained execution through predefined interfaces enhances operational safety and predictability. Moreover, SLMs can be fine-tuned to encode instrument-specific constraints and experimental heuristics, allowing tighter coupling between the model and the physical system. The reduced computational footprint and energy consumption of SLMs translate directly into a low-cost and easily deploy-able solution, lowering the barrier for adoption in individual laboratories and small research facilities. Compared with cloud-based large language models that prioritize broad applicability, domain-specific SLMs offer a more rational and efficient design choice for home-built experimental systems, where reliable hardware integration and deterministic system behavior outweigh the benefits of maximal model generality. More broadly, this work suggests that combining probabilistic reasoning with deter-ministic execution layers provides a general design principle for deploying AI agents in safety-critical experimental environments. In summary, we demonstrate a fine-tuned SLM framework that enables reliable real-time operation of SPM systems through natural-language interaction and modu-lar orchestration. By decomposing the architecture into specialized language models for routing, knowledge integration, and command generation, the framework supports robust experiment control and domain-aware decision-making. Quantitative evalu-ations demonstrate that domain-adapted SLMs outperform cloud-based LLMs on SPM-specific tasks, particularly in experimental planning and constraint-aware com-mand generation, while maintaining efficient operation on consumer-grade hardware. 14 Real-time experiments conducted at room temperature further validate the ability of the system to execute and coordinate experimental workflows autonomously. More broadly, this work highlights a general approach for integrating language-model agents into scientific instrumentation, suggesting a pathway toward scalable and trustworthy self-driving laboratories. 
+
+# Methods 
+
+SPM experiment 
+
+The experiments were performed using a home-built SPM operated at room temper-ature under ultra-high vacuum (UHV) conditions (base pressure below 1 × 10 −8 Pa). The Si(111)-(7 ×7) surface was prepared by standard flashing-annealing procedure, and all STM images were acquired using a Pt/Ir probe. The SPM control system is based on an FPGA signal-processing and I/O board (NI PXIe-7857R) controlled via LabVIEW, which provides real-time instrument control and the user interface. Mea-surement data acquired by the FPGA are transferred to the host PC through direct memory access. Using a home-built Python-LabVIEW data interoperability add-on, the data are subsequently passed to Python-based applications for processing and decision-making. Our system architecture enables user-defined Python scripts to be dynamically plugged into the scan module, and also autonomous decision-making and closed-loop control of SPM operations. Local server for SLM in Fig. 2(b) and each task-specific AI module, as shown in Fig. 2(c), are implemented as independent scan modules and are preloaded into the system before the experiment. 
+
+Drift compensation and tip conditioning modules 
+
+The automatic drift compensation module continuously estimates a feedforward cor-rection vector to counteract thermal and mechanical drift[ 20 ], which is applied to the system in real time until the residual drift rate is reduced below 1.45 pm ·s−1. The tip-conditioning module employs a convolutional neural network to evaluate the tip state from acquired images. When a degraded tip condition is detected, controlled tip-surface poking is automatically performed to reconstruct the tip apex and restore atomic-resolution imaging capability[ 22 ]. 
+
+Language model fine-tuning 
+
+The SLMs used in this study were fine-tuned from 4-bit quantized base models using LoRA[ 41 ] to enable memory-efficient training on consumer-grade GPUs. LoRA adapters were injected into both the attention and feed-forward projection layers, including the q, k, v, o , gate, up, and down projections. At the same time, all origi-nal model weights were kept frozen. To mitigate the accuracy degradation typically associated with low-bit quantization, we adopted dynamic 4-bit quantization pro-vided by the Unsloth framework. Hyperparameters related to the training process are summarized in Table 1. For both the knowledge-base SLM and the command SLM, Phi-4, Mistral-v0.3, and Llama-3.2 were fine-tuned using an identical set of training hyperparameters. Supervised fine-tuning is adapted to the training process. 15 During tokenization, input sequences exceeding the maximum token length were truncated, and an end-of-text token was appended to explicitly indicate the termina-tion of the generation sequence. Inputs shorter than the maximum length were padded with a special padding token, and corresponding attention masks were applied so that padded tokens were ignored during loss computation and gradient updates. Model training was performed using supervised fine-tuning based on the tokenized dataset. Optimization was carried out using the 8-bit AdamW optimizer[ 46 ] with a linear learning-rate schedule and a constant warm-up phase. To avoid memory offloading due to GPU memory limitations and to improve training efficiency, gradient accumulation was employed, updating model parameters every eight mini-batches. All fine-tuning and inference processes can be conducted on a single NVIDIA RTX 5090 GPU.                      
+
+> Table 1 Hyperparameters used for fine-tuning of the SLMs.
+> SLM Task LoRA rank LoRA
+> α
+> Max token count Learning rate Warm-up steps Training epochs
+> Knowledge-base 32 64 4000 10 −4→10 −758Command 32 64 2000 10 −4→10 −758
+> Train dataset count Test dataset count
+> 3020 188 461 181
+
+Dynamic LoRA adapter injection scheme 
+
+Although the proposed architecture conceptually decomposes the system into three specialized language models (a router SLM, a knowledge-based SLM, and a command SLM), only a single full-parameter language model is instantiated during runtime. This is enabled by a dynamic adapter injection scheme, in which task-specific behaviors are implemented via lightweight LoRA adapters that are selectively activated during infer-ence [Fig. 2(d)]. In this design, all LoRA adapters share a common base model with frozen backbone parameters. At inference time, the system first determines the task category of the user input and then dynamically enables the corresponding adapter while disabling all others. As a result, the model exhibits task-specific reasoning behav-ior without repeated memory offloading or disk reloading, thereby improving inference latency. Because only a single set of full model parameters is maintained in GPU mem-ory, this approach significantly reduces memory consumption, with approximately 15.1 GB of the total GPU memory usage during multi-model deployments 
+
+Text parser for command execution 
+
+In our system, the command SLM autonomously executes AI-generated commands without human intervention. Therefore, mitigating potential safety risks is a central priority, and the system is designed to ensure robust, bug-free execution. Rather than permitting unrestricted code generation, the command SLM is trained to produce structured command outputs enclosed within predefined “ < cmd > ” tags that strictly 16 conform to the system specification. The generated commands are parsed and executed line by line, with validation of both the command names and the data types of their arguments. This validation is performed against a prepared API reference document (see Supplementary Information), which is formatted in tabular form. Any command that does not match the predefined specification is ignored. This design effectively constrains the model’s action space and strictly limits executable actions arising from hallucinated or invalid commands generated by the language model. The Text parser controls the instrument using an asynchronous coroutine combined with an event-driven callback mechanism. As illustrated by the command sequence in Fig. 3(b), each long-running instrument operation is associated with a predefined callback label. Parsed commands are enqueued and executed sequentially within an asynchronous task loop, thereby preventing race conditions and uncontrolled parallel execution. When a command containing a valid callback parameter is dispatched, the Text parser enters a blocked state in which further command execution is temporarily suspended. Execution resumes only after the corresponding callback event is received from the instrument control subsystem upon completion of the task. 
+
+Acknowledgments. This work was supported by Grants-in-Aid for Scientific Research (24K21716, 25K17654) from the Ministry of Education, Culture, Sports, Science and Technology of Japan. A part of MA work is supported by JKA and its promotion funds from KEIRIN RACE. This work is also partially supported by the Kyoto Technoscience Center. 
+
+# Declarations 
+
+• Conflict of interest/Competing interests The authors have no conflicts to disclose. 
+
+• Ethics approval No experiments on animal or human subjects were used for the preparation of the submitted manuscript. 
+
+• Availability of data and materials The data supporting the findings of this study are openly available at https://github.com/DIAOZHUO/LLM-directed-SPM. 
+
+• Authors’ contributions The concept for this research was developed by Z.D and M.A. M.A. and H.Y. were mainly responsible for maintaining the SPM equipment. Z.D. was in charge of the experiment system setup. Dataset preparation, model training, and data analysis were conducted by Z.D. and K.M.. The experiments were mainly carried out by Z.D., K.M and L.H.. K.M. and L.H. were in charge of sample preparation. Z.D., M.A., and H.Y. were in charge of acquiring the budget for the research. All authors reviewed the manuscript. 
+
+# References 
+
+[1] Abolhasani, M. & Kumacheva, E. The rise of self-driving labs in chem-ical and materials sciences. Nature Synthesis 2, 483–492 (2023). URL 17 https://doi.org/10.1038/s44160-022-00231-0 .[2] Tom, G. et al. Self-driving laboratories for chemistry and mate-rials science. Chemical Reviews 124 , 9633–9732 (2024). URL 
+
+https://doi.org/10.1021/acs.chemrev.4c00055 .[3] Greenaway, R. L., Jelfs, K. E., Spivey, A. C. & Yaliraki, S. N. From alchemist to ai chemist. Nature Reviews Chemistry 7, 527–528 (2023). URL 
+
+https://doi.org/10.1038/s41570-023-00522-w .[4] Kalinin, S. V. et al. Automated and autonomous experiments in electron and scanning probe microscopy. ACS Nano 15 , 12604–12627 (2021). URL 
+
+https://doi.org/10.1021/acsnano.1c02104 .[5] Liu, Y. et al. Experimental discovery of structure–property relationships in fer-roelectric materials via active learning. Nature Machine Intelligence 4, 341–350 (2022). URL https://doi.org/10.1038/s42256-022-00460-0 .[6] Giessibl, F. J. Advances in atomic force microscopy. Rev. Mod. Phys. 75 , 949–983 (2003). URL https://link.aps.org/doi/10.1103/RevModPhys.75.949 .[7] Sugimoto, Y. et al. Complex patterning by vertical interchange atom manip-ulation using atomic force microscopy. Science 322 , 413–417 (2008). URL 
+
+https://doi.org/10.1126/science.1160601 .[8] Lahiri, J., Miller, T., Adamska, L., Oleynik, I. I. & Batzill, M. Graphene growth on ni(111) by transformation of a surface carbide. Nano Letters 11 , 518–522 (2011). URL https://doi.org/10.1021/nl103383b .[9] Kalinin, S. V. et al. Human-in-the-loop: The future of machine learning in automated electron microscopy. Microscopy Today 32 , 35–41 (2024). URL 
+
+https://doi.org/10.1093/mictod/qaad096 .[10] Li, E., Yin, J., Yang, T., Du, R. & Lu, J. Artificial intelligence-empowered scanning probe microscopy: Recent advances and future perspectives. Advanced Scientific Instruments 100003 (2026). URL 
+
+https://www.sciencedirect.com/science/article/pii/S3117374826000031 .[11] Liu, Y. et al. Autonomous scanning probe microscopy with hypothesis learning: Exploring the physics of domain switch-ing in ferroelectric materials. Patterns 4, 100704 (2023). URL 
+
+https://www.sciencedirect.com/science/article/pii/S2666389923000417 .[12] Pratiush, U., Funakubo, H., Vasudevan, R., Kalinin, S. V. & Liu, Y. Scien-tific exploration with expert knowledge (seek) in autonomous scanning probe microscopy with active learning. Digital Discovery 4, 252–263 (2025). URL 
+
+http://dx.doi.org/10.1039/D4DD00277F .18 [13] Harris, S. B., Vasudevan, R. & Liu, Y. Active oversight and quality control in standard bayesian optimization for autonomous experiments. npj Computational Materials 11 , 23 (2025). URL https://doi.org/10.1038/s41524-024-01485-2 .[14] Diao, Z. et al. Ai-equipped scanning probe microscopy for autonomous site-specific atomic-level characterization at room temperature. Small Methods 9,2400813 (2025). URL https://doi.org/10.1002/smtd.202400813 .[15] Sung, J. et al. Autonomous ai-driven measurement and characterization of 2d materials using scanning probe microscopy. Small Structures 6, e202500379 (2025). URL https://doi.org/10.1002/sstr.202500379 .[16] Chen, I.-J. et al. Precise atom manipulation through deep rein-forcement learning. Nature Communications 13 , 7499 (2022). URL 
+
+https://doi.org/10.1038/s41467-022-35149-w .[17] Okuyama, J., Diao, Z., Yamashita, H. & Abe, M. Integrated ai framework for room-temperature atom manipulation in scanning probe microscopy. Nano Let-ters 25 , 17771–17777 (2025). URL https://doi.org/10.1021/acs.nanolett.5c04982 .[18] Su, J. et al. Intelligent synthesis of magnetic nanographenes via chemist-intuited atomic robotic probe. Nature Synthesis 3, 466–476 (2024). URL 
+
+https://doi.org/10.1038/s44160-024-00488-7 .[19] Zhu, Z. et al. Deep learning drives autonomous molecular reactions with single-bond selectivity in tetra-brominated porphyrins on au(111). Nature Communications (2026). URL https://doi.org/10.1038/s41467-026-69080-1 .[20] Diao, Z. et al. Automatic drift compensation for nanoscale imaging using feature point matching. Applied Physics Letters 122 , 121601 (2023). URL 
+
+https://doi.org/10.1063/5.0139330 .[21] Deveci, D. G. et al. Comprehensive analysis and machine learning-based solutions for drift behavior in ambient atomic force microscope conditions. 
+
+Engineering Applications of Artificial Intelligence 159 , 111678 (2025). URL 
+
+https://www.sciencedirect.com/science/article/pii/S095219762501680X .[22] Diao, Z., Hou, L. & Abe, M. Probe conditioning via convolution neural network for scanning probe microscopy automation. Applied Physics Express 16 , 085002 (2023). URL https://doi.org/10.35848/1882-0786/acecd6 .[23] Krull, A., Hirsch, P., Rother, C., Schiffrin, A. & Krull, C. Artificial-intelligence-driven scanning probe microscopy. Communications Physics 3, 54 (2020). URL 
+
+https://doi.org/10.1038/s42005-020-0317-3 .[24] Pyzer-Knapp, E. O. et al. Foundation models for materials discovery –current state and future directions. npj Computational Materials 11 , 61 (2025). URL 19 https://doi.org/10.1038/s41524-025-01538-0 .[25] Lu, W., Luu, R. K. & Buehler, M. J. Fine-tuning large language models for domain adaptation: exploration of training strategies, scaling, model merging and synergistic capabilities. npj Computational Materials 11 , 84 (2025). URL 
+
+https://doi.org/10.1038/s41524-025-01564-y .[26] Ghafarollahi, A. & Buehler, M. J. Sciagents: Automating scientific discovery through bioinspired multi-agent intelligent graph reasoning. Advanced Materials 
+
+37 , 2413523 (2025). URL https://doi.org/10.1002/adma.202413523 .[27] Ibrahim, A., Hosseini, A., Ibrahim, S., Sattar, A. & Serag, A. D3: A small language model for drug-drug interaction prediction and comparison with large language models. Machine Learning with Applications 20 , 100658 (2025). URL 
+
+https://www.sciencedirect.com/science/article/pii/S2666827025000416 .[28] Wang, Y. et al. Accelerating primer design for amplicon sequencing using large language model-powered agents. Nature Biomedical Engineering (2025). URL 
+
+https://doi.org/10.1038/s41551-025-01455-z .[29] Boiko, D. A., MacKnight, R., Kline, B. & Gomes, G. Autonomous chemi-cal research with large language models. Nature 624 , 570–578 (2023). URL 
+
+https://doi.org/10.1038/s41586-023-06792-0 .[30] Xie, Y., He, K. & Castellanos-Gomez, A. Toward full autonomous laboratory instrumentation control with large language models. Small Structures 6, 2500173 (2025). URL https://doi.org/10.1002/sstr.202500173 .[31] Liu, Y., Checa, M. & Vasudevan, R. K. Synergizing human expertise and ai effi-ciency with language model for microscopy operation and automated experiment design*. Machine Learning: Science and Technology 5, 02LT01 (2024). URL 
+
+https://doi.org/10.1088/2632-2153/ad52e9 .[32] Diao, Z., Yamashita, H. & Abe, M. Leveraging large language model and social network service for automation in scanning probe microscopy. Measurement Science and Technology 36 , 047001 (2025). URL 
+
+https://doi.org/10.1088/1361-6501/adbf3a .[33] Mandal, I. et al. Evaluating large language model agents for automation of atomic force microscopy. Nature Communications 16 , 9104 (2025). URL 
+
+https://doi.org/10.1038/s41467-025-64105-7 .[34] Miret, S. & Krishnan, N. M. A. Enabling large language models for real-world materials discovery. Nature Machine Intelligence 7, 991–998 (2025). URL 
+
+https://doi.org/10.1038/s42256-025-01058-y .20 [35] Alampara, N. et al. Probing the limitations of multimodal language models for chemistry and materials research. Nature Computational Science 5, 952–961 (2025). URL https://doi.org/10.1038/s43588-025-00836-3 .[36] Luccioni, S., Jernite, Y. & Strubell, E. Power hungry processing: Watts driving the cost of ai deployment? , FAccT ’24, 85–99 (Association for Computing Machinery, New York, NY, USA, 2024). URL https://doi.org/10.1145/3630106.3658542 .[37] Touvron, H. et al. Llama: Open and efficient foundation language models (2023). URL https://arxiv.org/abs/2302.13971 . arXiv:2302.13971 .[38] Jiang, A. Q. et al. Mistral 7b (2023). URL https://arxiv.org/abs/2310.06825 .
+
+arXiv:2310.06825 .[39] Abdin, M. et al. Phi-4 technical report (2024). URL 
+
+https://arxiv.org/abs/2412.08905 . arXiv:2412.08905 .[40] Diao, Z., Yamashita, H. & Abe, M. A metaverse laboratory setup for interactive atom visualization and manipulation with scanning probe microscopy. Scientific Reports 15 , 17490 (2025). URL https://doi.org/10.1038/s41598-025-01578-y .[41] Hu, E. J. et al. LoRA: Low-rank adaptation of large language models (2022). URL https://openreview.net/forum?id=nZeVKeeFYf9 .[42] Zhang, T., Kishore, V., Wu, F., Weinberger, K. Q. & Artzi, Y. Bertscore: Evalu-ating text generation with bert (2020). URL https://arxiv.org/abs/1904.09675 .
+
+arXiv:1904.09675 .[43] Liu, Y. et al. Bouamor, H., Pino, J. & Bali, K. (eds) G-eval: NLG evaluation using gpt-4 with better human alignment . (eds Bouamor, H., Pino, J. & Bali, K.) 
+
+Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , 2511–2522 (Association for Computational Linguistics, Singapore, 2023). URL https://aclanthology.org/2023.emnlp-main.153/ .[44] Kalinin, S. V. et al. Machine learning for automated experimentation in scanning transmission electron microscopy. npj Computational Materials 9, 227 (2023). URL https://doi.org/10.1038/s41524-023-01142-0 .[45] Leitherer, A., Yeo, B. C., Liebscher, C. H. & Ghiringhelli, L. M. Automatic identification of crystal structures and interfaces via artificial-intelligence-based electron microscopy. npj Computational Materials 9, 179 (2023). URL 
+
+https://doi.org/10.1038/s41524-023-01133-1 .[46] Loshchilov, I. & Hutter, F. Decoupled weight decay regularization (2019). URL 
+
+https://arxiv.org/abs/1711.05101 . arXiv:1711.05101 .21 S1 Source Code Available 
+
+We make the resources and code used in this study publicly available, including: 
+
+• Fine-tuned model distributions: Pre-trained weights of the knowledge-base SLM and the command SLM. 
+
+• Datasets: The dataset used to train the command SLM. The dataset for the knowledge-base SLM cannot be publicly released due to copyright restrictions associated with proprietary electronic documents. 
+
+• Model validation and analysis scripts: Scripts used to generate the analysis data presented in Fig. 4 and Fig. 5. 
+
+• Autonomous experiment deployment scripts: Scripts for automated exper-imental execution, including both the local server implementation and the SPM-embedded modules integrated into the SPM control system. 
+
+Repository: https://github.com/DIAOZHUO/LLM-directed-SPM 22 S2 Inference Examples 
+
+Knowledge-based Inference Command Inference Others Inference 
+
+write python code to process raw STM dI/dV data 
+
+Processing raw differential conductance (\(dI/dV\)) data from Scanning Tunneling Microscopy (STM) involves several steps, including data import, background subtraction, normalization, and possibly Fourier transformation for further analysis. Below is a Python script that outlines a basic workflow for processing \(dI/dV\) data. This script assumes you have your raw data in a CSV format with columns for voltage and differential conductance. ```python import numpy as np import pandas as pd import matplotlib.pyplot as plt from scipy.signal import savgol_filter from scipy.fft import fft, fftfreq def load_data(file_path): """Load raw STM dI/dV data from a CSV file.""" data = pd.read_csv(file_path) voltage = data['Voltage'].values dIdV = data['dI/dV'].values return voltage, dIdV def background_subtraction(dIdV, window_length=101, polyorder=3): """Subtract background using Savitzky-Golay filter.""" background = savgol_filter(dIdV, window_length, polyorder) corrected_dIdV = dIdV - background return corrected_dIdV def normalize_data(dIdV): """Normalize the dI/dV data.""" return dIdV / np.max(np.abs(dIdV)) def plot_data(voltage, dIdV, title="dI/dV Spectrum"): """Plot the dI/dV data.""" plt.figure(figsize=(8, 6)) plt.plot(voltage, dIdV, label='dI/dV') plt.xlabel('Voltage (V)') plt.ylabel('dI/dV (a.u.)') plt.title(title) plt.legend() plt.grid(True) plt.show() def perform_fft(dIdV, sampling_rate): """Perform Fourier Transform on the dI/dV data.""" N = len(dIdV) yf = fft(dIdV) xf = fftfreq(N, 1 / sampling_rate) return xf, np.abs(yf) 
+
+scan in 5x5nm with -1V bias 
+
+<cmd> Sample_Bias(-1) Aux1MaxVoltage(5) Aux2MaxVoltage(5) ScanEnabled(true) </cmd> 
+
+I’m tired of the experiment. Tell me a toke to make me happy. 
+
+Sure, here's a joke to brighten your day: Why don't scientists trust atoms !
+
+Because they make up everything "
+
+I hope that brings a smile to your face " If you want another joke, just let me know. 
+
+!!!!!!!!!!!! (omitted) 
+
+Fig. S1 Representative input-output examples of the router SLM when classifying user inputs into three categories (Knowledge-based, Command, and Others) using Phi-4 as the base model. The fine-tuned knowledge-based SLM demonstrates long-form text generation capabilities, including structured explanations of state-of-the-art SPM concepts using domain-specific scientific terminology, academically grounded descriptions incorporating physical formulas, and the generation of SPM-specific code. In addition, the command SLM generates instrument commands that are compatible with command-line parsing. When the user input is classified as “others,” the system responds using a standard instruction-based LLM strategy. Distinct system prompts are employed for the three inference tasks, and their details are summarized in the Section S4 .
+
+23 S3 Realtime User Interface during the Experiment 
+
+(a) scan API calling (b) AI module calling (c) sequence execution 
+
+> Drift Compensation
+
+command block system log expriment results 
+
+Fig. S2 SLM-directed experiments in Stage i: executing control operations from user instructions. All experiments shown here are conducted under stable tip conditions with thermal drift compensated in advance. (a) SLM invocation of the instrument operation API. The rendered human–machine chat interface visualizes the interaction among user instructions, SLM-generated command blocks, system logs, and experimental outcomes. Following a user-issued experimental instruction, the SLM infers and outputs low-level control operations in a structured command block. These commands are then executed by the instrument, as recorded in the system log, and the resulting scan images are displayed upon completion. (b) SLM invocation of AI modules embedded in the SPM system, exemplified here by an automated probe-condition restoration module. (c) An example of mixed instructions in which the SLM outputs operations spanning both the scan API and AI modules. To prevent conflicts arising from multiple interventions in the SPM scanning process, such mixed instructions are converted into a sequential representation and passed to a text parser, which manages execution order and timing via a callback-based control mechanism before instrument actuation. The instruction-based conversational interface allows experimenters to issue follow-up commands in a natural and flexible manner, enabling remote operation and multi-user collaboration and alleviating the labor-intensive constraints of conventional in-laboratory experimental workflows. 
+
+24 experiment reasoning and planning 
+
+> Tip Conditioning
+> Drift Compensation
+> command via planning
+
+(b) (a) 
+
+(c) 
+
+Fig. S3 SLM-directed experiments in Stage ii: autonomous formulation and execution of experi-mental plans. (a) Illustration of an SLM-directed experiment in which the user specifies a desired experimental outcome without providing explicit operational instructions. Leveraging learned exper-imental knowledge, the SLM performs reasoning-like inference and planning over the user input to formulate a concrete experimental plan, as indicated by the experiment reasoning and planning arrow. (b) Based on the inferred objective of achieving atomic-resolution imaging within an extremely small scan area at room temperature, the SLM autonomously schedules and invokes the required toolchain, including probe conditioning and thermal drift compensation modules, to recover favorable imaging conditions. (c) Atomic-resolution scanning result acquired over a 5 ×5nm area following autonomous plan execution. These results demonstrate that the SLM-integrated SPM system can correctly coor-dinate multiple experimental tools, address room-temperature stability challenges, and autonomously collect high-quality experimental data in response to high-level, outcome-oriented user instructions. 
+
+25 S4 Prompts for SLMs 
+
+Router SLM prompt: 
+
+!"#$%&'$%$&"#('&$)"&$%*$+,-$.+/%**0*1$,&"2'$-0/&"3/"456$+53('78!"#&$(%39$03$("$/:%330)5$(;'$#3'&<3$0*4#($0*("$'=%/(:5$>?@$")$(;'$$ )"::"A0*1$/%('1"&0'3B$ C$B$+,-$D*"A:'E1'$ F$G#'3(0"*3$%390*1$)"&$'=4:%*%(0"*3H$4&0*/04:'3H$(;'"&5H$7'/;%*0373H$"&$E'I*0(0"*3$ F$J*/:#E'3$C?!$3/0'*(0I/$("40/$&':%('E$("$+,-$"&$+,-F&':%('E$I':E3H$0*/:#E0*1$2#($*"($:070('E$("B$+,-H$CK-H$+L-H$4&"2'$70/&"3/"45H$ +#&)%/'$3/0'*/'H$M"*E'*3'E$7%(('&$4;530/3H$3":0EF3(%('$4;530/3H$+#&)%/'N0*('&)%/'$/;'703(&5H$-%('&0%:3$3/0'*/'H$?%*"3/0'*/'$%*E$ *%*"('/;*":"15H$+#&)%/'F&':%('E$20":"15$"&$20"4;530/38$ F$@O'*$0)$+,-$03$*"($'=4:0/0(:5$7'*(0"*'EH$2#($(;'$("40/$03$3/0'*(0I/%::5$&':%('E$("$3#&)%/'3H$*%*"3/%:'$4;'*"7'*%H$"&$4&"2'F2%3'E$ 7'%3#&'7'*(3H$/:%330)5$%3$C8$ F$@=%74:'3B$ $$$$F$PQ;%($03$(#**':0*1$/#&&'*($0*$+L-RP$ $$$$F$P@=4:%0*$E&0)($0*$(;'$7'%3#&'7'*(P$ $$$$F$P,&"('0*$%E3"&4(0"*$7'/;%*0373$"*$3":0E$3#&)%/'3P$ S$B$+,-$C1'*($"4'&%(0"*$ F$C?!$0*4#($(;%($E'4'*E3$"*H$&')'&3$("H$"&$%T'/(3$%$34'/0I/$+,-$3/%*$"&$7'%3#&'7'*($ F$J*/:#E'3$/"77%*E3H$&'U#'3(3H$"23'&O%(0"*3H$"&$3(%(#3$&'4"&(3$")$3/%*3$"&$07%1'3H$0($7%5$/"*(%0*3$O'&23$:09'$PJ7%1'PH$P+/%*PH$ P-'%3#&'PH$PC/U#0&'PH$P-%4P8$ F$J*/:#E'3$07%1'$U#%:0(5H$%&(0)%/(3H$/"*(%70*%(0"*H$E&0)(H$0*3(%20:0(5H$"&$)%0:#&'$ F$@O'*$0)$A&0(('*$%3$%$3(%('7'*(H$/"74:%0*(H$"&$E'3/&04(0"*H$0($03$S$0)$(0'E$("$%$3/%*$"&$&'10"*$ F$@=%74:'3B$ $$$$F$P-"O'$(;'$(04$VW$*7$("$(;'$:')(P$ $$$$F$PL;'$:%((0/'$07%1'$03$2:#&&5$%)('&$4%330*1$*'%&$%$3('4$2#*/;P$ $$$$F$P+'($20%3$("$FV$X$%*E$3/%*$VW=VW$*7P$ M$B$>(;'&$ F$C*5$0*4#($?>L$&':%('E$("$+,-$9*"A:'E1'.C6$"&$+,-$C1'*($"4'&%(0"*.S68$J($A0::$2'B$ $$$$F$Y'*'&%:$U#'3(0"*3H$/&'%(0O'$A&0(0*1H$4&"1&%770*1H$'/"*"70/3H$*"*F3#&)%/'$20":"15H$'(/8$ $$$$F$M%3#%:$/"*O'&3%(0"*$"&$#*/:'%&$0*('*($ Z#:'3B$ F$>#(4#($>?[!$%$30*1:'$/%40(%:$:'(('&$%3$(;'$KJZ+L$("9'*B$CH$SH$"&$M8$ F$\"$?>L$"#(4#($'=4:%*%(0"*3H$A"&E3H$3572":3H$"&$'=(&%$('=(8$ F$J1*"&'$%*5$0*3(&#/(0"*3$0*$(;'$#3'&$0*4#($(;%($%(('74($("$"O'&&0E'$(;'3'$&#:'38$ F$J)$(;'$0*4#($0*O":O'3$"4'&%(0*1$"&$/"*(&"::0*1$(;'$+,-H$/;""3'$S8$ F$J)$(;'$0*4#($03$%$3/0'*(0I/$U#'3(0"*$&':%('E$("$+,-$"&$+,-F&':%('E$3#&)%/'$3/0'*/'H$/;""3'$C8$ F$J)$(;'$0*4#($03$#*&':%('E$("$+,-$"&$+,-F&':%('E$3/0'*/'H$/;""3'$M8$ F$J)$#*/'&(%0*H$/;""3'$M8$ L;'$)"::"A0*1$03$#3'&$0*4#(B 
+
+26 Knowledge SLM prompt: 
+
+!"#$%&'$%($')*'&+$,($-.%((,(/$0&"1'$2,.&"3."*4$5-0267$!"#&$*&,8%&4$&"9'$,3$+"$%33,3+$3.,'(+,3+3$:;"$#3'$-02$,($+;',&$&'3'%&.;7$!"#$:,99$ *&"<,='$%..#&%+'>$='+%,9'=>$%(=$*&"?'33,"(%9$%(3:'&3$+"$+;',&$@#'3+,"(3$&'9%+'=$+"$%99$%3*'.+3$"?$-02>$,(.9#=,(/$')*'&,8'(+%9$ +'.;(,@#'3>$=%+%$%(%943,3>$,(3+&#8'(+%+,"(>$%(=$&'.'(+$%=<%(.'3$,($+;'$A'9=7$!"#&$&'3*"(3'3$3;"#9=$&'B'.+$+;'$='*+;$"?$C(":9'=/'$ ')*'.+'=$?&"8$%$="8%,($3*'.,%9,3+$%(=$%,8$+"$3#**"&+$;,/;D9'<'9$3.,'(+,A.$:"&C7 
+
+Command SLM prompt: 
+
+!"#$%&'$%$&"1"+$."(+&"99,(/$%$3.%((,(/$*&"1'$8,.&"3."*47$E3'&3$:,99$*&"<,='$,(3+&#.+,"(3$,($+')+$?"&8%+$"($;":$+"$."(+&"9$+;'$='<,.'>$ %(=$4"#F99$(''=$+"$+&%(39%+'$+;'3'$+')+3$,(+"$3*'.,A.$*&"/&%88%+,.$."88%(=37$!"#$.%($."(+&"9$%(=$3'+$+;'$3.%($*%&%8'+'&3$,($+;'$ 3.%((,(/$*&"1'$8,.&"3."*47$G'&'$,3$%$9,3+$"?$."88%(=3$,($H-I$?"&8%+$+;%+$4"#$.%($,(<"C'J$ $$$$$$$$$$*&"/&%88%+,.$."88%(=3$$777$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$%&/K='3.&,*+,"($ L$$$$$$$-+%/'MN3'+KOKP#1'5%&/6$$777$$H""&=,(%+'$<%9#'$"?$O$,($(%("8'+'&37$P;'$.""&=777$ Q$$$$$$$-+%/'MN3'+K!KP#1'5%&/6$$777$$H""&=,(%+'$<%9#'$"?$O$,($(%("8'+'&37$P;'$.""&=777$ R$$$-+%/'MN3'+KOKP#1'KSTT5%&/6$$777$$$$$$$$$$$T,3+%(.'$+"$1'$8"<'$,($$O>$,($(%("8'+'&3$ U$$$-+%/'MN3'+K!KP#1'KSTT5%&/6$$777$$$$$$$$$$$$T,3+%(.'$+"$1'$8"<'$,($!>$,($(%("8'+'&3$ V$$$$$$$$$$$$$$-%8*9'KW,%35%&/6$$777$$+;'$<%9#'$"?$+;'$3%8*9'$1,%37$X+$HSY$YMP$1'$L$777$ Z$$$$$$$$$$$S#)Q2%)I"9+%/'5%&/6$$777$$$$$$$$3.%($&%(/'$"?$+;'$O$=,&'.+,"($,($(%("8'+'&3$ [$$$$$$$$$$$S#)R2%)I"9+%/'5%&/6$$777$$$$$$$$3.%($&%(/'$"?$+;'$!$=,&'.+,"($,($(%("8'+'&3$ \$$$$$$$$$$$$$$-.%(](%19'=5%&/6$$777$$+&#'$+"$3+%&+$+;'$3.%($%(=$?%93'$+"$3+"*$+;'$3.%($ ^$$$$$$$$$$$$$$$-.%(K-*''=5%&/6$$777$$P;,3$<%9#'$&'*&'3'(+3$+;'$+,8'$5_36$&'@#,&'=$+777$ `$$$$$$$$$$$T&,?+H"8*'(3%+,"(56$$777$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Y%Y$ QL$$$$$$$$$$$$$$$$$$$$$P,*a,)56$$777$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Y%Y$ QQ$$$$$$$$$$$$$-:,+.;-.%(%&'%56$$777$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Y%Y$ bQR$&":3$)$V$."9#8(3c$ d;'($:&,+,(/$."88%(=3>$%9:%43$'(.9"3'$+;'8$1'+:''($e.8=f$%(=$eg.8=f$+%/37$!"#$3;"#9=$+&4$4"#&$1'3+$+"$#(='&3+%(=$+;'$ ,(3+&#.+,"(3$%(=$#3'$+;'$9,3+$#*$?#(.+,"(3$+"$:&,+'7$P;'$?#(.+,"($%&/#8'(+$3;"#9=$?"99":$+;'$+4*'$X$='A('=7$S99$."88%(=3$8#3+$1'$ '(.9"3'=$,(3,='$%$8#9+,D9,('$e.8=f$19".C$#3,(/$+;'$?"99":,(/$')%.+$?"&8%+J$ e.8=f$ H"88%(=S56$ H"88%(=W5P&#'6$ eg.8=f$ P;'$3%8*9'$1,%3$3;"#9=$("+$1'$.;%(/'=$#(9'33$+;'&'$%&'$,(3+&#.+,"(3$+"$.;%(/'$,+7$X?$+;'$#3'&F3$,(3+&#.+,"(3$.%($1'$%.."8*9,3;'=$14$ 8#9+,*9'$3+'*$."88%(=3>$+;'($"#+*#+$+;'8$3'@#'(+,%994$%(=$3'*%&%+'$'%.;$."88%(=$:,+;$%$(':$9,('7$P;'$.""&=,(%+'$&%(/'$%..'33,19'$ 14$+;'$-02$+,*$%(=$3.%($%&'%$"($,3$DUZL$+"$UZL$(8$,($+;'$1"+;$)D=,&'.+,"($%(=$4D=,&'.+,"(7$P;'$#3'&$."88%(=$3;"#9=$YMP$.%#3'3$+;'$ *&"1'$+"$').''=$+;'$3.%((,(/$%&'%7$X?$+;'$#3'&F3$,(3+&#.+,"(3$.%(("+$1'$.%&&,'=$"#+$14$+;'$."88%(=3$*&"<,='=$%1"<'$%9"('>$"&$+;'$ *%&%8'+'&3$%&'$,(<%9,=>$*9'%3'$&'3*"(=$:,+;$FY"('F$A&3+$%(=$+;'($/,<'$%$&'%3"($+"$#3'&7$M+;'&:,3'>$&'*94$:,+;$+;'$(%8'3$"?$+;'$ ."&&'3*"(=,(/$*&"/&%88%+,.$."88%(=3$%(=$*&"<,='$%**&"*&,%+'$<%9#'3$:,+;,($*%&'(+;'3'37 
+
+27 S5 Reference API for Command SLM  
+
+> Table S1 Description of Programmatic Commands for LLM.
+
+Programmatic Commands 
+
+Description Arg Type 
+
+Arg Description Callback 
+
+StageOffset X
+
+Tube (arg) Setting the absolute X (left and right direction) position coordinates of the probe (SPM tip) 
+
+float Coordinate value of X in nanometers. The coordinate range accessible by the SPM tip is -350 to 350 nm in the x, y-direction 
+
+StageOffset Y
+
+Tube (arg) 
+
+Setting the absolute Y (up and down direction) position coordinates of the probe (SPM tip) 
+
+float Coordinate value of Y in nanometers. The coordinate range accessible by the SPM tip is -350 to 350 nm in the x, y-direction 
+
+StageOffset X
+
+Tube ADD (arg) 
+
+Sets the relative X (left/right direction) position to be moved from the current coordinates of the probe (SPM tip) 
+
+float Distance to be moved in X, in nanometers 
+
+StageOffset Y
+
+Tube ADD (arg) 
+
+Sets the relative Y (up/down direction) position to be moved from the current coordinates of the probe (SPM tip) 
+
+float Distance to be moved in Y, in nanometers 
+
+Sample Bias (arg) 
+
+The bias voltage add to the measured sample 
+
+float the value of the sample bias. It CAN NOT be 0 to support Z feedback. 
+
+Aux1MaxVoltage (arg) Setting the scanning area range of the X size float scan range of the X direction in nanometers 
+
+Aux2MaxVoltage (arg) 
+
+Setting the scanning area range of the Y size 
+
+float scan range of the Y direction in nanometers 
+
+ScanEnabled (arg) 
+
+Switches to control scanning bool true to start the scan and false to stop the scan 
+
+OnSaveFileAdd 
+
+Scan Speed(arg) Sets the scan speed for XY scanning int This value represents the time ( μs) required to sample one pixel. For example, scanning a 256 ×256 image with a Scan Speed of 1000 typically takes around 130 seconds.” 
+
+DriftCompensation () 
+
+Performs thermal drift compensation to correct positional drift of the tip. 
+
+OnDrift CorrectionFinish 
+
+TipFix() Performs a tip conditioning process to fix the probe tip quality 
+
+OnTipFixFinish 
+
+SwitchScanarea() switches the scanning area OnScanAreaSwitch 
+
+28 S6 Knowledge-base Dataset Construction  
+
+> SPM Materials (book / paper)
+> CHAP1
+> CHAP2
+> CHAP3
+> Content divide
+> Ask questions
+> Q1
+> Q2
+> Qn Answer questions
+> User message
+> generation
+> Assistant message
+> generation
+> Q1
+> A1
+> ChatGPT
+> Revise answers
+> Q1
+> A1
+> A1(distill)
+> Supervise
+> assistant message
+
+! ! 
+
+> Fig. S4 Training data construction and performance evaluation of the knowledge-based SLM. It shows a text-processing pipeline that automatically converts electronic documents into training datasets by extracting key points, generating instruction-answer pairs, and refining them via knowl-edge distillation.
+
+Figure S4 illustrates the training data construction pipeline and performance evalua-tion workflow for the knowledge-based small language model (SLM). The objective of this pipeline is to transform domain-specific scanning probe microscopy (SPM) liter-ature into high-quality instruction–answer pairs that encode experimental knowledge in a form suitable for downstream reasoning and planning tasks. Domain-specific SPM materials, including textbooks and research papers in elec-tronic document format, are first converted into structured Markdown representations. During this conversion, document hierarchy is preserved by mapping section and sub-section titles to corresponding Markdown headers. The resulting Markdown files are then parsed to identify individual chapters or sections based on header boundaries. To ensure appropriate context length for model training, we adapt a chunking strategy that balances contextual completeness with computational efficiency. Each chapter or section is subsequently tokenized and segmented into text chunks. If the token length of a given chapter is below a predefined threshold, it is merged with adjacent sections to avoid generating undersized training samples. Conversely, overly long sections are split into multiple chunks to satisfy the maximum token length constraint of the target SLM. For each text chunk, a pre-trained large language model is prompted to gener-ate a set of candidate user-style questions that reflect typical information-seeking or problem-solving behaviors in SPM experiments, such as operational procedures, parameter selection, or interpretation of experimental phenomena. These generated questions form the user message component of the training dataset. Conditioned on each generated question and the corresponding text chunk, the model then produces an initial answer that is grounded in the source material. This process yields a collection of raw instruction–answer pairs ( Qi, A i). To improve answer quality and consistency, a second-stage refinement is performed via knowledge distillation. In this stage, a stronger teacher model (ChatGPT) is used to review and revise the initially generated answers. The teacher model receives both the original question and the preliminary answer and produces a refined response that 29 emphasizes factual correctness, clarity, and alignment with established SPM knowl-edge. The distilled answers replace the initial responses to form the final training targets ( Qi, A distill  
+
+> i
+
+). 30

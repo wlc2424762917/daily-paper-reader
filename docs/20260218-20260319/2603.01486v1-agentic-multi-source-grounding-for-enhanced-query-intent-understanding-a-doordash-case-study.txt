@@ -1,0 +1,216 @@
+Title: Agentic Multi-Source Grounding for Enhanced Query Intent Understanding: A DoorDash Case Study
+
+URL Source: https://arxiv.org/pdf/2603.01486v1
+
+Published Time: Tue, 03 Mar 2026 03:26:45 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+# Agentic Multi-Source Grounding for Enhanced Query Intent Understanding: A DoorDash Case Study 
+
+## Emmanuel Aboah Boateng 
+
+e.aboahboateng@doordash.com DoorDash, Inc. San Francisco, California, USA 
+
+## Kyle Macdonald 
+
+kyle.macdonald@doordash.com DoorDash, Inc. San Francisco, California, USA 
+
+## Akshad Viswanathan 
+
+akshad.viswanathan@doordash.com DoorDash, Inc. San Francisco, California, USA 
+
+## Sudeep Das 
+
+sudeep.das2@doordash.com DoorDash, Inc. San Francisco, California, USA 
+
+Abstract 
+
+Accurately mapping user queries to business categories is a fun-damental Information Retrieval challenge for multi-category mar-ketplaces, where context-sparse queries such as “Wildflower” ex-hibit intent ambiguity , simultaneously denoting a restaurant chain, a retail product, and a floral item. Traditional classifiers force a winner-takes-all assignment, while general-purpose LLMs halluci-nate unavailable inventory. We introduce an Agentic Multi-Source Grounded system that addresses both failure modes by grounding LLM inference in (i) a staged catalog entity retrieval pipeline and (ii) an agentic web-search tool invoked autonomously for cold-start queries. Rather than predicting a single label, the model emits an ordered multi-intent set, resolved by a configurable disambiguation layer that applies deterministic business policies and is designed for extensibility to personalization signals. This decoupled design generalizes across domains, allowing any marketplace to supply its own grounding sources and resolution rules without modify-ing the core architecture. Evaluated on DoorDash’s multi-vertical search platform, the system achieves +10.9pp over the ungrounded LLM baseline and +4.6pp over the legacy production system. On long-tail queries, incremental ablations attribute +8.3pp to catalog grounding, +3.2pp to agentic web search grounding, and +1.5pp to dual-intent disambiguation, yielding 90.7% accuracy (+13.0pp over baseline). The system is deployed in production, serving over 95% of daily search impressions, and establishes a generalizable paradigm for applications requiring foundation models grounded in proprietary context and real-time web knowledge to resolve ambiguous, context-sparse decision problems at scale. 
+
+Keywords 
+
+Query Intent Understanding, Multi-Source Grounding, Agentic Search, Dual Intent, Retrieval-Augmented Classification 
+
+1 Introduction 
+
+The evolution of on-demand delivery platforms from single-category marketplaces (e.g., food delivery only) to multi-category ecosystems encompassing Food, Grocery, Retail, and Alcohol [ 7] has introduced new challenges for search and discovery. As discussed in the aggre-gated search [ 2 , 8 , 12 ] and intent taxonomy [ 5] literature, presenting results from multiple business categories on a single results page is challenging, especially when short, context-sparse queries can plausibly map to several categories simultaneously. 
+
+Figure 1: Intent Ambiguity for the query “Wildflower.” (Left) The Restaurant category surfaces the fictional Wildflower Bites chain. (Right) The Retail category surfaces literal flower products. Our system captures both interpretations to enable context-aware routing. 
+
+Query Intent Understanding (QIU) predicts a user’s shopping intent from their search query to route retrieval and ranking to the most relevant inventory. In a multi-category marketplace, this prediction directly influences which category experiences (e.g., Restaurant, Grocery, Retail) are surfaced; misrouting at this stage dominates downstream relevance regardless of ranking quality. Consider the query “Wildflower” (Figure 1). A literal interpretation implies a Flower Product intent. However, “Wildflower” could also be a popular restaurant chain (e.g., the fictional “Wildflower Bites”). 1
+
+If the system biases towards the literal meaning when the user 
+
+> 1For trademark compliance, merchant names and associated imagery in examples throughout this paper are fictionalized representations of real ambiguity patterns observed in production.
+> arXiv:2603.01486v1 [cs.AI] 2 Mar 2026 Emmanuel Aboah Boateng, Kyle Macdonald, Akshad Viswanathan, and Sudeep Das
+
+intends to order lunch, the customer is presented with bouquets instead of the restaurant they expect, leading to a broken journey. This problem has two distinct failure modes that existing ap-proaches struggle to address simultaneously: 
+
+Challenge 1 : Winner-Takes-All Classification. Traditional su-pervised multi-class classifiers [ 17 ] force a single-label assignment. While such models can emit top-𝑘 labels at inference, the softmax training objective encourages competition for probability mass, suppressing concurrently plausible intents under ambiguity. In-creasing confidence in “Restaurant” necessarily suppresses “Retail,” discarding the valid alternative. This paradigm is fundamentally ill-suited for queries that span multiple categories. 
+
+Challenge 2 : LLM Hallucination Without Grounding. To address the data sparsity of long-tail queries, recent work has turned to Large Language Models for their reasoning capabilities [ 1, 6 , 19 , 20 ]. However, generic LLMs frequently hallucinate availability [ 10 , 11 ]without platform-specific grounding. An ungrounded model might misclassify “Wildflower” as a floral product, missing the popular restaurant chain entirely, or assume “450 North” is a restaurant when it is in fact a craft brewery. Without evidence from the plat-form’s own catalog, the model’s reasoning is disconnected from the marketplace’s actual inventory. While retrieval-augmented generation [ 13 ] and tool-augmented LLMs [15] have been studied independently, to our knowledge no prior work combines agentic multi-source grounding with dual-intent prediction and pluggable disambiguation for production query intent understanding. We address both failure modes with two novel, complementary contributions: 
+
+• Agentic Multi-Source Grounded Classification (Fig-ure 2, steps 2–6). We ground LLM intent inference in platform-specific evidence by injecting high-precision catalog en-tities, retrieved via a staged semantic and fuzzy retrieval pipeline [ 9 , 13 ], directly into the LLM prompt. For cold-start queries absent from the catalog, the model autonomously invokes an agentic web-search tool to retrieve real-time world knowledge. This multi-source approach bridges the gap between static inventory data and emerging consumer trends. 
+
+• Dual-Intent Prediction with Configurable Disambigua-tion (Figure 2, steps 5–8). Rather than forcing a single label [ 18 ], we predict an ordered intent set 𝑆 = (𝑣 𝑝 , 𝑣 𝑠 ) and re-solve it through a modular disambiguation layer. This layer currently uses deterministic pairwise business rules derived from historical win rates, but its configurable design sup-ports extensibility to personalization signals such as user location or order history without architectural changes. This decoupling of prediction from resolution generalizes beyond DoorDash: any multi-category marketplace (e.g., an e-commerce platform distinguishing between brand stores and product listings) can supply its own grounding sources and disambiguation policies. We validate our approach on DoorDash’s multi-category search platform across four benchmarks. The system achieves +10.9pp accuracy over the ungrounded LLM baseline and +4.6pp over the legacy hybrid BERT+LLM production system, while maintaining high accuracy on high-frequency head queries. The system is cur-rently deployed in production, serving over 95% of daily search impressions via an offline batch-and-cache architecture. 
+
+2 System Architecture 
+
+Our solution moves away from pure text classification to a Retrieval-Augmented Classification approach [ 13 ], where an LLM reasoning engine is grounded in multi-source evidence before emitting intent predictions (Figure 2). 
+
+2.1 Formulation 
+
+Given a query 𝑞 and a set of business categories 𝑉 = {𝑣 1, 𝑣 2, . . . , 𝑣 𝑛 },the conventional approach seeks the single category 𝑣 ∗ that maxi-mizes the conditional probability: 
+
+𝑣 ∗ = argmax  
+
+> 𝑣 ∈𝑉
+
+𝑃 (𝑣 | 𝑞 ) (1) This formulation discards plausible alternatives. Drawing on verti-cal selection and federated search formulations [ 3 , 16 ], we instead frame intent prediction as a set coverage problem. We optimize for the smallest set 𝑆 ⊆ 𝑉 such that the probability of the user’s true intent 𝑣 ∗ being contained in 𝑆 is maximized, conditioned on both the query and multi-source evidence 𝐸 :
+
+𝑆 = argmax    
+
+> 𝑆 ⊆𝑉 , |𝑆 | ≤ 𝑘
+
+𝑃 (𝑣 ∗ ∈ 𝑆 | 𝑞, 𝐸 ) (2) We constrain |𝑆 | ≤ 𝑘 =2 as a pragmatic design choice that captures a salient alternative while keeping downstream disambiguation tractable. The evidence 𝐸 = 𝐸 𝑐𝑎𝑡 ∪ 𝐸 𝑒𝑥𝑡 is the union of catalog-retrieved entities 𝐸 𝑐𝑎𝑡 and external search signals 𝐸 𝑒𝑥𝑡 , detailed below. 
+
+2.2 Multi-Source Evidence Retrieval 
+
+To mitigate hallucinations and ground predictions in platform-specific knowledge, we inject evidence into the LLM prompt from two complementary sources. 
+
+2.2.1 Staged Catalog Entity Retrieval. We employ a two-stage re-trieval architecture (Figure 2, steps 2–3) that balances recall and precision. 
+
+Stage 1 : Semantic Retrieval. We retrieve a candidate set 𝐶 𝑠𝑒𝑚 
+
+using a dense retrieval index. Query 𝑞 and catalog entities 𝑒 ∈ E 
+
+are mapped to a shared embedding space via an encoder model 𝜙 ,and the top-𝑁 candidates are retrieved using Approximate Nearest Neighbor (ANN) search: 
+
+𝐶 𝑠𝑒𝑚 = top -N 
+
+> 𝑒 ∈ E
+
+cos  𝜙 (𝑞 ), 𝜙 (𝑒 ) (3) This ANN approach enables low-latency retrieval at scale, capturing conceptual matches even under severe lexical drift (e.g., “better chew” → Better Chew plant-based brand). 
+
+Stage 2 : Fuzzy Refinement. To filter low-precision semantic matches and handle lexical variations such as typos, we re-rank 
+
+𝐶 𝑠𝑒𝑚 using a weighted fuzzy matching score. For a query 𝑞 and candidate entity 𝑒 :
+
+𝑆 𝑓 𝑢𝑧𝑧𝑦 (𝑞, 𝑒 ) = 𝛼 · TokenSet (𝑞, 𝑒 ) + ( 1−𝛼 ) · PartialRatio (𝑞, 𝑒 ) (4) where 𝛼 controls the trade-off between token-set overlap (han-dling reordered terms) and partial matching (handling substrings). Agentic Multi-Source Grounding for Enhanced Query Intent Understanding: A DoorDash Case Study 
+
+Figure 2: System Architecture Overview. The pipeline illustrates the multi-source evidence retrieval process (steps 2–4, 6), the dual-intent reasoning engine (step 5), and the pluggable disambiguation layer (step 7) that populates the production cache. 
+
+Candidates below a threshold 𝜏 𝑓 𝑢𝑧𝑧𝑦 are discarded, yielding a high-precision entity set 𝐸 𝑐𝑎𝑡 :
+
+𝐸 𝑐𝑎𝑡 = {𝑒 ∈ 𝐶 𝑠𝑒𝑚 : 𝑆 𝑓 𝑢𝑧𝑧𝑦 (𝑞, 𝑒 ) ≥ 𝜏 𝑓 𝑢𝑧𝑧𝑦 } (5) 
+
+2.2.2 Agentic External Search. For long-tail or cold-start queries not yet indexed in the catalog, the model autonomously invokes an external web-search tool [ 4, 14 , 15 ] to retrieve real-time world knowledge 𝐸 𝑒𝑥𝑡 (Figure 2, step 6). This agentic capability allows the model to dynamically seek fresh context when internal con-fidence is low, helping it distinguish, for example, whether “450 North” is a craft brewery or a restaurant. Strategic business rules (e.g., a “Restaurant-First Hierarchy”) are injected via a dynamic ex-ample bank [ 6], enabling rapid policy updates without architectural changes. 
+
+2.3 Dual-Intent Prediction and Disambiguation 
+
+The grounded prompt, containing the query, retrieved entities 𝐸 𝑐𝑎𝑡 ,and any external signals 𝐸 𝑒𝑥𝑡 , is passed to the LLM reasoning engine (Figure 2, step 5), which emits an ordered dual-intent tuple: 
+
+(𝑣 𝑝 , 𝑣 𝑠 ) = LLM (𝑞, 𝐸 𝑐𝑎𝑡 , 𝐸 𝑒𝑥𝑡 , P) (6) where 𝑣 𝑝 is the primary intent, 𝑣 𝑠 is an optional secondary intent (or ∅), and P denotes the policy context (strategic overrides and few-shot examples). When the model predicts a dual intent ( 𝑣 𝑠 ≠ ∅), the output is routed to a disambiguation layer (Figure 2, step 7). In this work, we implement a Pairwise Override function 𝛿 based on global historical win rates: 
+
+𝑣 ∗ = 𝛿 (𝑣 𝑝 , 𝑣 𝑠 ) =
+
+(
+
+𝑣 𝑠 if (𝑣 𝑝 , 𝑣 𝑠 ) ∈ W 
+
+𝑣 𝑝 otherwise (7) where W is a whitelist of conflict pairs for which historical data indicates the secondary intent should take priority. This layer is designed to be modular: it can be extended to incorporate person-alization signals such as user location or order history, or replaced entirely with a learned re-ranker, without modifying the upstream prediction architecture. 
+
+3 Experiments 
+
+We evaluate across four benchmarks representing distinct traf-fic slices ( 𝑁 ≈ 30 ,000 ): Branded* (𝑁 =7,809 ): retail brand-name queries; Retail (𝑁 =7,988 ): general non-food retail queries; Tail (Synthetic) (𝑁 =2,335 ): rare long-tail queries; and SOT (𝑁 =12 ,651 ): a representative sample of global traffic across Head, Torso, and Tail segments. We compare against four baselines: (1) Legacy : the exist-ing production system, a hybrid BERT + LLM ensemble; (2) Gemini Base : Gemini-2.5-flash with a standard single-intent prompt (un-grounded), serving as our control to isolate architectural contri-butions using the same backbone; (3) GPT-4o and (4) GPT-4o-mini :ungrounded single-intent baselines representing a larger and a smaller general-purpose model. 
+
+3.1 Results 
+
+We report accuracy based on the final resolved intent after the disambiguation layer, i.e., the ground truth must match the single intent selected by our disambiguation policy from the predicted tuple (𝑣 𝑝 , 𝑣 𝑠 ).The system achieves material accuracy gains across all bench-marks (Table 2). On the global SOT benchmark, it outperforms the Gemini baseline by +10.9pp, GPT-4o by +10.8pp, and GPT-4o-mini by +14.2pp, confirming that general-purpose LLM reasoning is prone to systematic intent misalignment when disconnected from platform-specific inventory data. The gap widens further on the Tail segment (+13.6pp vs GPT-4o, +16.1pp vs GPT-4o-mini). Emmanuel Aboah Boateng, Kyle Macdonald, Akshad Viswanathan, and Sudeep Das 
+
+Table 1: Dual-intent resolution on ambiguous tail queries. Baseline: ungrounded Gemini-2.5-flash.                     
+
+> Query Baseline Entity Context Search Context DI Output (p/s) Resolved
+> “wildflower” Flower Wildflower Bites (Restaurant) Popular restaurant chain in AZ Restaurant / Flower Restaurant
+> “better chew” Pet Product Better Chew Farms (Plant-Based) Plant-based frozen food brand Grocery / Dish Grocery
+> “450 north” Restaurant 450 North Craft Ales (Beer) Craft brewery, not a restaurant Alcohol / Retail Store Alcohol
+
+Table 2: Accuracy Comparison across Benchmarks. 
+
+Benchmark GPT 4o Mini GPT 4o Gemini Base Legacy DI (Ours) Branded* 77.9% 87.5% 88.4% 82.3% 94.5% 
+
+Retail 86.5% 93.6% 90.5% 91.2% 96.3% 
+
+Tail (Synthetic) 82.6% 87.1% 86.4% 83.4% 92.4% 
+
+SOT (Overall) 79.8% 83.2% 83.1% 89.4% 94.0% 
+
+To understand where the system provides the most value, we performed a segmented analysis of the SOT benchmark (Figure 3). While the Gemini baseline struggles on the Tail (77.7%) and Torso (83.9%) due to data sparsity, our system achieves 90.7% on the Tail, surpassing the legacy system by +8.5pp. The system remains safe on high-volume Head queries ( ∼99% accuracy), confirming that the multi-intent framework improves long-tail coverage without compromising navigational reliability. Head Torso Tail 
+
+60 
+
+80 
+
+100 
+
+> 88 .7
+> 80 .6
+> 74 .6
+> 93 .1
+> 84 .4
+> 77 .1
+> 92 .3
+> 83 .9
+> 77 .7
+> 98 .4
+> 92 .2
+> 82 .2
+> 99 .5
+> 94 .7
+> 90 .7
+> Accuracy (%)
+
+GPT-4o-mini GPT-4o Gemini Base Legacy DI (Ours) 
+
+Figure 3: SOT Accuracy by Segment. 
+
+3.2 Ablation and Deployment 
+
+To quantify the contribution of each architectural component, we conduct an incremental ablation on the SOT Tail ( 𝑁 =4,993 ), where intent ambiguity is most prevalent. Starting from the ungrounded baseline, we progressively add Catalog Grounding, then Agentic Search, and finally Dual-Intent Disambiguation. As shown in Fig-ure 4, Catalog Grounding provides an appreciable lift (+8.3pp), confirming that proprietary inventory context is the key driver of accuracy. Adding Agentic Search yields a further +3.2pp by ground-ing the model on fresh, real-time web context for cold-start and ambiguousqueries which may be absent from the catalog. Dual-Intent Disambiguation contributes +1.5pp by capturing secondary interpretations that a single-label system discards. Together, these yield a cumulative +13.0pp lift over baseline. Table 1 illustrates how these components resolve real ambiguous queries.    
+
+> Baseline +Catalog +Ag. Search Full
+
+75 
+
+80 
+
+85 
+
+90  
+
+> 77.7
+> 86.0
+> 89.2 90.7
+> +8.3
+> +3.2
+> +1.5
+> Accuracy (%)
+
+Figure 4: Component Ablation on SOT Tail ( 𝑁 =4,993 ). Cumu-lative +13.0pp lift over the ungrounded baseline. 
+
+The system is deployed in production via an offline batch-and-cache architecture, currently covering 95.9% of daily search. 
+
+4 Conclusion and Future Work 
+
+We presented an Agentic Multi-Source Grounded system for query intent understanding that combines catalog entity grounding, agen-tic web search, and dual-intent prediction with pluggable disam-biguation. Evaluated on DoorDash’s multi-category search plat-form, the system achieves +13.0pp accuracy on long-tail queries over the ungrounded baseline, with each component contributing measurably: catalog grounding (+8.3pp), agentic search (+3.2pp), and disambiguation (+1.5pp). The current architecture provides a robust foundation, but its offline batch-and-cache design limits coverage to previously seen queries. The high-quality labels gener-ated by this offline “Teacher” system are currently being curated into a silver-standard dataset to distill reasoning capabilities into smaller, cost-effective “Student” models for real-time online infer-ence at scale. Furthermore, the dual-intent schema and pluggable disambiguation layer pave the way for fully personalized intent resolution, incorporating user location and order history to deliver the most relevant experience for every query. 
+
+References        
+
+> [1] Avishek Anand, Venktesh V, Abhijit Anand, and Vinay Setty. 2023. Query Under-standing in the Age of Large Language Models. arXiv preprint arXiv:2306.16004
+> (2023). [2] Jaime Arguello, Fernando Diaz, Jamie Callan, and Jean-Francois Crespo. 2009. Sources of evidence for vertical selection. In Proceedings of the 32nd international ACM SIGIR conference on Research and development in information retrieval . 315– 322. [3] Jaime Arguello, Fernando Diaz, and Jean-François Paiement. 2010. Vertical selection in the presence of unlabeled verticals. In Proceedings of the 33rd interna-tional ACM SIGIR conference on Research and development in information retrieval .691–698.
+
+Agentic Multi-Source Grounding for Enhanced Query Intent Understanding: A DoorDash Case Study 
+
+[4] Azumo. 2025. Agentic RAG: The Future of Autonomous AI vs Traditional RAG. https://azumo.com/artificial-intelligence/ai-insights/agentic-rag. Ac-cessed: 2026-02-25. [5] Andrei Broder. 2002. A taxonomy of web search. SIGIR Forum 36, 2 (2002), 3–10. [6] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Pra-fulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al . 2020. Language models are few-shot learners. Advances in Neural Information Processing Systems 33 (2020), 1877–1901. [7] Sudeep Das, Raghav Saboo, Chaitanya S. K. Vadrevu, Bruce Wang, and Steven Xu. 2024. Applications of LLMs in E-Commerce Search and Product Knowledge Graph: The DoorDash Case Study. In Proceedings of the 17th ACM International Conference on Web Search and Data Mining (WSDM ’24) . 1163–1164. doi:10.1145/ 3616855.3635738 [8] Fernando Diaz. 2009. Integration of news content into web results. In Proceedings of the second ACM international conference on Web search and data mining . 182– 191. [9] Yunfan Gao, Yun Xiong, Xinyu Gao, Kang Jia, Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, and Haofen Wang. 2023. Retrieval-augmented generation for large language models: A survey. arXiv preprint arXiv:2312.10997 (2023). [10] Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Ye Jin Bang, Andrea Madotto, and Pascale Fung. 2023. Survey of hallucination in natural language generation. Comput. Surveys 55, 12 (2023), 1–38. [11] Hailey Joren, Jianyi Zhang, Chun-Sung Ferng, Da-Cheng Juan, Ankur Taly, and Cyrus Rashtchian. 2025. Sufficient Context: A New Lens on Retrieval Augmented Generation Systems. In Proceedings of the International Conference on Learning Representations (ICLR 2025) .[12] Mounia Lalmas. 2011. Aggregated Search. In Advanced Topics in Information Retrieval , Massimo Melucci and Ricardo Baeza-Yates (Eds.). Information Retrieval Series, Vol. 33. Springer, 109–123. [13] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-täschel, et al . 2020. Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in Neural Information Processing Systems 33 (2020), 9459–9474. [14] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang, Bill Qian, et al . 2023. ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs. arXiv preprint arXiv:2307.16789 (2023). [15] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. 2023. Toolformer: Lan-guage models can teach themselves to use tools. Advances in Neural Information Processing Systems 36 (2023), 6853–6879. [16] Milad Shokouhi and Luo Si. 2011. Federated search. Foundations and Trends ® in Information Retrieval 5, 1 (2011), 1–102. [17] Grigorios Tsoumakas and Ioannis Katakis. 2007. Multi-label classification: An overview. International Journal of Data Warehousing and Mining (IJDWM) 3, 3 (2007), 1–13. [18] Shangjian Yin, Peijie Huang, and Yuhong Xu. 2025. MIDLM: Multi-Intent De-tection with Bidirectional Large Language Models. In Proceedings of the 31st International Conference on Computational Linguistics (COLING 2025) . 2616–2625. [19] Ziji Zhang, Michael Yang, Zhiyu Chen, et al . 2025. REIC: RAG-Enhanced Intent Classification at Scale. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: Industry Track (EMNLP 2025) .[20] Yutao Zhu, Huaying Yuan, Shuting Wang, Jiongnan Liu, Wenhan Liu, Chen-long Deng, Haonan Chen, Zheng Liu, Zhicheng Dou, and Ji-Rong Wen. 2023. Large Language Models for Information Retrieval: A Survey. arXiv preprint arXiv:2308.07107 (2023).

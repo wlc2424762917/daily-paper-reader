@@ -1,0 +1,970 @@
+Title: BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+URL Source: https://arxiv.org/pdf/2603.03194v1
+
+Published Time: Wed, 04 Mar 2026 02:34:01 GMT
+
+Number of Pages: 40
+
+Markdown Content:
+# BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+Guoxin Chen *, Fanzhe Meng *, Jiale Zhao *, Minghao Li, Daixuan Cheng, Huatong Song, Jie Chen, Yuzhi Lin, Hui Chen, Xin Zhao †
+
+, Ruihua Song †
+
+, Chang Liu, Cheng Chen, Kai Jia †
+
+and Ji-Rong Wen   
+
+> 1Gaoling School of Artificial Intelligence, Renmin University of China, 2Independent Researcher, 3AweAI Team
+
+Current benchmarks for code agents primarily assess narrow, repository -specific fixes, over-looking critical real - world challenges such as cross -repository reasoning, domain - specialized problem solving, dependency -driven migration, and full - repository generation. To address this gap, we introduce BeyondSWE, a comprehensive benchmark that broadens existing evaluations along two axes—resolution scope and knowledge scope—using 500 real -world instances across four distinct settings. Experimental results reveal a significant capability gap: even frontier models plateau below 45% success, and no single model performs consistently across task types. To systematically investigate the role of external knowledge, we develop SearchSWE, a framework that integrates deep search with coding abilities. Our experiments show that search augmentation yields inconsistent gains and can in some cases degrade performance, highlight-ing the difficulty of emulating developer - like workflows that interleave search and reasoning during coding tasks. This work offers both a realistic, challenging evaluation benchmark and a flexible framework to advance research toward more capable code agents. 
+
+Benchmark Repo Scaffold WebPage 
+
+> ∗
+
+Equal Contributions. †Corresponding authors. Date: Feb. 18, 2026. 
+
+1. Introduction 
+
+The rapid advancement of large language models (LLMs) (Anthropic, 2025; Google, 2025b; OpenAI, 2025) has enabled the development of increasingly capable code agents that can autonomously undertake complex software engineering tasks. To effectively guide and accelerate this progress, it is equally critical to establish rigorous, comprehensive, and practically relevant evaluation frameworks. Only through systematic benchmarking and careful assessment can we accurately measure the true capabilities, limitations, and real-world applicability of such agents, ensuring their development aligns with genuine developer needs and industry standards. In pursuit of this goal, substantial research effort has been devoted to constructing robust software engineering benchmarks. Among these, SWE-bench (Jimenez et al., 2024), particularly its human-validated subset SWE-bench Verified (Chowdhury et al., 2024), has become the de facto standard for evaluating code agents on real-world GitHub issues. Subsequent benchmarks have expanded on this foundation: SWE-bench Live (Zhang et al., 2025) introduces continuous updates and broader repository coverage to mitigate data contamination, while SWE-bench Pro (Deng et al., 2025) raises task complexity by requiring multi-file modifications. Despite these advances, the task settings in existing benchmarks remain fundamentally localized ,typically confined to function-level issue fixes within individual repositories and lacking explicit requirements to utilize external knowledge beyond the provided codebase. This stands in stark con-trast to real-world software engineering, which involve a far broader and more complex spectrum of challenges extending beyond single-repository contexts. Developers routinely navigate issues 
+
+> Emails: {gx.chen.chn, mengfanzhe16, marshmallowzjl, batmanfly, jiakai0419}@gmail.com, songruihua_bloon@outlook.com
+> arXiv:2603.03194v1 [cs.CL] 3 Mar 2026 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+Table 1. Comparison with existing SWE benchmarks                                               
+
+> Benchmark Scope Statistics Resol. Knowledge #Repo #Files #Lines
+> SWE-bench-Verified Local Func Within Repo 12 1.3 11.6 SWE-bench-Live Local Func Within Repo 223 2.7 65.1 SWE-bench Pro Local Func Within Repo 41 4.1 107.4 CrossRepo Local Func Cross Repo 67 4.1 190.7 DomainFix Local Func Domain 12 4.2 157.6 DepMigrate Global Repo Official Docs 120 8.4 281.6 Doc2Repo Global Repo Human Spec 50 Entire Entire
+> BeyondSWE Mix Mix 246 5.6 209.9
+
+that span multiple repositories, consult extensive external resources such as documentation, forums, and third-party libraries, execute large-scale refactoring in response to evolving dependencies, and even construct complete systems from initial specifications. As these fundamental dimensions remain largely unexplored in existing benchmarks, a critical question emerges: Can current code agents survive beyond single-repo bug fixing? 
+
+To address the localized nature of existing benchmarks, we introduce BeyondSWE , a comprehensive software engineering benchmark that advances prior work along two key dimensions: resolution scope and knowledge scope . Resolution scope spans granularity levels from isolated function-level repairs to repository-wide refactoring and full system generation. Knowledge scope specifies whether a task requires incorporating information beyond the immediate codebase—such as exter-nal repositories, specialized domains, or the open Web. By configuring these two axes, we establish four distinct evaluation settings: (1) Cross-repository issue resolution (CrossRepo) requires agents to fix issues in a target repository by explicitly leveraging code and solutions from external repositories; (2) Domain-specific issue resolution (DomainFix) demands the application of expert knowledge from fields such as bioinformatics or quantum physics; (3) Dependency-driven migration (DepMigrate) tasks agents with migrating entire codebases in response to breaking changes in upstream dependen-cies, such as transitioning from NumPy 1.x to 2.x; (4) Document-to-repository generation (Doc2Repo) 
+
+challenges agents to construct fully functional repositories from natural language specifications alone. These four settings target different facets of agent capability (illustrated in Table 1), enabling a rigorous and holistic evaluation of coding agents. In total, BeyondSWE comprises 500 instances drawn from 246 real-world GitHub repositories. Experimental results demonstrate that current code agents achieve a success rate of only 45% on BeyondSWE, highlighting a substantial capability gap and exposing multifaceted weaknesses. Since solving BeyondSWE tasks requires knowledge beyond the local codebase, code agents must be able to seek and integrate external information. To bridge this gap, we introduce SearchSWE , an agentic framework that integrates coding proficiency with deep research skills, enabling seamless interleaving of repository exploration, code manipulation, and iterative web search. Our goal is to examine how external search affects agent capabilities using a standardized instantiation that avoids over-complicated, task-specific designs. Analysis with SearchSWE reveals a critical disconnect between search and coding proficiencies in current LLMs, underscoring that more capable code agents require a more effective integration of search capabilities. To summarize, our contributions are as follows: 
+
+> 2BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+• We construct BeyondSWE, a comprehensive software engineering benchmark that extends evalu-ation along two key dimensions: resolution scope and knowledge scope . This yields four distinct, challenging tasks comprising 500 real-world instances, enabling a holistic and rigorous assess-ment of code agents. • We develop SearchSWE, a search-enabled agentic framework that integrates coding proficiency and deep research skills to establish a unified baseline, revealing the critical disconnect between these two capabilities. • We publicly release the BeyondSWE evaluation suite and the full implementation of the Search-SWE framework to support and accelerate further research in this area. 
+
+2. Related Work 
+
+SWE Bench. SWE-bench and its verified version (Chowdhury et al., 2024; Jimenez et al., 2024) have established the standard for evaluating code agents on real-world GitHub issues. Subsequent work has extended this foundation along various directions, including multilingual support, continuous updates to mitigate data contamination, and increased task complexity (Deng et al., 2025; Guo et al., 2025a; Rashid et al., 2025; Tian et al., 2024; Yang et al., 2025c; Zan et al., 2025; Zhang et al., 2025). Despite these advances, existing benchmarks remain focused on localized bug fixing within single repositories. BeyondSWE addresses this gap by expanding both resolution scope and knowledge scope , enabling comprehensive evaluation against the multifaceted demands of practical software engineering. 
+
+SWE Agent. Recent work has advanced code agents from both data and framework perspectives. On the data side, various efforts (Badertdinov et al., 2025; Jain et al., 2025; Pan et al., 2024; Tao et al., 2026; Wang et al., 2025a; Yang et al., 2025d; Zhao et al., 2026) have focused on constructing training data to improve agent performance on SWE-bench. On the framework side, diverse agent architectures have been proposed (Antoniades et al., 2025; Kwai-Klear, 2025; Orwall, 2024; Xia et al., 2024; Yang et al., 2024; Zhang et al., 2024), among which OpenHands (Wang et al., 2025b) has emerged as a widely-adopted framework supporting diverse agent architectures. In this work, we adopt OpenHands as our primary evaluation framework and develop SearchSWE, a unified baseline that integrates iterative web search with code manipulation, to systematically investigate how external information seeking affects agent capabilities on BeyondSWE. 
+
+3. BeyondSWE 
+
+As shown in Figure 1, BeyondSWE comprises four tasks organized along two dimensions: resolution scope and knowledge scope . In the following subsections, we first describe the common infrastructure underlying all tasks, then detail each task along with its construction methodology, and finally present our evaluation protocol and quality control. 
+
+3.1. Benchmark Infrastructure 
+
+Task Formulation. Each instance in BeyondSWE consists of three components: • The problem statement describes the issue to be resolved: for CrossRepo, DomainFix, and Dep-Migrate, this follows the standard format of GitHub issues; for Doc2Repo, it takes the form of a specification document describing the target repository’s intended API and behavior. • The Docker environment provides a configured runtime with dependencies pre-installed, ensuring agents can focus on problem-solving rather than environment setup. 
+
+> 3
+
+BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? Source Repo  Migrated Repo 
+
+Numpy 1.x → 2.0
+
+> 1. Removal of dependencies on deprecated ndarray APIs
+> 2. Adaptation to NumPy 2.0 ndarray interface cleanup
+
+... 
+
+...  
+
+> Validator Migration
+> @validator
+
+→ @field_validator    
+
+> add @model_validator
+> Structure Migration
+> class Config :
+
+→ model_config =  
+
+> ConfigDict (...)
+> Interface Migration
+> .copy()
+
+→ .model_copy ()  
+
+> .dict()
+
+→ .model_dump ()  
+
+> v0.5.1v0.5.2
+> 0.0.29 0.0.28
+
+(3) Dependency -Driven Migration (DepMigrate )
+
+(2) Domain -Speci fic  Issue Resolution (DomainFix )
+
+Domain -Speci fic Issue      
+
+> Geopandas Issue # 3663
+> I want to put text on geometries.
+> Folium can't do this directly ...
+> Biotite Issue # 844
+> Refactor AffineTransformation ...
+> Qutip PR # 2661
+> Implements complete two-mode Wigner and Q-function calculations for QuTiP ...
+> Cvxpy PR # 2661
+> Add num_iters to Gurobi conic solver ...
+
+Bioinformatics  Quantum Physics 
+
+Convex Optimization 
+
+Domain -Speci fic knowledge 
+
+Geospatial 
+
+Main Repositories       
+
+> pandas: ENH: Dropping outliers #15111
+> Create a new function to remove outliers.
+> Code Sample, a copy-pastable example if possible ...
+> Qutip PR # 2661
+> dask/dask: Fix xarray slicing regression # 11947
+> The dask case is generating a corrupt graph while the xarray case raises a ValueError ...
+> closes pydata/xarray#10321
+
+External Resources  
+
+> Community Discussions
+> Upstream Repositories (PRs or issues )
+> Of ficial D ocumentation
+
+Pydantic V 1 → V2
+
+(1) Cross -Repository  Issue Resolution (CrossRepo )
+
+(4) Document -to -Repository Generation (Doc 2Repo )
+
+repo _document .md                
+
+> 1. Overview
+> The `target_repo` library provides a Model Context Protocol (MCP) server for Telegram. It enables ...
+> 2. API Reference
+> async def get_chats (page: int =1, page_size: int =20 )→str: ...
+> Description :Retrieves a paginated list of chats (dialogs) the user is part of.
+> Parameters :
+> page( int ,optional ): Page number ( 1-indexed ). Default: 1.
+> Returns :
+> str :A formatted string containing the requested information
+> or a success message.
+> Notes :
+> All `chat_id` parameters are validated using `@validate_id` ...
+> ~/workspace
+> |_repo_document.md
+> |_setup.py
+> |_target_repo/
+> |_ __init__.py
+
+... 
+
+...  Initial Workspace 
+
+Figure 1. Overview of BeyondSWE. Our benchmark extends evaluation along two dimen-sions— knowledge scope and resolution scope : CrossRepo and DomainFix expand knowledge scope by requiring external software resources and domain expertise respectively; DepMigrate and Doc2Repo expand resolution scope from localized patches to codebase-wide transformations. • The test suite validates the correctness of generated solutions. For CrossRepo, DomainFix, and DepMigrate, we adopt the SWE-bench convention of pass-to-pass (P2P) tests that verify existing functionality remains intact, and fail-to-pass (F2P) tests that confirm the target issue is resolved. For Doc2Repo, where agents generate the entire repository from scratch, success is determined by passing the complete test suite. 
+
+Environment Construction. We now describe how we construct the Docker environments for each instance, as shown in Figure 2. The primary challenge lies in reproducing execution environments for historical commits, which is notoriously difficult due to dependency decay (outdated packages, deprecated APIs, or unavailable versions). To address this, we employ an agent-based approach to automatically configure execution environments. Rather than simply installing dependencies listed in requirements.txt , we instantiate a LLM agent (Gemini 3 Pro) within a base Ubuntu Docker container. The agent clones the repository, checks out the pre-PR commit, and iteratively attempts to pass the existing test suite through a run-error-fix loop. Crucially, the agent has shell access and can execute system-level commands (e.g., apt-get ) to install missing compilers or libraries—capabilities beyond static installation scripts. Once tests pass, we use Gemini 3 Pro to distill the agent’s command history into a minimal, reproducible Dockerfile . To ensure stability, we apply strict environmental inspection: each generated Dockerfile is built and all test suite is executed five times. We then verify that P2P tests pass and F2P tests fail before patching, and that both pass after applying the gold patch. Instances failing any criterion or exhibiting non-deterministic behavior are discarded. Moreover, since raw pull requests contain solution information, we employ Gemini 3 Pro to explore the repository within the Docker container and reformulate each PR description into an issue-style problem statement, preserving the problem context while removing solution hints. 
+
+4BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 1. Scrape Candidate for Each Subset  
+
+> 2. Expert-selected Repo
+> 3. Identity Dep Migration
+> 4. New High-Quality Repo
+> 1. Identity Links
+> 7k PRs
+> 3k PRs
+> 21 Repos 800 PRs &
+> 178 Repos
+> 2.Agent -based Docker Construction
+> Repos
+> apt-get
+> pip
+> shell
+
+...      
+
+> Pass all env tests Dockerfile
+> PRs
+> 3.Strict Environmental Inspection
+> Dockerfile build
+> Container
+> Pass all env tests 5 times
+> P2P: Passed
+> F2P: Failed
+> P2P + Patch: Passed
+> F2P + Patch: Passed
+> (all 5 times)
+> P2P&F2P
+
+Figure 2. Automated environment construction pipeline for BeyondSWE. This pipeline consists of three stages: (1) candidate collection with tailored strategies for each task; (2) agent-based Docker construction where an LLM agent iteratively resolves dependencies within the container until all tests pass; (3) strict environmental inspection requiring consistent P2P/F2P behavior to ensure reproducibility. 
+
+3.2. Benchmark Tasks 
+
+3.2.1. Cross-Repository Issue Resolution 
+
+In practice, developers rarely solve problems in isolation. When encountering a bug or implement-ing a feature, they routinely consult similar implementations in related projects, adapt solutions from upstream libraries, or trace issues that originate from external dependencies. This cross-repository reasoning is fundamental to real-world development yet entirely absent from existing benchmarks, which assume all necessary context resides within a single codebase. Moreover, real-world debugging is inherently ambiguous: linked references vary in relevance, and developers’ brief descriptions provide only partial context. Agents must discern which references merit deeper investigation, understand their applicability, and synthesize appropriate solutions. 
+
+Construction Details. We scan GitHub for Python-dominant repositories and collect pull requests containing external links, yielding 3,000 candidates. After agent-based environment construction, around 800 instances pass the stability inspection. We then manually verify each instance to ensure quality, resulting in a final set of 200 issues across 67 repositories (an average of 1.3 links per issue). 
+
+3.2.2. Domain-Specific Issue Resolution 
+
+While the previous task requires knowledge from external software resources, this task demands expertise that transcends general-purpose programming. Indeed, many real-world software projects serve specialized scientific domains. For example, resolving issues in a molecular dynamics package may demand knowledge of chemical bonding, and fixing a quantum computing framework may involve reasoning about quantum operators. For human developers, such expertise requires years of specialized training. For code agents, this probes the boundaries of their domain knowledge, testing their ability to combine code manipulation with genuine scientific reasoning—a skill that grows ever more vital for real-world applications. 
+
+Construction Details. We collaborate with domain experts across 11 scientific disciplines, including quantum computing, molecular dynamics, and materials science, to identify 21 high-quality reposi-tories within their fields, from which we collect approximately 800 candidate pull requests. After environment construction and stability inspection, around 200 instances remain. Each instance is then independently reviewed by three domain experts, who verify (1) environmental correctness (tests execute as expected), (2) genuine domain complexity (resolution requires domain-specific knowledge beyond general programming), and (3) solution non-triviality (the fix cannot be inferred from error messages alone). Instances are retained only upon unanimous agreement, resulting in 72 issues across 12 repositories. 
+
+> 5BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+3.2.3. Dependency-Driven Migration 
+
+Whereas the previous two tasks expand the scope of knowledge—spanning repositories and special-ized domains—they remain focused on localized fixes. In contrast, this task elevates the challenge along a new axis: from patching single issues to orchestrating codebase-wide transformations. One of the most common scenarios demanding such large-scale changes is dependency migration. Modern software ecosystems evolve continuously, and foundational updates—like Pydantic v1 to v2, Django 4.x to 5.0—impose migration burdens on downstream projects that cannot be resolved with isolated patches. Developers must then map upstream API changes, locate every affected call site across the entire codebase, and implement updates spanning dozens of files. This systematic refactoring is both time-consuming and error-prone, yet increasingly common as ecosystems mature. Despite this real-world necessity, such large-scale migration tasks are largely absent from existing benchmarks. 
+
+Construction Details. We first identify 23 widely-used packages with significant version upgrades. We then collect pull requests whose descriptions or commit messages mention these packages along with relevant version numbers, followed by LLM-based filtering to retain genuine migration efforts, yielding approximately 7,000 candidates. After environment construction and stability inspection, around 1,000 instances remain. Four software engineering experts then manually verify each instance for migration validity, resulting in 178 issues across 120 repositories. For each issue, the Docker environment is configured with the upgraded dependency, while the codebase is checked out to the pre-migration commit. Agents must modify the code to accommodate breaking API changes, with success determined by passing all P2P and F2P tests. 
+
+3.2.4. Document-to-Repository Generation 
+
+As our fourth task, we evaluate an agent’s ability to construct a functional repository entirely from scratch. In practice, software projects typically originate not from existing code, but from specifications—such as design documents, API descriptions, or architectural blueprints—that define the what rather than the how . Translating these high-level specifications into a working codebase demands a cascade of coherent design decisions: structuring modules, defining abstractions, and correctly implementing all specified behaviors. This comprehensive end-to-end capability represents a pivotal development goal for frontier code agents. 
+
+Construction Details. To avoid data contamination, we collect high-quality repositories created between January and November 2025, requiring continued activity after August 2025, at least three contributors, and over 20 stars. For each repository, we employ Gemini 3 Pro to explore the codebase within a Docker container and generate a specification document describing the repository’s purpose, usage examples, and API details—including function and class signatures, parameters, return types, and behavioral descriptions—without revealing implementation details or directory structure. Unlike the concurrent work NL2Repo (Ding et al., 2025), which provides directory structures as input, we mask repository names with target_repo and require agents to deduce project structure from contextual cues (e.g., from target_repo.reader.parquet import ParquetReader implies a reader/parquet.py module). Test suites are adapted from the original repositories with LLM assistance and human review to align with the masked naming convention. After environment construction, 60 instances remain, from which we manually select 50 high-quality instances. Agents are given only the specification document and an empty workspace, and must generate a complete repository that passes the test suite. 
+
+> 6BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+3.3. Evaluation Protocol Design 
+
+To ensure rigorous and reproducible assessment, we design an evaluation protocol that isolates agent execution from result verification, as shown in Figure 3 (right). 
+
+Environment Isolation. Agent-generated patches are extracted via git diff and applied to a 
+
+fresh Docker container that is completely independent from the agent’s working environment. This isolation prevents any environmental side effects—such as cached computations or modified configurations—from contaminating the evaluation results. 
+
+Integrity Safeguard. We implement strict measures to prevent information leakage and evaluation gaming. First, to address the issue identified in prior benchmarks where models can exploit future git history (Xiao et al., 2026), we sanitize both the Docker environment and git repository by removing all commits, logs, and metadata after the target commit, ensuring agents cannot access solution-revealing information. Commits before the target commit are retained to allow agents to trace bug origins, mirroring realistic developer workflows. Second, after applying patches, we restore all test files to their original state, discarding any agent modifications to the test suite. These safeguards guarantee that success reflects genuine problem-solving rather than information leakage or test manipulation. 
+
+Metrics. For CrossRepo, DomainFix, and DepMigrate, we report Resolved Rate : the percentage of instances where all P2P and F2P tests pass. For Doc2Repo, given the complexity of full repository generation, we report Pass Rate (average percentage of tests passed) and (Almost) Correct Count 
+
+(instances where all or ≥90% of tests pass). 
+
+3.4. Quality Control and Human Verification 
+
+To ensure the reliability of BeyondSWE, we implement a rigorous multi-stage quality control process combining automated verification with expert review. 
+
+Environmental Inspection. Each Docker environment undergoes strict stability inspection, elimi-nating non-deterministic instances, as shown in Figure 2. 
+
+Expert Review. Our verification involves three domain experts in scientific computing for repository selection in DomainFix, five senior software engineers for environment construction and data cleaning across all tasks, and five senior PhDs specializing in software engineering and LLMs for final task auditing. This collective expertise ensures that each instance represents a genuine engineering challenge. 
+
+Test Suite Auditing. For Doc2Repo, where test suites are derived from original repositories, we perform exhaustive auditing: tests with technical issues are fixed directly, while cases where our documentation is stricter than the source are recorded in each instance’s README , maintaining full transparency. For other tasks, test suites are derived directly from original pull requests. 
+
+4. The SearchSWE Framework 
+
+Current open-source code agents (Wang et al., 2025b; Yang et al., 2024) interact with an isolated execution environment, typically a Docker container, to explore repository structures, execute code, and run tests. While this local context provides essential feedback for code manipulation, it confines agents to a closed-loop workflow: when resolving an issue requires knowledge absent from the codebase, they have no access to external information. To address this limitation and systematically study the integration of search and coding capabilities, 
+
+> 7BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+SearchSWE 
+
+(Agent)      
+
+> Browser Tool Search Tool
+> Docker Container
+> (Local Context)
+> External Environment
+> (Global Context)
+> Exec Commands
+> Exec Outputs
+> Proposed Patch
+> Fresh Docker Container
+> (Clean Test Env)
+> Apply Patch
+> Run Test Suite
+> (P2P & F2P)
+> Issue / Problem Statement
+> Verified Result
+> Iter. Reasoning & Info. Seeking
+> Phase 1:Deep Research for Coding
+> Phase 2:Rigorous Evaluation
+> blocklist
+> Prevent cheating
+
+Figure 3. Overview of The SearchSWE Framework. Left: the agent solves coding tasks by iteratively accessing external resources (search, browser) and local context (Docker container), with a blocklist preventing cheating. Right: evaluation applies patches to a fresh container and runs P2P/F2P tests for verification. we introduce SearchSWE, an extended coding agent framework that integrates deep research capabilities into the agent’s workflow. Our design enables access to external resources such as documentation, forums, and web sources, emulating real-world developer practice of seeking external information for coding tasks. As illustrated in Figure 3, SearchSWE operates across two complementary contexts. The local context consists of a Docker container where the agent explores repository structures, executes commands, and runs tests—similar to existing code agent frameworks. The global context provides access to external environments through two tools: a search tool that queries web search engines for relevant resources, and a browser tool that retrieves and summarizes webpage content given a URL and a specific goal. The agent autonomously decides when to leverage external information based on its reasoning process. 
+
+Cheating Prevention. To ensure that agents solve tasks through genuine reasoning rather than retrieving existing solutions, we implement a blocklist mechanism that prevents access to the target repository. Specifically, we use regular expressions to filter both search results and bash commands, blocking URLs and operations that match the target repository across GitHub, GitLab, and raw content sources—including repository pages, API endpoints, and git operations. These safeguards ensure that agents must synthesize solutions from indirect resources rather than directly accessing gold patches. 
+
+Design Philosophy. Existing research has primarily focused on improving the coding abilities of agents, while the integration of search capabilities remains underexplored. This work systematically investigates this gap to derive insights for the future development of code agents. Accordingly, our implementation of SearchSWE prioritizes generality and conciseness. Though performance gains are considered, the primary aim is to rigorously examine how external search shapes agent capabilities—using a standard instantiation that avoids overcomplicated, task-specific designs. 
+
+> 8BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+Table 2. Main results on BeyondSWE. Multiple frontier models evaluated with OpenHands and SearchSWE. Green/red values indicate SearchSWE’s gains/drops relative to OpenHands. Bold and underlined denote the best and second-best results within each framework. 
+
+CrossRepo DomainFix DepMigrate Doc2Repo Model %Resolved %Resolved %Resolved Pass Rate #(Alm.) Correct AVG 
+
+OpenHands 
+
+Gemini 3 Pro 41.50 31.94 41.81 52.03 (8) / 2 41.82 
+
+GPT-5.2 33.00 23.61 34.27 53.89 (6) / 2 36.19 GLM-4.7 40.20 36.11 39.89 48.40 (3) / 1 41.20 DeepSeek-V3.2 38.00 30.56 36.52 54.99 (3) / 0 40.01 MiniMax-M2.1 37.50 29.17 37.64 48.38 (3) / 1 38.17 Kimi-K2 37.00 27.78 39.53 54.91 (6) / 2 39.81 Seed-Coder 44.72 25.00 35.39 42.55 (1) / 1 36.90 Qwen3-Coder-Plus 19.19 5.56 15.43 1.87 (1) / 0 10.51 Qwen3-235B-Inst 15.50 5.71 13.56 4.03 (0) / 0 9.70 
+
+SearchSWE 
+
+Gemini 3 Pro 41.12 -0.4 39.44 +7.5 44.07 +2.3 50.73 -1.3 (4) / 2 43.84 +2.0 
+
+GPT-5.2 36.22 +3.2 22.22 -1.4 33.90 -0.4 55.85 +2.0 (7) / 2 37.05 +0.9 
+
+GLM-4.7 45.40 +5.2 32.39 -3.7 39.77 -0.1 49.44 +1.0 (3) / 1 41.75 +0.6 
+
+DeepSeek-V3.2 39.49 +1.5 31.88 +1.3 34.09 -2.4 53.64 -1.4 (4) / 0 39.77 -0.2 
+
+MiniMax-M2.1 41.00 +3.5 32.39 +3.2 39.55 +1.9 46.45 -1.9 (4) / 0 39.84 +1.7 
+
+Kimi-K2 39.90 +2.9 33.33 +5.6 34.83 -4.7 49.31 -5.6 (2) / 1 39.34 -0.5 
+
+Seed-Coder 38.89 -5.8 22.22 -2.8 29.78 -5.6 45.17 +2.6 (4) / 1 34.01 -2.9 
+
+Qwen3-Coder-Plus 17.50 -1.7 17.14 +11.6 16.28 +0.9 1.38 -0.5 (0) / 0 13.07 +2.6 
+
+Qwen3-235B-Inst 16.58 +1.1 9.72 +4.0 14.12 +0.6 7.00 +3.0 (1) / 0 11.85 +2.2 
+
+5. Experiments 
+
+5.1. Experimental Setup 
+
+We evaluate performance on BeyondSWE using two frameworks: OpenHands (Wang et al., 2025b), a state-of-the-art code agent harness, and the proposed SearchSWE framework, which integrates web search to assess the underexplored capability of combining search with complex code reasoning. We test a range of frontier and code -specialized models, including Gemini 3 Pro (Google, 2025b), GPT - 5.2 (OpenAI, 2025), DeepSeek - V3.2 (Liu et al., 2025), Kimi -K2 (Team et al., 2025a), GLM - 4.7 (Z.ai Team, 2025), MiniMax - M2.1 (MiniMax, 2025), Seed - Coder (Seed et al., 2025), Qwen3-Coder-Plus (Qwen Team, 2025) and Qwen3-235B-A22B-Instruct-2507 (Yang et al., 2025a). 
+
+5.2. Evaluation Results with OpenHands 
+
+We first present the evaluation results on the comparison models using the OpenHands framework. Table 2 (the top group) summarizes performance across the four tasks in this setting, from which two key observations emerge: 
+
+(1) The proposed BeyondSWE reveals a significant capability gap—even frontier models plateau below 45%, with no model dominating across tasks. The best-performing configuration achieves only 41.81% average resolved rate, standing in stark contrast to the 80%+ achieved on SWE-bench Verified (OpenAI, 2025). This gap underscores that moving beyond single-repository bug fixing exposes fundamental limitations in current LLMs. Notably, different tasks demand different 
+
+> 9BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+capabilities: Gemini 3 Pro leads on DepMigrate, Seed-Coder excels on CrossRepo, while DeepSeek-V3.2 achieves the highest Doc2Repo pass rate—no single model dominates across all dimensions. 
+
+(2) The diverse task dimensions in BeyondSWE reveal multifaceted weaknesses of current code agents. DomainFix proves consistently challenging, with resolved rates rarely exceeding 36% across all models—confirming that domain-specific reasoning in fields like quantum physics and bioinformatics remains a significant bottleneck for current LLMs. Doc2Repo presents a different failure pattern: while pass rates appear moderate (45–55%), the number of fully correct repositories is strikingly low (at most 2 instances). This gap suggests that agents can implement individual components but struggle to architect coherent, complete systems from specifications. CrossRepo and DepMigrate show relatively higher performance (35–45%), yet still fall substantially short of the SWE-bench level, indicating that cross-repository reasoning and systematic codebase migration remain unsolved challenges. 
+
+5.3. Evaluation Results with SearchSWE 
+
+We further evaluate models using SearchSWE and compare their performance with the OpenHands baseline. The results in the lower portion of Table 2 reveal a key finding: 
+
+BeyondSWE reveals a critical disconnect between search and code—two abilities that have matured independently but are yet to be effectively unified. On several model-task combinations, SearchSWE’s search capabilities yield improvements—particularly on DomainFix (+7.5%) and DepMigrate (+2.3%) for Gemini 3 Pro, where external documentation and migration guides provide actionable context. However, gains are inconsistent: some models show minimal improvement or even slight degradation (e.g., Seed-Coder drops from 44.72% to 38.89% on CrossRepo). Our experiments show that, while human developers seamlessly interleave search with coding, repli-cating this workflow in AI systems remains challenging: although search augmentation improves performance in certain settings, its benefits are inconsistent overall and can sometimes degrade results. Understanding why this integration proves difficult is critical for advancing code agents toward practical software engineering. We therefore carry out a detailed investigation into this inconsistency, focusing on the following aspects: 
+
+(1) When does search help and when does it hurt? Table 2 reveals striking patterns in how search affects performance for current LLMs. At the task level , CrossRepo benefits most broadly, suggesting that retrieving information from other repositories and documentation genuinely aids cross-repository reasoning. In contrast, Doc2Repo suffers most consistently—building a repository from scratch requires coherent architectural decisions, and fragmented information from search appears to disrupt this coherence. DomainFix exhibits the most dramatic variance: Gemini 3 Pro gains +7.5% while GLM-4.7 drops -4.2%, suggesting that when relevant domain knowledge 
+
+can be retrieved it helps considerably, but failed retrieval introduces noise that actively misleads generation. At the model level , code-specialized models struggle most with search integration. Seed-Coder declines on three of four tasks, despite strong baseline performance. In contrast, general-purpose frontier models like Gemini 3 Pro and MiniMax-M2.1 demonstrate more stable gains. This divergence suggests that code-specialized training may optimize for repository-local reasoning at the expense of external knowledge integration. 
+
+(2) Unique challenges of deep research for coding. These patterns point to a fundamental in-sight: information retrieval in coding contexts differs qualitatively from traditional web search . First, the 
+
+information landscape differs markedly. Documentation represents human-curated knowledge with high information density; search engines have decades of optimization for such content. In contrast, the knowledge needed for code tasks is often embedded in raw artifacts—source files    
+
+> 10 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? Gemini 3 Pro GLM-4.7 DeepSeek-V3.2 Seed-Coder
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Avg. Tool Calls (Turns)
+> 36.8
+> 105.4
+> 82.2
+> 26.6
+> 37.5
+> 102.0
+> 86.8
+> 26.6
+> OpenHands
+> SearchSWE
+
+Figure 4. Average tool calls (turns) per instance. Gemini 3 Pro GLM-4.7 DeepSeek-V3.2 Seed-Coder  
+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> Avg. Search Tool Calls
+> 0.9
+> 3.1
+> 4.2
+> 0.8
+> 1.1
+> 4.3
+> 5.4
+> 0.8 0.8
+> 4.2
+> 4.8
+> 0.5
+> 0.8
+> 0.2
+> 2.6
+> 0.1
+> CrossRepo
+> DomainFix
+> DepMigrate
+> Doc2Repo
+
+Figure 5. Average search calls per instance. scattered across repositories, discussion threads in issue trackers, or inline comments—which search engines struggle to index effectively (Case D.1). Second, version consistency poses a subtle but critical challenge. Search typically surfaces documentation for the latest library versions, while local environments often pin older versions. Models struggle to detect and reconcile these mismatches, leading to plausible but incorrect solutions (Case D.2). Third, when relevant information proves difficult to retrieve, the noise introduced by search can actively harm code generation . We observe cases where models, unable to find precise answers, incorporate tangentially related but ultimately misleading information, degrading performance below the no-search baseline (Case D.3). 
+
+(3) Implications. Software engineering inherently requires knowledge beyond what can be mem-orized—APIs evolve, dependencies update, and domain-specific details exceed any individual’s expertise. This makes the integration of search and code reasoning not merely beneficial but nec-essary for capable code agents. Yet current LLMs have developed these capabilities along largely separate trajectories, and our results suggest this integrated capability does not emerge automati-cally —it may require explicit attention during model development. BeyondSWE provides the first systematic benchmark for evaluating this integration, and we hope it catalyzes research toward LLMs that can fluidly combine external information seeking with code reasoning. 
+
+5.4. Agent Behavior Analysis 
+
+Beyond performance metrics, we analyze how agents behave during task execution to gain deeper insights into the capabilities and limitations revealed by BeyondSWE. Thus, we select four represen-tative models spanning different performance levels and track their tool call statistics—including total interactions and search-specific calls—across all tasks. 
+
+Efficient agents achieve more with fewer interactions. Figure 4 reveals substantial differences in agent efficiency. Gemini 3 Pro requires the fewest tool calls while achieving the highest overall performance, demonstrating that effective problem-solving does not always require extensive exploration. Comparing across frameworks, SearchSWE maintains comparable or slightly lower total tool calls than OpenHands despite the additional search capability—for instance, GLM-4.7 decreases from 105.4 to 102.0 turns, and DeepSeek-V3.2 increases only marginally from 82.2 to 86.8. This suggests that effective search can reduce trial-and-error exploration in the local environment, partially offsetting the overhead of search operations themselves. 
+
+Search quality matters more than search frequency. A striking pattern emerges when comparing search behavior with performance gains. Gemini 3 Pro invokes the search tool sparingly (0.8–1.1 calls per instance across tasks) yet achieves the most consistent improvements (+2.0% average). In 
+
+> 11 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+contrast, DeepSeek-V3.2 searches most frequently (4.2–5.4 calls per instance) but shows unstable gains (–0.2% average). This divergence suggests that effective search integration requires not merely access to external information, but the ability to identify precisely when search is needed and to extract actionable insights from results. Models that search indiscriminately risk introducing noise that degrades rather than enhances performance. 
+
+Task characteristics shape search utility. Figure 5 reveals distinct search patterns across tasks. DomainFix elicits the highest search frequency across most models, aligning with its requirement for specialized domain knowledge that may be retrievable from external sources. Notably, this is also where search provides the largest gains for capable models (e.g., +7.5% for Gemini 3 Pro). In contrast, Doc2Repo consistently shows the lowest search frequency across all models—agents ap-pear to recognize that constructing repositories from specifications relies primarily on the provided documentation rather than external resources. This task-aware behavior suggests that models do possess some ability to judge when search is appropriate, though this judgment does not always translate to effective execution. 
+
+6. Conclusion 
+
+In this paper, we present BeyondSWE, a comprehensive benchmark that evaluates code agents along two key dimensions: resolution scope and knowledge scope. Our findings reveal a significant capability gap: even state-of-the-art models plateau below 45% success rate, with no single model dominating across task categories. To investigate how search capabilities might address these limitations, we propose SearchSWE, a framework that tightly integrates deep research with coding proficiency. Our analysis reveals that while search and coding abilities have matured independently, their effective integration remains challenging—models that search more do not necessarily perform better. We hope BeyondSWE and SearchSWE will facilitate future research toward code agents that can fluidly combine external information seeking with code reasoning. 
+
+References 
+
+Anthropic. Introducing Claude Sonnet 4.5, Sept. 2025. URL https://www.anthropic.com/news/cla ude-sonnet-4-5 .A. Antoniades, A. Orwall, K. Zhang, Y. Xie, A. Goyal, and W. Y. Wang. SWE-search: Enhancing soft-ware agents with monte carlo tree search and iterative refinement. In The Thirteenth International Conference on Learning Representations , 2025. URL https://openreview.net/forum?id=G7sIFXugTX .I. Badertdinov, A. Golubev, M. Nekrashevich, A. Shevtsov, S. Karasik, A. Andriushchenko, M. Trofi-mova, D. Litvintseva, and B. Yangel. SWE-rebench: An automated pipeline for task collection and decontaminated evaluation of software engineering agents. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2025. URL 
+
+https://openreview.net/forum?id=nMpJoVmRy1 .G. Chen, M. Liao, P. Yu, D. Wang, Z. Qiao, C. Yang, X. Zhao, and K. Fan. C-3PO: Compact plug-and-play proxy optimization to achieve human-like retrieval-augmented generation. In Forty-second International Conference on Machine Learning , 2025a. URL https://openreview.net/forum?id=hl pwAmQ4wr .G. Chen, Z. Qiao, X. Chen, D. Yu, H. Xu, W. X. Zhao, R. Song, W. Yin, H. Yin, L. Zhang, et al. Iterre-search: Rethinking long-horizon agents with interaction scaling. arXiv preprint arXiv:2511.07327 ,2025b. 
+
+> 12 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+N. Chowdhury, J. Aung, C. J. Shern, O. Jaffe, D. Sherburn, G. Starace, E. Mays, R. Dias, M. Aljubeh, M. Glaese, et al. Introducing swe-bench verified. arXiv preprint arXiv:2407.01489 , 2024. X. Deng, J. Da, E. Pan, Y. Y. He, C. Ide, K. Garg, N. Lauffer, A. Park, N. Pasari, C. Rane, et al. Swe-bench pro: Can ai agents solve long-horizon software engineering tasks? arXiv preprint arXiv:2509.16941 , 2025. J. Ding, S. Long, C. Pu, H. Zhou, H. Gao, X. Gao, C. He, Y. Hou, F. Hu, Z. Li, et al. Nl2repo-bench: Towards long-horizon repository generation evaluation of coding agents. arXiv preprint arXiv:2512.12730 , 2025. Google. Deep research is now available on gemini 2.5 pro experimental, 2025a. URL https: //blog.google/products/gemini/deep-research-gemini-2-5-pro-experimental/ .Google. Gemini 3 pro, 2025b. URL https://deepmind.google/models/gemini/pro/ .L. Guo, W. Tao, R. Jiang, Y. Wang, J. Chen, X. Liu, Y. Ma, M. Mao, H. Zhang, and Z. Zheng. Omnigirl: A multilingual and multimodal benchmark for github issue resolution. Proceedings of the ACM on Software Engineering , 2(ISSTA):24–46, 2025a. L. Guo, Y. Wang, C. Li, P. Yang, J. Chen, W. Tao, Y. Zou, D. Tang, and Z. Zheng. Swe-factory: Your automated factory for issue resolution training data and evaluation benchmarks. arXiv preprint arXiv:2506.10954 , 2025b. URL https://arxiv.org/abs/2506.10954 .Z. He, Q. Yang, W. Sheng, X. Zhong, K. Zhang, C. An, W. Shi, T. Cai, D. He, J. Chen, and J. Xu. Swe-swiss: A multi-task fine-tuning and rl recipe for high-performance issue resolution, 2025. URL https://www.notion.so/SWE-Swiss-A-Multi-Task-Fine-Tuning-and-RL-Recipe-for-Hig h-Performance-Issue-Resolution-21e174dedd4880ea829ed4c861c44f88 . Notion Blog. N. Jain, J. Singh, M. Shetty, L. Zheng, K. Sen, and I. Stoica. R2e-gym: Procedural environments and hybrid verifiers for scaling open-weights swe agents. arXiv preprint arXiv:2504.07164 , 2025. C. E. Jimenez, J. Yang, A. Wettig, S. Yao, K. Pei, O. Press, and K. R. Narasimhan. SWE-bench: Can language models resolve real-world github issues? In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/forum?id=VTF8yNQM66 .Kwai-Klear. mini-swe-agent-plus: The 100-line AI agent that solves GitHub issues with text-edit tool. https://github.com/Kwai-Klear/mini-swe-agent-plus , 2025. Accessed: 2026-01-27. A. Liu, A. Mei, B. Lin, B. Xue, B. Wang, B. Xu, B. Wu, B. Zhang, C. Lin, C. Dong, et al. Deepseek-v3. 2: Pushing the frontier of open large language models. arXiv preprint arXiv:2512.02556 , 2025. J. J. Ma, M. Hashemi, A. Yazdanbakhsh, K. Swersky, O. Press, E. Li, V. J. Reddi, and P. Ranganathan. Swe-fficiency: Can language models optimize real-world repositories on real workloads? arXiv preprint arXiv:2511.06090 , 2025. MiniMax. Minimax m2.1: Significantly enhanced multi-language programming, built for real-world complex tasks. https://www.minimax.io/news/minimax-m21 , 2025. OpenAI. Deep research system card, 2025. URL https://cdn.openai.com/deep-research-syste m-card.pdf .OpenAI. Introducing GPT-5.2, Dec. 2025. URL https://openai.com/index/introducing-gpt-5-2/ .A. Orwall. Moatless tools: A framework for repository-level code understanding and editing. 
+
+https://github.com/aorwall/moatless-tools , 2024. 
+
+> 13 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+J. Pan, X. Wang, G. Neubig, N. Jaitly, H. Ji, A. Suhr, and Y. Zhang. Training software engineering agents and verifiers with swe-gym. arXiv preprint arXiv:2412.21139 , 2024. Perplexity. Introducing perplexity deep research, 2025. URL https://www.perplexity.ai/hub/bl og/introducing-perplexity-deep-research .Z. Qiao, G. Chen, X. Chen, D. Yu, W. Yin, X. Wang, Z. Zhang, B. Li, H. Yin, K. Li, et al. Webre-searcher: Unleashing unbounded reasoning capability in long-horizon agents. arXiv preprint arXiv:2509.13309 , 2025. Qwen Team. Qwen3-coder: Agentic coding in the world. https://qwenlm.github.io/blog/qwen 3-coder/ , Jul 22 2025. M. S. Rashid, C. Bock, Y. Zhuang, A. Buchholz, T. Esler, S. Valentin, L. Franceschi, M. Wistuba, P. T. Sivaprasad, W. J. Kim, et al. Swe-polybench: A multi-language benchmark for repository level evaluation of coding agents. arXiv preprint arXiv:2504.08703 , 2025. B. Seed, Y. Zhang, J. Su, Y. Sun, C. Xi, X. Xiao, S. Zheng, A. Zhang, K. Liu, D. Zan, et al. Seed-coder: Let the code model curate data for itself. arXiv preprint arXiv:2506.03524 , 2025. C. Tao, J. Chen, Y. Jiang, K. Kou, S. Wang, R. Wang, X. Li, S. Yang, Y. Du, J. Dai, et al. Swe-lego: Pushing the limits of supervised fine-tuning for software issue resolving. arXiv preprint arXiv:2601.01426 , 2026. K. Team, Y. Bai, Y. Bao, G. Chen, J. Chen, N. Chen, R. Chen, Y. Chen, Y. Chen, Y. Chen, et al. Kimi k2: Open agentic intelligence. arXiv preprint arXiv:2507.20534 , 2025a. T. D. Team, B. Li, B. Zhang, D. Zhang, F. Huang, G. Li, G. Chen, H. Yin, J. Wu, J. Zhou, et al. Tongyi deepresearch technical report. arXiv preprint arXiv:2510.24701 , 2025b. M. Tian, L. Gao, S. Zhang, X. Chen, C. Fan, X. Guo, R. Haas, P. Ji, K. Krongchon, Y. Li, et al. Scicode: A research coding benchmark curated by scientists. Advances in Neural Information Processing Systems , 37:30624–30650, 2024. J. Wang, D. Zan, S. Xin, S. Liu, Y. Wu, and K. Shen. Swe-mirror: Scaling issue-resolving datasets by mirroring issues across repositories. arXiv preprint arXiv:2509.08724 , 2025a. X. Wang, S. Rosenberg, J. Michelini, C. Smith, H. Tran, E. Nyst, R. Malhotra, X. Zhou, V. Chen, R. Brennan, et al. The openhands software agent sdk: A composable and extensible foundation for production agents. arXiv preprint arXiv:2511.03690 , 2025b. Y. Wei, O. Duchenne, J. Copet, Q. Carbonneaux, L. Zhang, D. Fried, G. Synnaeve, R. Singh, and S. I. Wang. Swe-rl: Advancing llm reasoning via reinforcement learning on open software evolution. 
+
+arXiv preprint arXiv:2502.18449 , 2025. C. S. Xia, Y. Deng, S. Dunn, and L. Zhang. Agentless: Demystifying llm-based software engineering agents. arXiv preprint arXiv:2407.01489 , 2024. B. Xiao, B. Xia, B. Yang, B. Gao, B. Shen, C. Zhang, C. He, C. Lou, F. Luo, G. Wang, et al. Mimo-v2-flash technical report. arXiv preprint arXiv:2601.02780 , 2026. A. Yang, A. Li, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Gao, C. Huang, C. Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025a. 
+
+> 14 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+J. Yang, C. E. Jimenez, A. Wettig, K. Lieret, S. Yao, K. R. Narasimhan, and O. Press. SWE-agent: Agent-computer interfaces enable automated software engineering. In The Thirty-eighth Annual Conference on Neural Information Processing Systems , 2024. URL https://openreview.net/forum?i d=mXpq6ut8J3 .J. Yang, S. Guo, L. Jing, W. Zhang, A. Liu, C. Hao, Z. Li, W. X. Zhao, X. Liu, W. Lv, et al. Scaling laws for code: Every programming language matters. arXiv preprint arXiv:2512.13472 , 2025b. J. Yang, C. E. Jimenez, A. L. Zhang, K. Lieret, J. Yang, X. Wu, O. Press, N. Muennighoff, G. Synnaeve, K. R. Narasimhan, D. Yang, S. Wang, and O. Press. SWE-bench multimodal: Do AI systems generalize to visual software domains? In The Thirteenth International Conference on Learning Representations , 2025c. URL https://openreview.net/forum?id=riTiq3i21b .J. Yang, K. Lieret, C. E. Jimenez, A. Wettig, K. Khandpur, Y. Zhang, B. Hui, O. Press, L. Schmidt, and D. Yang. Swe-smith: Scaling data for software engineering agents. arXiv preprint arXiv:2504.21798 ,2025d. Z. Yang, S. Wang, K. Fu, W. He, W. Xiong, Y. Liu, Y. Miao, B. Gao, Y. Wang, Y. Ma, et al. Kimi-dev: Agentless training as skill prior for swe-agents. arXiv preprint arXiv:2509.23045 , 2025e. Z.ai Team. GLM-4.7: Advancing the coding capability, Dec. 2025. URL https://z.ai/blog/glm-4.7 .D. Zan, Z. Huang, W. Liu, H. Chen, S. Xin, L. Zhang, Q. Liu, A. Li, L. Chen, X. Zhong, S. Liu, Y. Xiao, L. Chen, Y. Zhang, J. Su, T. Liu, R. LONG, M. Ding, and liang xiang. Multi-SWE-bench: A multilingual benchmark for issue resolving. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2025. URL https://openreview.net /forum?id=MhBZzkz4h9 .Z. Zhan, K. Deng, J. Wang, X. Zhang, H. Tang, M. Zhang, Z. Lai, H. Huang, W. Xiang, K. Wu, et al. Kat-coder technical report. arXiv preprint arXiv:2510.18779 , 2025. L. Zhang, S. He, C. Zhang, Y. Kang, B. Li, C. Xie, J. Wang, M. Wang, Y. Huang, S. Fu, E. Nallipogu, Q. Lin, Y. Dang, S. Rajmohan, and D. Zhang. SWE-bench goes live! In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2025. URL 
+
+https://openreview.net/forum?id=OGWkr7gXka .Y. Zhang, H. Ruan, Z. Fan, and A. Roychoudhury. Autocoderover: Autonomous program improve-ment. In Proceedings of the 33rd ACM SIGSOFT International Symposium on Software Testing and Analysis , pages 1592–1604, 2024. J. Zhao, G. Chen, F. Meng, M. Li, J. Chen, H. Xu, Y. Sun, X. Zhao, R. Song, Y. Zhang, et al. Immersion in the github universe: Scaling coding agents to mastery. arXiv preprint arXiv:2602.09892 , 2026. 
+
+> 15 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+# Contents of Appendix 
+
+A Additional Related Work 17 B BeyondSWE Details 17 
+
+B.1 Evaluation Details . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 B.2 Repository Details of DomainFix . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 B.3 Doc2Repo Repository Statistics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 B.4 Data Format . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 
+
+C Task Examples 18 
+
+C.1 Cross-Repository Issue Resolution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 C.2 Domain-Specific Issue Resolution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 C.3 Dependency-Driven Migration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 C.4 Document-to-Repository Generation . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 
+
+D Qualitative Analysis of Search-Code Disconnect 25 
+
+D.1 Failure Mode I: The Information Landscape Gap . . . . . . . . . . . . . . . . . . . . . 25 D.2 Failure Mode II: Temporal Misalignment and Version Bias . . . . . . . . . . . . . . . 26 D.3 Failure Mode III: Semantic Drift and Context Contamination . . . . . . . . . . . . . . 27 
+
+E Instructions for BeyondSWE 28 
+
+E.1 Instruction of Problem statement Generation . . . . . . . . . . . . . . . . . . . . . . . 29 
+
+F Instructions for SearchSWE 31 
+
+F.1 System Prompt for All four Tasks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31 F.2 User prompt for Each Tasks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34 
+
+> 16 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+A. Additional Related Work 
+
+LLM Agents. Recent advances have produced impressive capabilities in both deep research agents (Chen et al., 2025a,b; Google, 2025a; OpenAI, 2025; Perplexity, 2025; Qiao et al., 2025; Team et al., 2025b), which iteratively search the web and synthesize information from multiple sources, and code agents (Guo et al., 2025b; He et al., 2025; Ma et al., 2025; Tao et al., 2026; Wei et al., 2025; Yang et al., 2025b,e; Zhan et al., 2025), which interact with Docker environments to manipulate files and execute commands. Despite rapid progress, these two tracks have developed largely in isolation—contrasting sharply with human developer workflows. To this end, we develop SearchSWE, an agentic framework that enables systematic investigation of this integration while avoiding overcomplicated, task-specific designs. Our findings reveal that although search and coding capabilities have each matured independently, they are not effectively unified for current LLMs. This suggests that integrated capability does not emerge automatically and may require explicit attention during model development. 
+
+B. BeyondSWE Details 
+
+B.1. Evaluation Details 
+
+Agent Configuration. For both OpenHands and SearchSWE, we set the maximum number of interaction turns to 200. The maximum context length is determined by each model’s native limit. 
+
+Tool Configuration. OpenHands (Wang et al., 2025b) is equipped with three core tools: ExecuteBashTool 
+
+for command execution, StrReplaceEditorTool for file editing, and FinishTool for task completion. SearchSWE extends this toolset with two additional capabilities: SearchTool for web search and 
+
+BrowserTool for webpage browsing. The search functionality is powered by Google Search via SerpAPI 1, while the browser tool utilizes Jina Reader 2 for content extraction, with DeepSeek-V3.2 serving as the summarization model. Table 3. Research fields and repositories included in the DomainFix task.             
+
+> Research Field Repositories Scientific Computing
+> Astronomy astroplan Bioinformatics biotite, Biopython Computational chemistry cclib Plasma physics PlasmaPy Quantum physics qutip Seismology obspy
+> Engineering
+> Convex optimization cvxpy Geospatial geopandas Materials science pymatgen Molecular dynamics mdanalysis Photonic IC design gdsfactory
+
+Figure 6. Distribution of lines of code across the 50 Doc2Repo repositories. 
+
+> 1https://serpapi.com/
+> 2https://jina.ai/
+> 17 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+B.2. Repository Details of DomainFix 
+
+Table 3 lists the 11 research fields and corresponding repositories included in the DomainFix task. These repositories span diverse scientific domains, from astronomy and quantum physics to bioinformatics and materials science, each requiring specialized domain knowledge to resolve issues. 
+
+B.3. Doc2Repo Repository Statistics 
+
+Figure 7. Lines of code for each repositories in Doc2Repo, sorted by size. Figure 6 and Figure 7 present the code size statistics for the 50 repository instances in the Doc2Repo task. The repositories range from approximately 1,000 to over 16,000 lines of code, with the majority (40 out of 50) exceeding 1,500 lines. This distribution demonstrates that Doc2Repo poses a substantial challenge, requiring agents to generate non-trivial, real-world scale codebases rather than simple toy examples. 
+
+B.4. Data Format 
+
+Each instance in BeyondSWE is stored as a JSON object containing the following fields (Table 4): 
+
+C. Task Examples 
+
+C.1. Cross-Repository Issue Resolution 
+
+The following instance ( kitware_trame-server_pr8 ) illustrates a typical cross-repository issue that requires consulting external resources to resolve. 
+
+Problem statement in CrossRepo       
+
+> # Server ignores `host `argument in `start() `and `TRAME_DEFAULT_HOST `environment variable
+> 18
+
+BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+Table 4. Data fields for each instance in BeyondSWE. 
+
+Field Description 
+
+instance_id Unique identifier for the instance, typically in the format 
+
+user_repo_prN .
+
+dataset_id Dataset identifier (e.g., realswe_bench ). 
+
+task Task category: crossrepo , domainfix , depmigrate , or doc2repo .
+
+user GitHub organization or user name. 
+
+repo Repository name. 
+
+language Primary programming language of the repository. 
+
+workdir Working directory path inside the Docker container. 
+
+image_url Docker image URL for the evaluation environment. 
+
+patch Gold patch (ground truth solution) in unified diff format. 
+
+pr_commit Commit hash of the pull request that resolved the issue. 
+
+parent_commit Commit hash of the codebase before the fix (evaluation starting point). 
+
+problem_statement Natural language description of the issue to be resolved. 
+
+github_url URL to the original GitHub repository. 
+
+pre_commands Shell commands to initialize the environment before evaluation. 
+
+FAIL_TO_PASS List of test cases that should change from failing to passing after the fix. 
+
+PASS_TO_PASS List of test cases that should remain passing after the fix. 
+
+## Description We are encountering an issue where the `host ` parameter passed to `trame_server.Server.start() ` is ignored, causing the server to always bind to `localhost ` (127.0.0.1). This prevents external connections and is blocking downstream integrations that require binding to specific interfaces (e.g., `0.0.0.0 ` for containerized environments), such as the ongoing work in PyVista (see [pyvista/pyvista#3385](https://github.com/pyvista/pyvista/pull/3385)). The server persists with the CLI default ( `localhost `) even when an explicit override is provided in Python. Furthermore, the `TRAME_DEFAULT_HOST ` environment variable, which is expected to define the host when no argument is provided, is currently not respected. ## Steps to Reproduce The following script attempts to bind the server to `0.0.0.0 `, but the server continues to listen on 
+
+`127.0.0.1 `:
+
+``` python import os from trame_server import Server # Scenario 1: Attempt to start server on all interfaces via argument # Expected: Binds to 0.0.0.0 # Actual: Binds to 127.0.0.1 print("--- Testing host argument ---") server = Server() try: # This host argument is currently ignored server.start(port=8080, host= '0.0.0.0 ', open_browser=False) except Exception as e: print(f"Error: {e}") finally: server.stop() # Scenario 2: Attempt using environment variable # Expected: Binds to 0.0.0.0 # Actual: Binds to 127.0.0.1 (default) print("\n--- Testing environment variable ---") os.environ[ 'TRAME_DEFAULT_HOST '] = '0.0.0.0 '
+
+19 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+server2 = Server() try: server2.start(port=8081, open_browser=False) except Exception as e: print(f"Error: {e}") finally: server2.stop() 
+
+``` 
+
+## Expected Behavior 1. **Argument Priority:** When `server.start(host= '0.0.0.0 ')` is called, the server should respect the 
+
+`host ` argument and bind to that address. 2. **Environment Variable:** If no `host ` argument is provided to `start() `, the server should use the value of `TRAME_DEFAULT_HOST ` if it is set. 
+
+C.2. Domain-Specific Issue Resolution 
+
+The following is the problem statement for the instance cvxpy_cvxpy_pr2125 .
+
+Problem statement in DomainFix 
+
+# Implement sparse Cholesky decomposition ## Description Currently, `cvxpy ` decomposes positive definite matrices into a Gram matrix format using eigendecomposition followed by scaling the eigenvectors by the square roots of the eigenvalues. This process is inefficient for sparse positive definite matrices, as it doesn 't take advantage of sparsity. It would be beneficial to expose a sparse Cholesky decomposition functionality to handle these decompositions more efficiently. This would improve performance for operations involving large sparse positive definite matrices. ## Example Usage 
+
+``` python import scipy.sparse as sp import numpy as np # This function doesn 't exist yet from cvxpy.utilities.linalg import sparse\_cholesky n = 100 A = sp.rand(n, n, density=0.05) A = A.T @ A + sp.eye(n) # Make it positive definite # Should return lower triangular matrix L and permutation p L, p = sparse\_cholesky(A) 
+
+``` 
+
+## Expected Behavior The `sparse\_cholesky ` function should return a sparse lower triangular matrix $L$ and a permutation vector $p$ such that $P A P^T = L L^T$, where $P$ is the permutation matrix associated with $p$. 
+
+C.3. Dependency-Driven Migration 
+
+The following is the problem statement for the instance stanfordnlp_dsp_pr403 .
+
+Problem statement example for SearchSWE in DEPMIGRATE 
+
+# Support OpenAI v1 SDK and fix Azure configuration issues ## Description 
+
+20 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+We are upgrading the external `openai ` dependency to version 1.0+. This upgrade has caused regressions in our Language Model (LM) client, specifically for **Azure OpenAI** configurations. Users attempting to run the application with the new SDK version are encountering errors related to argument handling. The current implementation 's approach to mapping `model `, `engine `, and `deployment\_id `
+
+appears to be incompatible with the updated library. Additionally, the logic used to infer model types (chat vs. text) is failing for Azure deployments with custom names. ## Current Behavior 1. **Upgrade Failure:** The codebase is currently incompatible with `openai>=1.0 `.2. **Azure Parameter Errors:** When `api\_provider="azure" ` is used, initializing the client results in 
+
+`AssertionError `s or parameter validation failures. The application struggles to reconcile the `model `
+
+argument with the parameters expected by the Azure endpoint (e.g., `deployment\_id `, `engine `). 3. **Inference Issues:** The system attempts to deduce the model type based on the model name. This fails for Azure users with custom deployment names (e.g., names that do not contain "gpt" or "instruct"), causing the client to misbehave. ## Expected Behavior * The library must support `openai>=1.0 `.* Azure-backed clients must initialize successfully without raising errors regarding `model `, `engine `, or 
+
+`deployment\_id ` ambiguity. * Azure model type inference should be robust enough to handle custom deployment names. * **Constraint:** The refactor must ensure that existing caches for standard OpenAI users remain valid. 
+
+C.4. Document-to-Repository Generation 
+
+The following is the content of repo_document.md for the instance doc2mark in Doc2Repo. 
+
+Problem statement in Doc2Repo 
+
+# Specification: target_repo ## 1. Overview The `target_repo ` library is a unified document processing tool designed to convert various document formats (PDF, Office files, Images, HTML, etc.) into clean Markdown. It emphasizes high-fidelity conversion by preserving layout, tables, and extracting images. A key feature is its integration with AI-powered OCR (specifically OpenAI 's Vision API and Tesseract) to handle scanned documents and complex layouts that traditional extractors miss. The library provides a simple, unified API for processing single files or batch-processing entire directories. It abstracts away the complexity of handling different file formats, providing a consistent 
+
+`ProcessedDocument ` output containing the content, metadata, and extracted assets. ## 2. API Reference ### Component: `UnifiedDocumentLoader `
+
+**Import Path:** 
+
+`from target_repo import UnifiedDocumentLoader `
+
+**Signature:** 
+
+``` python class UnifiedDocumentLoader: def __init__( self, ocr_provider: Union[str, OCRProvider, BaseOCR] = 'openai ',api_key: Optional[str] = None, ocr_config: Optional[OCRConfig] = None, cache_dir: Optional[str] = None, # Enhanced OCR configuration for OpenAI model: str = "gpt-4.1", temperature: float = 0, max_tokens: int = 4096, max_workers: int = 5, 
+
+21 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+prompt_template: Union[str, PromptTemplate] = PromptTemplate.DEFAULT, timeout: int = 30, max_retries: int = 3, # Additional OpenAI parameters top_p: float = 1.0, frequency_penalty: float = 0.0, presence_penalty: float = 0.0, base_url: Optional[str] = None, # General OCR parameters default_prompt: Optional[str] = None, # Table output configuration table_style: Optional[str] = None ): ... @property def supported_formats(self) -> List[str]: ... @property def ocr(self) -> BaseOCR: ... @property def cache_dir(self) -> Optional[Path]: ... def load( self, file_path: Union[str, Path], output_format: Union[str, OutputFormat] = OutputFormat.MARKDOWN, extract_images: bool = False, ocr_images: bool = False, show_progress: bool = False, # Format-specific parameters encoding: str = 'utf-8 ',delimiter: Optional[str] = None ) -> ProcessedDocument: ... def batch_process( self, input_dir: Union[str, Path], output_dir: Optional[Union[str, Path]] = None, output_format: Union[str, OutputFormat] = OutputFormat.MARKDOWN, extract_images: bool = False, ocr_images: bool = False, recursive: bool = True, show_progress: bool = True, save_files: bool = True, **kwargs ) -> Dict[str, Any]: ... 
+
+``` 
+
+**Description:** The main entry point for loading and processing documents. It manages format detection, processor selection, and OCR configuration. It supports caching processed results to avoid redundant computation. **Parameters (Constructor):** * **ocr_provider** (*Union[str, OCRProvider, BaseOCR]*): The OCR provider to use. Defaults to `'openai '`.* **api_key** (*Optional[str]*): API key for the OCR provider. For OpenAI, defaults to `OPENAI_API_KEY ` env var. * **ocr_config** (*Optional[OCRConfig]*): Basic configuration object for OCR. * **cache_dir** (*Optional[str]*): Directory path to store cached results. * **model** (*str*): OpenAI model name (default: "gpt-4.1"). * **temperature** (*float*): Sampling temperature for AI generation (0.0-2.0). * **max_tokens** (*int*): Maximum tokens for AI response. * **prompt_template** (*Union[str, PromptTemplate]*): Template for the OCR prompt. * **timeout** (*int*): Request timeout in seconds. * **max_retries** (*int*): Number of retries for failed requests. * **base_url** (*Optional[str]*): Custom base URL for OpenAI-compatible endpoints. * **table_style** (*Optional[str]*): Style for table output. 
+
+22 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+**Properties:** * **supported_formats** (*List[str]*): Returns a list of supported file extensions (e.g., `'docx '`, `'pdf '`,
+
+`'md '`, `'html '`, `'xml '`, etc.). * **ocr** (*BaseOCR*): Access to the initialized OCR provider instance. * **cache_dir** (*Optional[Path]*): The configured cache directory. **Parameters (load):** * **file_path** (*Union[str, Path]*): Path to the input file. * **output_format** (*Union[str, OutputFormat]*): Desired output format (default: `MARKDOWN `). * **extract_images** (*bool*): If `True `, extracts images from documents. * **ocr_images** (*bool*): If `True `, performs OCR on extracted images. * **show_progress** (*bool*): If `True `, displays progress indicators. **Parameters (batch_process):** * **input_dir** (*Union[str, Path]*): Directory containing files to process. * **output_dir** (*Optional[Union[str, Path]]*): Directory to save processed output. * **recursive** (*bool*): If `True `, processes subdirectories recursively. * **save_files** (*bool*): If `True `, writes output files to `output_dir `.**Returns:** * **ProcessedDocument**: An object containing the converted content and metadata. **Raises:** * **FileNotFoundError**: If the file does not exist. * **UnsupportedFormatError**: If the file format is not supported. ---### Component: Convenience Functions **Import Path:** 
+
+`from target_repo import load, batch_process_documents `
+
+**Signature:** 
+
+``` python def load( file_path: Union[str, Path], output_format: Union[str, OutputFormat] = OutputFormat.MARKDOWN, extract_images: bool = False, ocr_images: bool = False, ocr_provider: str = 'openai ',api_key: Optional[str] = None, **kwargs ) -> ProcessedDocument: ... def batch_process_documents( input_dir: Union[str, Path], output_dir: Optional[Union[str, Path]] = None, output_format: Union[str, OutputFormat] = OutputFormat.MARKDOWN, extract_images: bool = False, ocr_images: bool = False, recursive: bool = True, ocr_provider: str = 'openai ',api_key: Optional[str] = None, show_progress: bool = True, save_files: bool = True, **kwargs ) -> Dict[str, Any]: ... 
+
+``` 
+
+**Description:** High-level wrappers around `UnifiedDocumentLoader ` for quick usage. ---### Component: Data Models & Enums **Import Path:** 
+
+23 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+`from target_repo.core.base import DocumentFormat, OutputFormat, DocumentMetadata, ProcessedDocument `
+
+**Description:** Core data structures used throughout the library. #### Class: `DocumentFormat ` (Enum) Supported input formats include: * `DOCX `, `XLSX `, `PPTX `
+
+* `PDF `
+
+* `TXT `, `CSV `, `JSON `, `JSONL `
+
+* `HTML `, `XML `, `MARKDOWN `
+
+#### Class: `OutputFormat ` (Enum) Values: * `MARKDOWN ` ("markdown") * `JSON ` ("json") * `TEXT ` ("text") #### Class: `DocumentMetadata `
+
+**Signature:** 
+
+``` python @dataclass class DocumentMetadata: filename: str format: DocumentFormat size_bytes: int # ... optional fields ... 
+
+``` 
+
+#### Class: `ProcessedDocument `
+
+**Signature:** 
+
+``` python @dataclass class ProcessedDocument: content: str metadata: DocumentMetadata images: Optional[List[Dict[str, Any]]] = None tables: Optional[List[Dict[str, Any]]] = None # ... additional fields ... 
+
+``` 
+
+---### Component: OCR & Configuration **Import Path:** 
+
+`from target_repo.ocr.base import OCRProvider, BaseOCR `
+
+#### Class: `OCRProvider ` (Enum) * `OPENAI `
+
+* `TESSERACT `
+
+#### Class: `OpenAIOCR `
+
+**(Import from `target_repo.ocr.openai `)** Supports initialization with configuration for models, templates, and API keys. ---### Component: CLI **Module:** `target_repo.cli `
+
+**Description:** Command-line interface for processing documents. **Usage:** 
+
+``` bash target_repo <input_path> [options] 
+
+24 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?               
+
+> ```
+> **Arguments:** *`input_path `: Path to a file or directory. *`--ocr <provider> `: OCR provider to use (e.g., `openai `,`tesseract `). *`--api-key <key> `: API key for the OCR provider. *`--no-extract-images `: Disable image extraction. *`-o <dir> `,`--output-dir <dir> `: Directory to save results. *`-r `,`--recursive `: Process directories recursively. **Entry Point:** The CLI is accessible via the `main() `function in `target_repo.cli `or by executing the module.
+
+D. Qualitative Analysis of Search-Code Disconnect 
+
+In this section, we present a detailed qualitative analysis to contextualize the findings in Table 2. specifically investigating why search augmentation does not consistently translate to coding per-formance. We identify specific failure modes where the integration of external knowledge breaks down. 
+
+D.1. Failure Mode I: The Information Landscape Gap 
+
+A primary challenge identified in BeyondSWE is the misalignment between the nature of information code agents seek and what modern search engines prioritize . Coding tasks, particularly those involving reverse-engineering or extending third-party integrations, often require access to raw technical artifacts (e.g., source code, commit diffs) to understand precise logic and edge cases. However, search engines inherently prioritize human-readable, high-level documentation. 
+
+Case Study: unidata_siphon_pr234 . In this instance, the agent is tasked with extending the 
+
+IAStateUpperAir class to support fetching data for “all stations” simultaneously. This feature is enabled by an update in the backend Iowa Environmental Mesonet (IEM) service, but it is undoc-umented in the siphon library itself. To implement this correctly, the agent needs to understand the exact protocol expected by the backend CGI script. 
+
+Step 1: The Retrieval Mismatch. Recognizing the lack of local context, the agent correctly attempts to find the backend source code to verify the parameter logic. It executes the query "akrherz/iem raob.py" , explicitly targeting the repository and file referenced in the issue description. However, as illustrated in Table 5, the search engine prioritizes the API Help Page over the requested Raw Source Code .
+
+Search Result (Rank 1): “Documentation for /json/raob.py ... You can approach this service either with a sounding station and timestamp or just a timestamp .” 
+
+Step 2: Ambiguity Propagation. This retrieval result creates a critical Information Density Gap .• What the Agent Needed (Source Code): The backend Python script ( raob.py ) contains explicit conditional logic (e.g., if ’station’ not in form: mode = ’all’ ) and, crucially, exception handling for specific time-pressure combinations. • What the Agent Received (Documentation): A high-level summary stating “just a timestamp.” While conceptually correct, this phrase is syntactically ambiguous. Does it imply removing the 
+
+station key entirely, setting it to None , or passing a wildcard (e.g., ALL )? 
+
+> 25 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+Step 3: Implementation Failure. Relying on the retrieved help page, the agent refactors the 
+
+_get_data_raw method. It interprets “just a timestamp” literally by conditionally excluding the 
+
+station parameter from the URL construction. While this works for the specific “Happy Path” case (retrieving a simple dataframe), the agent fails to implement the robust error handling and edge-case logic that would have been obvious had it examined the backend source code. Consequently, the im-plementation fails on the comprehensive test suite ( test_no_future_data_with_pressure_iastate ), as the agent’s simplified logic could not gracefully handle backend-specific empty responses. Table 5. Analysis of the Information Landscape Mismatch in unidata_siphon_pr234 . The search engine’s bias towards curated content obscures the precise logic required for robust code implemen-tation.             
+
+> Component Agent’s Intent / Target Search Engine Response Target Artifact Backend Source Code User-Facing Documentation
+> (akrherz/iem/.../raob.py )(.../json/raob.py?help )
+> Information Type Precise Logic Ambiguous Natural Language
+> Explicit conditionals, error handling, and parameter parsing logic. High-level description: “approach this service... with just a times-tamp .”
+> Resulting Action (Hypothetical) Implement robust pa-rameter negotiation mirroring back-end logic.
+> (Actual) Implemented a brittle solu-tion based on literal interpretation of "just a timestamp".
+
+Implication. This case highlights a fundamental limitation in SearchSWE: current LLMs struggle to recognize when retrieved information (high-level docs) is insufficient for the precision required by the task (low-level implementation). They tend to settle for the first plausible result rather than persisting to find the ground-truth code artifact. 
+
+D.2. Failure Mode II: Temporal Misalignment and Version Bias 
+
+A subtle yet pervasive challenge in software maintenance is Temporal Misalignment : the discrep-ancy between the latest knowledge embedded in an LLM (or available via Web Search) and the 
+
+legacy constraints of a target repository. 
+
+Case Study: behave_behave-django_pr162 . In this task, the agent is required to fix a fixture loading issue within a repository pinned to legacy Django versions (2.2 to 3.x). The environment constraints are explicitly defined in the local configuration files. However, the agent’s behavior reveals a breakdown in constraint satisfaction. 
+
+Step 1: Hallucination-Driven Retrieval. Instead of verifying the locally installed Django version (e.g., via pip freeze or checking setup.py ), the agent exhibits a severe specific hallucination. It operates under the false assumption that the target environment corresponds to a non-existent or future version (“Django 5.2”), generating search queries that seek to confirm this bias: 
+
+> Query 1: "Django 5.2 fixture loading changes _fixture_setup classmethod" Query 2: "https://github.com/django/django/commit/8eca3e9b Django 5.2 ..."
+
+This behavior indicates that the agent is not searching to discover the environment, but to validate an incorrect internal belief. 
+
+Step 2: Architecture Conflict. This hallucination leads to a concrete architectural conflict. In the legacy Django ‘TransactionTestCase’, lifecycle methods like ‘_pre_setup’ are strictly instance 
+
+> 26 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+methods (‘self’). However, newer testing paradigms (and the agent’s hallucinated “Django 5.2” model) often favor class methods (‘cls’). As detailed in Table 6, the agent retrieves (or hallucinates retrieval of) patterns advocating for the modern ‘@classmethod‘ decorator. 
+
+Step 3: Breaking the Inheritance Chain. Ignoring the local codebase’s inheritance structure, the agent refactors the method ‘_pre_setup’ from an instance method to a class method. • Local Reality: The parent class calls ‘self._pre_setup()’. • Agent’s Change: The agent defines ‘@classmethod def _pre_setup(cls): ...’. • Outcome: This creates a signature mismatch. When the test runner attempts to invoke the method on the instance, the refactored code fails to interact correctly with the instance-level attributes required by the legacy ‘behave’ mixins, causing the test suite to crash. Table 6. Analysis of Version Conflict in behave_behave-django_pr162 . The agent prioritizes halluci-nated future specifications over explicit local constraints.       
+
+> Context Source Code Pattern & Logic Status Local Environment
+> (Django 2.2/3.x)
+> Instance Method (Legacy)
+> def _pre_setup(self): ...
+> Constraint: Must maintain state on the test instance.
+> Ignored Agent Search
+> (Hallucinated "v5.2")
+> Class Method (Modern/Future)
+> @classmethod def _pre_setup(cls): ...
+> Bias: Assumes newer patterns apply univer-sally.
+> Prioritized Implementation
+> (The Error)
+> Signature Mismatch
+> Agent applies @classmethod to legacy hook.
+> Result: Breaks MRO and instance state access.
+> ✗
+
+Implication. This failure mode demonstrates that access to external knowledge is not strictly additive. When an agent suffers from Recency Bias , search tools can become a liability, allowing the agent to "cherry-pick" irrelevant modern practices that are incompatible with legacy legacy systems. Capability in BeyondSWE requires not just finding information, but strictly filtering it through the lens of local version constraints. 
+
+D.3. Failure Mode III: Semantic Drift and Context Contamination 
+
+The third failure mode arises from the Polysemy of Technical Terminology . In software engineering, domain-specific concepts often reuse common nouns (e.g., “Service”, “Family”, “Fixture”). When an agent searches for these terms within the context of a niche library, the low information redundancy of the target library allows high-ranking but semantically irrelevant results from other domains to contaminate the context window. 
+
+Case Study: abravalheri_validate-pyproject_pr105 . The agent was tasked with implementing support for repo-review , a framework for validating repository configuration. The task required defining “checks” grouped into “families”. 
+
+Step 1: The Polysemy Trap. To understand the API, the agent formulated a query combining the library name with the required concepts: 
+
+> 27 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+> Query: "repo-review define checks fixtures families"
+
+While logically sound, this query triggered a severe Semantic Drift . The term “family” is heavily overloaded in other software domains (e.g., BIM software, e-Discovery platforms). As repo-review 
+
+is a specialized tool with limited web footprint, the search engine prioritized authoritative pages from these unrelated domains. 
+
+Step 2: Context Contamination. As shown in Table 7, the retrieval results were disjointed. While the first result was relevant, subsequent slots were filled with documentation for Autodesk Revit (Architecture) and RelativityOne (Legal Tech). Crucially, current LLMs struggle to filter this noise effectively. Instead of discarding the irrelevant entries, the agent attempts to synthesize a coherent understanding from incoherent sources, effectively diluting the correct signal from the single valid result. Table 7. Analysis of Retrieval Noise in abravalheri_validate-pyproject_pr105 . The polysemy of the term "Family" causes the search engine to drift into unrelated technical domains.                 
+
+> Search Result Title Domain Snippet Content Rel.
+> Families - repo-review 0.12.4.dev15 ...
+> Target “Families are a set of simple strings that group together similar checks...”
+> ✓
+> Writing Family In-stances with the Revit Writer Architecture (BIM) “...highlight some notable points on Revit family instances and the generic API...”
+> ✗
+> RelativityOne -User Guide Legal Tech “...launch the Review interface from the Docu-ments and Family card ...”
+> ✗
+> Maryland Workforce Innovation... Gov. Policy “...conducts an onsite review to examine all re-source documents...”
+> ✗
+
+Step 3: Retreat to Generic Hallucination. Unable to extract a precise, idiomatic integration pattern from the noisy context, the agent fell back on its pre-trained priors. It assumed a generic Python plugin registration pattern using entry_points , disregarding the specific test harness requirements of the target repository. This led to a Side Effect Violation . The agent’s implementation inadver-tently caused the plugin to be registered twice during the test execution—once by the test fixture and once by the agent’s new global entry point.                  
+
+> _________________ TestDisable . test_parse _________________ >assert len ( params . plugins ) == 1EAssertionError : assert 2== 1E+where 2=len ([ < PluginWrapper ... > , < PluginWrapper ... >])
+
+The failure ( assert 2 == 1 ) is a direct consequence of the search noise: the agent could not find the specific documentation on how to isolate plugins for testing, and the noise prevented it from realizing that its generic solution would interfere with the existing test runner. 
+
+Implication. This case illustrates that search is not essentially distinct from noise generation for niche libraries. BeyondSWE challenges code agents to demonstrate Domain Discrimination : the ability to reject high-ranking search results that match query keywords but violate the semantic context of the repository. 
+
+E. Instructions for BeyondSWE 
+
+> 28 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing?
+
+E.1. Instruction of Problem statement Generation 
+
+To ensure the integrity of the evaluation, it is imperative to dissociate the problem definition from the solution implementation . Raw Pull Request (PR) descriptions in open-source repositories often conflate these two aspects, frequently including commit hashes, diff snippets, or explicit descriptions of the fix logic (e.g., “Fixed X by modifying function Y”). Direct utilization of such descriptions would constitute data leakage, trivializing the task for the agent. To address this, we employ a “reverse-engineering” approach using Gemini 3 Pro. The prompt presented below is designed to simulate the perspective of a user or developer reporting an issue 
+
+ex-ante , without knowledge of the subsequent fix. Specifically, the instruction enforces the following constraints to guarantee high-quality, contamination-free problem statements: • Role Simulation: The model must adopt the persona of a bug reporter or feature requester, describing symptoms and expected behaviors rather than implementation details. • Information Sanitization: It explicitly forbids the inclusion of any solution-specific infor-mation, such as references to the PR author, merged commits, or code snippets from the fix itself. • Context Preservation: While removing solution hints, the prompt ensures that crucial con-text—such as reproduction steps, error logs, and environment configurations—is preserved to ensure the task remains solvable. The full system prompt used for this transformation is provided below: 
+
+Prompt used to generate problem statement      
+
+> You are an expert-level autonomous software engineer and open-source maintainer. Your **SOLE TASK** is to draft a concise, human-like GitHub Issue (Problem Statement) based on a provided Pull Request. -----## **CRITICAL OPERATIONAL RULES (READ FIRST)** 1. **NO SPOILERS:** You will see the solution (the diff), but you must **NEVER** reveal the solution in the issue. 2. **NO INTERNAL LEAKS:** Do NOT mention specific file paths, internal function names, or line numbers unless they are explicitly mentioned in the provided `PR Description `.3. **USER PERSPECTIVE:** Write as a user or developer stumbling upon the bug. Do not write as the person who just fixed it. 4. **ACTION REQUIRED:** You are connected to a REAL terminal. You must execute commands to analyze the context before writing. -----## **Provided Inputs** **Repository Name:** {{repository}} **Commit ID (Merge Commit):** {{commit_id}} **PR Description:** {{pr_description}} **Commit Message:** {{commit_message}} -----## **MANDATED MULTI-PHASE PLAN** You must follow this plan step-by-step. -----## **PHASE 1: Context & Diff Analysis**
+> 29
+
+BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+**Step 1: Inspect the changes** - **Goal:** Understand what was broken by looking at how it was fixed. - **EXECUTE** the following command immediately to see the real diff: 
+
+`cd /workspace/{{repository}} && git show -m --first-parent --pretty=format: --patch {{commit_id}} > /workspace/diff.txt `
+
+- **EXECUTE** `cat /workspace/diff.txt ` to read the content. - **Analysis (Internal Monologue):** 1. Look at the code removed/changed in the diff. 2. Ask yourself: "If this code was running before the fix, what error or wrong behavior would it cause?" 3. Identify the public API or command that triggers this code path. -----## **PHASE 2: Reverse Engineering the Symptom** **Step 2: Formulate the Bug Report Strategy** - **Constraint:** You generally know *why* it failed, but you must only describe *what* failed. - **Mental Check:** - Does the `PR Description ` already describe the bug? If yes, align with it but refine clarity. - If the `PR Description ` is empty or vague, use the `diff ` to hallucinate the likely error message or wrong output based on logic. -----## **PHASE 3: Drafting the Issue** **Step 3: Draft the content** - **Goal:** Create a natural, human-readable issue description. - **Guidelines (Strict adherence required):** 1. **Concise Title:** Choose a clear title describing the symptom (e.g., "KeyError when calling function X" instead of "Fix dictionary lookup in file Y"). 2. **Reproduction Code:** Provide a "Minimal Reproducible Example". - It must look like a natural user script or snippet. - It must **NOT** be a unit test (no `assert ` statements, no `self.assertEqual `). - It should strictly trigger the bug found in Phase 1. 3. **Expected vs Actual:** - **Actual:** Describe the error message (e.g., traceback) or the wrong data returned. - **Expected:** Describe what should have happened. 4. **Tone:** Casual but professional. Avoid excessive formatting. 5. **Secrecy:** Do not say "The bug is in line 50 of utils.py". Say "When I run this script, it crashes." - **ACTION:** **EXECUTE** the following command block to save your draft (replace `... ` with your content). Ensure you wrap the final content in `[ISSUE] ` tags. <!-- end list --> 
+
+```` bash cat << 'EOF ' > /workspace/issue\_draft.txt [ISSUE] # [Title Here] ## Description [Clear description of what you were trying to do and what went wrong] ## Reproduction Script 
+
+``` python # Provide a natural python snippet here that triggers the bug. # Do NOT include assertions. 
+
+30 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+# Do NOT verify the fix here, just show how to break it. 
+
+```` 
+
+## Actual Behavior [Describe the error, traceback, or wrong output] ## Expected Behavior [Describe what should have happened] [/ISSUE] EOF 
+
+``` 
+
+------------------------------------------------**PHASE 4: Final Verification & Submission** ------------------------------------------------**Step 4: Safety Check** - **EXECUTE:** `cat /workspace/issue\_draft.txt `
+
+- **Verification Questions:** 1. Did I mention a file name that is NOT in the PR description? -> *If yes, remove it.* 2. Did I explicitly explain the solution logic? -> *If yes, replace with symptom description.* 3. Is the reproduction script natural (no asserts)? -> *If no, rewrite it.* **Step 5: Submit** - **EXECUTE:** `submit `
+
+F. Instructions for SearchSWE 
+
+This section details the prompt specifications governing SearchSWE. We first present the unified 
+
+System Prompt applied across all tasks, which establishes the agent’s core persona, research methodology, and tool protocols. Subsequently, we provide the distinct User Prompts tailored for each of the four evaluation settings—CrossRepo, DomainFix, DepMigrate, and Doc2Repo—defining the specific mission context and constraints for each task type. 
+
+F.1. System Prompt for All four Tasks 
+
+System prompt for SearchSWE 
+
+You are a Senior Software Engineer equipped with advanced research capabilities. You are tasked with solving complex software engineering problems in a realistic, persistent Linux environment. <ROLE> - **Core Identity**: You are a builder and problem solver. Your primary goal is to write working, high-quality code that satisfies the user 's requirements. - **Expertise**: You are thorough, methodical, and prioritize code quality and correctness over speed. - **Environment**: You have full access to a standard bash shell and development tools. The repository is in the current working directory. - **Autonomy**: You are responsible for the full lifecycle: exploring, diagnosing, implementing, verifying, and submitting. - **Tool Usage**: You have access to Search and Web Reading tools. Use them **strategically, not exclusively**. - **WHEN to Search**: Search only when you encounter: 1. Unknown syntax or API details of a specific library version. 2. Obscure error messages that you cannot diagnose from the code. 3. Missing implementation details *not* provided in the local context. - **WHEN NOT to Search**: Do NOT search for the specific project logic or proprietary specifications provided in the local files. The local requirements are the ground truth. 
+
+31 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+</ROLE> <EFFICIENCY> * **Tool Chaining**: You are expected to combine tools creatively. Do not limit yourself to single-step actions. For example, instead of just reading a search result, you might `git clone ` a relevant example repository found via search, then use `grep ` to study its implementation patterns locally. * **Unix Philosophy**: Leverage standard Linux utilities ( `grep `, `sed `, `find `, `curl `, `jq `) in combination with your specific AI tools ( `Search `, `LinkSummary `) to process information efficiently. * Each action you take is somewhat expensive. Wherever possible, combine multiple actions into a single action, e.g. combine multiple bash commands into one, using sed and grep to edit/view multiple files at once. * When exploring the codebase, use efficient tools like find, grep, sed, and git commands with appropriate filters to minimize unnecessary operations. </EFFICIENCY> <FILE_SYSTEM_GUIDELINES> * **Path Handling**: When a user provides a file path, do NOT assume it 's relative to the current working directory. First explore the file system to locate the file before working on it. * For global search-and-replace operations, consider using `sed ` instead of opening file editors multiple times. * **Editing vs. Creating**: - **For Existing Files**: Modify the original file directly. NEVER create multiple versions with suffixes (e.g., file_test.py, file_fix.py, file_simple.py). - **For Repo Generation**: Creating new files is expected and necessary. Ensure they adhere to the project structure. * **Cleanup**: - If you need to create a temporary reproduction script ( `reproduce_issue.py `) or test file, DELETE it once you 've confirmed your solution works, unless the user asks to keep it. * **Documentation**: Do NOT include documentation files explaining your changes in version control unless the user explicitly requests it. * When reproducing bugs or implementing fixes, use a single file rather than creating multiple files with different versions. </FILE_SYSTEM_GUIDELINES> <SEARCH_GUIDELINES> * **Purpose**: Use the search tool to conduct deep verification and root cause analysis. - **Documentation First**: Prioritize official documentation and source code explanations over random tutorials. - **Error Debugging**: Use search to understand obscure error messages, but verify the relevance to your specific version/environment. * **Research Methodology (Search -> Read -> Verify)**: - **Discovery**: Use search tools to identify relevant resources. - **Deep Reading (Mandatory)**: Search result snippets are often incomplete, outdated, or misleading. You MUST use your available content-reading tools (e.g., `LinkSummary `, or equivalent) to fetch and read the full page content of promising URLs. Do not write code based solely on search snippets. - **Local Verification**: Before using a library found online, check if it is installed locally and verify its version/API using `python -c "import lib; help(lib)" ` or similar commands. **Prioritize the locally installed version.** - If a search query fails (or returns blocked content), rephrase it to be more generic and concept-focused. * **Authority Hierarchy**: 1. **User Instructions & Local Context**: The specific instructions in the prompt, the existing codebase, and any provided local specifications/docs are the **ABSOLUTE AUTHORITY**. 2. **Official Documentation**: Reliable external truth. 3. **Community Solutions (StackOverflow, etc.)**: Heuristics that must be verified. * **Conflict Resolution**: - **Logic & Architecture**: If search results suggest a "best practice" that conflicts with the existing codebase style or the user 's specific requirements, **FOLLOW THE LOCAL CONTEXT**. - **Code Adaptation**: **NEVER copy-paste blindly.** You MUST digest the search result and rewrite the code to match the local project 's coding style (naming, typing, error handling). * **Privacy Safety**: Do NOT include proprietary code, API keys, or sensitive customer data in search queries. Search only for generic concepts, public APIs, or anonymized error messages. </SEARCH_GUIDELINES> <WORKFLOW_GUIDELINES> 
+
+32 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+1. **EXPLORATION**: Do not guess. Thoroughly explore the file structure ( `ls -R `), read relevant code, and understand dependencies before writing a single line of code. 2. **ANALYSIS & REPRODUCTION**: - **For Bug Fixes**: Create a reproduction script to confirm the bug BEFORE fixing it. - **For Refactoring**: Run existing tests to ensure a green baseline. - **For New Repos**: Plan the directory structure based on the spec. 3. **IMPLEMENTATION**: Make focused, minimal changes. Place imports correctly. Adhere to the project 'sexisting coding style. 4. **VERIFICATION**: - **Never Submit Without Testing**. - **Rigor**: Simple "smoke tests" (e.g., scripts that just print "Done") are insufficient. Prefer using standard testing frameworks (like `pytest `) to verify edge cases and logic constraints. - Run existing tests ( `pytest `). - Run your reproduction script to verify the fix. - If no tests exist, write a specific test case to prove your solution works. </WORKFLOW_GUIDELINES> <CODE_QUALITY> * Write clean, efficient code with minimal comments. Avoid redundancy in comments: Do not repeat information that can be easily inferred from the code itself. * When implementing solutions, focus on making the minimal changes needed to solve the problem. * Before implementing any changes, first thoroughly understand the codebase through exploration. * If you are adding a lot of code to a function or file, consider splitting the function or file into smaller pieces when appropriate. * **Imports**: Place all imports at the top of the file unless explicitly requested otherwise or to avoid circular imports. * **Gitignore**: * If working in a git repo, before you commit code create a .gitignore file if one doesn 'texist. And if there are existing files that should not be included then update the .gitignore file as appropriate. </CODE_QUALITY> <VERSION_CONTROL> * **Identity**: Use "realswe" as the user.name and "realswe@local.dev" as the user.email if not already configured. * **Safety**: Exercise caution with git operations. Do NOT make potentially dangerous changes (e.g., pushing to main, deleting repositories) unless explicitly asked to do so. * **Commits**: When committing changes, use `git status ` to see all modified files, and stage all files necessary for the commit. Use `git commit -a ` whenever possible. * **Exclusions**: Do NOT commit files that typically shouldn 't go into version control (e.g., node_modules/, .env files, build directories, cache files, large binaries) unless explicitly instructed by the user. * If unsure about committing certain files, check for the presence of .gitignore files or ask the user for clarification. </VERSION_CONTROL> <PULL_REQUESTS> * **Important**: Do not push to the remote branch and/or start a pull request unless explicitly asked to do so. * When creating pull requests, create only ONE per session/issue unless explicitly instructed otherwise. * When working with an existing PR, update it with new commits rather than creating additional PRs for the same issue. * When updating a PR, preserve the original PR title and purpose, updating description only when necessary. </PULL_REQUESTS> <SECURITY_RISK_ASSESSMENT> # Security Risk Policy When using tools that support the security_risk parameter, assess the safety risk of your actions: - **LOW**: Read-only actions inside sandbox. - Inspecting container files, calculations, viewing docs. - **MEDIUM**: Container-scoped edits and installs. - Modify workspace files, install packages system-wide inside container, run user code. - **HIGH**: Data exfiltration or privilege breaks. - Sending secrets/local data out, connecting to host filesystem, privileged container ops, running unverified binaries with network access. **Global Rules** - Always escalate to **HIGH** if sensitive data leaves the environment. </SECURITY_RISK_ASSESSMENT> 
+
+33 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+<ENVIRONMENT_SETUP> * If the user asks to run an app that isn 't installed, install it and retry. * **Environment Conservation**: Avoid reinstalling or upgrading packages that are already present in the environment unless explicitly necessary for compatibility. * If you encounter missing dependencies: 1. First, look around in the repository for existing dependency files (requirements.txt, pyproject.toml, package.json, Gemfile, etc.) 2. If dependency files exist, use them to install all dependencies at once (e.g., `pip install -r requirements.txt `, `npm install `, etc.) 3. Only install individual packages directly if no dependency files are found or if only specific packages are needed * Similarly, if you encounter missing dependencies for essential tools requested by the user, install them when possible. </ENVIRONMENT_SETUP> <TROUBLESHOOTING> * If you 've made repeated attempts to solve a problem but tests still fail or the user reports it 's still broken: 1. **Stop and Think**: Do not immediately try another random fix. **Revert the failed changes** to return to a clean state before proceeding. 2. **List Hypotheses**: Explicitly list 3-5 possible causes (e.g., dependency version mismatch, environment config, hidden side effects). - *Tip*: If you are unsure about the causes, **use the Search Tool** to look up the error message or symptoms to generate informed hypotheses. 3. **Verify**: Check the most likely hypothesis first using print statements, focused tests, or by cross-referencing documentation. 4. **Plan**: Propose a new plan based on the verified hypothesis and document your reasoning process. * When you run into any major issue while executing a plan from the user, please don 't try to directly work around it. Instead, propose a new plan, explain your reasoning clearly, and then proceed with the best alternative. </TROUBLESHOOTING> <DOCUMENTATION> * When explaining changes or solutions to the user: - Include explanations in your conversation responses rather than creating separate documentation files - If you need to create documentation files for reference, do NOT include them in version control unless explicitly requested - Never create multiple versions of documentation files with different suffixes * If the user asks for documentation: Notice whether they want it as a separate file or just in the conversation </DOCUMENTATION> <PROCESS_MANAGEMENT> * When terminating processes: - Do NOT use general keywords with commands like `pkill -f server ` or `pkill -f python ` as this might accidentally kill other important servers or processes - Always use specific keywords that uniquely identify the target process - Prefer using `ps aux ` to find the exact process ID (PID) first, then kill that specific PID - When possible, use more targeted approaches like finding the PID from a pidfile or using application-specific shutdown commands </PROCESS_MANAGEMENT> 
+
+F.2. User prompt for Each Tasks 
+
+F.2.1. User Prompt for SearchSWE in CrossRepo User Prompt for SearchSWE in CrossRepo 
+
+<uploaded\_files> {workspace\_dir} </uploaded\_files> 
+
+34 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+I've uploaded a python code repository in the directory {workspace\_dir}. Consider the following issue description: <issue\_description> {problem\_statement} </issue\_description> Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue\_description> are met? I've already taken care of all changes to any of the test files described in the <issue\_description>. This means you DON 'T have to modify the testing logic or any of the tests in any way! Your task is to make the minimal changes to non-test files in the {workspace\_dir} directory to ensure the <issue\_description> is satisfied. Follow these phases to resolve the issue: Phase 1. READING: read the problem and reword it in clearer terms 1.1 If there are code or config snippets. Express in words any best practices or conventions in them. 1.2 Highlight message errors, method names, variables, file names, stack traces, and technical details. 1.3 Explain the problem in clear terms. 1.4 Enumerate the steps to reproduce the problem. 1.5 Highlight any best practices to take into account when testing and fixing the issue. 1.6 Identify any external URLs, referenced issues in other repositories, or mentions of external library updates in the <issue\_description>. List these clearly as targets for the search phase. Phase 2. RUNNING: install and run the tests on the repository 2.1 Follow the readme 2.2 Install the environment and anything needed 2.3 Iterate and figure out how to run the tests Phase 3. EXPLORATION: find the files that are related to the problem and possible solutions 3.1 Use `grep ` to search for relevant methods, classes, keywords and error messages. 3.2 Identify all files related to the problem statement. 3.3 Propose the methods and files to fix the issue and explain why. 3.4 From the possible file locations, select the most likely location to fix the issue. 3.5 You can use the **Search Tool** to retrieve the associated URL in the problem statement or other useful information. 3.6 **Attention**: - **MANDATORY Deep Reading**: If a search result looks promising, you **MUST** use the **LinkSummary** tool to fetch and read the actual page content. Treat search snippets merely as relevance indicators. Snippets are often incomplete or outdated. **Never write code based solely on search snippets.** Phase 4. TEST CREATION: before implementing any fix, create a script to reproduce and verify the issue. 4.1 Look at existing test files in the repository to understand the test format/structure. 4.2 Create a minimal reproduction script that reproduces the located issue. 4.3 Run the reproduction script to confirm you are reproducing the issue. 4.4 Adjust the reproduction script as necessary. Phase 5. FIX ANALYSIS: state clearly the problem and how to fix it 5.1 State clearly what the problem is, specifically citing any external specifications or dependency changes found during the search phase if relevant. 5.2 State clearly where the problem is located. 5.3 State clearly how the test reproduces the issue. 5.4 State clearly the best practices to take into account in the fix. 5.5 State clearly how to fix the problem. Phase 6. FIX IMPLEMENTATION: Edit the source code to implement your chosen solution. 6.1 Make minimal, focused changes to fix the issue. Phase 7. VERIFICATION: Test your implementation thoroughly. 7.1 Run your reproduction script to verify the fix works. 7.2 Add edge cases to your test script to ensure comprehensive coverage. 7.3 Run existing tests related to the modified code to ensure you haven 't broken anything. 8. FINAL REVIEW: Carefully re-read the problem description and compare your changes with the base commit {base\_commit}. 8.1 Ensure you 've fully addressed all requirements. 8.2 Run any tests in the repository related to: 
+
+35 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+8.2.1 The issue you are fixing 8.2.2 The files you modified 8.2.3 The functions you changed 8.3 If any tests fail, revise your implementation until all tests pass Be thorough in your exploration, testing, and reasoning. It 's fine if your thinking process is lengthy -quality and completeness are more important than brevity. 
+
+F.2.2. User Prompt for SearchSWE in DomainFix User Prompt for SearchSWE in DomainFix 
+
+<uploaded\_files> {workspace\_dir} </uploaded\_files> I've uploaded a python code repository in the directory {workspace\_dir}. Consider the following issue description: <issue\_description> {problem\_statement} </issue\_description> Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue\_description> are met? I've already taken care of all changes to any of the test files described in the <issue\_description>. This means you DON 'T have to modify the testing logic or any of the tests in any way! Your task is to make the minimal changes to non-test files in the {workspace\_dir} directory to ensure the <issue\_description> is satisfied. Follow these phases to resolve the issue: Phase 1. READING: read the problem and reword it in clearer terms 1.1 If there are code or config snippets. Express in words any best practices or conventions in them. 1.2 Highlight message errors, method names, variables, file names, stack traces, and technical details. 1.3 Explain the problem in clear terms. 1.4 Enumerate the steps to reproduce the problem. 1.5 Highlight any best practices to take into account when testing and fixing the issue. 1.6 **Dependency Version Check (CRITICAL)**: Identify the key external libraries involved (e.g., pandas, scipy, internal solvers). Do not assume the environment matches the latest online documentation. 1.7 Identify any domain-specific concepts, mathematical formulas, scientific theories, or other related information mentioned in the <issue\_description> that require external verification. List the specific search queries you plan to use to acquire this knowledge. Phase 2. RUNNING: install and run the tests on the repository 2.1 Follow the readme to understand the setup, BUT assume the pre-installed environment is the source of truth. 2.2 WARNING: Repositories often rely on fragile binary dependencies (C/C++/Fortran). DO NOT run `pip install ` or upgrade packages (numpy, pandas, gdal, etc.) unless strictly necessary. You might break the environment. 2.3 Iterate and figure out how to run the tests. You should realize that NOT achieving a 100% passing rate is normal in this environment due to missing optional dependencies. If failures occur, you should assess whether the failed pytest and the problem statement are related, and then run the relevant tests for the problem statement accordingly. Phase 3. EXPLORATION: find the files that are related to the problem and possible solutions 3.1 Use `grep ` to search for relevant methods, classes, keywords and error messages. 3.2 Identify all files related to the problem statement. 3.3 From the possible file locations, select the most likely location to fix the issue. 3.4 You can use the **Search Tool** to proactively research the domain knowledge or other useful information: - If the issue involves a library error, Search for the error message + the **installed version** (found in Phase 1.6). 
+
+36 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+- If the issue involves an API change (e.g., "Xpress 9.4"), explicitly Search for **"Release Notes"** or **"Migration Guide"**. - If the issue involves a scientific formula, Search for its **official definition** or **paper**. 3.5 **Attention**: - **MANDATORY Deep Reading**: If a search result looks promising, you **MUST** use the **LinkSummary** tool to fetch and read the actual page content. Treat search snippets merely as relevance indicators. Snippets are often incomplete or outdated. **Never write code based solely on search snippets.** Phase 4. TEST CREATION: before implementing any fix, create a script to reproduce and verify the issue. 4.1 Look at existing test files in the repository to understand the test format/structure. 4.2 Create a minimal reproduction script that reproduces the located issue. 4.3 If the issue requires external services (e.g., external interface connection, specific Solver, GPU) that are missing in this environment: - DO NOT spend time trying to install heavy external services. - Mock the external service in the reproduction script. 4.4 Adjust the reproduction script as necessary. Phase 5. FIX ANALYSIS: state clearly the problem and how to fix it 5.1 State clearly what the problem is, specifically citing official documentation, API references, or scientific principles found during the search phase to justify your fix. 5.2 State clearly where the problem is located. Explain **WHY** your proposed fix is correct. - If fixing an API misuse, cite the official documentation or search result. - If fixing a formula, cite the physical definition found. - **Do not guess** hidden parameters or black-box behaviors; refer to your discovery or Search results. 5.3 State clearly how the test reproduces the issue. 5.4 State clearly the best practices to take into account in the fix. 5.5 State clearly how to fix the problem. Phase 6. FIX IMPLEMENTATION: Edit the source code to implement your chosen solution. 6.1 Make minimal, focused changes to fix the issue. Phase 7. VERIFICATION: Test your implementation thoroughly. 7.1 Run your reproduction script to verify the fix works. 7.2 Add edge cases to your test script to ensure comprehensive coverage. 7.3 Run existing tests related to the modified code to ensure you haven 't broken anything. - Ensure you haven 't broken other features. - If a scientific value changes, verify if the new value is actually correct according to domain principles, not just "different". 8. FINAL REVIEW: Carefully re-read the problem description and compare your changes with the base commit {base\_commit}. 8.1 Ensure you 've fully addressed all requirements. 8.2 Run any tests in the repository related to: 8.2.1 The issue you are fixing 8.2.2 The files you modified 8.2.3 The functions you changed 8.3 If any tests fail, revise your implementation until all tests pass. Verify that you have not introduced execution errors (like ImportError) by modifying dependencies. The code must run in the original environment state as much as possible. Be thorough in your exploration, testing, and reasoning. It 's fine if your thinking process is lengthy -quality and completeness are more important than brevity. 
+
+F.2.3. User Prompt for SearchSWE in DepMigrate User Prompt for SearchSWE in DepMigrate 
+
+<uploaded\_files> {workspace\_dir} </uploaded\_files> I've uploaded a python code repository in the directory {workspace\_dir}. Consider the following issue description: 
+
+37 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+<issue\_description> {problem\_statement} </issue\_description> Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue\_description> are met? Your task is to make the minimal changes to non-test files in the {workspace\_dir} directory to ensure the <issue\_description> is satisfied. IMPORTANT CONSTRAINT: You are strictly forbidden from attempting to resolve issues by downgrading dependencies. Your goal is to refactor the source code to make it compatible with the currently installed library versions. Follow these phases to resolve the issue: Phase 1. READING: read the problem and reword it in clearer terms 1.1 If there are code or config snippets. Express in words any best practices or conventions in them. 1.2 Highlight message errors, method names, variables, file names, stack traces, and technical details. 1.3 Explain the problem in clear terms. 1.4 Enumerate the steps to reproduce the problem. 1.5 Highlight any best practices to take into account when testing and fixing the issue. 1.6 Identify specific external libraries causing warnings or errors. Analyze if the error implies a missing dependency or a breaking API change. List specific search queries targeting "migration guides", "changelogs", or "release notes" for these libraries. Phase 2. RUNNING: verify the pre-installed environment and run tests 2.1 The environment is ALREADY INSTALLED with newer versions of dependencies. 2.2 If the tests fail to import the project modules, you may install the current package in editable mode (e.g. `pip install --no-deps -e . `). 2.3 Iterate and figure out how to run the tests. Phase 3. EXPLORATION: find the files that are related to the problem and possible solutions 3.1 Use `grep ` to search for relevant methods, classes, keywords and error messages. 3.2 Identify all files related to the problem statement. 3.3 Propose the methods and files to fix the issue and explain why. 3.4 From the possible file locations, identify all components or packages in the repository that are affected by the issue. 3.5 You can use the **Search Tool** to find the Migration Guide or Changelog for the upgraded library. - Goal: Determine if a feature was removed, renamed, or requires new dependencies. - Verification: Ensure the solution applies to the currently installed version in the environment. 3.6 **Attention**: - **MANDATORY Deep Reading**: If a search result looks promising, you **MUST** use the **LinkSummary** tool to fetch and read the actual page content. Treat search snippets merely as relevance indicators. Snippets are often incomplete or outdated. **Never write code based solely on search snippets.** Phase 4. TEST CREATION: before implementing any fix, create a script to reproduce and verify the issue. 4.1 Look at existing test files in the repository to understand the test format/structure. 4.2 Create a minimal reproduction script that reproduces the located issue. 4.3 Run the reproduction script to confirm you are reproducing the issue. 4.4 Adjust the reproduction script as necessary. Phase 5. FIX ANALYSIS: state clearly the problem and how to fix it 5.1 State clearly what the problem is. Cite the official documentation or migration guide found during the search phase to justify your decision 5.2 State clearly where the problem is located. 5.3 State clearly how the test reproduces the issue. 5.4 State clearly the best practices to take into account in the fix. 5.5 State clearly how to fix the problem. Phase 6. FIX IMPLEMENTATION: Edit the source code to implement your chosen solution. 6.1 Make minimal, focused changes to fix the issue. Phase 7. VERIFICATION: Test your implementation thoroughly. 7.1 Run your reproduction script to verify the fix works. 7.2 Add edge cases to your test script to ensure comprehensive coverage. 7.3 Run existing tests for the modified code AND any downstream components that depend on it. (e.g., if you modify a core library, check if dependent packages pass their tests). 
+
+38 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+8. FINAL REVIEW: Carefully re-read the problem description and compare your changes with the base commit {base\_commit}. 8.1 Ensure you 've fully addressed all requirements. 8.2 Run any tests in the repository related to: 8.2.1 The issue you are fixing 8.2.2 The files you modified 8.2.3 The functions you changed 8.3 If any tests fail, revise your implementation until all tests pass Be thorough in your exploration, testing, and reasoning. It 's fine if your thinking process is lengthy -quality and completeness are more important than brevity. 
+
+F.2.4. User Prompt for SearchSWE in Doc2Repo User Prompt for SearchSWE in Doc2Repo 
+
+I need you to implement a software repository from scratch based on a strict architectural specification. ### 1. Context & Environment * **Workspace Directory**: `{workspace_dir} `
+
+* **Current File Structure**: 
+
+``` text {workspace_tree} 
+
+``` 
+
+* **Installation Status**: The `target_repo ` package is already installed in editable mode ( `pip install -e .`). Any changes you make inside the `target_repo/ ` directory will be immediately reflected in the environment. ### 2. Environment & Dependency Management The repository will be installed and evaluated using `pip install -e . `. You must manage dependencies strictly via `setup.py `.<CURRENT_ENVIRONMENT> The following packages are **ALREADY INSTALLED** in the environment. 
+
+``` text {installed_packages} 
+
+``` 
+
+*(Note: Do not assume any other packages exist unless listed above.)* </CURRENT_ENVIRONMENT> <DEPENDENCY_RULES> 1. **Setup.py is King**: You MUST list all necessary runtime dependencies in `setup.py `.2. **Avoid Redundancy**: If a package is already in **<CURRENT_ENVIRONMENT>**, do **NOT** add it to 
+
+`setup.py ` unless you absolutely need a different version than the one installed. This prevents network timeouts and conflicts in the evaluation environment. 3. **Pin New Dependencies**: If you need a package that is **NOT** in the list above, you **MUST** add it to 
+
+`setup.py ` and **explicitly pin the version**. 4. **Ignore requirements.txt**: Do not create or update `requirements.txt `. Only modify `setup.py `.</DEPENDENCY_RULES> ### 3. The Specification ( `repo_document.md `)This document is the **ABSOLUTE AUTHORITY** for the **Architecture, Public API, and Logic**. **WARNING**: You must implement the repository **exactly** as described here. 
+
+``` markdown {REPO_DOCUMENT} 
+
+``` 
+
+---### 4. Task Instructions **Phase 1: Analysis & Constraints (Spec Compliance)** 
+
+39 BeyondSWE: Can Current Code Agent Survive Beyond Single-Repo Bug Fixing? 
+
+* **Analyze the Spec**: Read `repo_document.md ` to deduce the required directory structure and class hierarchy based strictly on the **Import Paths** defined in the document. * **Check Dependencies**: Compare spec requirements against <CURRENT_ENVIRONMENT>. Decide which ones need to be added to `setup.py ` and which ones are already present. * **Strict Constraints Protocol**: * **Spec > Internet**: Do NOT use the Search Tool to find "better ways" to implement the logic. The logic described in the document is the ground truth. * **No "Defensive" Deviations**: Do not change return types, argument names, or data formats unless the document explicitly asks for them. * **Search Usage Limit**: Use the Search Tool **ONLY** if you encounter: 1. Syntactical errors related to specific library versions (e.g., `pydantic ` v1 vs v2 differences). 2. Missing imports or dependencies that are implied but not listed. **MANDATORY Deep Reading**: If a search result looks promising, you **MUST** use the **LinkSummary** tool to fetch and read the actual page content. Treat search snippets merely as relevance indicators. Snippets are often incomplete or outdated. **Never write code based solely on search snippets.** * **Do NOT search** for the project name or architectural patterns described in the spec. **Phase 2: Implementation** * Implement the **Public API** and **Core Logic** described in the document inside the `target_repo/ `
+
+directory. * **Strict Adherence**: * Function signatures (arguments, types, return values) MUST match the document exactly. * Ensure all imports use relative imports (e.g., `from . import utils `) or absolute imports starting with 
+
+`target_repo `.* **Coding Strategy**: * **Minimalism**: Implement exactly what is requested. Do not add unrequested features, "future-proofing," or complex error handling that isn 't specified. * **Internal Flexibility**: You may create private helper functions ( `_helper `) or internal utility modules if the logic requires it, provided they do not alter the Public API. **Phase 3: Verification (Rigorous Testing)** * Since this is a clean-room implementation, **NO existing tests are provided**. * **Mandatory Pytest**: You MUST create a standard test file (e.g., `tests/test_verify.py `) and run it using 
+
+`pytest `.* **Do NOT use a simple print-script**. * Write explicit `assert ` statements to verify: 1. Class signatures and method existence. 2. Return types and data formats. 3. Critical logic paths (e.g., hash chaining consistency, graph connectivity). * **Refinement**: If `pytest ` fails, analyze the error. If the error implies a conflict between your code and the spec, **fix the code to match the spec**. **Phase 4: Submission** * Once you are confident: 1. Delete the temporary `tests/ ` directory to keep the repo clean. 2. Ensure `setup.py ` is configured correctly according to <DEPENDENCY_RULES>. 3. Submit your work using the "finish" tool. 
+
+40

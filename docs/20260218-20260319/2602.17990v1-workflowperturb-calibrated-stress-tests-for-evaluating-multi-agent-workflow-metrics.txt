@@ -1,0 +1,487 @@
+Title: WorkflowPerturb: Calibrated Stress Tests for Evaluating Multi-Agent Workflow Metrics
+
+URL Source: https://arxiv.org/pdf/2602.17990v1
+
+Published Time: Mon, 23 Feb 2026 01:22:10 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# WORKFLOW PERTURB : Calibrated Stress Tests for Evaluating Multi-Agent Workflow Metrics 
+
+Madhav Kanda 1, Pedro Las-Casas 2, Alok Gautam Kumbhare 2
+
+Rodrigo Fonseca 2, Sharad Agarwal 2
+
+> 1
+
+University of Illinois Urbana-Champaign 
+
+> 2
+
+Microsoft 
+
+Abstract 
+
+LLM-based systems increasingly generate structured workflows for complex tasks. In practice, automatic evaluation of these work-flows is difficult, because metric scores are of-ten not calibrated, and score changes do not directly communicate the severity of workflow degradation. We introduce W ORKFLOW PER -
+
+> TURB
+
+, a controlled benchmark for studying workflow evaluation metrics. It works by apply-ing realistic, controlled perturbations to golden workflows. WORKFLOW PERTURB contains 4,973 golden workflows and 44,757 perturbed variants across three perturbation types (Miss-ing Steps, Compressed Steps, and Description Changes), each applied at severity levels of 10%, 30%, and 50%. We benchmark multi-ple metric families and analyze their sensitivity and calibration using expected score trajecto-ries and residuals. Our results characterize sys-tematic differences across metric families and support severity-aware interpretation of work-flow evaluation scores. Our dataset will be released upon acceptance. 
+
+1 Introduction 
+
+Large Language Models (LLMs) are increasingly used to generate multi-step, dependency-rich work-flows for high-stakes settings, where failures can have real operational or scientific consequences. Such workflows now appear in scientific automa-tion, biomedical information access, enterprise copilots, and cloud and DevOps assistants (Bran et al., 2023; Jin et al., 2023; Microsoft, 2026; Chan-drashekar, 2025). In these settings, correctness depends not only on wording but on ordered depen-dencies and the presence of critical steps. Evaluating these workflows remains unexpect-edly difficult. Existing workflow metrics each cap-ture only a narrow slice of correctness: lexical metrics fail under paraphrasing, structural metrics may overlook semantic drift, and semantic metrics can assign favorable scores to workflows missing critical steps. A central practical challenge is cal-ibration: it is often unclear what a score means in terms of functional risk. For example, does a drop from 0.90 to 0.84 reflect harmless rephrasing or the loss of an essential dependency? Without calibrated interpretation, metric values are difficult to use for regression testing, model comparison, or automated filtering. With the widespread deployment of LLM-generated workflows in industry, incorrect or de-graded workflows can have severe consequences. In cloud and DevOps settings, flawed orchestration may lead to outages or misconfigured infrastruc-ture; in scientific and biomedical domains, sub-tle workflow deviations can alter analytical con-clusions. Production systems are also dynamic: models are deprecated and upgraded, for example under Azure OpenAI model retirement policies 1,orchestration libraries evolve, and engineers revise prompts and agent definitions. Each such change may alter workflow structure or semantics. This raises a core practical question: how can we deter-mine whether a modified workflow remains func-tionally equivalent to a validated reference? How can such checks be integrated into CI/CD pipelines without manual review? At the heart of this prob-lem lies reliable workflow evaluation. To make this concrete, consider a validated production workflow for deploying a service, in-cluding resource provisioning, access controls, de-ployment, and observability configuration. An LLM-generated workflow may preserve terminol-ogy while omitting access hardening, compressing observability into a vague step, or reordering de-pendencies. Many metrics still assign high scores due to surface overlap or coarse structural similar-ity, leaving engineers uncertain whether deviations are benign or dangerous. 
+
+> 1https://learn.microsoft.com/en-us/azure/ ai-foundry/openai/concepts/model-retirements
+> arXiv:2602.17990v1 [cs.AI] 20 Feb 2026
+
+To address these challenges, we introduce WORKFLOW PERTURB , a benchmark of over 44,000 workflows constructed through controlled perturbations. We generate three perturbation types, Missing Steps, Compressed Steps, and Description Changes, each applied at graded intensity levels of 10%, 30%, and 50%. These structured degradations enable systematic analysis of metric calibration un-der known severity, revealing which metrics are robust to benign edits, which fail under functional degradation, and how workflow scores can be inter-preted more reliably in production settings. 
+
+2 Related Work 
+
+Agentic evaluation and tool-use benchmarks. 
+
+Recent work has focused on evaluating large lan-guage models in agentic and tool-using settings, where models must select, invoke, and sequence external functions. The Berkeley Function Calling Leaderboard (BFCL) (Patil et al., 2025) provides a standardized benchmark for evaluating LLMs on re-alistic function-calling tasks, emphasizing correct-ness of tool selection, and execution outcomes, and moving beyond single-turn generation to end-to-end task success in tool-augmented environments. While BFCL evaluates agent performance through execution success, it does not study how automatic evaluation metrics behave under different types or severities of workflow degradation. 
+
+Diagnosing agent failures from execution traces. 
+
+Several recent approaches analyze execution tra-jectories to diagnose and localize agent failures. AGENTRX (Barke et al., 2026) examines agent execution traces consisting of intermediate actions, tool calls, and environment feedback to identify failure causes and error propagation. TRAIL (Desh-pande et al., 2025) similarly uses trace-based rea-soning over structured action sequences and inter-mediate states to localize issues in agent execution. These methods operate on runtime execution traces and assume access to environment interactions and task outcomes. Our setting differs in that we do not rely on execution traces or success signals; instead, we study static workflow representations and eval-uate how automatic metrics respond when work-flows deviate from golden references in controlled and graded ways, enabling systematic analysis of metric calibration, sensitivity, and blind spots. 
+
+3 WORKFLOW PERTURB 
+
+We model a workflow as a directed acyclic graph (DAG) G = ( V, E ), where each node v ∈ V rep-resents a step described in natural language and each edge (u, v ) ∈ E denotes a precedence con-straint. Given a golden workflow G and a candi-date workflow G′, an evaluation metric produces a score s(G, G ′) ∈ [0 , 1] (or a normalized variant) intended to reflect workflow quality or similarity. Rather than proposing a new workflow generator, our focus is to analyze metric behavior : under con-trolled degradations of known severity, do metric scores change in an interpretable and calibrated manner? We study this question by introducing structured perturbation types, graded severity lev-els, and an expected score trajectory that character-izes how an ideal metric should respond as work-flow quality degrades 
+
+3.1 Benchmark Construction Source Data. We begin with the set of workflows in WORFBENCH (Qiao et al., 2024) and retain those with |V | ≥ 5 nodes. This threshold ensures each workflow has enough steps to meaningfully perturb and evaluate metric sensitivity. 
+
+Perturbation Patterns. Through exploratory analysis of LLM-generated workflows, we iden-tified several issues that degrade workflow quality, among which three recurring patterns emerged. We model these patterns as controlled perturbations applied to golden-standard workflows: • Missing Steps: LLM-generated workflows of-ten omit essential actions that are required for complete task execution. Such omissions result in incomplete or truncated execution paths when compared to the golden workflow. • Compressed Steps: Generated workflows fre-quently contain fewer nodes than their golden counterparts, condensing multiple fine-grained actions into a single broader step. While this may preserve most of the content, it alters the structural properties of the workflow and leads to mismatches under graph-based evaluation. • Description Changes: Even when workflows preserve the correct structure, step descriptions often differ syntactically from the golden ref-erence. This creates lexical variation that can confuse surface-level metrics while retaining se-mantic meaning. Figure 1: Real-world example illustrating perturbations in LLM-generated workflows for a customer support escalation task. M ISSING STEPS : The red node, present in the original workflow, is omitted in the LLM-generated version. C OMPRESSED STEPS : The red and blue nodes from the original workflow are merged into a single blue node, reducing workflow granularity. D ESCRIPTION CHANGE : All nodes retain the same semantic meaning as the original but differ in syntactic phrasing. 
+
+Functional Implications of Perturbations. Al-though WORKFLOW PERTURB evaluates static workflow representations, the perturbations are de-signed to reflect realistic failure modes with poten-tial execution-level consequences. Missing steps may eliminate required actions, leading to incom-plete or failed task execution. Compressed steps can merge distinct tool invocations or dependency boundaries, potentially altering execution order or granularity. In contrast, description changes pre-serve structural dependencies but may introduce se-mantic ambiguity. Our objective is to study how au-tomatic metrics respond to these controlled degra-dations; evaluating their downstream execution im-pact is complementary future work. To systematically study the impact of these is-sues on evaluation metrics, we apply each perturba-tion type at three severity levels {10% , 30% , 50% }
+
+of the nodes in the golden workflow are affected as illustrated in Figure 2. These graded levels not only mimic realistic variations observed in practice but also allow us to probe the calibration of metrics, i.e., whether metric scores degrade proportionally with increasing perturbation severity. 
+
+Perturbation Generation and Validation. For each workflow and perturbation configuration, we employ large language models to generate variants. To ensure correctness, each variant undergoes auto-mated static validation checks: • Node Count Consistency: Given a golden work-flow with 10 nodes, applying a 10% removal per-turbation must produce a workflow with precisely 9 nodes. Any deviation from this expected count is flagged as inconsistent. The nodes selected for removal are chosen randomly. • Change Count Verification: For a 30% pertur-bation, exactly 3 nodes must be altered, either removed, compressed, expanded, or paraphrased. If fewer or more nodes are modified, the output is rejected. For removal and compression oper-ations, the results are verified by comparing the number of nodes before and after the perturbation. For paraphrasing, we explicitly pass the specific nodes to be paraphrased to ensure that exactly the required number of nodes are modified. These checks target the two most common generation failure modes: (i) deleting or merging too many nodes, and (ii) over- or under-applying paraphrasing. All prompt templates used in this stage along with our iterative refinement strategy are documented in Appendix A. 
+
+Structured Paraphrasing for Description Figure 2: Visualization of M ISSING STEPS perturbations applied to the six-node blog generation workflow. At each level, a proportional number of nodes is randomly dropped: 1 node (10%), 2 nodes (30%), and 3 nodes (50%). Higher perturbation levels result in increasingly incomplete workflows that diverge from the golden sequence. 
+
+Changes. For the description-change perturbation, we do not rely on unconstrained paraphrasing, which often introduces hallucinations. Instead, we explicitly pre-select α × | Vgolden | nodes (where α ∈ { 0.1, 0.3, 0.5}) for paraphrasing. The model is instructed to only rephrase the text of those nodes without adding or removing factual content. For example, a step such as “Check server logs for errors” may be paraphrased to 
+
+“Inspect the server log files for error entries” , while the graph structure and node set remain unchanged. 
+
+Dataset Statistics. The final W ORKFLOW PER - 
+
+> TURB
+
+corpus contains approximately 4,973 golden workflows, and 44 ,757 perturbed variants spanning three perturbation patterns and three severity levels. All variants pass automated validation, and a sub-set was manually inspected to verify perturbation correctness. 
+
+Score Assignment and Perturbation Alignment. 
+
+Each workflow is assigned a score reflecting per-turbation severity, with lower scores indicating de-viation from the golden workflow. For Missing Steps and Compressed Steps , the score equals the remaining workflow fraction, computed as 1 − p
+
+for perturbation percentage p (e.g., p=30% → 0.7,
+
+p=50% → 0.5). In the case of Compressed Steps, this decrease is justified by the loss of struc-tural granularity: multiple fine-grained actions (of-ten corresponding to distinct tool invocations) are merged into broader nodes, violating the one-tool-per-step abstraction and reducing fidelity to the golden execution graph. For Description Changes ,the score remains constant across severity levels, since these edits affect only textual descriptions and not the underlying workflow structure. 
+
+4 Metrics 
+
+We evaluate seven metrics spanning structural, lex-ical, semantic, order-based, and judgment-based families. Structural metrics (Graph F1, Chain F1) measure topological consistency via subgraph matching and sequence alignment. Lexical met-rics (BLEU, GLEU) compute n-gram overlap. BERTScore measures contextual embedding sim-ilarity. Kendall’s τ evaluates rank-order consis-tency. LLM-as-Judge provides rubric-based holis-tic assessment. Full definitions are provided in Appendix B. 
+
+4.1 Structural Metrics Chain F1. Following (Qiao et al., 2024), predicted node chains are aligned with valid topological or-derings of the golden workflow, and the longest increasing subsequence (LIS) is computed. Preci-sion and recall are defined as pchain = l/ |Vpred | and 
+
+rchain = l/ |Vgolden |, where l is the LIS length. The final score is their harmonic mean (F1). 
+
+Graph F1. The predicted and golden workflow graphs are aligned using a Maximum Common Induced Subgraph (MCIS) algorithm. If the largest shared subgraph contains k nodes, precision and recall are defined as pgraph = k/ |Vpred | and rgraph =
+
+k/ |Vgolden |. The score is their harmonic mean (F1). 4.2 Lexical Metrics BLEU (Papineni et al., 2002) is a precision-oriented n-gram matching metric with a brevity penalty, while GLEU (Napoles et al., 2015) bal-ances n-gram precision and recall and is more ro-bust for shorter or paraphrased step descriptions. 
+
+4.3 Semantic Metric BERTScore (Zhang et al., 2020) compares con-textual embeddings of step descriptions from pre-trained transformer models and computes precision, recall, and F1 via token-level cosine similarity. 
+
+4.4 Ordering Metric Kendall’s τ (Kendall, 1938) measures rank corre-lation between generated and gold step orderings, defined as τ = ( C − D)/  12 n(n − 1) , where C
+
+and D are the numbers of concordant and discor-dant pairs among n aligned steps. Scores range from −1 to 1.
+
+4.5 LLM-as-Judge 
+
+To complement automatic metrics, we use an LLM-as-Judge evaluation with GPT-4o (Azure OpenAI). The model is prompted with the task description, golden workflow, generated workflow, and a rubric defining 0–5 scores covering correctness, complete-ness, ordering, and clarity, with anchor examples. 
+
+5 Results and Analysis 
+
+We evaluate metric behavior across perturbation types and severities, assigning each workflow a pre-defined degradation score for interpretability. All reported LLM-as-Judge scores are linearly normal-ized from the original 0–5 scale to the [0,1] range for comparability across metrics. 
+
+Overall trends. Across all perturbation types, metric scores generally decrease as perturbation severity increases, confirming that the benchmark introduces progressively harder deviations from the golden workflows. However, degradation patterns differ substantially across metric families. Struc-tural metrics (Graph F1, Chain F1) track struc-tural distortions closely, lexical metrics (BLEU, GLEU) are highly sensitive to token-level varia-tion, embedding-based similarity (BERTScore) is less sensitive to structural perturbations because it does not directly encode graph completeness, while ordering-based metrics (Kendall’s τ ) mainly change when perturbations alter relative step prece-dence (e.g., via compression or deletion). LLM-Graph F1   
+
+> Chain F1
+> BLEU
+> GLEU
+> BERTScore
+> Kendall’s  τ
+> LLM Judge Metric
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2Score
+> Perturbation 10% 30% 50%
+
+Figure 3: Metric scores across perturbation levels (mean 
+
+± std) for Missing Steps. Graph F1   
+
+> Chain F1
+> BLEU
+> GLEU
+> BERTScore
+> Kendall’s  τ
+> LLM Judge Metric
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2Score
+> Perturbation 10% 30% 50%
+
+Figure 4: Metric scores across perturbation levels (mean 
+
+± std) for Compressed Steps. 
+
+as-Judge captures broader notions of functional correctness and completeness. 
+
+Missing Steps. As shown in Figure 3 and Ta-ble 1, removing steps disrupts workflow complete-ness and dependency structure. Structural metrics degrade nearly linearly with higher removal rates (Graph F1 and Chain F1: 0.90 → 0.61 ), closely tracking the imposed severity. Lexical metrics ex-hibit sharper drops (BLEU: 0.79 → 0.29 ; GLEU: 
+
+0.80 → 0.42 ), reflecting substantial token loss when steps are deleted. BERTScore decreases over-all (0.81 → 0.72), though the trajectory is slightly non-monotonic between 30% and 50%, reflect-ing embedding-level tolerance to partial deletion. Kendall’s τ declines from 0.81 to 0.44 , appropri-ately penalizing disrupted execution order. LLM-as-Judge drops 0.64 to 0.32 , indicating strong sen-sitivity to missing functional content. 
+
+Compressed Steps. Figure 4, and Table 2 illus-trates the effect of merging fine-grained actions into broader steps. Structural scores again decrease substantially (Graph F1: 0.86 → 0.45 ; Chain F1: 
+
+0.86 → 0.44 ), reflecting altered connectivity and reduced graph fidelity. Lexical metrics decline from 0.87 → 0.51 (BLEU) and 0.86 → 0.53 Graph F1   
+
+> Chain F1
+> BLEU
+> GLEU
+> BERTScore
+> Kendall’s  τ
+> LLM Judge Metric
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2Score
+> Perturbation 10% 30% 50%
+
+Figure 5: Metric scores across perturbation levels (mean 
+
+± std) for Description Changes. 
+
+(GLEU), as merged descriptions reduce direct n-gram overlap. Notably, BERTScore is already relatively low at mild compression and decreases slightly ( 0.41 → 0.32 ), suggesting that embedding similarity is sensitive to abstraction and merged semantics. Kendall’s τ shows pronounced degrada-tion ( 0.74 → 0.17 ), indicating substantial disrup-tion of pairwise precedence relations under com-pression. LLM-as-Judge declines from 0.64 to 
+
+0.37 , reflecting loss of procedural granularity even when high-level intent is partially preserved. 
+
+Description Changes. When only textual de-scriptions are modified (Figure 5, and Table 3), the underlying graph structure remains intact. Struc-tural metrics therefore remain stable (Graph F1: 
+
+0.97 → 0.85 ; Chain F1: 0.96 → 0.85 ), show-ing only minor sensitivity to indirect structure–text interactions. Lexical metrics decline with heav-ier paraphrasing (BLEU: 0.85 → 0.50 ; GLEU: 
+
+0.86 → 0.52 ), as expected under surface-level variation. In contrast to structural perturbations, BERTScore remains high ( 0.94 → 0.79 ), indicat-ing that semantic similarity is largely preserved under controlled rewriting. Kendall’s τ remains nearly unchanged ( 1.00 → 0.99 ), consistent with preserved ordering. LLM-as-Judge scores remain high and stable ( 0.98 ), reflecting that functional correctness is largely unaffected by paraphrasing. Overall, no single metric captures all failure modes. Structural metrics reliably detect miss-ing or compressed steps but remain insensitive to purely textual edits, whereas lexical metrics are highly responsive to paraphrasing yet can over-penalize structural deletions. Embedding-based and judgment-based metrics provide complemen-tary signals with distinct calibration properties. A more detailed sensitivity analysis is provided in Appendix C.1. 
+
+6 Key Insights and Practical Guidance 
+
+Workflow validation under change. In indus-trial settings, workflows frequently evolve due to model upgrades, prompt revisions, or orchestration library changes. Our results show that different metric families respond differently to structural versus textual changes. Structural metrics are re-liable indicators of missing or compressed steps, making them suitable for detecting functional re-gressions when workflows are modified. Lexical metrics detect paraphrasing but may over-penalize deletions. LLM-as-Judge provides a holistic sig-nal aligned with perceived workflow quality but introduces variance. These distinctions are critical when validating workflow updates. 
+
+CI/CD integration. WorkflowPerturb enables severity-aware calibration of evaluation metrics, allowing practitioners to interpret scores relative to expected degradation patterns. In a CI/CD pipeline, candidate workflows generated after model or or-chestration updates can be compared against ap-proved golden workflows using a calibrated metric bundle. Deviations beyond empirically validated thresholds can automatically trigger review or roll-back. By understanding which metrics are sensi-tive to which failure modes, automated validation pipelines can be configured to prioritize structural regressions while tolerating benign paraphrasing. 
+
+Metric selection in practice. No single metric suffices across all perturbation types. We recom-mend reporting a compact bundle of complemen-tary metrics and interpreting them jointly with re-spect to perturbation severity. WorkflowPerturb provides a controlled testbed for selecting and cali-brating such metric bundles before deployment. 
+
+7 Conclusion 
+
+We introduced W ORKFLOW PERTURB , a bench-mark for evaluating workflow evaluation metrics under controlled structural and textual perturba-tions. Our analysis reveals that commonly used metrics exhibit distinct sensitivity patterns and cal-ibration gaps across failure modes. These findings highlight the importance of severity-aware interpre-tation when validating workflow updates in produc-tion systems. By enabling calibration and metric selection, WorkflowPerturb provides practical sup-port for automated workflow validation in CI/CD pipelines and evolving LLM-driven platforms. References 
+
+Shraddha Barke, Arnav Goyal, Alind Khare, Avaljot Singh, Suman Nath, and Chetan Bansal. 2026. Agen-trx: Diagnosing ai agent failures from execution tra-jectories. Preprint , arXiv:2602.02475. Andres M Bran, Sam Cox, Oliver Schilter, Carlo Baldas-sari, Andrew D White, and Philippe Schwaller. 2023. Chemcrow: Augmenting large-language models with chemistry tools. Preprint , arXiv:2304.05376. Kirankumar Chandrashekar. 2025. Streamline opera-tional troubleshooting and tasks with amazon q de-veloper cli. AWS DevOps Blog. Posted 2025-06-19. Darshan Deshpande, Varun Gangal, Hersh Mehta, Jitin Krishnan, Anand Kannappan, and Rebecca Qian. 2025. Trail: Trace reasoning and agentic issue local-ization. Preprint , arXiv:2505.08638. Qiao Jin, Yifan Yang, Qingyu Chen, and Zhiyong Lu. 2023. Genegpt: augmenting large language models with domain tools for improved access to biomedical information. Bioinformatics , 40(2):btae075. M. G. Kendall. 1938. A new measure of rank correla-tion. Biometrika , 30(1-2):81–93. Microsoft. 2026. Create a cloud flow in power automate using copilot. Microsoft Learn documentation. Last updated 2026-01-16. Courtney Napoles, Keisuke Sakaguchi, Matt Post, and Joel Tetreault. 2015. Ground truth for grammatical error correction metrics. In Proceedings of the 53rd Annual Meeting of the Association for Computational Linguistics and the 7th International Joint Confer-ence on Natural Language Processing (Volume 2: Short Papers) , pages 588–593, Beijing, China. Asso-ciation for Computational Linguistics. Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002. Bleu: a method for automatic evalu-ation of machine translation. In Proceedings of the 40th annual meeting of the Association for Computa-tional Linguistics , pages 311–318. Shishir G Patil, Huanzhi Mao, Fanjia Yan, Charlie Cheng-Jie Ji, Vishnu Suresh, Ion Stoica, and Joseph E Gonzalez. 2025. The berkeley function calling leader-board (bfcl): From tool use to agentic evaluation of large language models. In Forty-second International Conference on Machine Learning .Shuofei Qiao, Runnan Fang, Zhisong Qiu, Xiaobin Wang, Ningyu Zhang, Yong Jiang, Pengjun Xie, Fei Huang, and Huajun Chen. 2024. Benchmark-ing agentic workflow generation. arXiv preprint arXiv:2410.07869 . Also appears in International Conference on Learning Representations (ICLR) 2025. Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V Le, Mohammad Norouzi, Wolfgang Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, and 1 others. 2016. Google’s neural machine translation system: Bridging the gap between human and ma-chine translation. arXiv preprint arXiv:1609.08144 .Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q. Weinberger, and Yoav Artzi. 2020. Bertscore: Evaluating text generation with bert. Preprint ,arXiv:1904.09675. Appendix 
+
+In this appendix, we include the following to sup-plement the main paper: 
+
+A. Prompt Templates (Section A). Exact LLM prompts used to generate perturbed workflow variants, including error-injection and refine-ment strategies. 
+
+B. Detailed Metric Definitions (Section B). For-mal definitions, equations, and implementation details for all evaluation metrics. 
+
+C. Results Discussion and Sensitivity Analysis 
+
+(Section C). Complete metric tables across per-turbation types and a detailed analysis of met-ric sensitivity under controlled degradation. 
+
+A Prompt Templates 
+
+The following prompts were used to generate per-turbed workflow variants. Placeholders in curly braces {} denote the specified perturbation type or severity level. 
+
+A.1 Missing Step Prompt 
+
+Given the following workflow, please remove exactly {10%, 30%, 50%} of its steps. Return only the modified workflow as a numbered list of steps, preserving the order of the remaining steps. Do not add or paraphrase any content. 
+
+A.2 Compressed Step Prompt 
+
+Given the following workflow, please merge consecutive steps until exactly {10%, 30%, 50%} of the original steps are merged. Each merged step should concisely describe the actions of the combined steps. Return only the modified workflow as a numbered list of steps. Do not remove or paraphrase steps outside the merged groups. 
+
+A.3 Description Change Prompt 
+
+Given the following workflow, please paraphrase the descriptions of exactly {10%, 30%, 50%} of its steps. Ensure that the meaning of each paraphrased step remains unchanged. Do not remove, merge, or add any steps. Return only the modified workflow as a numbered list of steps. 
+
+A.4 Iterative Refinement Prompt (Error Injection) 
+
+When a generated output fails validation, we re-inject the error message into the prompt. For exam-ple: 
+
+Your output had 8 nodes instead of 9 for a 10% removal. Please regenerate the workflow and ensure that exactly one node is removed. Return only the modified workflow as a numbered list of steps. 
+
+This process is repeated up to three times per model before escalation to a stronger model. 
+
+A.5 Iterative Refinement and Escalation 
+
+Variants failing validation enter a feedback-driven refinement loop. The validation error is explicitly injected back into the next prompt. For example: 
+
+“Your output had 8 nodes instead of 9 for a 10% removal. Please regenerate the workflow and ensure exactly one node is removed.” 
+
+If the corrected output again fails validation (e.g., paraphrased 4 nodes instead of 3), the process is repeated up to three times. After three unsuccessful iterations, the task is escalated to a more reliable generation method. 
+
+B Detailed Metric Definitions 
+
+We present the formal definitions and implementa-tion details of all evaluation metrics used in W ORK -
+
+> FLOW
+
+PERTURB . Where applicable, we include equations and illustrative examples showing how the scores are computed. 
+
+B.1 Chain F1 
+
+Suppose the predicted node chain is C(V p) and the gold workflow graph is G(V g, E g). From G, we can enumerate all possible topological orderings 
+
+{C(V g)1, C (V g)2, . . . }. The predicted chain is compared against each ordering using the Longest Increasing Subsequence (LIS) :
+
+li = LIS (C(V g)i, C (V p)) ,
+
+and the longest valid subsequence length is taken as 
+
+l = max( |l1|, |l2|, . . . , |ln|).
+
+Precision and recall are then 
+
+pchain = l
+
+|V p| , rchain = l
+
+|V g| ,
+
+yielding 
+
+f chain  
+
+> 1
+
+= 2 pchain rchain 
+
+pchain + rchain 
+
+.
+
+B.2 Graph F1 
+
+Given predicted graph G(V p, E p) and gold graph 
+
+G(V g, E g), we compute the Maximum Common Induced Subgraph (MCIS): 
+
+Gmcis (Vmcis , E mcis ) = MCIS 
+
+
+
+G(V p, E p),G(V g, E g)
+
+
+
+.
+
+If the largest matched subgraph contains k =
+
+|Vmcis | nodes, then 
+
+pgraph = k
+
+|V p| , rgraph = k
+
+|V g| ,
+
+and the final score is 
+
+f graph  
+
+> 1
+
+= 2 pgraph rgraph 
+
+pgraph + rgraph 
+
+.
+
+This procedure captures both node correctness and edge consistency, providing a stricter evalua-tion than simple edge overlap. 
+
+B.3 BLEU and GLEU 
+
+BLEU (Papineni et al., 2002) measures n-gram precision between candidate and gold step descrip-tions, with a brevity penalty to discourage very short outputs. GLEU (Wu et al., 2016) balances precision and recall over n-grams, making it more robust to short sequences. Both are computed at the step-text level and then averaged across workflows. 
+
+B.4 BERTScore 
+
+BERTScore (Zhang et al., 2020) computes similar-ity between candidate and gold step texts using con-textual embeddings (we use all-mpnet-base-v2 ). For each candidate token, the maximum cosine similarity with gold tokens is taken, yielding pre-cision, recall, and F1. Scores are averaged across workflow steps. 
+
+B.5 Kendall’s τ
+
+Kendall’s τ (Kendall, 1938) measures the ordinal correlation between two ranked lists. For work-flows, we treat the step ordering as a ranking and compute 
+
+τ = C − D 
+
+> 12
+
+n(n − 1) ,
+
+where n is the number of aligned steps being com-pared, and C and D denote the numbers of con-cordant and discordant step pairs, respectively. τ
+
+ranges from −1 (complete disagreement) to 1 (per-fect agreement). 
+
+B.6 LLM-as-Judge Prompts 
+
+For the LLM-as-Judge evaluation, we designed a rubric-based prompt that instructs the model to compare a generated workflow against a gold refer-ence. Workflows are formatted with explicit node and edge lists. 
+
+B.6.1 Rubric 
+
+• 0 = Completely Incorrect or Irrelevant • 1 = Major Flaws (breaks core logic) • 2 = Significant Issues (omits several key steps or adds wrong steps) • 3 = Noticeable Errors (minor reorder or one extra/missing non-critical step) • 4 = Very Good (only one minor step missing) • 5 = Perfect Match (fully adheres, detailed, accurate) 
+
+B.6.2 Anchor Examples 
+
+We provide concrete anchors to calibrate the model’s scoring: • Example A (Score 4): Workflow missing one minor step. • Example B (Score 5): Workflow perfectly matches the gold. • Example C (Score 3): Workflow with minor reordering of steps. • Example D (Score 2): Workflow with extra irrelevant steps. • Example E (Score 0): Workflow completely incorrect relative to task. Table 1: Average metric scores (mean ± std) at different perturbation levels for Missing Steps.                         
+
+> Metric Perturbation Level 10% 30% 50%
+> Graph F1 0.90 ±0.06 0.76 ±0.06 0.61 ±0.06
+> Chain F1 0.90 ±0.07 0.76 ±0.06 0.61 ±0.06
+> BLEU 0.79 ±0.13 0.52 ±0.14 0.29 ±0.13
+> GLEU 0.80 ±0.11 0.58 ±0.11 0.42 ±0.11
+> BERTScore 0.81 ±0.26 0.68 ±0.28 0.72 ±0.30
+> Kendall’s Tau 0.81 ±0.09 0.61 ±0.08 0.44 ±0.07
+> LLM-as-Judge 0.64 ±0.21 0.36 ±0.08 0.32 ±0.10
+
+B.6.3 Prompt Format 
+
+The model is instructed to: 1. List nodes and edges from both workflows. 2. Match nodes by content. 3. Identify missing, extra, or reordered steps. 4. Assign an initial score using the rubric. 5. Perform a self-check: confirm if the initial score strictly follows the rubric. 6. Adjust to a final score if necessary. 
+
+B.6.4 Expected Output 
+
+The model must return exactly one JSON object with the fields: 
+
+{"ThoughtChain": "<step-by-step reasoning>", "initial_score": <int 0–5>, "self_check": { "consistent": "Yes"|"No", "final_score": <int 0–5> }, "justification": "<one-sentence summary>" }
+
+B.6.5 Implementation Notes 
+
+We use GPT-4o via Azure OpenAI with tempera-ture 0.0 to minimize randomness. Each workflow pair is evaluated across multiple prompt templates, and scores are averaged to reduce variance. 
+
+C Results Discussion 
+
+C.1 Sensitivity Analysis 
+
+To quantify how rapidly each metric’s score de-grades as perturbation severity increases, we define 
+
+Table 2: Average metric scores (mean ± std) at different perturbation levels for Compressed Steps.                         
+
+> Metric Perturbation Level 10% 30% 50%
+> Graph F1 0.86 ±0.10 0.66 ±0.15 0.45 ±0.18
+> Chain F1 0.86 ±0.10 0.66 ±0.15 0.44 ±0.18
+> BLEU 0.87 ±0.14 0.71 ±0.17 0.51 ±0.20
+> GLEU 0.86 ±0.12 0.70 ±0.15 0.53 ±0.17
+> BERTScore 0.41 ±0.26 0.36 ±0.25 0.32 ±0.24
+> Kendall’s Tau 0.74 ±0.14 0.46 ±0.16 0.17 ±0.19
+> LLM-as-Judge 0.64 ±0.22 0.41 ±0.13 0.37 ±0.10
+
+Table 3: Average metric scores (mean ± std) at different perturbation levels for Change in Description.                         
+
+> Metric Perturbation Level 10% 30% 50%
+> Graph F1 0.97 ±0.08 0.91 ±0.12 0.85 ±0.16
+> Chain F1 0.96 ±0.08 0.91 ±0.12 0.85 ±0.16
+> BLEU 0.85 ±0.12 0.66 ±0.14 0.50 ±0.15
+> GLEU 0.86 ±0.10 0.67 ±0.13 0.52 ±0.14
+> BERTScore 0.94 ±0.20 0.86 ±0.21 0.79 ±0.21
+> Kendall’s Tau 1.00 ±0.05 0.99 ±0.08 0.99 ±0.09
+> LLM-as-Judge 0.98 ±0.08 0.99 ±0.07 0.99 ±0.06
+
+the sensitivity of metric m to leverage all available perturbation levels: 
+
+∆avg  
+
+> m
+
+= 12
+
+"
+
+¯sm(10%) − ¯sm(30%) 0.20 + ¯sm(30%) − ¯sm(50%) 0.20 
+
+# (1) where ¯sm(α) denotes the mean score of met-ric m at α% perturbation (see Tables 1, 2, 3). This formulation averages the degradation rates across both the 10 →30% and 30 →50% intervals, pro-viding a more stable and representative estimate of how sensitively each metric responds to pertur-bations. By considering multiple intervals, ∆avg 
+
+> m
+
+mitigates the effect of local non-linearities or noise and yields a smoother measure of robustness. Figure 6 visualizes ∆avg  
+
+> m
+
+across three perturba-tion types, namely Removed Steps , Compressed Steps , and Description Edits , for all seven metrics. Several consistent patterns emerge: 
+
+Structural metrics (Graph F1, Chain F1). 
+
+Both Graph F1 and Chain F1 show their highest sensitivity under compressed steps , with ∆avg  
+
+> m
+
+=Graph F1 
+
+> Chain F1
+> BLEU
+> GLEU
+> BERTScore
+> Kendall’s  τ
+> LLM-as-Judge
+
+Metrics     
+
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> Sensitivity
+> Removed Steps Compressed Steps Description Edits Figure 6: Metric sensitivity across perturbation types (mean ±std) for Description Change.
+
+1.03 in Figure 6, indicating that node merging dis-rupts edges and paths more than equivalent rates of removal. Sensitivity under removed steps is mod-erate ( 0.73 ), while description edits remain low (0.30 ), consistent with topology being unchanged. The two metrics follow nearly identical patterns across perturbation types, peaking for compression, lower for removal, and minimal for description edits, confirming that both primarily capture struc-tural distortions rather than surface-level reword-ing. 
+
+Lexical metrics (BLEU, GLEU) BLEU and GLEU show generally high sensitivity ( ∆avg  
+
+> m
+
+≈
+
+0.8–1.25 ). Both peak for Removed Steps (BLEU 
+
+= 1 .25 , GLEU = 0 .95 ), indicating that token loss and reordering drive the strongest drops. Under 
+
+Compressed Steps , sensitivity is lower but still sub-stantial (BLEU = 0.90 , GLEU = 0 .83 ). For De-scription Edits , BLEU remains high yet slightly below compression ( 0.88 ), while GLEU is roughly on par with—or a touch above, compression ( 0.85 ). Overall, removals cause the greatest lexical disrup-tion; compression and paraphrasing are both de-tected, with BLEU slightly more affected by com-pression and GLEU slightly more responsive to paraphrasing. 
+
+Embedding metrics (BERTScore). BERTScore shows comparatively low sensitivity overall (∆avg  
+
+> m
+
+< 0.4), indicating tolerance to moderate structural or lexical changes. It remains low for 
+
+Removed and Compressed cases (each 0.23 ) and rises only under Description Edits (0.38 ), reflect-ing resilience to paraphrasing with some sensitivity to semantic drift. The generally low magnitudes suggest limited discriminative power across pertur-bation severities: BERTScore tends to group mild and severe variants more closely than structural or lexical metrics. 
+
+Order-based metric (Kendall’s τ ). Kendall’s τ
+
+is strongest for Compressed Steps (1.43 ), indicat-ing that merging nodes substantially alters pair-wise precedence relations. Sensitivity for Re-moved Steps is lower but still high ( 0.93 ), reflect-ing order disruptions from deleting intermediate steps. For Description Edits , sensitivity is near zero ( 0.03 ), consistent with unchanged topology. Overall, Kendall’s τ reliably captures order-level distortions, peaking when compression collapses or reshuffles task sequences. 
+
+Judgment-based metric (LLM–as–Judge). 
+
+LLM–as–Judge shows high sensitivity for Re-moved Steps (0.99 ) and substantial sensitivity for 
+
+Compressed Steps (0.87 ), while remaining nearly flat for Description Edits (0.03 ). This pattern indicates that the judgment signal prioritizes functional completeness and procedural detail, reliably flagging structural loss but largely ignoring wording changes when topology is intact.

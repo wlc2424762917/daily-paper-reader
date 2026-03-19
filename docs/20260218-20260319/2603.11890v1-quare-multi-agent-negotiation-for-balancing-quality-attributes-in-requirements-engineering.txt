@@ -1,0 +1,457 @@
+Title: QUARE: Multi-Agent Negotiation for Balancing Quality Attributes in Requirements Engineering
+
+URL Source: https://arxiv.org/pdf/2603.11890v1
+
+Published Time: Fri, 13 Mar 2026 00:55:26 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# QUARE: Multi-Agent Negotiation for Balancing Quality Attributes in Requirements Engineering 
+
+Haowei Cheng 
+
+Waseda University 
+
+Tokyo, Japan haowei.cheng@fuji.waseda.jp 
+
+Milhan Kim 
+
+Waseda University 
+
+Tokyo, Japan milhan.kim@ruri.waseda.jp 
+
+Foutse Khomh 
+
+Polytechnique Montr´ eal 
+
+Montr´ eal, Canada foutse.khomh@polymtl.ca 
+
+Teeradaj Racharak 
+
+Tohoku University 
+
+Miyagi, Japan racharak.teeradaj.c3@tohoku.ac.jp 
+
+Nobukazu Yoshioka 
+
+Waseda University 
+
+Tokyo, Japan nobukazu@aoni.waseda.jp 
+
+Naoyasu Ubayashi 
+
+Waseda University 
+
+Tokyo, Japan ubayashi@aoni.waseda.jp 
+
+Hironori Washizaki 
+
+Waseda University 
+
+Tokyo, Japan washizaki@waseda.jp 
+
+Abstract —Requirements engineering (RE) is critical to soft-ware success, yet automating it remains challenging because multiple, often conflicting quality attributes must be balanced while preserving stakeholder intent. Existing Large-Language-Model (LLM) approaches predominantly rely on monolithic reasoning or implicit aggregation, limiting their ability to systematically surface and resolve cross-quality conflicts. We present QUARE (QUality-Aware Requirements Engineering), a multi-agent framework that formulates requirements analysis as structured negotiation among five quality-specialized agents (Safety, Efficiency, Green, Trustworthiness, and Responsibility), coordinated by a dedicated orchestrator. QUARE introduces a dialectical negotiation protocol that explicitly exposes inter-quality conflicts and resolves them through iterative proposal, critique, and synthesis. Negotiated outcomes are transformed into structurally sound KAOS goal models via topology validation and verified against industry standards through retrieval-augmented generation (RAG). We evaluate QUARE on five case studies drawn from established RE benchmarks (MARE, iReDev) and an industrial autonomous-driving specification, spanning safety-critical, financial, and information-system domains. Results show that QUARE achieves 98.2% compliance coverage (+105% over both baselines), 94.9% semantic preservation (+2.3 percentage points over the best baseline), and high verifiability (4.96/5.0), while generating 25–43% more requirements than existing multi-agent RE frameworks. These findings suggest that effective RE automation depends less on model scale than on principled architectural decomposition, explicit interaction protocols, and automated verification. 
+
+Index Terms —Requirements Engineering, Multi-Agent Sys-tems, Large Language Models, KAOS Modeling, Goal-Oriented Requirements Engineering, Requirements Negotiation 
+
+I. I NTRODUCTION 
+
+Requirements Engineering (RE) serves as the foundational phase of the software development lifecycle, directly influ-encing the quality and success of the final product [1]. In the era of autonomous systems and AI-driven applications, RE has evolved from simple functional specifications to encom-pass a multi-dimensional spectrum of quality attributes [2]. Modern software must simultaneously satisfy competing non-functional requirements (NFRs), such as safety, efficiency, en-vironmental sustainability, and trustworthiness [3]. As system complexity scales, manually balancing these diverse quality di-mensions while maintaining consistency becomes error-prone and labor-intensive [4]. Despite decades of research, RE remains a primary source of software project failure, with empirical studies indicating that over 70% of failed projects trace back to requirements-related issues such as incompleteness, ambiguity, and unre-solved stakeholder conflicts [5], [6]. Safety-critical domains such as autonomous vehicles and medical devices amplify these challenges, as systems must simultaneously satisfy strin-gent, often competing, quality attributes [7]. The core diffi-culties include balancing multi-dimensional quality attributes, resolving inconsistencies across heterogeneous stakeholder requirements, and providing systematic modeling support with sufficient traceability for downstream validation. These challenges persist due to structural limitations of ex-isting RE approaches. First, requirements analysis is typically performed from a monolithic perspective, making it difficult to reason explicitly about conflicts. Both human-driven and single-agent automated approaches tend to collapse diverse stakeholder viewpoints into a unified narrative, obscuring underlying trade-offs. Second, while goal-oriented modeling methods such as KAOS (Knowledge Acquisition in Automated Specification) [8] provide expressive formalisms, they remain largely manual. Third, most existing approaches lack explicit negotiation protocols. We term this the Monolithic Integration Gap , i.e., the absence of structured dialogical mechanisms through which agents with competing quality objectives can surface, categorize, and resolve conflicts. Without a proto-col that distinguishes resource-bound conflicts from logical incompatibilities, multi-agent systems default to implicit ag-gregation, which obscures the rationale for trade-offs. To address these limitations, we propose QUARE, a quality-oriented multi-agent framework grounded in dialogical ne-gotiation. The core innovation lies in decomposing require-ments analysis along critical quality dimensions derived from ISO/IEC 25010 [3] and assigning each to a specialization based on a Large Language Model (LLM). Rather than em-
+
+> arXiv:2603.11890v1 [cs.SE] 12 Mar 2026
+
+ploying simple voting or sequential pipelines, these agents en-gage in explicit, multi-round negotiation through a five-phase pipeline that identifies and resolves cross-quality conflicts. QUARE then synthesizes negotiated outcomes into standard-ized KAOS goal models, ensuring structural correctness and industry compatibility. The main contributions of this work are as follows:  
+
+> •
+
+A negotiation-based multi-agent architecture for RE that formulates requirements analysis as collaborative ne-gotiation among quality-specialized agents with explicit conflict resolution across quality dimensions.  
+
+> •
+
+An automated pipeline for KAOS goal modeling that transforms unstructured requirements into structurally valid, traceable goal models.  
+
+> •
+
+A geometry-based evaluation methodology for multi-quality RE that addresses the limitation of scalar metrics by operationalizing requirement diversity as convex hull volume (CHV) and mean distance to centroid (MDC) in a five-dimensional quality space, complemented by per-axis balance metrics (Coverage Uniformity and Min-imum Axis Coverage), phase-wise semantic drift analysis (BERTScore), and structural compliance verification.  
+
+> •
+
+An open-source reimplementation suite (Open-ReBench) 1 containing faithful reimplementations of all compared frameworks under identical conditions, ne-cessitated by the absence of public implementations of MARE and iReDev, along with all experimental artifacts, prompts, outputs, and evaluation scripts. II. R ELATED WORK 
+
+Early research on RE has long explored automating require-ments analysis. For example, Vinay et al. [9] proposed a rule to automate requirements analysis and partial elements analysis. However, such early methods relied heavily on predefined heuristics and lacked mechanisms to reason about conflicting quality attributes or evolving stakeholder intent. 
+
+A. LLM-based Requirements Engineering 
+
+Recent advances in LLMs have stimulated growing interest in automating RE tasks, including requirements elicitation, classification, refinement, and specification generation [10], [11]. Elicitron [12] employs a population of LLM-generated user agents to simulate diverse perspectives and uncover latent needs; however, these agents operate independently without inter-agent negotiation. Despite promising results, most LLM-based RE approaches rely on single-agent reasoning [13], [14], where a single model performs all analysis within a unified prompt. Such approaches implicitly optimize for linguistic plausibility rather than multi-objective trade-offs. When multiple quality attributes are en-coded together, dominant objectives tend to overshadow less explicit concerns such as sustainability or regulatory respon-sibility. Moreover, these methods provide limited support for explicit conflict identification, traceability across artifacts, or semantic guarantees for downstream verification. 
+
+> 1https://anonymous.4open.science/r/OpenRE-Bench-6660
+
+B. Multi-Agent Systems in Requirements Engineering 
+
+Collaborative RE has sought multi-agent systems. Early work such as Xipho [15] and the negotiation-based frame-works of Gr¨ unbacher et al. [16] model requirements analysis as interactions among autonomous agents, demonstrating that negotiation can surface conflicts and improve consistency. More recently, the literature has proposed LLM-based multi-agent frameworks to automate larger portions of the RE lifecycle. MARE [17] decomposes RE into elicitation, modeling, verification, and specification tasks, with task-specialized agents collaborating through a shared workspace. iReDev [18], [19] augments this with knowledge-driven agents and a human-in-the-loop mechanism for artifact refinement. Both frameworks demonstrate the feasibility of end-to-end automation but primarily emphasize task orchestration rather than quality-dimension negotiation. Specifically, the agents in MARE share the same holistic quality perspective and lack the structural tension necessary to surface cross-quality conflicts. iReDev resolves conflicts through external human intervention or implicit convergence, without a protocol that categorizes conflict types or enforces semantic preservation guarantees. Neither framework explicitly models negotiation dynamics among competing quality attributes, leaving the rationale behind trade-off decisions opaque. 
+
+C. Argumentation Theory and Negotiation 
+
+Dialogical approaches and negotiation have roots in formal argumentation theory. The abstract argumentation framework of Dung [20] formalized argument defeat and acceptability, while Walton and Krabbe [21] characterized dialogue types, including persuasion and negotiation. The protocol of QUARE most closely resembles a persuasion dialogue combined with a negotiation dialogue: agents propose requirements grounded in quality objectives (thesis), peers articulate critiques that expose constraint violations (antithesis), and a moderator synthesizes refined proposals (synthesis). Recent work has explored LLM-based multi-agent debate for improving factual accuracy [22], [23], demonstrating that structured disagreement improves output quality beyond single-agent self-critique. However, these approaches target open-ended reasoning tasks and do not address RE-specific challenges: conflict categorization by quality dimension, termi-nation under engineering feasibility constraints, and semantic preservation of stakeholder intent. QUARE differentiates itself by grounding agent roles in a domain-specific quality taxonomy (ISO/IEC 25010) rather than generic debate roles, incorporating explicit conflict clas-sification (resource-bound vs. logical incompatibility) with priority-weighted resolution. Convergence is evaluated via semantic stability (BERTScore [24]) and engineering-level consistency criteria (ISO/IEC/IEEE 29148, DAG validity), so that outputs are both linguistically coherent and engineering-ready. To our knowledge, QUARE is the first framework in the RE domain to systematically instantiate an argumentation-inspired dialectical negotiation protocol within an LLM-based pipeline, TABLE I: Specialized Agents within QUARE                      
+
+> Agent Role Quality Concern Core Responsibility
+> Safety Agent Safety & Reliability Hazard identification and mitigation Efficiency Agent Performance Resource optimization and latency Green Agent Sustainability Energy efficiency and carbon footprint Trustworthiness Agent Security & Privacy Data protection and access control Responsibility Agent Ethical & Compliance Regulatory and so-cial responsibility Orchestrator Agent System Integration Multi-agent coordination and workflow orchestration
+
+featuring explicit conflict categorization and engineering-level convergence criteria. III. M ETHODOLOGY 
+
+The following research questions (RQs) guided the research in our work: RQ1: Does specialized multi-agent collaboration improve the comprehensiveness and quality of generated requirements compared to single-agent generation? RQ2: How does multi-agent negotiation affect conflict res-olution effectiveness while preserving the original semantic intent of requirements? RQ3: How effectively does the framework generate struc-turally valid and industry-compliant requirement models? 
+
+A. Multi-Agent Architecture 
+
+To address the multi-dimensional nature of requirements quality, we adopt a role-based multi-agent architecture com-prising six distinct roles: five quality-specialized agents and one orchestration role (Table I). The quality-specialized agents represent core non-functional concerns: Safety, Efficiency, Sustainability, Trustworthiness, and Responsibility, while a dedicated Orchestrator coordinates these agents and integrates their outputs. The five specialized agents are instantiated using a shared LLM backbone but are functionally isolated through dedicated system prompts. Each prompt comprises three components: (1) a role definition specifying the quality dimension and prioritization criteria; (2) a chain-of-thought (CoT) task in-struction directing the agent to analyze input, identify quality-relevant concerns, and formulate requirements; and (3) an output schema enforcing JSON-structured requirements with fields for goal ID, description, quality dimension, KAOS level, and rationale. All agents use zero-shot prompting. The selection of these five quality dimensions is grounded in the ISO/IEC 25010 SQuaRE (Systems and Software Qual-ity Requirements and Evaluation) quality model [25], which defines a hierarchical taxonomy of eight product quality char-acteristics. Safety and Reliability correspond to the Reliability and Safety characteristics of ISO 25010; Efficiency maps to Performance Efficiency; Trustworthiness subsumes the Se-curity characteristic; and Responsibility captures Maintain-ability and compliance-oriented aspects formalized in recent extensions for AI systems [26]. The Sustainability (Green) dimension, while not explicitly present in the original standard, reflects the growing consensus on green software [27] and has been proposed as an extension in recent literature [28]. This grounding ensures principled, non-overlapping agent decom-position with established measurement criteria, in contrast to MARE and iReDev, which do not ground their decompositions in an explicit quality standard. The rationale for this specialization is twofold. First, it mitigates prompt overloading, where an LLM may overlook attribute-specific constraints when exposed to an overly broad prompt [28], [29]. Second, it deliberately induces structured disagreement among agents with competing objectives (e.g., Safety vs. Efficiency), thereby laying the groundwork for the subsequent dialogical negotiation phase (Section III-C). 
+
+B. The Five-Phase Requirement Pipeline 
+
+The operational workflow is organized into a five-phase pipeline (Figure 1), ensuring systematic transition from raw project descriptions to formalized goal models. The pipeline separates concerns across phases: diversity-oriented generation (Phase 1), semantic reconciliation via negotiation (Phase 2), structural consolidation through model integration (Phase 3), constraint enforcement through verification (Phase 4), and final materialization (Phase 5). Negotiation and verification serve distinct roles: conflicts are resolved at the semantic level before structural integration. At the same time, compliance checking is enforced as an independent validation gate that does not alter negotiated intent. 
+
+Phase 1: Parallel Generation 
+
+Five specialized agents operate in parallel, each processing the same project description using quality-oriented system prompts, producing diverse candidate requirements that cover functional and non-functional concerns. 
+
+Phase 2: Dialectical Negotiation 
+
+The coordinator identifies semantic overlaps and logical contradictions. Agents then engage in multi-round delibera-tion following a thesis, antithesis, and synthesis structure to refine or merge conflicting goals. Each round concludes with pairwise cross-agent validation. The negotiation protocol is detailed in Section III-C. 
+
+Phase 3: Integration & Topology Validation 
+
+Fragmented requirements are synthesized into a coherent KAOS structure through semantic deduplication, cross-agent parent–child stitching, and DAG validation. Cycles are prohib-ited as they would imply that a goal depends on its own sub-goals, creating circular reasoning that undermines traceability. Structural corrections preserve negotiated intent from Phase 2. 
+
+Phase 4: Verification 
+
+Multi-layer validation includes deterministic rule checking, RAG-based hallucination detection, and compliance verifi-cation (e.g., ISO 26262, ISO 27001). This phase augments requirements with structural annotations without modifying underlying intent. 
+
+Phase 5: Standardized Output Generation Fig. 1: Overview of the QUARE framework. The pipeline comprises five sequential phases: parallel agent-based generation (Phase 1), dialectical conflict negotiation (Phase 2), KAOS goal model integration and topology validation (Phase 3), multi-layer verification and compliance checking (Phase 4), and standardized engineering materials generation (Phase 5). Generates formalized KAOS models (JSON and GSN XML), human-readable documentation, and downstream ma-terials, such as test cases and architecture documents. 
+
+C. Dialectical Negotiation Protocol 
+
+The protocol instantiates a structured dialectical negotiation inspired by formal argumentation [20], adapted to multi-quality requirements negotiation. We adopt dialectical as the primary term to emphasize the thesis–antithesis–synthesis structure. The protocol is also dialogical in the sense of Walton and Krabbe [21], as it unfolds through multi-party dialogue. Each round consists of a thesis (agent proposal), antithe-sis (peer critique citing constraint violations), and synthesis (moderated resolution), with explicit engineering termination and traceability conditions. Unlike implicit aggregation or heuristic-based debate, the protocol treats conflict resolution as a primary operation, prioritizing semantic preservation alongside transparent trade-off management. 
+
+a) Conflict Detection and Categorization: We define a conflict as a state in which the satisfaction of an agent-specific constraint Ci undermines the attainment of another constraint 
+
+Cj . Conflicts fall into two classes. The first concerns resource-bound conflicts , which arise when quality attributes compete for finite resources (e.g., safety redundancy vs. power mini-mization). The second consists of logical incompatibilities , in which requirements impose mutually exclusive system states (e.g., encryption latency vs. response-time constraints). A specialized Conflict Coordinator mediates conflict detec-tion in two stages. First, the coordinator computes pairwise co-sine similarities over bert-base-uncased embeddings of agent-generated requirements and flags pairs whose similarity exceeds τ = 0 .85 as potential overlaps. Second, the LLM clas-sifies each flagged pair as (a) redundant, (b) resource-bound conflict, or (c) logical incompatibility. Separating embedding-level retrieval from LLM-level classification allows the coordi-nator to surface multi-dimensional contradictions that heuristic merging would absorb. 
+
+b) Dialectical Loop: The protocol operates through three coordinated stages. In the first stage, agents independently an-alyze requirement pairs to detect semantic overlaps and logical contradictions, establishing a conflict registry that prioritizes high-severity incompatibilities. The second stage initiates di-alectical rounds, in which agents engage in iterative proposal, critique, and synthesis cycles, capped at 3 rounds to ensure termination. The third stage validates the resolution outcome, verifying that all registered conflicts have been addressed and that no new contradictions have been introduced. In each iteration, a focus agent Ai proposes a candidate requirement set Ri reflecting its primary quality concern. Peer agents evaluate Ri against their own constraints and articulate rationalized critiques. These critiques are integrated through neutral moderation, resolving conflicts either by jointly satisfy-ing multiple constraints or by applying project-specific priority weights. Unresolved conflicts after three rounds are escalated to priority-weighted integration in Phase 3, preserving all conflict rationale in the negotiation trace. By design, the negotiation phase records conflict signals, resolution states, and trade-off rationale as structured meta-data rather than directly rewriting requirement text. Textual modifications are deferred to Phase 3, where deduplication and structural harmonization are applied. 
+
+c) Mathematical Formalization: Let A = {A1, . . . , A n}
+
+denote specialized agents with quality objectives Qi and priority weights wi. The negotiation approximates: 
+
+r∗ = arg max 
+
+> rn
+
+X
+
+> i=1
+
+wi · Qi(r) (1) The weights wi are initialized uniformly ( wi = 1 
+
+> n
+
+) and can be overridden by project-specific configuration. At round k,requirement rk is updated via: 
+
+rk+1 = G(rk, critique (Aj , r k)) (2) where G denotes the synthesis function integrating peer critiques into a revised proposal, the loop terminates when semantic similarity between successive rounds exceeds 1 − ϵ
+
+(measured by BERTScore) or N = 3 rounds is reached, ensuring both convergence and bounded computation. Eq. (2) is, in principle, order-sensitive. To mitigate ordering bias, QUARE employs round-robin scheduling in which each agent serves as the focus agent exactly once per round, and the Conflict Coordinator aggregates all pairwise critiques before synthesis. While this does not guarantee order-invariance, experiments across three random seeds (which shuffle agent ordering) show low variance, suggesting that the multi-round structure and coordinator-mediated synthesis substantially re-duce order sensitivity in practice. IV. E XPERIMENTAL SETUP 
+
+A. Case Studies 
+
+We evaluate QUARE using five case studies spanning safety-critical, financial, and information system domains (Ta-ble II). The Library and ATM systems are drawn from the MARE benchmark [17], while the RollCall and Bookkeeping systems are adopted from iReDev [18]. We additionally in-clude an Autonomous Driving (AD) case derived from indus-trial specifications [30], representing a safety-critical system with rich cross-quality constraints. Across all five case stud-ies, specialized agents are activated to ensure comprehensive quality coverage and enable fair comparisons across systems with varying quality emphases. TABLE II: Summary of Case Studies             
+
+> Case Study Domain Core Focus
+> AD Automotive Safety (ISO 26262) Library System Management Scalability ATM System Finance Security / Compliance RollCall System Management Functional Logic Bookkeeping System Finance Data Integrity
+
+B. Agent and Model Configuration 
+
+The implementation allows model alternation, and the experiment used only the gpt-4o-mini-2024-07-18 
+
+model. The temperature was fixed at 0.7 to balance linguistic diversity and structural consistency. This lightweight model configuration isolates the impact of the proposed architec-ture and negotiation mechanisms from model scale effects. Agents employ ChromaDB for retrieval-augmented generation (RAG) [31], grounding their reasoning in external standards including ISO 26262 and ISO 27001. Generated goal models conform to a three-level KAOS hierarchy (Strategic, Tactical, and Operational). The negotiation process is capped at three rounds per agent, which was sufficient to reach convergence in all scenarios. Each experiment is executed three times with different random seeds, and results are averaged to mitigate non-determinism. 
+
+C. Baselines and Comparison Methods 
+
+We compare against four baselines spanning increasing levels of multi-agent coordination. 
+
+Single-agent baseline. A single LLM instance performs RE in a single pass, without role specialization or iterative refinement. 
+
+Multi-agent without negotiation. Five specialized agents operate in parallel (corresponding to Phase 1 of our pipeline), with outputs directly aggregated without conflict resolution. This ablation isolates the effect of dialectical negotiation (RQ2). 
+
+MARE. A task-specialized multi-agent framework with five agents organized around a 9-action pipeline. Agents collabo-rate through a shared workspace with single-turn negotiation, decomposing RE by task type rather than by quality dimen-sion. 
+
+iReDev. A knowledge-driven multi-agent framework with six agents and a 17-action workflow. In our reimplementation, human-in-the-loop interactions are operationalized via LLM-based surrogate agents with deterministic fallback, enabling full automation and reproducibility while acknowledging that this may not fully capture the quality of real human feedback. The three multi-agent frameworks differ fundamentally in agent decomposition strategy: MARE assigns agents by en-gineering task , iReDev by knowledge role , and QUARE by 
+
+quality dimension (ISO/IEC 25010). This distinction enables evaluation of both absolute performance and the impact of decomposition philosophy on requirement quality, diversity, and compliance. Since neither MARE nor iReDev provides publicly available implementations, we reimplemented both following their pub-lished descriptions. All three frameworks were evaluated under identical conditions: gpt-4o-mini at temperature 0.7, round cap 3, max tokens 4000, the same five case studies (Table II), four experimental settings, and three random seeds (101, 202, 303), yielding 180 total runs (60 per system). All frameworks are co-implemented within the OpenReBench suite. Where implementation details were underspecified, we adopted the most conservative interpretation consistent with each paper’s stated design principles. 
+
+D. Evaluation Metrics 
+
+We define evaluation metrics aligned with our three RQs, covering requirement diversity, negotiation effectiveness, and structural validity under regulatory constraints. 
+
+a) RQ1: Coverage and Diversity: This RQ examines whether the generated requirements span diverse quality con-cerns, rather than clustering around a small set of dominant attributes. To this end, we embed requirements into a five-dimensional quality space Q = R5, where each axis corre-sponds to one of the five quality attributes managed by the specialized agents: Safety ( q1), Efficiency ( q2), Sustainability (q3), Trustworthiness ( q4), and Responsibility ( q5). Each requirement ri is projected into Q by scoring its relevance to each quality axis on a [0 , 1] scale, using a zero-shot LLM classifier ( gpt-4o-mini ) prompted with axis-specific rubrics (e.g., the Safety rubric: ‘Rate how directly this requirement addresses hazard identification, fault tolerance, or safety-critical behavior’ ). All five axes are evaluated in a single call, producing a five-dimensional relevance vector. The classifier is identical to the one used in the blind re-labeling analysis in Section V. Full rubrics are provided in the replication package. Let P = {r1, . . . , r m} ⊂ Q denote the resulting set of projected vectors, treated as a point set in the geometric sense for the coverage measures below. We quantify coverage and diversity using two geometry-based measures. The first is the convex hull volume (CHV), defined as the volume of conv( P ) in R5, computed via standard Delaunay triangulation. Higher CHV values indicate broader coverage across quality dimensions. The second met-ric is the mean distance to centroid (MDC), which captures the dispersion of requirements within the quality space. Formally, let ¯q = 1
+
+> m
+
+Pmi=1 ri denote the centroid of P , and define 
+
+MDC = 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥ri − ¯q∥2. (3) A higher MDC reflects greater dispersion and reduced redun-dancy among generated requirements. To complement the geometric measures above, which cap-ture overall spread in quality space, we introduce two per-axis distribution metrics that characterize dimensional balance. For multi-agent frameworks whose architecture decomposes requirements by quality dimension, let nk (k = 1, . . . , 5)denote the number of requirements assigned to axis k, and let ¯n = 15
+
+P 
+
+> k
+
+nk. Coverage Uniformity (CU) is defined as the standard deviation of per-axis counts: 
+
+CU = 
+
+vuut 15
+
+> 5
+
+X
+
+> k=1
+
+(nk − ¯n)2. (4) Lower CU indicates more balanced coverage across quality dimensions. Minimum Axis Coverage (MAC) is defined as 
+
+MAC = min k nk, capturing the worst-case dimensional guar-antee. Higher MAC ensures that no single quality dimension is systematically neglected. CU and MAC require per-axis assignment of requirements to quality dimensions. Multi-agent frameworks provide this naturally through agent specialization, whereas the single-agent baseline lacks such decomposition, we therefore omit CU and MAC for the single-agent baseline. 
+
+b) RQ2: Negotiation Effectiveness: This RQ evaluates whether dialectical negotiation successfully resolves conflicts while preserving original stakeholder intent. We measure negotiation effectiveness along three complementary dimen-sions. First, the conflict resolution rate (CRR) measures the proportion of detected contradictions that negotiation suc-cessfully resolves. Second, we assess semantic preservation using BERTScore. Finally, logical consistency ( Slogic ) is eval-uated through ISO 29148-based checks, detecting numeric or boolean inconsistencies across the resulting requirement set. 
+
+c) RQ3: Structural Validity and Compliance: This RQ assesses whether negotiated requirements can be reliably mapped to formal goal models and validated against regu-latory standards. Structural validity is evaluated by verifying acyclicity and parent–child integrity in the resulting KAOS goal graph. Compliance coverage measures the proportion of applicable regulatory clauses (e.g., ISO 26262) satisfied by the generated model. In addition, terminology consistency ( Sterm )is assessed on a 1–5 scale following ISO 29148, capturing the semantic coherence of concepts across the model and ensuring unified naming (e.g., harmonizing “client” and “user”). 
+
+E. Compliance Coverage via RAG-based Clause Entailment 
+
+To evaluate industry alignment, we measure compliance coverage against domain standards (e.g., ISO 26262 for AD; ISO 27001 for security-centric systems). Let C denote a corpus of standard clauses. For each case study, we first apply a deter-ministic scope filter (domain keyword rules) to C, then pass the retained clauses through an LLM-based applicability classifier that outputs a binary label with a short justification, yielding an applicable clause set Capp ⊆ C . Both the classifier prompt and the model are shared across all compared frameworks. For each applicable clause c ∈ C app , we retrieve the top-
+
+k relevant requirements {r1, . . . , r k} ⊆ R via embedding similarity, along with supporting standard context (neigh-boring paragraphs, definitions) to form an evidence bun-dle E(c) = {clause text , context , r 1, . . . , r k}. An indepen-dent verifier LLM then predicts an entailment label y(c) ∈{SATISFIED , PARTIALLY , NOT SATISFIED }, together with the best supporting requirement, a short rationale, and an extrac-tive citation. A clause is counted as covered when y(c) ∈Algorithm 1 Set-level semantic preservation via optimal matching 
+
+Require: Requirement sets R(a) = {r(a) 
+
+> i
+
+}mi=1 , R(b) =
+
+{r(b) 
+
+> j
+
+}nj=1 
+
+Ensure: Preservation score P ∈ [0 , 1]  
+
+> 1:
+
+Compute pairwise similarity Sij ←
+
+BERTScoreF1( r(a) 
+
+> i
+
+, r (b) 
+
+> j
+
+) 
+
+> 2:
+
+N ← max( m, n ) 
+
+> 3:
+
+Pad S to S′ ∈ RN ×N with dummy rows/cols; set dummy similarities to 0 
+
+> 4:
+
+Solve π∗ ← HungarianMax( S′) ▷ max-sum assignment  
+
+> 5:
+
+P ← 1
+
+> N
+
+PNi=1 S′ 
+
+> i,π ∗(i)
+> 6:
+
+return P
+
+{SATISFIED , PARTIALLY }. Compliance coverage is defined as the proportion of applicable clauses that are covered: 
+
+Coverage( R) = 1
+
+|C app |
+
+X
+
+> c∈C app
+
+1y(c) ∈ { SATISFIED , PARTIALLY }.
+
+(5) We report coverage averaged over three random seeds. To reduce verifier variance, we fix the verifier model and decoding parameters and apply a self-consistency majority vote over 
+
+n=3 repeated judgments per clause. 
+
+F. Set-level Semantic Preservation via Optimal Bipartite Matching 
+
+We measure semantic preservation across pipeline phases using a set-level extension of BERTScore. Let R(a)={r(a)1 , . . . , r (a) 
+
+> m
+
+} and R(b)={r(b)1 , . . . , r (b) 
+
+> n
+
+}
+
+denote the requirement sets produced at phases a and 
+
+b (e.g., Phase 1 vs. Phase 3). We compute a pairwise similarity matrix Sij = BERTScoreF1( r(a) 
+
+> i
+
+, r (b) 
+
+> j
+
+) using 
+
+bert-base-uncased , then solve a maximum-weight bipartite matching to obtain a one-to-one alignment that accounts for set-size differences via dummy padding. Algorithm 1 summarizes the procedure, the resulting score 
+
+P ∈ [0 , 1] decreases when requirements are rewritten (lower pairwise similarity) or when the set size changes (unmatched dummy nodes contribute zero similarity). V. R ESULTS AND ANALYSIS 
+
+In this section, we present results validating the effective-ness of QUARE. Our analysis follows three RQs, demonstrat-ing how the framework progresses from diverse generation to consistent, engineering-ready models. 
+
+A. Results for RQ1: Coverage and Diversity 
+
+RQ1 examines whether specialized multi-agent collabora-tion improves the coverage and diversity of generated re-quirements relative to single-agent generation. We compare the single-agent baseline with Phase 1 outputs, in which five quality-oriented agents independently generate requirements without negotiation. All geometric metrics (CHV and MDC) are computed in the original five-dimensional quality space 
+
+Q = R5, with PCA used solely for visualization. TABLE III: Requirement Coverage and Diversity (averaged across 5 case studies)                                
+
+> Framework Req. Count ( ↑)CHV ( ↑)MDC ( ↑)CU ( σ,↓)MAC ( ↑)Single-agent 14.2 2.8 0.715 ——MARE 24.4 4.8 0.835 0.30 4.6 iReDev 28.1 6.4 0.705 0.45 5.1 QUARE 35.0 4.3 0.673 0.20 6.7
+> Req. Count : total number of unique generated requirements. CHV : convex hull volume in 5-D quality space (values ×10 −3). MDC : mean distance to centroid. CU : coverage uniformity (Eq. 4); lower is more balanced. MAC :minimum axis coverage, i.e., the lowest per-axis requirement count; higher values indicate stronger worst-case coverage. CU and MAC are not applicable to the single-agent baseline, which lacks quality-dimension decomposition.
+
+The quantitative results in Table III confirm that multi-agent outputs achieve broader coverage than single-agent baselines across all five case studies. We provide detailed per-case breakdowns and visualizations in the supplemen-tary material. The three multi-agent systems exhibit com-plementary strengths across coverage metrics, reflecting dis-tinct architectural philosophies. QUARE generates the most requirements (35.0 avg, +43% over MARE, +25% over iReDev), driven by five quality-specialized agents that system-atically surface dimension-specific concerns. iReDev achieves the highest CHV (0.0064, +48% over QUARE), indicating the broadest quality-space exploration through its 6-agent knowledge-driven pipeline. MARE leads MDC (0.835, +24% over QUARE), producing the most dispersed, non-redundant distribution. While QUARE’s CHV and MDC are lower than those of iReDev and MARE respectively, this reflects an architec-tural trade-off inherent to quality-specialized decomposition. Because each agent focuses on a single quality dimension, generated requirements naturally cluster along their assigned axes, reducing geometric spread but improving dimensional balance and worst-case coverage. QUARE achieves the lowest CU (0.20 vs. 0.30 for MARE and 0.45 for iReDev) and the highest MAC (6.7 vs. 4.6 and 5.1), meaning that even its least-represented dimension receives more requirements than the worst-case axis of either baseline. This balanced coverage directly supports compliance outcomes: in the AD case, the Safety agent’s requirements achieve 91.1% ISO 26262 cov-erage versus MARE’s 7.8% and iReDev’s 10.0%, indicating that domain-specific emphasis is expressed through semantic depth rather than raw count. These results reveal an inherent trade-off between architectural design and coverage charac-teristics. Task-specialized agents (MARE) maximize geomet-ric dispersion, knowledge-driven agents (iReDev) maximize coverage breadth, and quality-specialized agents (QUARE) ensure balanced per-axis coverage with the strongest worst-case dimensional guarantees, a property that translates into downstream compliance outcomes (Table VI). 
+
+Answer to RQ1 
+
+Multi-agent collaboration yields up to 2.5 × more re-quirements, 129% higher CHV, and 17% higher MDC TABLE IV: Semantic Preservation (BERTScore F1, Phase 3 vs. Phase 1, ↑)                     
+
+> Case Study MARE iReDev QUARE AD 88.4 92.7 94.8 ATM 89.6 92.0 95.5 Library 87.7 92.6 94.8 RollCall 88.8 93.0 94.5 Bookkeeping 90.5 92.9 94.8 Average 89.0 92.6 94.9
+
+compared to single-agent generation. Among multi-agent frameworks, each architectural philosophy produces dis-tinct coverage characteristics: QUARE generates the most requirements (35.0, +43% over MARE) with the most balanced dimensional coverage (CU = 0.20 vs. 0.30/0.45) and strongest worst-case axis guarantee (MAC = 6.7 vs. 4.6/5.1); iReDev achieves the broadest quality-space ex-ploration (CHV = 0.0064); and MARE produces the most dispersed distribution (MDC = 0.835). QUARE’s balanced coverage translates into compliance advantages examined in RQ3 (98.2% vs. ∼47%). 
+
+B. Results for RQ2: Negotiation Effectiveness and Semantic Preservation 
+
+RQ2 investigates how dialectical negotiation resolves con-flicts while preserving semantic intent. We perform a phase-wise trajectory analysis across four milestones: Phase 1 (Raw Generation), Phase 2 (Negotiated Alignment), Phase 3 (Uni-fied Integration), and Phase 4 (Verified Output), comparing all three frameworks under identical conditions. 
+
+1) Quantitative Results: Table IV shows that QUARE achieves the highest semantic preservation across all cases (94.9% avg BERTScore between Phase 3 and Phase 1 outputs, +5.9 percentage points over MARE, +2.3 percentage points over iReDev), with perfect Phase 2 vs. Phase 1 preservation (100.0%). Table V further shows that this result is achieved despite conducting the deepest negotiation among all three systems (16.5 steps avg). The lower CRR of QUARE (25.0% vs. MARE’s 66.7%) reflects a difference in detection granularity rather than resolu-tion quality. MARE employs coarser conflict detection, mark-ing fewer total conflicts and resolving most through simple priority override. QUARE’s two-stage detection (embedding similarity + LLM classification) surfaces more conflicts, in-cluding architectural inconsistencies and cross-level semantic misalignments that coarser detection would miss. The larger denominator lowers the resolution rate. Unresolved conflicts are not discarded but handled through priority-weighted inte-gration in Phase 3, as reflected in QUARE’s higher overall semantic preservation (Table IV). Maximizing CRR is there-fore less important than surfacing meaningful conflicts and preserving intent across the pipeline. 
+
+2) Case Study: Multi-Agent Negotiation in Autonomous Driving: To illustrate the dialogical protocol concretely, we examine the sensor fusion latency conflict in the AD system, one of the highest-severity incompatibilities detected across all TABLE V: Negotiation Process Summary              
+
+> Metric MARE iReDev QUARE Avg. negotiation steps 10.0 12.0 16.5 Conflict resolution rate (%) 66.7 46.7 25.0 ∗
+> Phase 2 vs. Phase 1 BERTScore (%) 97.0 99.4 100.0
+> ∗QUARE detects 3.2 ×more conflicts than MARE; unresolved conflicts are handled via priority-weighted integration in Phase 3 (see Section III-C).
+
+five case studies. During Phase 1, the SafetyAgent proposed sensor fusion latency ≤ 500 ms (for dual-channel verification per ISO 26262-5 ASIL D compliance), while the Efficien-cyAgent mandated ≤ 30 ms (for 10 Hz real-time planning cycles per Apollo Spec §4.2), a 16.7 × numeric gap that neither MARE’s nor iReDev’s implicit aggregation mechanisms could structurally resolve.                              
+
+> Round 1: Conflict Eruption
+> SafetyAgent (TG2): Sensor fusion latency ≤500 ms for compre-hensive sensor validation and fault detection per ISO 26262-5.
+> EfficiencyAgent: Strong opposition. 500 ms consumes 5 ×the planning cycle budget (100 ms target). Sensor fusion must com-plete within 30 ms per Apollo Spec §4.2.
+> Classification: High-severity numeric incompatibility (resource-bound). UNRESOLVED
+> Round 2: Architectural Refinement
+> SafetyAgent (revision): Two-stage pipeline—fast-path ≤30 ms (95% cases), thorough-path ≤500 ms (anomaly-triggered).
+> EfficiencyAgent: Insufficient. Thorough-path must be (1) asyn-chronous and non-blocking, (2) fast-path ≥99%, (3) fallback ensures planning continuity. PARTIAL
+> Round 3: Consensus & Convergence
+> SafetyAgent (final): Three-component architecture:
+> •TG2.1: Fast-path ≤30 ms, synchronous, ≥99%
+> •TG2.2: Thorough-path ≤500 ms, async, non-blocking
+> •TG2.3: Fallback—planning uses fast-path during validation
+> EfficiencyAgent: Fast-path satisfies G1. Async thorough-path has zero planning impact. CONSENSUS
+
+The subsequent negotiation proceeded through three rounds of structured dialogical refinement, transforming this trade-off into an architectural solution satisfying both agents’ core constraints. This negotiation trace demonstrates how dialogical negotiation enables creative architectural solutions rather than simple compromises or priority-based rejection. By decom-posing the conflicting requirement into a synchronous fast-path (efficiency-critical, ≤ 30 ms, ≥ 99% of cases) and an asynchronous thorough-path (safety-critical, ≤ 500 ms, non-blocking), the framework satisfies both agents’ constraints without sacrificing either safety or efficiency. This architectural decomposition pattern reflects the broader negotiation behavior exhibited by QUARE across all five case studies, in which conflicts are resolved by restructuring the solution space rather than conceding individual constraints. In contrast, MARE would likely resolve this via safety prior-ity override, discarding the efficiency constraint, while iReDev lacks the structured dialogical mechanism to reach the three-component synthesis. This pattern generalizes across all five case studies, the protocol resolves conflicts by restructuring the solution space rather than conceding individual constraints. 
+
+Answer to RQ2 
+
+QUARE achieves 94.9% semantic preservation (+5.9 per-centage points over MARE, +2.3 percentage points over iReDev) despite conducting the deepest negotiation among all three systems (16.5 steps avg). The dialogical protocol resolves cross-agent conflicts through architectural decom-position rather than priority override, producing require-ments that are both logically coherent and engineering-ready. 
+
+C. Results for RQ3: Structural Validity and Compliance 
+
+RQ3 examines whether QUARE generates structurally valid and industry-compliant requirement models. We evaluate out-puts from Phase 3 (model integration) and Phase 4 (verification and compliance checking), comparing all three frameworks under identical experimental conditions. 
+
+1) Structural Validity and Internal Consistency: As shown in Table VI (A), all three systems achieve comparable struc-tural validity: valid DAG topology and zero detected logical contradictions ( Slogic = 1 .000 ) across all case studies. Each operational element traces to at least one tactical goal, and each tactical goal links to a strategic objective. The key differentiator is compliance coverage. QUARE achieves 98.2% average compliance, a +105% improvement over both MARE (47.6%) and iReDev (47.8%), which score nearly identically despite differing architectures. This gap is most pronounced in the safety-critical AD case, where QUARE reaches 91.1% ISO 26262 coverage against MARE’s 7.8% and iReDev’s 10.0%. This advantage stems from Phase 4 RAG-augmented verification, which maps requirements to specific standard clauses. Neither MARE nor iReDev includes such a step; their compliance scores reflect only incidental overlap between generated requirements and regulatory clauses. TABLE VI: Structural Validity and Compliance                               
+
+> (A) Structural Correctness
+> Metric MARE iReDev QUARE DAG Topology Valid ✓✓✓
+> Logical Consistency ( Slogic )1.000 1.000 1.000 Compliance Coverage (%) 47.6 47.8 98.2 (B) ISO/IEC/IEEE 29148 Quality Scores (1–5 scale, LLM-judge)
+> Criterion MARE iReDev QUARE Unambiguous 4.41 4.19 4.24 Correctness 5.00 5.00 5.00 Verifiability 3.95 3.96 4.96
+> Set Consistency 5.00 5.00 5.00 Set Feasibility 3.74 3.75 4.96
+> Note: Compliance coverage averages ISO 26262 (AD) and ISO 27001 (remaining cases). Bold indicates the best result per metric.
+
+2) ISO/IEC/IEEE 29148 Evaluation: We evaluate industrial quality against ISO 29148 at both individual requirement and requirement-set levels, using an LLM-based judge in-stantiated independently of the generation agents to miti-gate self-evaluation bias. Table VI (B) presents cross-system averages. All three systems score 5.00 on both correctness and consistency, indicating that multi-agent pipelines reliably produce well-formed, internally coherent requirement sets. MARE leads marginally in unambiguity (4.41), which we attribute to its task-specialized agents’ focus on specification-level phrasing. The main advantages of QUARE appear in verifiability (4.96, +25% over MARE) and set feasibility (4.96, +32% over MARE). Both gains trace to the RAG-augmented verification phase, which enforces measurable acceptance cri-teria and checks implementation feasibility against domain standards. These gains hold across all five case studies and are the quality dimensions most relevant to industrial adoption. 
+
+3) Regulatory Compliance and Semantic Stability: Phase 4 applies deterministic rule checking and standards-based vali-dation (ISO 26262 for AD, ISO 27001 for security systems). After verification, all QUARE-generated models achieve 100% compliance. The BERTScore between Phase 3 and Phase 4 remains unchanged across all cases, confirming that compli-ance checking functions as a pure validation layer rather than a transformation step, and that negotiated semantic intent is fully preserved throughout the verification pipeline. 
+
+Answer to RQ3 
+
+All three systems achieve structural parity (valid DAG topology, Slogic = 1.000 , perfect correctness and con-sistency). However, QUARE outperforms both MARE and iReDev in compliance coverage ( 98.2% vs. 47.6% and 47.8%) and requirement quality (verifiability 4.96 ,feasibility 4.96 ), demonstrating that automated RAG-augmented verification is the key component for produc-ing engineering-ready, standards-compliant artifacts. 
+
+D. Cross-Framework Synthesis 
+
+Synthesizing the results from Tables III–VI, QUARE leads in compliance-critical metrics (compliance coverage, verifiability, feasibility, and semantic preservation), require-ment count, and dimensional balance (lowest CU, highest MAC), while MARE leads in runtime and dispersion (MDC), and iReDev achieves the broadest quality-space exploration (CHV). The three systems reflect distinct design philosophies: QUARE excels in compliance-critical and safety-critical sce-narios with the most balanced quality-dimension coverage, strongest semantic preservation, and regulatory alignment at moderate cost (55.4s); MARE is optimal for rapid prototyping with the fastest runtime, but lower compliance; and iReDev oc-cupies a knowledge-intensive middle ground with the highest CHV but at 4.8 × computational cost of MARE. 
+
+E. Ablation Study and Discussion 
+
+This section provides a consolidated analysis of how in-dividual components of QUARE contribute to the overall performance observed in RQ1–RQ3. Our ablation follows a phase-wise design that incrementally evaluates the effect of each processing stage. 
+
+Agent Specialization (Phase 1): CHV increases 53.6% over single-agent baselines, confirming that diversity emerges from quality-oriented specialization. MDC decreases modestly (−5.9% ), consistent with the architectural trade-off discussed in Section V-A: quality-specialized agents produce require-ments that cluster along their assigned axes, yielding lower geometric dispersion but stronger dimensional balance (CU = 0.20, MAC = 6.7). 
+
+Explicit Negotiation (Phase 2): QUARE achieves perfect semantic retention during negotiation (P2 vs. P1: 100.0%), in-dicating that the dialogical protocol resolves conflicts without overwriting original stakeholder intent. MARE and iReDev show slight drift (97.0% and 99.4%, respectively). 
+
+Model Integration (Phase 3): Integration introduces mod-est semantic adjustment (P3 vs. P1: 94.9% for QUARE), primarily from deduplication and structural harmonization rather than intent modification. 
+
+Verification and Compliance Checking (Phase 4): Zero semantic drift (P4 vs. P3 unchanged), confirming that compli-ance checking functions as a pure validation layer. The design of QUARE offers several properties relevant to industrial adoption. First, the quality-specialized decomposi-tion is extensible to additional agents without restructuring the pipeline. Second, the negotiation trace provides an auditable record of trade-off decisions, addressing traceability require-ments in safety-critical domains (ISO 26262, IEC 62304) and emerging regulatory mandates (EU AI Act, Article 11). Third, the moderate runtime (55.4s) and compatibility with lightweight models suggest feasibility for iterative develop-ment workflows. VI. T HREATS TO VALIDITY 
+
+Aligning with established guidelines for empirical soft-ware engineering research, we discuss potential threats to the validity of our study. These threats are organized into four categories: construct validity, internal validity, conclusion validity, and external validity. 
+
+A. Construct Validity 
+
+The CHV and MDC metrics rely on LLM-based quality classification. Blind re-labeling with an independent classifier yields 75% agreement and stable metric values, suggesting robustness. BERTScore is complemented by the logical consis-tency score ( Slogic ) to capture inconsistencies beyond embed-ding similarity. The ISO 29148 quality assessment also relies on an LLM-based judge, which may exhibit systematic biases. We mitigate this through axis-specific rubrics and independent blind relabeling (75% agreement). 
+
+B. Internal Validity 
+
+Since neither MARE nor iReDev provides publicly available implementations, both were reimplemented based on their pub-lished descriptions within the shared OpenReBench framework under identical conditions. Where the original specification was ambiguous, we adopted conservative design decisions. Improvements may be driven by increased computational ef-fort rather than architecture. We control model, prompt budget, and environment across all baselines, and isolate contributions via phase-wise ablation. All experiments use three random seeds with averaged results to reduce stochastic bias. 
+
+C. External Validity 
+
+The evaluation covers five case studies across safety-critical, financial, and information-management domains, though this may not capture the full range of RE scenarios. The AD case was constructed from public industrial documentation. As reimplementations may not perfectly replicate original behavior, results on MARE and iReDev should be interpreted as reflecting best-effort reconstruction. Reliance on a single LLM ( gpt-4o-mini ) limits generalizability. 
+
+D. Conclusion Validity 
+
+Results are averaged over three random seeds (101, 202, 303), with consistent ordering across all five case studies. The absence of formal significance testing (e.g., Wilcoxon signed-rank test) is a limitation, constrained by the computational cost of 180 total LLM runs. Future work will incorporate human expert evaluation, nonparametric significance tests, additional repetitions, and validation with alternative models. VII. C ONCLUSION 
+
+This paper presented QUARE, a structured multi-agent framework that decomposes requirements analysis into quality-specialized agents, resolves cross-quality con-flicts through explicit dialogical negotiation, and produces engineering-ready KAOS goal models with automated com-pliance verification. Through a three-way evaluation against MARE and iReDev across 180 experiment runs, we showed that (1) agent specialization yields up to 2.5 × more require-ments than single-agent generation with balanced quality-axis coverage (CU = 0.20), while each architectural approach offers distinct diversity characteristics (RQ1), (2) explicit negotiation achieves the highest semantic preservation (94.9%) while resolving conflicts through architectural decomposition rather than priority override (RQ2), and (3) all frameworks achieve structural validity, while RAG-augmented verification further yields 98.2% compliance coverage, a +105% improvement over both baselines (RQ3). For researchers, these findings suggest that effective RE automation depends more on principled architectural decom-position and explicit interaction protocols than on raw model scale. For practitioners, the modular design of QUARE is compatible with lightweight models, its quality-specialized agents map to organizational roles, and its negotiation traces can support regulatory audits. As future work, we plan to explore tighter human-in-the-loop integration and apply QUARE to larger-scale industrial settings. In addition, while the current negotiation protocol draws on dialogical principles, the formal argumentation lit-erature offers conflict resolution mechanisms such as value-based argumentation frameworks and abstract argumentation semantics, both largely unexplored in RE. Grounding the negotiation protocol in these theories could yield stronger formal guarantees on completeness and admissibility. DATA AVAILABILITY STATEMENT 
+
+All experimental artifacts supporting the findings of this study, including framework implementations of QUARE, MARE, and iReDev, prompt templates, case study inputs, raw outputs, and evaluation scripts, are openly available at: https://anonymous.4open.science/r/OpenRE-Bench-6660. REFERENCES [1] Klaus Pohl. Requirements engineering: An overview . RWTH, Fach-gruppe Informatik Aachen, 1996. [2] Shafiq Ur Rehman and Volker Gruhn. An effective security require-ments engineering framework for cyber-physical systems. Technologies ,6(3):65, 2018. [3] Internationale Organisation f¨ ur Normung. Systems and Software Engineering-Systems and Software Quality Requirements and Evalua-tion (SQuaRE)-System and Software Quality Models: Ing´ enierie Des Syst` emes Et Du Logiciel-Exigences Des Qualit´ e Et ´Evaluationn Des Syst` emes Et Du Logiciel (SQuaRE)-Mod` eles de Qualit´ e Du Syst` eme Et Du Logiciel . ISO, 2011. [4] Axel Van Lamsweerde. Requirements engineering in the year 00: A research perspective. In Proceedings of the 22nd international conference on Software engineering , pages 5–19, 2000. [5] Standish Group. CHAOS Report 2020, 2020. [6] D M´ endez Fern´ andez, Stefan Wagner, Marcos Kalinowski, Michael Felderer, Priscilla Mafra, Antonio Vetr` o, Tayana Conte, M-T Christians-son, Des Greer, Casper Lassenius, et al. Naming the pain in requirements engineering: Contemporary problems, causes, and effects in practice. 
+
+Empirical software engineering , 22(5):2298–2338, 2017. [7] John D. Musa. Software Reliability Engineering: More Reliable Software Faster and Cheaper . AuthorHouse, 2004. [8] Axel Van Lamsweerde. Requirements Engineering: From System Goals to UML Models to Software Specifications . Wiley, 2009. [9] S Vinay, Shridhar Aithal, and Prashanth Desai. An approach towards automation of requirements analysis. In Proceedings of the International MultiConference of Engineers and Computer Scientists , volume 1, 2009. [10] Jules White, Quchen Fu, Sam Hays, Michael Sandborn, Carlos Olea, Henry Gilbert, Ashraf Elnashar, Jesse Spencer-Smith, and Douglas C. Schmidt. ChatGPT Prompt Patterns for Improving Code Quality, Refactoring, Requirements Elicitation, and Software Design, 2023. arXiv:2303.07839. [11] Aftab Ahmad, Muhammad Waseem, Peng Liang, Mahdi Fahmideh, Md Shafiur Raham Aktar, and Tommi Mikkonen. Requirements En-gineering using Generative AI: Prompts and Prompting Patterns, 2023. arXiv:2311.03832. [12] Mohammadmehdi Ataei, Hyunmin Cheong, Daniele Grandi, Ye Wang, Nigel Morris, and Alexander Tessier. Elicitron: A large language model agent-based simulation framework for design requirements elic-itation. Journal of Computing and Information Science in Engineering ,25(2):021012, 2025. [13] Chetan Arora, John Grundy, and Mohamed Abdelrazek. Advancing requirements engineering through generative ai: Assessing the role of llms. In Generative AI for Effective Software Development , pages 129– 148. Springer, 2024. [14] Krishna Ronanki, Christian Berger, and Jennifer Horkoff. Investigating chatgpt’s potential to assist in requirements elicitation processes. In 
+
+2023 49th Euromicro conference on software engineering and advanced applications (SEAA) , pages 354–361. IEEE, 2023. [15] Pradeep K. Murukannaiah and Munindar P. Singh. Xipho: Extending tropos to support cross-organizational process modeling. ACM Transac-tions on Software Engineering and Methodology , 24(2):1–40, 2015. [16] Paul Gr¨ unbacher, Michael Halling, Stefan Biffl, Hakan Kitapci, and Barry W. Boehm. Using multi-agent systems for collaborative require-ments engineering. Requirements Engineering Journal , 11(4):251–260, 2006. [17] Dongming Jin, Zhi Jin, Xiaohong Chen, and Chunhui Wang. Mare: Multi-agents collaboration framework for requirements engineering. 
+
+arXiv preprint arXiv:2405.03256 , 2024. [18] Dongming Jin, Weisong Sun, Jiangping Huang, Peng Liang, Jifeng Xuan, Yang Liu, and Zhi Jin. iredev: A knowledge-driven multi-agent framework for intelligent requirements development. arXiv preprint arXiv:2507.13081 , 2025. [19] Jiangping Huang, Dongmin Jin, Weisong Sun, Yang Liu, and Zhi Jin. Envisioning intelligent requirements engineering via knowledge-guided multi-agent collaboration. In Proceedings of the 40th International Con-ference on Automated Software Engineering-New Ideas and Emerging Results Track , pages 1–6. IEEE Computer Society, 2025. [20] Phan Minh Dung. On the acceptability of arguments and its fundamen-tal role in nonmonotonic reasoning, logic programming and n-person games. Artificial intelligence , 77(2):321–357, 1995. [21] Douglas Walton and Erik CW Krabbe. Commitment in dialogue: Basic concepts of interpersonal reasoning . State University of New York Press, 1995. [22] Yilun Du, Shuang Li, Antonio Torralba, Joshua B Tenenbaum, and Igor Mordatch. Improving factuality and reasoning in language models through multiagent debate. In Forty-first international conference on machine learning , 2024. [23] Tian Liang, Zhiwei He, Wenxiang Jiao, Xing Wang, Yan Wang, Rui Wang, Yujiu Yang, Shuming Shi, and Zhaopeng Tu. Encouraging divergent thinking in large language models through multi-agent debate. In Proceedings of the 2024 conference on empirical methods in natural language processing , pages 17889–17904, 2024. [24] Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger, and Yoav Artzi. Bertscore: Evaluating text generation with bert. arXiv preprint arXiv:1904.09675 , 2019. [25] John Estdale and Elli Georgiadou. Applying the iso/iec 25010 quality models to software product. In European Conference on Software Process Improvement , pages 492–503. Springer, 2018. [26] Jennifer Horkoff. Non-functional requirements for machine learning: Challenges and new directions. In 2019 IEEE 27th international requirements engineering conference (RE) , pages 386–391. IEEE, 2019. [27] Roberto Verdecchia, June Sallou, and Lu´ ıs Cruz. A systematic review of green ai. Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery , 13(4):e1507, 2023. [28] Haowei Cheng, Jati H Husen, Yijun Lu, Teeradaj Racharak, Nobukazu Yoshioka, Naoyasu Ubayashi, and Hironori Washizaki. Generative ai for requirements engineering: A systematic literature review. Software: Practice and Experience , 2025. [29] Mosh Levy, Alon Jacoby, and Yoav Goldberg. Same task, more tokens: the impact of input length on the reasoning performance of large language models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) ,pages 15339–15353, 2024. [30] Haoyang Fan, Fan Zhu, Changchun Liu, Liangliang Zhang, Li Zhuang, Dong Li, Weicheng Zhu, Jiangtao Hu, Hongye Li, and Qi Kong. Baidu apollo em motion planner. arXiv preprint arXiv:1807.08048 , 2018. [31] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich K¨ uttler, Mike Lewis, Wen-tau Yih, Tim Rockt¨ aschel, et al. Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in neural information processing systems ,33:9459–9474, 2020.
