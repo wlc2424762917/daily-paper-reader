@@ -6,88 +6,85 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-19
-- 运行时间：2026-03-19 19:59:52 UTC
+- 最新运行日期：2026-03-20
+- 运行时间：2026-03-20 19:30:03 UTC
 - 运行状态：成功
-- 本次总论文数：22
-- 精读区：10
+- 本次总论文数：21
+- 精读区：9
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选 22 篇论文深度剖析 LLM 智能体在工程自动化与评估诚信方面的突破。
-重点关注智能体“奖励作弊”基准测试及结合符号规划与强化学习的创新架构，揭示了提升模型适应性的新路径。
-建议关注 AgentServe 等端侧部署优化方案，探索如何利用消费级显卡高效运行复杂的智能体工作流。
-- 详情：[/202603/19/README](/202603/19/README)
+今日精选 21 篇前沿论文，重点攻克 LLM 智能体工作流的可持续开发与 OpenClaw 系统的实战安全评估。
+核心突破在于利用案例推理（CBR）提升智能体开发的可持续性，并揭示了中间人攻击（MITM）在真实安全评测中的关键作用。
+建议关注多模态智能体的持续学习与内存治理框架，在追求泛化性能的同时筑牢系统安全防线。
+- 详情：[/202603/20/README](/202603/20/README)
 
 ### 精读区论文标签
-1. [RewardHackingAgents: Benchmarking Evaluation Integrity for LLM ML-Engineering Agents](/202603/19/2603.11337v1-rewardhackingagents-benchmarking-evaluation-integrity-for-llm-ml-engineering-agents)  
+1. [NormCode Canvas: Making LLM Agentic Workflows Development Sustainable via Case-Based Reasoning](/202603/20/2603.13443v1-normcode-canvas-making-llm-agentic-workflows-development-sustainable-via-case-based-reasoning)  
+   标签：评分：10.0/10、query:agent
+   evidence：多步大模型智能体工作流系统
+2. [ClawTrap: A MITM-Based Red-Teaming Framework for Real-World OpenClaw Security Evaluation](/202603/20/2603.18762v1-clawtrap-a-mitm-based-red-teaming-framework-for-real-world-openclaw-security-evaluation)  
+   标签：评分：10.0/10、query:opclw
+   evidence：OpenClaw 安全性的红队测试框架
+3. [XSkill: Continual Learning from Experience and Skills in Multimodal Agents](/202603/20/2603.12056v2-xskill-continual-learning-from-experience-and-skills-in-multimodal-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：针对大模型机器学习工程智能体的评估完整性基准测试
-2. [Novelty Adaptation Through Hybrid Large Language Model (LLM)-Symbolic Planning and LLM-guided Reinforcement Learning](/202603/19/2603.11351v1-novelty-adaptation-through-hybrid-large-language-model-llm-symbolic-planning-and-llm-guided-reinforcement-learning)  
+   evidence：多模态智能体规划与工具使用的持续学习
+4. [Lightweight Adaptation for LLM-based Technical Service Agent: Latent Logic Augmentation and Robust Noise Reduction](/202603/20/2603.18074v1-lightweight-adaptation-for-llm-based-technical-service-agent-latent-logic-augmentation-and-robust-noise-reduction)  
    标签：评分：9.0/10、query:agent
-   evidence：自主智能体的混合大模型-符号规划
-3. [On Information Self-Locking in Reinforcement Learning for Active Reasoning of LLM agents](/202603/19/2603.12109v1-on-information-self-locking-in-reinforcement-learning-for-active-reasoning-of-llm-agents)  
+   evidence：针对LLM智能体的规划感知轨迹建模
+5. [A Trace-Based Assurance Framework for Agentic AI Orchestration: Contracts, Testing, and Governance](/202603/20/2603.18096v1-a-trace-based-assurance-framework-for-agentic-ai-orchestration-contracts-testing-and-governance)  
    标签：评分：9.0/10、query:agent
-   evidence：大模型智能体的主动推理与信念追踪
-4. [ChainFuzzer: Greybox Fuzzing for Workflow-Level Multi-Tool Vulnerabilities in LLM Agents](/202603/19/2603.12614v1-chainfuzzer-greybox-fuzzing-for-workflow-level-multi-tool-vulnerabilities-in-llm-agents)  
+   evidence：智能体AI编排与外部服务交互的保障框架
+6. [PlanTwin: Privacy-Preserving Planning Abstractions for Cloud-Assisted LLM Agents](/202603/20/2603.18377v1-plantwin-privacy-preserving-planning-abstractions-for-cloud-assisted-llm-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：LLM智能体中的多工具漏洞
-5. [APEX-Searcher: Augmenting LLMs' Search Capabilities through Agentic Planning and Execution](/202603/19/2603.13853v2-apex-searcher-augmenting-llms-search-capabilities-through-agentic-planning-and-execution)  
+   evidence：云辅助大模型智能体的隐私保护规划
+7. [ZEBRAARENA: A Diagnostic Simulation Environment for Studying Reasoning-Action Coupling in Tool-Augmented LLMs](/202603/20/2603.18614v1-zebraarena-a-diagnostic-simulation-environment-for-studying-reasoning-action-coupling-in-tool-augmented-llms)  
    标签：评分：9.0/10、query:agent
-   evidence：针对复杂多跳问题的智能体规划与执行
-6. [Distilling Reasoning Without Knowledge: A Framework for Reliable LLMs](/202603/19/2603.14458v1-distilling-reasoning-without-knowledge-a-framework-for-reliable-llms)  
+   evidence：针对工具增强型大语言模型推理-动作耦合的诊断环境
+8. [ProRL Agent: Rollout-as-a-Service for RL Training of Multi-Turn LLM Agents](/202603/20/2603.18815v1-prorl-agent-rollout-as-a-service-for-rl-training-of-multi-turn-llm-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：在LLM中将规划与事实检索分离
-7. [VTC-Bench: Evaluating Agentic Multimodal Models via Compositional Visual Tool Chaining](/202603/19/2603.15030v1-vtc-bench-evaluating-agentic-multimodal-models-via-compositional-visual-tool-chaining)  
+   evidence：多轮大模型智能体强化学习训练基础设施
+9. [Act While Thinking: Accelerating LLM Agents via Pattern-Aware Speculative Tool Execution](/202603/20/2603.18897v1-act-while-thinking-accelerating-llm-agents-via-pattern-aware-speculative-tool-execution)  
    标签：评分：9.0/10、query:agent
-   evidence：智能体的组合视觉工具链
-8. [Agent Lifecycle Toolkit (ALTK): Reusable Middleware Components for Robust AI Agents](/202603/19/2603.15473v1-agent-lifecycle-toolkit-altk-reusable-middleware-components-for-robust-ai-agents)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于稳健智能体工作流的中间件组件
-9. [Is Your LLM-as-a-Recommender Agent Trustable? LLMs' Recommendation is Easily Hacked by Biases (Preferences)](/202603/19/2603.17417v1-is-your-llm-as-a-recommender-agent-trustable-llms-recommendation-is-easily-hacked-by-biases-preferences)  
-   标签：评分：9.0/10、query:agent
-   evidence：推荐工作流中的大模型智能体
-10. [AgentFactory: A Self-Evolving Framework Through Executable Subagent Accumulation and Reuse](/202603/19/2603.18000v1-agentfactory-a-self-evolving-framework-through-executable-subagent-accumulation-and-reuse)  
-   标签：评分：9.0/10、query:agent
-   evidence：通过子智能体复用的LLM智能体自我演化框架
+   evidence：推测性工具执行以隐藏大模型工具调用循环中的延迟
 
 ### 速读区论文标签
-1. [DUCTILE: Agentic LLM Orchestration of Engineering Analysis in Product Development Practice](/202603/19/2603.10249v2-ductile-agentic-llm-orchestration-of-engineering-analysis-in-product-development-practice)  
+1. [Governing Evolving Memory in LLM Agents: Risks, Mechanisms, and the Stability and Safety Governed Memory (SSGM) Framework](/202603/20/2603.11768v1-governing-evolving-memory-in-llm-agents-risks-mechanisms-and-the-stability-and-safety-governed-memory-ssgm-framework)  
    标签：评分：8.0/10、query:agent
-   evidence：工程分析的大模型智能体编排
-2. [SpecOps: A Fully Automated AI Agent Testing Framework in Real-World GUI Environments](/202603/19/2603.10268v1-specops-a-fully-automated-ai-agent-testing-framework-in-real-world-gui-environments)  
+   evidence：自主大模型智能体记忆治理框架
+2. [Can RL Improve Generalization of LLM Agents? An Empirical Study](/202603/20/2603.12011v1-can-rl-improve-generalization-of-llm-agents-an-empirical-study)  
    标签：评分：8.0/10、query:agent
-   evidence：针对真实GUI环境AI智能体的自动化测试框架
-3. [AgentServe: Algorithm-System Co-Design for Efficient Agentic AI Serving on a Consumer-Grade GPU](/202603/19/2603.10342v1-agentserve-algorithm-system-co-design-for-efficient-agentic-ai-serving-on-a-consumer-grade-gpu)  
+   evidence：大模型智能体在多轮决策中的强化学习微调
+3. [XSkill: Continual Learning from Experience and Skills in Multimodal Agents](/202603/20/2603.12056v1-xskill-continual-learning-from-experience-and-skills-in-multimodal-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：智能体 AI 工作流的高效推理服务
-4. [Nurture-First Agent Development: Building Domain-Expert AI Agents Through Conversational Knowledge Crystallization](/202603/19/2603.10808v1-nurture-first-agent-development-building-domain-expert-ai-agents-through-conversational-knowledge-crystallization)  
+   evidence：多模态智能体规划与工具使用的持续学习
+4. [Strategic Navigation or Stochastic Search? How Agents and Humans Reason Over Document Collections](/202603/20/2603.12180v1-strategic-navigation-or-stochastic-search-how-agents-and-humans-reason-over-document-collections)  
    标签：评分：8.0/10、query:agent
-   evidence：育人为先的智能体开发范式
-5. [CR-Bench: Evaluating the Real-World Utility of AI Code Review Agents](/202603/19/2603.11078v1-cr-bench-evaluating-the-real-world-utility-of-ai-code-review-agents)  
+   evidence：评估文档密集型工作流中的策略推理
+5. [SceneAssistant: A Visual Feedback Agent for Open-Vocabulary 3D Scene Generation](/202603/20/2603.12238v1-sceneassistant-a-visual-feedback-agent-for-open-vocabulary-3d-scene-generation)  
    标签：评分：8.0/10、query:agent
-   evidence：评估AI代码审查智能体
-6. [Task-Aware Delegation Cues for LLM Agents](/202603/19/2603.11011v1-task-aware-delegation-cues-for-llm-agents)  
+   evidence：利用空间推理和规划的视觉反馈智能体
+6. [AgentDrift: Unsafe Recommendation Drift Under Tool Corruption Hidden by Ranking Metrics in LLM Agents](/202603/20/2603.12564v2-agentdrift-unsafe-recommendation-drift-under-tool-corruption-hidden-by-ranking-metrics-in-llm-agents)  
+   标签：评分：8.0/10、query:agent
+   evidence：工具增强型LLM智能体及工具损坏下的安全性
+7. [daVinci-Env: Open SWE Environment Synthesis at Scale](/202603/20/2603.13023v2-davinci-env-open-swe-environment-synthesis-at-scale)  
+   标签：评分：8.0/10、query:agent
+   evidence：用于训练软件工程智能体的开源环境
+8. [NeSy-Route: A Neuro-Symbolic Benchmark for Constrained Route Planning in Remote Sensing](/202603/20/2603.16307v1-nesy-route-a-neuro-symbolic-benchmark-for-constrained-route-planning-in-remote-sensing)  
    标签：评分：7.0/10、query:agent
-   evidence：大模型智能体的任务感知协作与委派
-7. [HATS: Hardness-Aware Trajectory Synthesis for GUI Agents](/202603/19/2603.12138v1-hats-hardness-aware-trajectory-synthesis-for-gui-agents)  
+   evidence：评估多模态大模型规划能力的基准测试
+9. [Visual Distraction Undermines Moral Reasoning in Vision-Language Models](/202603/20/2603.16445v1-visual-distraction-undermines-moral-reasoning-in-vision-language-models)  
    标签：评分：7.0/10、query:agent
-   evidence：用于训练GUI智能体的轨迹合成
-8. [GRPO and Reflection Reward for Mathematical Reasoning in Large Language Models](/202603/19/2603.14041v1-grpo-and-reflection-reward-for-mathematical-reasoning-in-large-language-models)  
+   evidence：视觉语言具身智能体的道德推理
+10. [Runtime Governance for AI Agents: Policies on Paths](/202603/20/2603.16586v1-runtime-governance-for-ai-agents-policies-on-paths)  
    标签：评分：7.0/10、query:agent
-   evidence：通过反思奖励增强推理能力
-9. [Emotional Cost Functions for AI Safety: Teaching Agents to Feel the Weight of Irreversible Consequences](/202603/19/2603.14531v1-emotional-cost-functions-for-ai-safety-teaching-agents-to-feel-the-weight-of-irreversible-consequences)  
+   evidence：智能体执行路径的运行时治理框架
+11. [Toward Reliable, Safe, and Secure LLMs for Scientific Applications](/202603/20/2603.18235v1-toward-reliable-safe-and-secure-llms-for-scientific-applications)  
    标签：评分：7.0/10、query:agent
-   evidence：智能体AI安全框架
-10. [Aligning Large Language Models with Searcher Preferences](/202603/19/2603.10473v1-aligning-large-language-models-with-searcher-preferences)  
+   evidence：自主AI科学家与安全性评估
+12. [Tursio Database Search: How far are we from ChatGPT?](/202603/20/2603.18835v1-tursio-database-search-how-far-are-we-from-chatgpt)  
    标签：评分：6.0/10、query:agent
-   evidence：使大模型对齐开放式生成搜索
-11. [MANSION: Multi-floor lANguage-to-3D Scene generatIOn for loNg-horizon tasks](/202603/19/2603.11554v1-mansion-multi-floor-language-to-3d-scene-generation-for-long-horizon-tasks)  
-   标签：评分：6.0/10、query:agent
-   evidence：3D环境中的空间推理和长程任务
-12. [When Scanners Lie: Evaluator Instability in LLM Red-Teaming](/202603/19/2603.14633v1-when-scanners-lie-evaluator-instability-in-llm-red-teaming)  
-   标签：评分：6.0/10、query:agent
-   evidence：大模型红队测试与漏洞评估
+   evidence：使用LLM作为裁判评估数据库搜索智能体
 
 
 <div class="dpr-home-promo-card">
