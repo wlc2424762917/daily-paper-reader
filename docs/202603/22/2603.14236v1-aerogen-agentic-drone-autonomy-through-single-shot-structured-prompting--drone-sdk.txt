@@ -1,0 +1,2334 @@
+Title: AeroGen: Agentic Drone Autonomy through Single-Shot Structured Prompting & Drone SDK
+
+URL Source: https://arxiv.org/pdf/2603.14236v1
+
+Published Time: Tue, 17 Mar 2026 04:38:39 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+# AeroGen: Agentic Drone Autonomy through Single-Shot Structured Prompting & Drone SDK 
+
+Kautuk Astu and Yogesh Simmhan 
+
+Indian Institute of Science, Bangalore 560012 India 
+
+Email: {kautukastu, simmhan}@iisc.ac.in 
+
+Abstract 
+
+Designing correct UAV autonomy programs is challenging due to joint naviga-tion, sensing and analytics requirements. While LLMs can generate code, their reliability for safety-critical UAVs remains uncertain. This paper presents AeroGen ,an open-loop framework that enables consistently correct single-shot AI-generated drone control programs through structured guardrail prompting and integration with the AeroDaaS drone SDK. AeroGen encodes API descriptions, flight con-straints and operational world rules directly into the system context prompt , enabling generic LLMs to produce constraint-aware code from user prompts , with minimal example code. We evaluate AeroGen across a diverse benchmark of 20 navigation tasks and 5 drone missions on urban, farm and inspection environments, using both imperative and declarative user prompts. AeroGen generates about 40 lines of Aero-DaaS Python code in about 20s per mission, in both real-world and simulations, showing that structured prompting with a well-defined SDK improves robustness, correctness and deployability of LLM-generated drone autonomy programs. 
+
+# 1 Introduction 
+
+UAVs are now widely used in inspection, agriculture and delivery, but designing application-level autonomy remains challenging despite mature low-level control [14, 19]. While low-level flight controls are well established, designing application-level autonomy for drones re-mains challenging. Translating a high-level mission description by a user into executable logic that autonomously operates the drone typically requires robotics, analytics and programming expertise. Developers need to reason about navigation controls, on-board sensing, choice of analytical models and their deployment on edge and cloud compute [3]. Such programming overheads limit the rapid development and prototyping of drones ap-plications. The rapid advancements in Large Language Models (LLMs) have significantly influ-enced the development of robotic intelligence, in the pursuit of physical and embodied AI. State-of-the-art (SOTA) LLMs such as OpenAI GPT o3-mini [9], Google Gemini 1
+
+> arXiv:2603.14236v1 [cs.RO] 15 Mar 2026
+
+Figure 1: AeroGen translating prompts to executable code. 2.5-pro [4] and DeepSeek-r1 [5] have demonstrated the ability to perform drone related tasks, including high-level planning, autonomous navigation, multi-agent communication and workflow automation [7]. Their ability to interpret natural language instructions, perform contextual reasoning and generate high-quality output has motivated growing interest in applying LLMs to drone applications [12]. In particular, recently efforts enable the use of LLMs for generating autonomous drone control operations based on user requests [8,16]. While these suggest the potential for generating LLM-driven logic for autonomous drone operations, the robustness of the code in robotic and realistic settings remains an open challenge. If the generated control program contains logical errors or invalid API usage, the resulting execution may produce unintended flight behaviors. Such failures can compromise operational safety and potentially lead to hazardous outcomes, even under controlled conditions. Hence, ensuring the correctness and robustness of LLM-generated control code is essential before deployment on physical drone platforms. Prior research has addressed the unreliability and logical errors in LLM-generated drone code through prompt engineering and closed-loop feedback. Early approaches uti-lized structured open-loop prompts containing state-transition logic, skill APIs, flight constraints and examples to generate syntactic and semantic valid programs [15]. Later advances introduced a closed-loop generation–simulation–evaluation pipeline, with a dual-LLM design where one model generates code and another provides feedback based on simulation-based trajectory observations [16]. Recent efforts have also explored using LLMs as static simulators to interpret code and predict robot state transitions, without dynamic execution environments [17] Despite these advances, existing methods face significant limitations. These are re-stricted by the need to generate low-level drone control tasks and often lack generaliz-ability across diverse mission applications. Open-loop designs are prone to cumulative errors and temporal inconsistencies, especially for complex tasks [16]. While closed-loop systems improve reliability, they often rely on dynamic simulation or physical execution, which has overheads and poses safety risks to hardware. Most studies are also restricted to low-level navigation tasks [17] and lack support for integrating diverse sensors, vision models or runtime information. Systems relying on numerical state observations also struggle due to the limited numerical reasoning of LLMs. 2We propose AeroGen , an open-loop code generation framework for autonomous drone missions that addresses these limitations. We integrate a structured guardrail prompt schema with the AeroDaaS drone SDK [1] to derive constraint-aware drone control code (Fig. 1). Unlike prior navigation-only frameworks, AeroGen supports complex imperative and declarative analytical missions by encoding robot (e.g., battery endurance, sensor suite), world (e.g., flight corridors, obstacle data) and runtime information (e.g., ana-lytical models like YOLO, compute availability) directly into the prompt for single-shot code generation . This enables the LLM to autonomously reason about sensor integra-tion and the deployment of analytical models, to translate a user’s mission description into executable control program. Unlike closed-loop approaches that required iterative refinement to correct errors, we achieve reliability upfront to achieve 100% first-pass success , even for complex analytics-driven missions, in both simulation and physical environments. This also reduces the cumulative token cost and time overheads. Our specific contributions in this paper are: 1. We introduce the AeroGen AI-driven framework to automate the generation of consis-tently correct drone control programs. It incorporates structured guardrail prompts through static rules and dynamic information to ensure generated code meets opera-tional constraints (§ 3). 2. We define a suite of 5 imperative and declarative missions (e.g., farm survey, tower in-spection, drone-based delivery) that combine navigation, sensing and analytics tasks, and complement a prior navigation-only benchmark (§ 4). 3. Our experiments using Gazebo simulation and DJI Tello in real-world reports 100% single-pass success rate for AeroGen with high-end LLMs (e.g., GPT o3-mini). It confirms autonomous reasoning across even complex missions with transitions, cor-rect selection of mission-specific sensors and analytics thanks to cleaner AeroDaaS primitives, and reduced cumulative token consumption (§ 5). 
+
+# 2 Background and Related Work 
+
+2.1 Code Generation for Robotics 
+
+Recent advances in Large Language Models (LLMs) and Generative AI have significantly influenced robotic decision-making. Prior works [2, 15, 16, 18] have explored the use of LLMs for high-level planning, task decomposition and language based control, demon-strating the ability of foundation models to bridge natural language instructions and robotic actions. In GSCE [15], authors propose a structured prompt framework to im-prove reasoning reliability for LLM-driven drone control. It introduces Guidelines, Skill APIs, Constraints and Examples as prompt segments to improve LLM code generation. While it demonstrates improved reliability for drone control tasks, its evaluation is on simple navigation tasks with step-by-step prompts in an open-loop, making it prone to errors. 3This is improved in CLG [16, 17] through a closed-loop framework that integrates with AirSim [13] simulator. Semantic observations derived from the drone trajectory guide the code-improvement to address errors. However, it contains only static guardrail prompts and is limited to AirSim, without support for alternate simulated worlds or real-world hardware. They too focus only on navigation tasks with granular prompts. While our AeroGen framework works in an open-loop, we have the benefit of pro-gramming against the higher-level AeroDaaS SDK. We also support complex navigation, sensing and analytics missions that can be specified as a declarative goal rather than pro-cedural steps. We enhance existing CLG’s static guardrail prompts such as Guidelines, Constraints, APIs and Examples to achieve single-shot success for navigation tasks, and introduce new dynamic prompts with Robot, Runtime and World information, making the system robust to complex missions (see §3.2). These ensure single-shot valid code generation even for complex tasks. AeroDaaS [1] also supports multiple drone hardware, and includes Gazebo simulation and real-world execution of the same code. We treat CLG as a SOTA baseline for evaluating navigation tasks and compare AeroGen against it. Wang et al. [18] focus on runtime monitoring through a cross-layer supervision to enhance safety in LLM-driven robotics. They detect potential violations of safety con-straints for each action by a worker LLM based on feedback from a supervisor LLM. It focuses on runtime supervision and layered safety enforcement. ImpedanceGPT [2] in-vestigates the use of Vision Language Models (VLMs) to enable impedance based control for swarms of drones. It integrates perception and low-level control for intelligent navi-gation through learned representations for semantic understanding the environment and obstacle avoidance, but is unable to handle new class of obstacles. Our approach comple-ments these runtime approaches through a generalizable translation of user prompts to accurate code generation, with prompt-level guardrails, combined with execution-based trajectory verification through simulations for UAV autonomy. AeroGen also integrates with the world map and can trigger on-demand analytics. The SMART-LLM [7] proposes a multi-agent task planning framework that lever-ages LLMs to coordinate and allocate tasks among multiple robots. It focuses on high-level task decomposition, inter-agent coordination and plan generation through language-guided reasoning. However, their emphasis is on multi-agent planning and coordination rather than generating executable, constraint-aware control programs for UAV auton-omy. In contrast, we handle both high-level task decomposition and low-level code gen-eration through LLMs, making it a full-stack framework. Other literature [8, 20] focus on AI-driven robotics, without much attention on code generation and execution-level validation through simple user prompts. 
+
+2.2 Drone SDK for Programming Primitives 
+
+Most LLM based code generation frameworks rely on drone SDKs or middleware back-ends to execute the generated control programs. The AeroStack2 [6], and Buzz [10] exposes low-level interfaces to provide hardware level abstraction. Despite their capabil-4User Prompts (Navigation, Imperative, Declarative) 
+
+AeroGen  Framework 
+
+Drone 
+
+Abstraction PX4  Tello  Gazebo 
+
+LLMs  o3 -mini  
+
+> gemini -2.5 -pro
+> Deepseek Ll ama 3
+
+AeroDaaS SD K Sensor 
+
+> Scheduler
+
+AeroGen Agent  User Task 
+
+Static Prompt s Dynamic Prompts  
+
+> …
+> Guidelines
+> Constraints
+> AD API
+> AD E.g.
+> Robot
+> Runtime
+> World
+> Deepseek Qwen
+
+Compute 
+
+Abstraction  
+
+> Navigation Analytics
+> Compute
+
+Figure 2: AeroGen Architecture ity to abstract hardware, they are not well suited to act as a bridge between LLM and drone hardware due to lack of high-level primitives. 
+
+AeroDaaS [1, 11] proposes an drone programming framework by providing standard-ized interfaces for navigation, sensing, analytics integration and telemetry. It abstracts low-level hardware interactions and exposes higher-order APIs for rapid development and deployment of drone applications, with interfaces for navigation , (e.g., INavigate ’s 
+
+generateNavigation and addNavigation , Waypoint , INavigableAnalyse ,
+
+IRobot.navigate , and IEnvironment ’s setTrajectoryScheduler and AeroN-avigation), sensing (ISensor ), analytics (deploy and analyse of IAnalyse and 
+
+ICompute ’s getComputeProperties ), and to access environment settings of robot and compute resources. AeroGen leverages these APIs for LLMs to generate control programs, based on our carefully constructed guardrails, and use its runtime to execute in simulation and real-world settings. 
+
+# 3 AeroGen Design 
+
+The design of AeroGen is based on treating drone autonomy as a constrained code generation problem. AeroGen treats navigation, sensing and analytics as composable operations for a drone’s mission. This abstraction allows the underlying LLM to operate with semantic clarity unlike direct use of lower-level controller APIs. The framework operates on the principle that if an LLM is provided with a detailed, structured context that defines the boundaries of its operational world, the drone’s physical capabilities and the available software primitives, it can synthesize complex mission logic with high reliability. This design-approach shifts the corrective feedback from the execution phase to the prompt construction phase. By utilizing the AeroDaaS SDK as its backend, AeroGen provides an environment where the LLM does not have to consider hardware-specific variations but can instead focus on high-level mission planning and integration. We formulate this as a constrained code generation problem P = f (M, A, C ), where 
+
+M is the mission description user prompt, A represents the AeroDaaS drone API descrip-tions, C is the operational constraints to respect, and P is the drone control program 5generated by the LLM. 
+
+3.1 AeroGen Architecture 
+
+The AeroGen architecture integrates cognitive and execution modules to translate nat-ural language missions into drone execution artifacts. The AeroGen Runtime consists of the AeroGen Agent , the LLM Cognitive Core and the AeroDaaS SDK/Backend .The AeroGen Agent is the central orchestration engine of the framework. Its pri-mary responsibility is the assembly of the System Prompt , a multi-segmented document that provides the LLM with its operational boundaries. This first retrieves a set of 
+
+Static Guardrails , which contain invariant rules such as the coordinate reference frame, standard API signatures and role-based guidelines. The Agent then enriches this with 
+
+Dynamic Guardrails based on the runtime environment for the mission, with information on the Robot , Analytics Runtime and the World , as discussed next. Once the prompt is assembled, the Agent invokes the LLM Congition Core , which acts as the mission interpreter and code synthesizer using the AeroDaaS APIs. AeroGen is model-agnostic, supporting a wide array of reasoning engines: from advanced cloud-based GPT-o3-mini and Gemini 2.5-Pro to locally deployable, quantized models such as Llama3-70B and DeepSeek-Qwen-32B. The choice impacts the reasoning depth. Cloud-based models with deep context windows can better internalize the complex prompts and mission steps, while the smaller models allow deployment on accelerated edge devices in network-challenged locations. The AeroGen Agent receives the generated Python AeroDaaS control code and fa-cilitates its deployment. AeroDaaS serves as the execution backend, offering high-level programming interfaces used by the LLM. Unlike traditional SDKs that expose low-level MAVLink commands, AeroDaaS abstracts the robot and compute hardware through a suite of composable Python interfaces that hide the complexities of navigation, sensing and analytics. Briefly, the IEnvironment manages the registry of robots, sensors and compute resources, IRobot handles navigation requests, ISensor streams multi-modal sensor and analytics data, IAnalyse deploys and executes DNN models on edge/cloud, 
+
+INavigate converts waypoints/ analytics outputs into executable navigation steps, and IScheduler manages task priorities. These interfaces are extensible to custom implementations, e.g., a specific robot interface, a priority scheduler or a custom cloud analytic. The AeroGen Agent initially executes the code using AeroDaaS on a simulation envi-ronment (Gazebo) . Following the mission completion, it performs trajectory verification by extracting the flight logs and comparing them against a ground truth provided during testing to quantify logical correctness. If a tolerance threshold (e.g., 0.2m) is breached, the Agent regenerates the drone program using the LLM, with just a high-level prompt indicating mission failure, maintaining it’s open-loop behavior. Once this is met, the same code generation can target the real drone and compute hardware. 6Prompts            
+
+> Static Dynamic User Task
+> Guidelines Constraints APIs Examples
+> Role
+> Flight
+> Schedule
+> Obstacle
+> API
+> Reference
+> Frame
+> Rotation
+> Survey
+> Method
+> Signature
+> Descripti
+> on
+> Waypoints
+> (comment)
+> Analytics
+> (comment)
+> Robot Runtime World
+> Flying
+> Limits
+> Specifica
+> tions
+> Sensors
+> Compute
+> Analytics
+> Deployment
+> Guidelines
+> Specification
+> Analytics
+> Description Size Signature
+> Area Info
+> Flying Corridors
+> Flight Rules
+> Initial Position
+> Road Network
+> Obstacles
+> Existing Modified New
+> Legend
+
+Figure 3: Guardrail prompts schema. Grey boxes reuse prior prompts from CLG [17], 
+
+Blue indicate modifications to prior prompts, while Green are newly introduced prompt classes. 
+
+3.2 Guardrail Prompts for Physical Grounding 
+
+The cornerstone of AeroGen’s 100% single-pass success rate is its modular guardrail prompt schema. The schema restricts the LLM to valid, constraint-aware operations aligned with APIs and mission rules. Our principled taxonomy for the prompt schema (Fig. 3) was iteratively refined, and is much more comprehensive than the SOTA CLG [17]. We describe the three primary segments of the schema next. The AeroGen code and prompts will be released after the peer review process. 
+
+3.2.1 Static Guardrail Prompt 
+
+The static guardrail prompt contains invariant system-level constraints and remains fixed across tasks, UAVs, and worlds. Its purpose is to define the permissible structure and op-erational limits of the generated drone programs. Guidelines define the “Role Preference” of the LLM as a code writer and provides coding guidelines with required code struc-ture, lifecycle order, scheduling strategy, flight reference, obstacle avoidance and API usage rules. Constraints establishes operational bounds including the reference frame (e.g., North-East-Up), robust rotational conventions and geometric survey logic. APIs 
+
+provide existing AeroDaaS interface input/output signatures and descriptions. Examples 
+
+offer few-shot learning snippets demonstrating valid code for specific missions, providing structural templates for the LLM. The sample codes are documented (missing in CLG) demonstrate the reasoning for the logic, and reduce ambiguity in function usage. 
+
+3.2.2 Dynamic Guardrail Prompt 
+
+Unlike static guardrails, the dynamic segment adapts to provide execution-specific in-formation per mission. This is a key addition that goes beyond CLG to enable dynamic real-world applications. 
+
+Robot Information includes the drone’s platform specifications, e.g., maximum speed, 7battery endurance, active sensor suite, etc. to allow the LLM to reason about the mission plan. 
+
+Runtime Information details the available compute infrastructure (e.g., edge, cloud, hybrid) and analytical models accessible on these during the mission, including their memory limits, model sizes, latencies and suggested model–resource mapping. This allows the LLM to reason about computationally feasible model deployment for the mission. The World Information segment represents the physical environment and its con-straints for the drone mission, such as flying corridors (permitted vs. non-permitted, road network as proxy for traversable paths) and global flight rules (altitude, velocity limits). This structured world representation lets the LLM reason about valid navigation paths, obstacle avoidance, and spatial feasibility. 
+
+3.2.3 User Task 
+
+This describes the high-level mission objective provided by the user in natural language. It specifies what the drone must do, while leaving the specific control logic details and implementation to be synthesized by the LLM based on the preceding guardrails. 
+
+# 4 Mission Taxonomy and Application Suite 
+
+4.1 Mission Taxonomy 
+
+To systematically evaluate the translation of high-level user intent into executable auton-omy, we propose a three-tiered taxonomy: basic navigation tasks, imperative missions and complex declarative missions. This reflects the escalating cognitive load to synthe-size code we move from simple point-to-point movement to multi-objective environmen-tal interactions. Generating reliable code requires the LLM to perform sophisticated cross-domain reasoning: interpreting user intent, adhering to flight constraints and or-chestrating a sequence of sensing, navigation and analytics APIs. The navigation tasks involve pure motion control without using onboard sensors or analytics. An example is the 20 “advanced tasks” for LLM-based code generation in prior works [15, 16, 17]. These focus solely on waypoint traversal and path planning, under structured world rules. We introduce imperative analytical missions where the user specifies both the “what” (goal) and the “how” (steps) in their prompt, but combining navigation, sensing and analytics. These require the LLM to use AeroGen’s prompt schema to accurately map high-level how-to logic into precise sequences of control logic and API calls. 
+
+Declarative analytical missions also involve integrated operations, but here the user specifies only the end goal without providing specific mission steps. These test high-level autonomous reasoning of AeroGen for goal-driven objectives, posing challenges in long-horizon mission planning, autonomous compute selection and recursive task-switching without the benefit of procedural guidance from the user. 8Table 1: Imperative/declarative missions and runtime configurations in simulated and real worlds.                                                  
+
+> Mission World Setup Analytics FPS Duration Area/Dist. Alti. Speed
+> Gazebo small city (Sim) –30 6 min 600 m10 m 2 m/s Multi-destination delivery Outdoor field (Real) –57 min 42 m 2 m 0.25 m/s Gazebo small city (Sim) Video logger 30 4 min 900 m210 m 1 m/s Farm survey Outdoor field (Real) Video logger 54.5 min 100 m21.5 m 0.25 m/s Cable inspection Gazebo small city, 1 radio tower (Sim)
+> YOLOv11x (cable detection) 37.5 min 100 m 44 m 0.1 m/s – 0.5 m/s Radio Tower Inspection Gazebo small city, 3 radio towers) (Sim)
+> OpenCV ORB Image Match 324 min 43,200 m245 m 0.5 m/s– 1.5 m/s Search & Track Outdoor field (Real)
+> YOLOv11x (hazard vest detect) 54 min 25 m 1.5 m 0.1 m/s – 1.0 m/s
+
+Besides the 20 “advanced” navigation tasks from CLG [17] as a simple baseline, we introduce a suite of 5 complex analytics-driven missions to evaluate AeroGen (Tbl. 1). As discussed later, all missions complete within a single-shot , generating perfect code (refer to Appendix B) autonomously in the first pass to meet the mission objectives. 
+
+4.2 Imperative Missions 
+
+4.2.1 Multi-destination Drone Delivery 
+
+The drone must navigate to three delivery waypoints for (virtual) package dropoff while using the road network from the world prompt as flight corridors and ensuring flight edu-rance. The task prompt given to AeroGen is: “You are performing a multi-destination pack-age delivery mission starting from a depot. Navigate to delivery locations I22, I34 and I43 while avoiding obstacles. At each delivery location, descend to 1 meter and hover for 10 seconds to com-plete the virtual delivery. Then proceed to make next delivery. After all 3 deliveries, return back to the starting location to complete the mission. Refer to the mission_operational_information for area information and make sure to avoid obstacles. Abort deliveries and return to depot if you are going to run out of battery.” . We also restrict the maximum flying altitude to 10m in the world prompt. 
+
+4.2.2 Farm Survey 
+
+This highlights the framework’s ability to integrate sensing with navigation to ensure camera orientation face the geometric interior. The user prompt is: “We are performing a survey of a farm and recording videos of the land. The drone is initially at the bottom-left corner of the farm of size 20 m * 20 m, and facing towards the top of the farm. Survey the farm by flying only along the four boundary edges in a closed loop starting with forward edge. The drone 
+
+9must continuously capture camera data and save it as file. The drone should orient its camera inward toward the farm area while performing the survey.” while restricting the max flying altitude to 3m. 
+
+4.2.3 Cable Inspection 
+
+This integrates sensing with analytics and navigation, and demonstrates novel closed-loop autonomy. AeroGen’s unique ability to provide the LLM with dynamic runtime details lets it select a YOLO-based DNN, feed its perception output into navigation logic, and autonomously follow high-tension powerlines in single-shot. The user prompt is: “Your mission is to inspect a high-tension powerline cable as part of an infrastucture survey. The drone is intially present at the bottom of the starting pole. The poles and cables are at 9m height. Take off and ascend to 1 meters above the cable. Then perform a continuous cable inspection by capturing video of the cable. Acquire videos from the drone camera and save the video stream. Also, analyze the video using the cable detection and analytics models, and use these to have the drone continuously follow the cables till you detect the cable. Make sure to deploy model optimally on the computes.” 
+
+4.3 Declarative Missions 
+
+4.3.1 Radio Tower Detection and Inspection 
+
+The reasoning for this mission is sophisticated, requiring the drone to search an area to locate and inspect any towers found, switching between grid-based survey and in-spection/analytics modes. The task prompt is: “You are supposed to perform a Locate and Inspect Radio Tower mission. Multiple radio towers are located in an area of 180m by 240m. The drone should systematically search the area to cover the entire 180m*240m survey region. Once the tower is located, the drone perform a survey of the tower and resume the search mission for other towers. The analytics model will provide the navigation details for surveying a tower, once found. The drone finally returns to base after covering the search area or before the battery runs out.” 
+
+4.3.2 Search and Track 
+
+Here, the drone searches for a (missing or visually challenged) person wearing a hazard vest within a region, transitioning to a tracking mode once they are found. The user prompt given to AeroGen is: “You are supposed to perform search and rescue mission. The search need to be done in an area of 8m * 4m. The drone should systematically search the area to cover the entire 8m*4m search region. Simultaneously, the drone should also look for a per-son wearing hazard vest, upon detecting the person, the drone should abort it’s search mission and immediately transition from search to tracking the person.” . We restrict the max flying altitude to 1.5 m, speed as 0.25 m/s and specify front camera coverage as 4 m.10 (a) Gazebo Small City with Farm and Towers (b) Search and track in real-world  
+
+> (c) Farm survey in real-world (side) (d) Farm survey in real-world (top)
+
+Figure 4: Experimental setup and mission execution. 
+
+# 5 Evaluation 
+
+5.1 Experimental Setup 
+
+We evaluate AeroGen’s on two dimensions: the reliability of the generated code for nav-igation tasks and mission suite (§ 4), and the performance of LLMs with our guardrail schema. We do this under simulation and in the physical world. 
+
+5.1.1 Runtime Environment 
+
+We use a DJI Ryze Tello with a Jetson Orin Nano edge node for real-world tests con-ducted on our campus field. For simulations , we use Gazebo Ignition Fortress with a custom city containing roads, a farm and radio towers. We use AeroDaaS v1.5 [1] frame-work and by default, OpenAI’s GPT o3-mini cloud endpoints. We later study Google’s Gemini 2.5 pro on the cloud, and Deepseek-r1-distll-llama-70B-Q8 and Deepseek-Qwen-32B-Q16 on a Nvidia Jetson Thor (2560 CUDA cores, 128GB GPU RAM). 11 CLG CLG+AD AeroGen       
+
+> 0
+> 4
+> 8
+> 12
+> 16
+> 20
+> Task Count
+> # of Attempts 123(a) Aggregated attempts for successful code generation CLG CLG+AD AeroGen
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> Token Usage (1000s)  $0.59
+> $0.24
+> $0.19
+> Input Tok. Completion Tok.
+> Avg. Tok./Task-Iter
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10
+> Avg. Tok. per Task-Iter(1000s)
+> (b) Cumulative token usage and cost
+
+Figure 5: Comparison of CLG and AeroGen for navigation tasks. 
+
+5.1.2 Ground Truth 
+
+For navigation and imperative analytical tasks, the user’s prompt are prescriptive and directly map to a predefined waypoints sequence and altitude consistent with the mission. The executed mission trajectory Texec extracted from telemetry logs is compared with this expected trajectory Tgt , and is considered successful if ∀ i ϵ T exec , j ϵ T gt , ∥T iexec − T jgt ∥ ≤ 
+
+0.2 m, where i and j are step indices in the trajectory and i = j while complying with altitude and boundary constraints. For the declarative task, multiple valid traversal steps may exist. The ground truth is the set of feasible traversal paths with minimum flight duration. 
+
+5.1.3 Metrics 
+
+We propose several metrics to evaluate the correctness of LLM based code generation: 
+
+Number of steps , each being a waypoint, analytic or task added to the scheduler; At-tempts , being the generation tries required to successfully complete a mission, with 1 indicating first pass correctness; Steps to First Error (STFE) measures the steps com-pleted before encountering the first syntactic, semantic or logical error, differentiating early failures from late-stage ones with partial reasoning correctness; Total Errors counts all syntactic, API or logical errors in the generated code; Prefix Completeness% is the fraction of successful steps before an error, Steps till first error Total mission steps × 100 ; Lines of Code and API calls generated; Token Usage records the total number of tokens consumed per gen-eration attempt, including prompt, reasoning and output tokens, and is a measure of generation efficiency and monetary cost; and lastly Token Generation Time is the time taken to finish each code-generation attempt. 
+
+5.2 Comparison with CLG baseline for Navigation Tasks 
+
+We compare AeroGen against the SOTA CLG [17] for the 20 “advanced” navigation tasks they propose. CLG relies on iterative feedback from the AirSim simulator to correct errors, whereas AeroGen aims for single-shot correctness. For a closer comparison, we 12 also integrate CLG with AeroDaaS, replacing AirSim APIs/examples with AeroDaaS APIs/examples, modifying the reference frame details and Gazebo ( CLG +AD ). Fig. 5a reports the attempts needed for successful code generation for all 20 tasks. 
+
+CLG has no success with single-shot generation, with 16 tasks requiring 2 attempt and 4 tasks requiring 3. Being a closed-loop framework, CLG retries a failed attempt by providing details of the inaccurate action back to the LLM to regenerate the code, but in 4 cases the LLM still fails (tasks 7, 16, 18 and 20). This is due to invalid movement handling – takeoff altitude and yaw angle – by the LLM. While tasks expect takeoff to 5 m, CLG’s guidelines fail to mention that the default takeoff height in AirSim is 1 m. In task 16, the conventional movement is reversed, requiring orientation perpendicular to the moving direction. But LLM mirrors the trajectory, causing +90 instead of −90 
+
+rotation when moving forward. This is ultimately fixed in 3rd attempt by the LLM hard-coding the waypoints. 
+
+CLG +AD improves this with 15 tasks achieving single-shot success and the remain-ing 5 in the second attempt. This reflects the benefit of using higher order AeroDaaS navigation abstractions rather than lower-level primitives to generate code. Here, Aero-DaaS uses exact coordinates that forces the correct altitude but missing guidelines about yaw angle still cause the first-attempt fails for 8, 9, 17, 18 and 20. CLG does not provide enough operational constraints to handle this. In contrast, the same tasks performed with AeroGen in Gazebo achieve 100% single-shot completion. Thanks to AeroGen’s static guardrail prompts ask the LLM not to make assumptions and has instructions like "yaw must be computed as an absolute world-frame angle based on the required interior side" to reason the required angle for ambiguous user prompts statements like “orient perpendicular to motion” . The AeroDaaS APIs with input-output signatures and explanatory examples reinforce these guidelines, avoiding code generation ambiguity. In Fig. 5b, we see that CLG consumes fewer tokens per attempt ( ≈ 4700 ) due to its shorter prompts. But its frequent failures lead to a much higher total token usage ( 209 k
+
+for all 20 tasks) and longer execution delays ( 6480 s for LLM generation). AeroGen’s investment in a larger, more detailed system prompt pays dividends by achieving a 100% success rate on the first attempt, thereby reducing the total cost of the mission by 43% ( 118 k tokens) and generation time to 877 s. Also, most of our tokens ( 85% ) are input tokens, are cheaper than completion (reasoning+outout) tokens that dominate for CLG, leading to a its higher cost ( $0 .59 ) than us ( $0 .19 ). 
+
+5.3 Performance of Complex Tasks by AeroGen 
+
+Next we evaluate AeroGen for the complex mission suite; CLG is omitted since it only supports navigation tasks, and not sensing and analytics. By default, plots are for simulations, except for Search and Track where it is on real-world. Refer to Appendix A for a detailed description and the results of executed missions. 13 30       
+
+> 60
+> 90
+> 120
+> 150
+> 180
+> X (m) 010 20 30 40 50 60
+> Y (m)
+> 1
+> 3
+> 5
+> 7
+> 9
+> 11
+> Z (m)
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 78
+> 9
+> 10
+> 11
+> 12 13 14
+> 15
+> 16
+> 17 18 19
+> Trajectory
+> Waypoints
+> Delivery Points
+> Start/End
+
+(a) Drone delivery (S) 0   
+
+> 10
+> 20
+> 30
+> 40
+> 50
+> X (m) 10 20 30 40 50
+> Y (m)
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> Z (m)
+> 1
+> 2
+> 3
+> 4
+> 5
+
+(b) Farm survey (S) 30     
+
+> 60
+> 90
+> 120
+> 150
+> 180
+> X (m) 050 100
+> 150
+> 200
+> 250
+> Y (m)
+> 10
+> 20
+> 30
+> 40
+> 50
+> Z (m)
+> 3
+> 4
+> 7
+> 8
+> 11
+> 12
+> 15
+> 17
+> 18
+> 20
+> 23 25
+> 26
+> 28
+> 31
+> 32
+> 35
+> 36
+> 39
+> 40
+> 43
+> 44
+> 47
+> 48
+
+(c) Radio Tower Insp. (S) 123456789       
+
+> X (m) 0123456
+> Y (m)
+> 0
+> 0.5
+> 1
+> 1.5
+> 2
+> Z (m) 1
+> 2
+> 3
+> 45
+> 6
+> 7
+> 8
+> 9
+> 10
+> 11
+> 12
+> 13
+> 14
+
+(d) Drone delivery (R) 12345678910   
+
+> X (m) 012345678910
+> Y (m)
+> 0
+> 0.5
+> 1
+> 1.5
+> 2
+> Z (m)
+> 1
+> 2
+> 3
+> 4
+> 5
+
+(e) Farm survey (R) 4      
+
+> 8
+> 12
+> 16
+> 20
+> X (m) 01234
+> Y (m)
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> Z (m)
+> 1
+> 2
+> 3
+> 4
+
+(f) Search & Track (R) 
+
+Figure 6: Trajectory of simulated or real drone for different tasks 
+
+5.3.1 Mission Completion 
+
+AeroGen is able to successfully complete all the mission prompts in § 4 in a single-attempt , using o3-mini, both in simulation and real-world (Tbl. 1). Trajectories for several are visualized in Fig. 6. For the virtual delivery , AeroGen uses the World prompts to synthesize non-linear paths through the road network, given as an adjacency list, avoiding building obstacles and performs virtual deliveries (Fig. 6a) in Gazebo and real world, while autonomously integrating battery-aware return-to-depot logic. The PX4 drone covers 600 m in 6 min at 2 m/s in simulation, and the Tello traverses 42 m in 
+
+7 min at 0.25 m/s in the physical world, with a battery capacity of 88 % and 36 % to spare. In farm survey , done in simulation and physical worlds (Figs. 6b, 6e), it leverages the static constraints to perform geometric reasoning required to calculate inward-facing yaw angles for the drone’s camera during the perimeter loop (see arrows). It also coupled sensing and analytics logging apart from waypoint traversal. In cable inspection AeroGen orchestrates a closed-loop pipeline where it automatically selects the YOLOv11x cable detection model to consume the video stream at 3 FPS, and feeds the detections into velocity-control navigation primitives using the AeroDaaS’s 
+
+IAnalyse . It flies at an altitude of ≈ 44 m with speeds of 0.1 m/s –0.5 m/s over a 
+
+100 m cable inspection path. In radio tower inspection , the LLM autonomously derives an optimal lawnmower search grid (Fig 6c) by calculating the FOV coverage using alt/ 4.5 constant in Robot 14 Delivery Farm            
+
+> Survey
+> Cable
+> Inspect
+> Tower
+> Inspect
+> Search &
+> Rescue
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10.0
+> 12.5
+> 15.0
+> 17.5
+> 20.0
+> 22.5
+> Token Count (1000s)  19.2k
+> 16.0k
+> 10.4k
+> 20.0k 18.8k
+> Input Tok Reasoning Tok Output Tok Lines of Code
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> Lines of Code (a) LOC and token usage across analytical tasks Delivery Farm
+> Survey
+> Cable
+> Inspect
+> Tower
+> Inspect
+> Search &
+> Rescue
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Total API Calls
+> 27
+> 15 18
+> 55
+> 21
+> APIs Unique Navigation Sensing Analytics
+> 0
+> 5
+> 10
+> 15
+> 20
+> Unique API Calls (b) API calls invoked by analytical tasks
+
+Figure 7: Analysis of code generation behavior for GPT o3-mini across analytical tasks. dynamic prompt, detects the tower using cv2’s ORB image matching library, and it-erative switches from survey to inspection analytics through a PriorityQueue upon detection. It covers a 43 , 200 m2 region in 24 min , managing long-horizon mission logic while adhering to flight constraints. Lastly, in search and track the system uses the hazard vest detection model to locate a person in a field (Fig. 4b), and illustrates responsiveness by utilizing the clearNavigation 
+
+API – learned directly from API docs and without examples – to abort a search and transition to person tracking to follow them once found. 
+
+5.3.2 Performance Metrics 
+
+In Fig. 7a, we report tokens consumed (left Y axis, bar) and Lines of Python Code (LOC) generated (right Y axis, marker). We also report in Fig. 7b the total number of AeroDaaS API calls (left) and distinct API calls in the code. We make some key observations. We see a positive correlation between reasoning tokens and LOC for imperative mis-sions, where the prescriptive user prompt translates to comparable number of steps. E.g., the drone delivery missions requires obstacle avoidance and navigation to three prede-fined locations resulting in 38 LOC while the farm survey traverses a field, taking only 
+
+29 LOC. Declarative goal-oriented missions require substantially more reasoning tokens than imperative ones. E.g., Radio Tower and Search & Track consume 5, 056 –5, 376 reasoning tokens, compared to only 2, 432 –4, 288 for the imperative missions. This is because the declarative tasks impose a higher “planning burden”, with limited procedural guidance from users. The Radio Tower Inspection is the most complex workload, requiring 63 LOC, fol-lowed by Search & Track (42 LOC) and Drone Delivery (38 LOC). The fact that so few LOC are needed to be generated even for complex missions is a testament to the abstractions provided by AeroDaaS. While Drone Delivery invoked 27 total API calls, only 7 were unique, reflecting 15 getCompute 
+
+> getRobot
+> setScheduler
+> getSensor
+> navigate
+> startMission
+> getDataStream
+> get_data
+> analyse
+> deploy
+> genNav
+> addNav
+> clearNav
+> Waypoint
+> PriorityQueue
+> AeroNavigation
+> wp1 example
+> wp2 example
+> analytics example
+> Delivery
+> Farm Survey
+> Cable Inspection
+> Tower Inspection
+> Search and Rescue
+
+Figure 8: AeroDaaS APIs in examples and used in scenarios repetitive navigation primitives. In contrast, Cable Inspection used 13 unique APIs out of 18 total calls, indicating integration between diverse navigation, sensing and analytics calls. Tower inspection with 60 API calls had the peak, which included 46 navigation, 2
+
+sensing and 7 analytics calls. Analytics-driven rather than navigation heavy missions exhibit a much higher ratio of unique-to-total API calls. The two declarative tasks (Tower and Search) alone invoked the set of AeroDaaS 16 
+
+unique APIs minimally necessary to solve these missions from the 37 that are documented in the prompt, proving the LLM’s ability to comprehend and compose the full SDK without being limited to few-shot examples. Despite the complexity of 60+ API calls and 60+ LOC for the Tower mission, AeroGen maintained a 100% prefix completeness score, eliminating the iterative, token-heavy correction cycles used in closed-loop. Lastly, the time to generate code by the LLM ranges from 24 s (Cable inspection) to 52 s (Tower). 
+
+5.3.3 Simulation vs. Real-world 
+
+The five missions were executed in a mix of both simulation and the physical world, resulting in 7 experiments (Table 1). The generated control programs were structurally identical in both simulation and real deployments, for both imperative and declarative missions. The mission logic, API calls, waypoints sequence and analytics modules remained unchanged with the only dif-ference being the underlying drones (PX4 for simulation and Tello in real-world) allowing seamless deployment of generated programs from simulation to the physical world. 
+
+5.4 Effect of Including Prior Examples in Prompt 
+
+Fig. 8 shows a coverage matrix of APIs present in the 3 sample code in the Aero-DaaS Example guardrail prompt, and the APIs used in the generated mission code. AeroGen demonstrates that high-end LLMs possess a crucial capacity for In-Context Learning allowing them to successfully utilize complex AeroDaaS methods, such as 
+
+clearNavigation , get_data and the PriorityQueue class, derived strictly from the API documentation rather than the few-shot examples. These are used in Search 16 Table 2: Scenario Success based on examples in prompt 
+
+Example(s) in Prompt Delivery Survey Cable Tower Search 
+
+None ( 0 Input tok.) Two Waypoint ( 2, 337 tok.) One Analytical ( 820 tok.) All Three ( 3, 152 tok.) llama3   
+
+> qwen
+> llama3
+> qwen
+> llama3
+> qwen
+> llama3
+> qwen
+> llama3
+> qwen
+> Delivery Farm
+> Survey
+> Cable
+> Inspect
+> Tower
+> Inspect
+> Search &
+> Rescue
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> STFE
+> STFE Total Errors
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> 35
+> 40
+> Total Errors
+
+(a) STFE and total errors across analytical tasks for LLMs o3    
+
+> gemini
+> llama3
+> qwen
+> o3
+> gemini
+> llama3
+> qwen
+> o3
+> gemini
+> llama3
+> qwen
+> o3
+> gemini
+> llama3
+> qwen
+> o3
+> gemini
+> llama3
+> qwen
+> Delivery Farm
+> Survey
+> Cable
+> Inspect
+> Tower
+> Inspect
+> Search &
+> Rescue
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> Total Tok. (1000s)
+> Input Tok Compl Tok Prefix Complete.
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Prefix Complete (%)
+
+(b) Token usage and prefix completeness across an-alytical tasks for LLMs 
+
+Figure 9: Analysis of code generation behavior for GPT O3-mini, gemini-2.5-pro, llama3 and deepseek qwen for missions. and Track and Tower. This documentation-driven autonomy enables the framework to be highly extensible; new APIs can be integrated without the overhead of creating exhaustive example code. To understand the impact of example code, we vary the Example prompt to have fewer samples and report success rates in Tbl. 2. These reveal that minimal examples remain indispensable for providing the structural scaffolding necessary to reinforce flight constraints and lifecycle requirements. Removing either waypoint or analytical examples causes prefix completeness to drop to as low as 25% due to logical failures (e.g., reversed trajectories, incorrect yaw angles, or hallucinations by generating and using non-standard functions). 
+
+5.5 Impact of LLM Models 
+
+We evaluate the impact of the LLM on mission completion, and compate four LLMs: OpenAI GPT O3-mini and Gemini 2.5-Pro using their Cloud APIs, and DeepSeek-R1-Distill-LLama3 and Deepseek Qwen locally on Jetson Thor. There is a clear contrast between the high-quality cloud-hosted models and edge-deployed models (Fig. 9. o3-mini and Gemini that achieve 100% correctness for all missions due to deep context windows ( 200 k and 1M ) that internalize complex guardrail. Llama and Qwen struggle with long-horizon autonomy due to smaller context ( 16 k), with 17 cable inspection being the only successful mission. There is an inverse relation between prefix completion % and # of steps. In Fig. 9b, the variation in input tokens is due to varying world file across tasks and use of different tokenizers by different models. Gemini generally consumes a higher number of input and completion tokens due to more reasoning tokens, while o3-mini maintained relatively less reasoning tokens without compromising correctness. Llama and Qwen generated invalid functions and APIs due to poor reasoning. 
+
+# 6 Conclusions and Future Work 
+
+In this paper, we have proposed the AeroGen framework that integrates principled guardrails with the AeroDaaS SDK to achieve robust single-shot code generation for drone autonomy. It demonstrates that our structured guardrail prompting, coupled with the high-level SDK abstractions, enables 100% first-attempt correctness even for complex UAV missions by bridging the gap between semantic reasoning and physical execution. By formalizing drone autonomy as a constrained code generation problem, we achieve reliable aware performance across simulation and real-world hardware while significantly reducing token expenditure and iteration delays of a closed-loop system. Future research will extend this to multi-drone swarms and “Hybrid-Loop” architectures that incorporate adaptive runtime feedback and live code injection to maintain reliability in dynamically changing environments. 
+
+# 7 Acknowledgments 
+
+The authors thank Yuvaraj, Mayank, and Priyanshu from DREAM:Lab, CDS, IISc for their assistance in running experiments and preparation of the article. 
+
+# References 
+
+[1] Kautuk Astu, Suman Raj, Priyanshu Pansari, and Yogesh Simmhan. Aerodaas: A programmable drones-as-a-service platform for intelligent aerial systems. Technical Report arXiv:2603.00506, arXiv, 2026. [2] Faryal Batool, Yasheerah Yaqoot, Malaika Zafar, Roohan Ahmed Khan, Muham-mad Haris Khan, Aleksey Fedoseev, and Dzmitry Tsetserukou. Impedancegpt: Vlm-driven impedance control of swarm of mini-drones for intelligent navigation in dy-namic environment. In 2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 2592–2597, 2025. [3] Kaiyuan Eric Chen, Yafei Liang, Nikhil Jha, Jeffrey Ichnowski, Michael Daniel-czuk, Joseph Gonzalez, John Kubiatowicz, and Ken Goldberg. Fogros: An adaptive framework for automating fog robotics deployment. In 2021 IEEE 17th Interna-
+
+18 tional Conference on Automation Science and Engineering (CASE) , pages 2035– 2042, 2021. [4] Gheorghe Comanici et al. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities. Technical Report 2507.06261, arXiv, 2025. [5] DeepSeek-AI et al. Deepseek-r1: Incentivizing reasoning capability in llms via rein-forcement learning. Technical Report 2501.12948, arXiv, 2025. [6] Miguel Fernandez-Cortizas, Martin Molina, Pedro Arias-Perez, Rafael Perez-Segui, David Perez-Saura, and Pascual Campoy. Aerostack2: A software framework for developing multi-robot aerial systems. Technical report, arXiv, 2023. [7] Shyam Sundar Kannan, Vishnunandan L. N. Venkatesh, and Byung-Cheol Min. Smart-llm: Smart multi-agent robot task planning using large language models. In 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 12140–12147, 2024. [8] Artem Lykov, Miguel Altamirano Cabrera, Mikhail Konenkov, Valerii Serpiva, Kof-fivi Fidèle Gbagbe, Ali Alabbas, Aleksey Fedoseev, Luis Moreno, Muhammad Haris Khan, Ziang Guo, and Dzmitry Tsetserukou. Industry 6.0: New generation of indus-try driven by generative ai and swarm of heterogeneous robots. In 2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 19992– 19997, 2025. [9] OpenAI. Openai gpt o3-mini. https://openai.com/index/ openai-o3-mini/ , 2025. [10] Carlo Pinciroli and Giovanni Beltrame. Buzz: An extensible programming language for heterogeneous swarm robotics. In IEEE/RSJ IROS , 2016. [11] Suman Raj, Rajdeep Singh, Kautuk Astu, and Yogesh Simmha. Aerodaas: Towards an application programming framework for drones-as-a-service. In IEEE Interna-tional Conference on Web Services (ICWS) , 2025. [12] Hassan Sartaj, Shaukat Ali, Ana Cavalcanti, Lukas Esterle, Cláudio Gomes, Pe-ter Gorm Larsen, Anastasios Tefas, Jim Woodcock, and Houxiang Zhang. Soft-ware engineering for self-adaptive robotics: A research agenda. Technical Report 2505.19629, arXiv, 2025. [13] Shital Shah, Debadeepta Dey, Chris Lovett, and Ashish Kapoor. Airsim: High-fidelity visual and physical simulation for autonomous vehicles. In Field and Service Robotics , 2017. [14] Francesco Toscano, Costanza Fiorentino, Nicola Capece, Ugo Erra, Danilo Travas-cia, Antonio Scopa, Marios Drosos, and Paola D’Antonio. Unmanned aerial vehicle for precision agriculture: A review. IEEE Access , 12:69188–69205, 2024. 19 [15] Wenhao Wang, Yanyan Li, Long Jiao, and Jiawei Yuan. Gsce: a prompt framework with enhanced reasoning for reliable llm-driven drone control. In 2025 International Conference on Unmanned Aircraft Systems (ICUAS) , pages 441–448, 2025. [16] Wenhao Wang, Yanyan Li, Long Jiao, and Jiawei Yuan. Large language model-driven closed-loop uav operation with semantic observations. IEEE Internet of Things Journal , 2025. [17] Wenhao Wang, Yi Rong, Yanyan Li, Long Jiao, and Jiawei Yuan. Llm-driven cor-rective robot operation code generation with static text-based simulation. Technical Report 2512.02002, arXiv, 2026. [18] Ziming Wang, Qingchen Liu, Jiahu Qin, and Man Li. Ensuring safety in llm-driven robotics: A cross-layer sequence supervision mechanism. In 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 9620– 9627, 2024. [19] Jiaxu Xing, Giovanni Cioffi, Javier Hidalgo-Carrió, and Davide Scaramuzza. Au-tonomous power line inspection with drones via perception-aware mpc. In 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) ,pages 1086–1093, 2023. [20] Bangguo Yu, Hamidreza Kasaei, and Ming Cao. L3mvn: Leveraging large language models for visual target navigation. In 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 3554–3560, 2023. 20 A Discussion of Mission Experiments 
+
+We evaluate five workloads in simulation comprising of multi-destination delivery, farm survey, cable inspection, and radio tower inspection, and three workloads in real-world setting consist of multi-destination drone delivery, farm survey, and search and rescue as summarized in Table 1. These tasks represent increasing levels of autonomy complexity, ranging from pure navigation in delivery mission to analytics-driven closed-loop control in cable inspection, and finally to hybrid behavior in the radio tower locate and inspect mission. This discussion complements the experimental analysis provided above. 
+
+A.1 Multi destination drone delivery 
+
+The delivery mission was performed in both simulation and real-world covering a total distance of 600 m (trajectory shown in Fig. 6a) within 6 minutes at a cruising speed of 2 m/s with an altitude of 10 m in simulation. In real-world, the drone traversed a total of 42 m (trajectory shown in Fig. 6d) within 7 minutes at a speed of 0.25 m/s 
+
+with an altitude of 2 m. The drone correctly executed and performed 3 virtual deliveries in the simulated city while safely avoiding obstacles such as apartments. The LLM generated code also incorporated return to depot logic upon completion of deliveries. Furthermore, the resulting trajectories indicate that the LLM was able to synthesize non-trivial, non-linear paths to avoid obstacles rather than relying on simple straight line motion. This experiment demonstrates that navigation only tasks are efficiently handled by the LLM when given with the information of robot and world under structured guardrail constraints. 
+
+A.2 Farm Survey 
+
+The farm survey was performed in both real-world and simulation covering an area of 
+
+900 m2 (trajectory shown in Fig. 6b) with a speed of 1 m/s at an altitude of 10 m in simulation, while surveying an area of 100 m2 (trajectory shown in Fig. 6e) with a speed of 0.25 m/s at an altitude of 1.5 m in real-world. The drone was continuously capturing the videos from it’s front camera at 30 F P S and 5 F P S in simulation and real-world, respectively. Compared to the delivery task, this experiment required integration of sens-ing and analytics (video logging) apart from waypoint traversal. The drone consistently traversed the farm boundary and continuously acquired camera data, indicating correct integration of perception and motion logic by the LLM generated code. This experiment was focused on low-level yaw angle calculation for correctly surveying the target area and with the help of constraints and guidelines in the guardrail prompt, the LLM was able to successfully generate correct code while adhering to yaw constraints. 
+
+A.3 High Tension Power Cable Inspection 
+
+The cable inspection task introduced closed-loop analytics-driven navigation using a YOLOv11x cable detection model at 3 FPS. The drone was flying at an altitude of 21 ≈ 44 m with speeds ranging from 0.1 m/s and 0.5 m/s over a 100 m cable inspection path. The reduced speed is due to the velocity control commands from the cable fol-low analytical model. The generated code correctly deployed analytics and pipelines detection outputs to follow logic and finally to navigation queue demonstrating reliable perception-to-control integration. This experiment demonstrated the LLM capability in handling the interfacing of multiple APIs based on natural language instruction from user when provided with runtime details of analytical models. 
+
+A.4 Locate and Inspect Radio Tower 
+
+The declarative radio tower inspection represents the most complex simulated workload where the LLM was only prompted with what to do without specifying any procedure or plans. It is up to the LLM to extract raw information from the guardrail prompts and utilize them to plan a valid pathway to, first, search the radio tower, and then, inspect it upon locating. The locate and inspect radio tower mission was executed in simulation in small gazebo city with multiple apartments, roads and three radio towers with height of 44 m. The drone was restricted to fly up to a maximum of 45 m altitude and with a maximum speed of 2 m/s . The drone performed a grid search covering 43 , 200 m2
+
+area in 24 minutes with an altitude of 45 m with trajectory illustrated in Fig. 6c. The generated code created waypoints for grid search starting from the given start location based on the inference made from the world information. It successfully deployed tower detect analytics (using cv2 ORB-based image matching) and tower inspect analytics. Additionally, the LLM selected the bottom-facing camera for image acquisition, consis-tent with the sensor specifications provided in the robot and runtime information under the structured guardrail prompt. The extended mission duration and large spatial cov-erage demonstrate the LLM’s capability to construct systematic search strategies and manage long-horizon mission logic while adhering to strict flight constraints. This exper-iment effectively stress-tested the LLM by providing detailed robot, runtime, and world information, thereby emphasizing the importance of the modularized prompt design in enabling structured and context-aware autonomy generation. 
+
+A.5 Search and Rescue of VIP 
+
+The real-world search and rescue mission required the drone to locate a VIP (visually impaired person) wearing a hazard vest in an outdoor field environment. The mission covered a distance of 20 m over 4 minutes at an operational altitude of 1.5 m, with speed varying between 0.1 m/s and 1.0 m/s . The generated program correctly deployed the YOLOv11x-based hazard vest detection model at 5 FPS and integrated perception outputs into navigation decisions. The LLM was prompted with the task of location and following a VIP in an area of 8 m ∗ 8 m. Similar to radio tower locate and inspect, the LLM first produced search waypoints (can be observed from Fig. 6f) and then pipelines the camera data stream into concerned analytics. Furthermore, the LLM also cleared the queue upon detection of a VIP which was never given in the examples demonstrating 22 it’s capability to identify and create API usage patterns from the API documentation. This highlights the robustness of the structured guardrail prompting strategy in enabling responsive and creative LLM behavior. 23 B Drone Mission Code Generated Autonomously by Aero-Gen 
+
+B.1 Multi-destination Drone Delivery  
+
+> 1
+
+from aerodaas.src.primitives.core.i_environment import IEnvironment  
+
+> 2
+
+from aerodaas.src.environment import Environment  
+
+> 3
+
+from aerodaas.src.primitives.core.i_robot import IRobot  
+
+> 4
+
+from aerodaas.api import FCFSScheduler, AeroNavigation, AeroData, Waypoint, PriorityQueue  
+
+> 5
+
+from aerodaas.src.data.models import SchedulingType, NavigationType  
+
+> 6
+
+from aerodaas.src.helpers.aerodaas_code_generator import AeroDaasCodeGenerator  
+
+> 7
+
+def main():  
+
+> 8
+
+env: IEnvironment = Environment("sample_environment_1.json")  
+
+> 9
+
+drone: IRobot = env.getRobotByID("px4")  
+
+> 10
+
+scheduler = FCFSScheduler(env)  
+
+> 11
+
+env.setTrajectoryScheduler(scheduler)  
+
+> 12 13
+
+# Battery and mission time estimation  
+
+> 14
+
+# Estimated mission distance (in meters) is computed based on road network nodes  
+
+> 15
+
+# I40 (-90,80) to I30 (-90,50): 30 m 
+
+> 16
+
+# I30 (-90,50) to I31 (-45,50): 45 m 
+
+> 17
+
+# I31 (-45,50) to I21 (-45,20): 30 m 
+
+> 18
+
+# I21 (-45,20) to I11 (-45,-10): 30 m 
+
+> 19
+
+# I11 (-45,-10) to I12 (0,-10): 45 m 
+
+> 20
+
+# I12 (0,-10) to I13 (45,-10): 45 m 
+
+> 21
+
+# I13 (45,-10) to I14 (90,-10): 45 m 
+
+> 22
+
+# I14 (90,-10) to I24 (90,20): 30 m 
+
+> 23
+
+# I24 (90,20) to I23 (45,20): 45 m 
+
+> 24
+
+# I23 (45,20) to I22 (0,20): 45 m 
+
+> 25
+
+# I22 (0,20) to I21 (-45,20): 45 m 
+
+> 26
+
+# I21 (-45,20) to I31 (-45,50): 30 m 
+
+> 27
+
+# I31 (-45,50) to I30 (-90,50): 45 m 
+
+> 28
+
+# I30 (-90,50) to I40 (-90,80): 30 m 
+
+> 29
+
+# Total horizontal distance = 495 m; add approx. 18 m per delivery (descent and ascent) for 3 deliveries = 54 m 
+
+> 30
+
+# Total estimated distance ~549 m. At default speed of ~1 m/s, mission time ~549 s.  
+
+> 31
+
+estimated_mission_time = 549 # in seconds  
+
+> 32
+
+battery_endurance = 3000 # in seconds (50 minutes)  
+
+> 33 34
+
+# If mission time exceeds battery endurance, plan an emergency return.  
+
+> 35
+
+# (For simulation purposes; actual battery check would use sensor data.)  
+
+> 36
+
+if estimated_mission_time > battery_endurance:  
+
+> 37
+
+# Emergency: only return to depot  
+
+> 38
+
+wp_emergency = Waypoint(id="wp_emergency_return", x=-90, y=80, z=10, waypoint_type="relative")  
+
+> 39
+
+nav_emergency = AeroNavigation(NavigationType.DISTANCE_DRIVEN, [wp_emergency], SchedulingType.ORDERED)  
+
+> 40
+
+emergency_nav_data = AeroData(nav_emergency) 
+
+24 41 pq_emergency = PriorityQueue(data=emergency_nav_data, priority=0)  
+
+> 42
+
+drone_nav_data = scheduler.generateNavigation(pq_emergency)  
+
+> 43
+
+drone.navigate(drone_nav_data)  
+
+> 44
+
+drone.startMission()  
+
+> 45
+
+aerodaas_code_gen = AeroDaasCodeGenerator(env)  
+
+> 46
+
+aerodaas_code_gen.generate_code()  
+
+> 47
+
+return  
+
+> 48 49
+
+# Define waypoints along the road network following the provided node coordinates.  
+
+> 50
+
+# Depot: I40 at (-90, 80)  
+
+> 51
+
+# Delivery 1: I31 at (-45,50)  
+
+> 52
+
+# Delivery 2: I12 at (0,-10)  
+
+> 53
+
+# Delivery 3: I24 at (90,20)  
+
+> 54
+
+# All cruising altitude is 10 m; deliveries require descent to 1 m, hover for 10 seconds, then ascend back to 10 m.  
+
+> 55 56
+
+waypoints = []  
+
+> 57
+
+# Takeoff from depot I40: Start at I40 with cruise altitude 10 m.  
+
+> 58
+
+wp_takeoff = Waypoint(id="wp_takeoff", x=-90, y=80, z=10, yaw=0, waypoint_type="relative")  
+
+> 59
+
+waypoints.append(wp_takeoff)  
+
+> 60 61
+
+# Leg 1: Route from I40 to Delivery 1 (I31) via I30  
+
+> 62
+
+wp_I40_to_I30 = Waypoint(id="wp_I40_I30", x=-90, y=50, z=10, yaw=0, waypoint_type="relative")  
+
+> 63
+
+wp_I30_to_I31 = Waypoint(id="wp_I30_I31", x=-45, y=50, z=10, yaw=0, waypoint_type="relative")  
+
+> 64
+
+waypoints.extend([wp_I40_to_I30, wp_I30_to_I31])  
+
+> 65 66
+
+# Delivery 1 at I31: descend to 1 meter, hover 10 seconds, then ascend back to 10 m.  
+
+> 67
+
+wp_I31_descend = Waypoint(id="wp_I31_descend", x=-45, y=50, z=1, yaw=0, waypoint_type="relative", hover_duration=10)  
+
+> 68
+
+wp_I31_ascend = Waypoint(id="wp_I31_ascend", x=-45, y=50, z=10, yaw=0, waypoint_type="relative")  
+
+> 69
+
+waypoints.extend([wp_I31_descend, wp_I31_ascend])  
+
+> 70 71
+
+# Leg 2: Route from I31 to Delivery 2 (I12) via I21 and I11  
+
+> 72
+
+wp_I31_to_I21 = Waypoint(id="wp_I31_I21", x=-45, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 73
+
+wp_I21_to_I11 = Waypoint(id="wp_I21_I11", x=-45, y=-10, z=10, yaw=0, waypoint_type="relative")  
+
+> 74
+
+wp_I11_to_I12 = Waypoint(id="wp_I11_I12", x=0, y=-10, z=10, yaw=0, waypoint_type="relative")  
+
+> 75
+
+waypoints.extend([wp_I31_to_I21, wp_I21_to_I11, wp_I11_to_I12])  
+
+> 76 77
+
+# Delivery 2 at I12: descend, hover, then ascend.  
+
+> 78
+
+wp_I12_descend = Waypoint(id="wp_I12_descend", x=0, y=-10, z=1, yaw=0, waypoint_type="relative", hover_duration=10)  
+
+> 79
+
+wp_I12_ascend = Waypoint(id="wp_I12_ascend", x=0, y=-10, z=10, yaw=0, waypoint_type="relative") 
+
+25 80 waypoints.extend([wp_I12_descend, wp_I12_ascend])  
+
+> 81 82
+
+# Leg 3: Route from I12 to Delivery 3 (I24) via I13 and I14  
+
+> 83
+
+wp_I12_to_I13 = Waypoint(id="wp_I12_I13", x=45, y=-10, z=10, yaw=0, waypoint_type="relative")  
+
+> 84
+
+wp_I13_to_I14 = Waypoint(id="wp_I13_I14", x=90, y=-10, z=10, yaw=0, waypoint_type="relative")  
+
+> 85
+
+wp_I14_to_I24 = Waypoint(id="wp_I14_I24", x=90, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 86
+
+waypoints.extend([wp_I12_to_I13, wp_I13_to_I14, wp_I14_to_I24])  
+
+> 87 88
+
+# Delivery 3 at I24: descend, hover, then ascend.  
+
+> 89
+
+wp_I24_descend = Waypoint(id="wp_I24_descend", x=90, y=20, z=1, yaw=0, waypoint_type="relative", hover_duration=10)  
+
+> 90
+
+wp_I24_ascend = Waypoint(id="wp_I24_ascend", x=90, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 91
+
+waypoints.extend([wp_I24_descend, wp_I24_ascend])  
+
+> 92 93
+
+# Return Leg: Route from I24 back to depot I40 via I23, I22, I21, I31, I30  
+
+> 94
+
+wp_I24_to_I23 = Waypoint(id="wp_I24_I23", x=45, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 95
+
+wp_I23_to_I22 = Waypoint(id="wp_I23_I22", x=0, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 96
+
+wp_I22_to_I21 = Waypoint(id="wp_I22_I21", x=-45, y=20, z=10, yaw=0, waypoint_type="relative")  
+
+> 97
+
+wp_I21_to_I31 = Waypoint(id="wp_I21_I31_return", x=-45, y=50, z=10, yaw =0, waypoint_type="relative")  
+
+> 98
+
+wp_I31_to_I30 = Waypoint(id="wp_I31_I30_return", x=-90, y=50, z=10, yaw =0, waypoint_type="relative")  
+
+> 99
+
+wp_I30_to_I40 = Waypoint(id="wp_I30_I40", x=-90, y=80, z=10, yaw=0, waypoint_type="relative")  
+
+> 100
+
+waypoints.extend([wp_I24_to_I23, wp_I23_to_I22, wp_I22_to_I21, wp_I21_to_I31, wp_I31_to_I30, wp_I30_to_I40])  
+
+> 101 102
+
+# Bundle all waypoints into an AeroNavigation object  
+
+> 103
+
+navigation_plan = AeroNavigation(NavigationType.DISTANCE_DRIVEN, waypoints, SchedulingType.ORDERED)  
+
+> 104 105
+
+# Scheduler converts the high-level navigation intent into executable data  
+
+> 106
+
+drone_nav_data = scheduler.generateNavigation(navigation_plan)  
+
+> 107 108
+
+# Execute navigation command and start mission  
+
+> 109
+
+drone.navigate(drone_nav_data)  
+
+> 110
+
+drone.startMission()  
+
+> 111 112
+
+# Generate code artifacts for deployment  
+
+> 113
+
+aerodaas_code_gen = AeroDaasCodeGenerator(env)  
+
+> 114
+
+aerodaas_code_gen.generate_code()  
+
+> 115 116
+
+main() 
+
+26 B.2 Farm Survey  
+
+> 1
+
+from aerodaas.src.primitives.core.i_environment import IEnvironment  
+
+> 2
+
+from aerodaas.src.environment import Environment  
+
+> 3
+
+from aerodaas.src.primitives.core.i_robot import IRobot  
+
+> 4
+
+from aerodaas.src.primitives.core.i_compute import ICompute  
+
+> 5
+
+from aerodaas.api import FCFSScheduler, SaveVideoAnalytics, IAeroData, Waypoint, AeroNavigation  
+
+> 6
+
+from aerodaas.src.data.models import SchedulingType, NavigationType  
+
+> 7
+
+from aerodaas.src.helpers.aerodaas_code_generator import AeroDaasCodeGenerator  
+
+> 8
+
+from aerodaas.src.data.core.aero_stream_data import AeroStreamData  
+
+> 9
+
+from aerodaas.src.data.sensors import Image  
+
+> 10 11
+
+def main():  
+
+> 12
+
+env: IEnvironment = Environment("sample_environment_1.json")  
+
+> 13
+
+drone: IRobot = env.getRobotByID("px4")  
+
+> 14
+
+compute_edge = env.getComputeResourceByID("edge")  
+
+> 15
+
+scheduler = FCFSScheduler(env)  
+
+> 16
+
+env.setTrajectoryScheduler(scheduler)  
+
+> 17
+
+camera = drone.getSensorByID("drone_cam")  
+
+> 18
+
+camera_data_stream = camera.getDataStream()  
+
+> 19
+
+save_video_analytics = SaveVideoAnalytics()  
+
+> 20
+
+save_video_analytics.deploy(compute_edge)  
+
+> 21
+
+_ = save_video_analytics.analyse(camera_data_stream)  
+
+> 22
+
+# Define survey waypoints  
+
+> 23
+
+wp1 = Waypoint(id="wp1", x=0, y=0, z=3, yaw=0)  
+
+> 24
+
+wp2 = Waypoint(id="wp2", x=20, y=0, z=3, yaw=90)  
+
+> 25
+
+wp3 = Waypoint(id="wp3", x=20, y=20, z=3, yaw=180)  
+
+> 26
+
+wp4 = Waypoint(id="wp4", x=0, y=20, z=3, yaw=270)  
+
+> 27
+
+wp5 = Waypoint(id="wp5", x=0, y=0, z=3, yaw=0)  
+
+> 28
+
+waypoints: AeroNavigation = AeroNavigation (NavigationType. DISTANCE_DRIVEN, [wp1, wp2, wp3, wp4, wp5], SchedulingType.ORDERED)  
+
+> 29
+
+nav_data: IAeroData[AeroNavigation] = scheduler.generateNavigation( waypoints)  
+
+> 30
+
+drone.navigate(nav_data)  
+
+> 31
+
+drone.startMission()  
+
+> 32
+
+code_gen = AeroDaasCodeGenerator(env)  
+
+> 33
+
+code_gen.generate_code()  
+
+> 34
+
+main() 
+
+B.3 Cable Inspection  
+
+> 1
+
+from aerodaas.api import SaveVideoAnalytics, CableDetect, CableFollow, FCFSScheduler, AeroNavigation  
+
+> 2
+
+from aerodaas.src.data.core.waypoint import Waypoint  
+
+> 3
+
+from aerodaas.src.data.core.aero_data import AeroData  
+
+> 4
+
+from aerodaas.src.environment import Environment  
+
+> 56
+
+def main():  
+
+> 7
+
+""" 
+
+27 8 Main function to execute cable inspection mission.  
+
+> 9
+
+"""  
+
+> 10
+
+# Initialize environment from configuration file  
+
+> 11
+
+env = Environment("sample_environment_1.json")  
+
+> 12 13
+
+# Get the edge compute resource  
+
+> 14
+
+edge_compute = env.getComputeResourceByID("edge")  
+
+> 15 16
+
+# Get the drone (PX4 based drone) and set trajectory scheduler  
+
+> 17
+
+drone = env.getRobotByID("px4")  
+
+> 18
+
+scheduler = FCFSScheduler(env)  
+
+> 19
+
+env.setTrajectoryScheduler(scheduler)  
+
+> 20 21
+
+# Retrieve the onboard camera sensor and its video data stream  
+
+> 22
+
+camera = drone.getSensorByID("px4_cam1")  
+
+> 23
+
+camera_data_stream = camera.getDataStream()  
+
+> 24 25
+
+# Deploy and run SaveVideoAnalytics to capture and save video stream  
+
+> 26
+
+video_saver = SaveVideoAnalytics()  
+
+> 27
+
+video_saver.deploy(edge_compute)  
+
+> 28
+
+# Analyze video stream to save video (output is not used)  
+
+> 29
+
+_ = video_saver.analyse(camera_data_stream)  
+
+> 30 31
+
+# Deploy and run CableDetect analytics to process the video stream for cable detection  
+
+> 32
+
+cable_detect = CableDetect()  
+
+> 33
+
+cable_detect.deploy(edge_compute)  
+
+> 34
+
+cable_detect_stream = cable_detect.analyse(camera_data_stream)  
+
+> 35 36
+
+# Deploy and run CableFollow analytics to generate navigation commands based on cable detection  
+
+> 37
+
+cable_follow = CableFollow()  
+
+> 38
+
+cable_follow.deploy(edge_compute)  
+
+> 39
+
+cable_follow_nav = cable_follow.analyse(cable_detect_stream)  
+
+> 40 41
+
+# Create an initial navigation command to take off and ascend to 1 meter above the cable (10m altitude)  
+
+> 42
+
+# Using a single waypoint at (0,0,10) with yaw=0 as the first navigation waypoint.  
+
+> 43
+
+initial_waypoint = Waypoint(x=0, y=0, z=10, yaw=0)  
+
+> 44
+
+initial_nav = AeroNavigation([initial_waypoint])  
+
+> 45
+
+initial_nav_data = AeroData(initial_nav)  
+
+> 46 47
+
+# Generate the initial navigation command using the scheduler  
+
+> 48
+
+drone_nav_cmd = scheduler.generateNavigation(initial_nav_data)  
+
+> 49
+
+# Append analytics-driven navigation from CableFollow  
+
+> 50
+
+scheduler.addNavigation(cable_follow_nav)  
+
+> 51 52
+
+# Send navigation command to the drone and start the mission  
+
+> 53
+
+drone.navigate(drone_nav_cmd)  
+
+> 54
+
+drone.startMission() 
+
+> 55
+
+28 56 # Initialize code generator for AeroDaaS mission (execution starts after startMission)  
+
+> 57
+
+from aerodaas.src.helpers.aerodaas_code_generator import AeroDaasCodeGenerator  
+
+> 58
+
+aerodaas_code_gen = AeroDaasCodeGenerator(env)  
+
+> 59
+
+aerodaas_code_gen.generate_code()  
+
+> 60 61
+
+if __name__ == "__main__":  
+
+> 62
+
+main() 
+
+B.4 Radio Tower Detection and Inspection  
+
+> 1
+
+from aerodaas.src.environment import Environment  
+
+> 2
+
+from aerodaas.src.primitives.core.i_environment import IEnvironment  
+
+> 3
+
+from aerodaas.src.primitives.core.i_robot import IRobot  
+
+> 4
+
+from aerodaas.api import ( 
+
+> 5
+
+AeroDaasCodeGenerator,  
+
+> 6
+
+Waypoint,  
+
+> 7
+
+AeroNavigation,  
+
+> 8
+
+IAeroData,  
+
+> 9
+
+FCFSScheduler,  
+
+> 10
+
+PriorityQueue,  
+
+> 11
+
+RadioTowerDetect,  
+
+> 12
+
+RadioTowerInspect  
+
+> 13
+
+) 
+
+> 14
+
+from aerodaas.src.data.models import SchedulingType, NavigationType  
+
+> 15
+
+from aerodaas.src.primitives.core.i_compute import ICompute  
+
+> 16
+
+from aerodaas.src.data.core.aero_stream_data import AeroStreamData  
+
+> 17
+
+from aerodaas.src.data.sensors import Image  
+
+> 18 19
+
+def generate_grid_waypoints(x_start: float, y_start: float, width: float, height: float,  
+
+> 20
+
+spacing: float, altitude: float) -> list:  
+
+> 21
+
+"""  
+
+> 22
+
+Generate a lawnmower-pattern grid of waypoints covering the survey region . 
+
+> 23 24
+
+Args:  
+
+> 25
+
+x_start (float): Starting x coordinate of survey region.  
+
+> 26
+
+y_start (float): Starting y coordinate of survey region.  
+
+> 27
+
+width (float): Width of the survey region along x-axis.  
+
+> 28
+
+height (float): Height of the survey region along y-axis.  
+
+> 29
+
+spacing (float): Distance between adjacent waypoints.  
+
+> 30
+
+altitude (float): Altitude at which to fly.  
+
+> 31 32
+
+Returns:  
+
+> 33
+
+list: List of Waypoint objects covering the region.  
+
+> 34
+
+"""  
+
+> 35
+
+waypoints = []  
+
+> 36
+
+num_rows = int(height / spacing) + 1 
+
+> 37
+
+num_cols = int(width / spacing) + 1
+
+29 38 39 for col in range(num_cols):  
+
+> 40
+
+x_coord = x_start + col * spacing  
+
+> 41 42
+
+if col % 2 == 0:  
+
+> 43
+
+y_coords = [y_start - row * spacing for row in range(num_rows)]  
+
+> 44
+
+else:  
+
+> 45
+
+y_coords = [y_start - row * spacing for row in reversed(range( num_rows))]  
+
+> 46 47
+
+for row, y_coord in enumerate(y_coords):  
+
+> 48
+
+wp = Waypoint(  
+
+> 49
+
+id=f"grid_wp_{col}_{row}",  
+
+> 50
+
+x=x_coord,  
+
+> 51
+
+y=y_coord,  
+
+> 52
+
+z=altitude,  
+
+> 53
+
+yaw=0.0,  
+
+> 54
+
+waypoint_type="relative"  
+
+> 55
+
+) 
+
+> 56
+
+waypoints.append(wp)  
+
+> 57
+
+return waypoints  
+
+> 58 59
+
+def main():  
+
+> 60
+
+"""  
+
+> 61
+
+Main function to execute the Locate and Inspect Radio Tower mission.  
+
+> 62
+
+"""  
+
+> 63
+
+# Initialize environment from configuration file.  
+
+> 64
+
+env: IEnvironment = Environment("sample_environment_1.json")  
+
+> 65 66
+
+# Retrieve the drone using its ID (using PX4 drone).  
+
+> 67
+
+drone: IRobot = env.getRobotByID("px4")  
+
+> 68 69
+
+# Retrieve the edge compute resource.  
+
+> 70
+
+edge_compute: ICompute = env.getComputeResourceByID("edge")  
+
+> 71 72
+
+# Set up the default trajectory scheduler (using FCFS scheduler).  
+
+> 73
+
+scheduler = FCFSScheduler(env)  
+
+> 74
+
+env.setTrajectoryScheduler(scheduler)  
+
+> 75 76
+
+# --------------------- SENSOR & ANALYTICS SETUP --------------------- 
+
+> 77
+
+# Use the down-facing camera for survey and radio tower detection.  
+
+> 78
+
+camera = drone.getSensorByID("px4_bottom_cam")  
+
+> 79
+
+camera_data_stream: AeroStreamData[Image] = camera.getDataStream()  
+
+> 80 81
+
+# Set up Radio Tower Detection analytics.  
+
+> 82
+
+radio_tower_detect = RadioTowerDetect()  
+
+> 83
+
+radio_tower_detect.deploy(edge_compute)  
+
+> 84
+
+# Analyze the incoming camera stream to detect radio towers.  
+
+> 85
+
+tower_detection_stream: AeroStreamData = radio_tower_detect.analyse( camera_data_stream)  
+
+> 86 87
+
+# Set up Radio Tower Inspection analytics. 
+
+30 88 radio_tower_inspect = RadioTowerInspect()  
+
+> 89
+
+radio_tower_inspect.deploy(edge_compute)  
+
+> 90
+
+# Analytics provides navigation for tower survey based on detection.  
+
+> 91
+
+tower_inspection_nav_data: IAeroData[AeroNavigation] =radio_tower_inspect.analyse(tower_detection_stream)  
+
+> 92 93
+
+# --------------------- GRID SEARCH MISSION SETUP --------------------- 
+
+> 94
+
+# Define survey region parameters (in meters).  
+
+> 95
+
+# Retrieve base location from world information (base node "I40" with coordinates [-90,80]).  
+
+> 96
+
+base_x: float = -90.0  
+
+> 97
+
+base_y: float = 80.0  
+
+> 98
+
+survey_width: float = 240.0  
+
+> 99
+
+survey_height: float = 180.0  
+
+> 100
+
+# Use a survey altitude of 45 m (max allowed) to obtain ~10m camera ground coverage.  
+
+> 101
+
+survey_altitude: float = 45.0  
+
+> 102
+
+# Set grid spacing equal to camera coverage side (45/4.5 = 10 m).  
+
+> 103
+
+grid_spacing: float = 10.0  
+
+> 104 105
+
+# Generate grid waypoints for systematic search.  
+
+> 106
+
+grid_waypoints = generate_grid_waypoints(base_x, base_y,  
+
+> 107
+
+survey_width, survey_height,  
+
+> 108
+
+grid_spacing, survey_altitude)  
+
+> 109 110
+
+# Create takeoff and return waypoints at base with survey altitude.  
+
+> 111
+
+wp_takeoff = Waypoint(  
+
+> 112
+
+id="takeoff",  
+
+> 113
+
+x=base_x,  
+
+> 114
+
+y=base_y,  
+
+> 115
+
+z=survey_altitude,  
+
+> 116
+
+yaw=0.0,  
+
+> 117
+
+waypoint_type="relative"  
+
+> 118
+
+) 
+
+> 119
+
+wp_return = Waypoint(  
+
+> 120
+
+id="return",  
+
+> 121
+
+x=base_x,  
+
+> 122
+
+y=base_y,  
+
+> 123
+
+z=survey_altitude,  
+
+> 124
+
+yaw=0.0,  
+
+> 125
+
+waypoint_type="relative"  
+
+> 126
+
+) 
+
+> 127 128
+
+# Formulate complete search path:  
+
+> 129
+
+# 1. Takeoff from base.  
+
+> 130
+
+# 2. Navigate to the survey grid (assumed to start at lower-left of survey region).  
+
+> 131
+
+# 3. Follow grid waypoints.  
+
+> 132
+
+# 4. Return to base.  
+
+> 133
+
+search_path = [wp_takeoff]  
+
+> 134
+
+# Optionally, add a waypoint to transit from base to survey area if required. 
+
+31 135 # For this mission, we assume the grid’s first waypoint serves as the entry point.  
+
+> 136
+
+if grid_waypoints:  
+
+> 137
+
+search_path.append(grid_waypoints[0])  
+
+> 138
+
+# Append the grid waypoints (excluding the first if already added).  
+
+> 139
+
+search_path.extend(grid_waypoints[1:])  
+
+> 140
+
+search_path.append(wp_return)  
+
+> 141 142
+
+# --------------------- PRIORITY QUEUE SETUP --------------------- 
+
+> 143
+
+# Prepare PriorityQueue entries for switching between missions.  
+
+> 144
+
+# Lower numeric priority value denotes higher task priority.  
+
+> 145
+
+# Simulate tower inspection mission (if a tower is detected) with high priority.  
+
+> 146
+
+# Search mission is lower priority.  
+
+> 147
+
+pq_search = PriorityQueue(  
+
+> 148
+
+data=search_path,  
+
+> 149
+
+priority=10  
+
+> 150
+
+) 
+
+> 151 152
+
+# Create an AeroNavigation object for the grid search mission.  
+
+> 153
+
+search_mission = AeroNavigation(  
+
+> 154
+
+navigation_type=NavigationType.DISTANCE_DRIVEN,  
+
+> 155
+
+data=pq_search,  
+
+> 156
+
+priority=SchedulingType.ORDERED # Using ordered scheduling  
+
+> 157
+
+) 
+
+> 158 159
+
+pq_tower = PriorityQueue(  
+
+> 160
+
+data=tower_inspection_nav_data.get_data(), # AeroNavigation from inspection analytics  
+
+> 161
+
+priority=0 # High priority (lower number)  
+
+> 162
+
+) 
+
+> 163 164
+
+# Wrap the priority queue tasks inside an AeroNavigation object.  
+
+> 165
+
+tower_mission = AeroNavigation(  
+
+> 166
+
+navigation_type=NavigationType.DISTANCE_DRIVEN,  
+
+> 167
+
+data=pq_tower,  
+
+> 168
+
+priority=SchedulingType.ORDERED  
+
+> 169
+
+) 
+
+> 170 171
+
+# --------------------- DRONE NAVIGATION --------------------- 
+
+> 172
+
+# Scheduler converts the high-level navigation intent into executable navigation data.  
+
+> 173
+
+final_nav_data: IAeroData[AeroNavigation] = scheduler.generateNavigation( search_mission)  
+
+> 174
+
+scheduler.addNavigation(tower_mission) # Add tower inspection mission to scheduler  
+
+> 175 176
+
+# Instruct the drone to execute the navigation mission.  
+
+> 177
+
+drone.navigate(final_nav_data)  
+
+> 178
+
+# Start the mission; no new analytics or navigation can be added after this call.  
+
+> 179
+
+drone.startMission() 
+
+32 180 181 # --------------------- CODE GENERATION --------------------- 
+
+> 182
+
+# Generate deployable code artifacts for the mission.  
+
+> 183
+
+aerodaas_code_gen = AeroDaasCodeGenerator(env)  
+
+> 184
+
+aerodaas_code_gen.generate_code()  
+
+> 185 186
+
+if __name__ == "__main__":  
+
+> 187
+
+main() 
+
+B.5 Search and Track  
+
+> 1
+
+from aerodaas.src.primitives.core.i_environment import IEnvironment  
+
+> 2
+
+from aerodaas.src.environment import Environment  
+
+> 3
+
+from aerodaas.src.primitives.core.i_robot import IRobot  
+
+> 4
+
+from aerodaas.src.primitives.core.i_compute import ICompute  
+
+> 5
+
+from aerodaas.api import FCFSScheduler, PriorityQueue, AeroNavigation, Waypoint  
+
+> 6
+
+from aerodaas.src.data.models import SchedulingType, NavigationType  
+
+> 7
+
+from aerodaas.api import AeroDaasCodeGenerator  
+
+> 8
+
+from aerodaas.api import VipDetectAnalytics, VipFollowAnalytics  
+
+> 910
+
+def main() -> None:  
+
+> 11
+
+"""  
+
+> 12
+
+Main function to initialize the environment, configure search and tracking missions, and initiate the combined dual-mode mission.  
+
+> 13
+
+"""  
+
+> 14
+
+# Create the environment and load resources.  
+
+> 15
+
+env: IEnvironment = Environment("sample_environment_1.json")  
+
+> 16
+
+edge_compute: ICompute = env.getComputeResourceByID("edge")  
+
+> 17
+
+drone: IRobot = env.getRobotByID("tello")  
+
+> 18 19
+
+# Set the trajectory scheduler (using FCFS scheduler for integration with PriorityQueue tasks).  
+
+> 20
+
+scheduler = FCFSScheduler(env)  
+
+> 21
+
+env.setTrajectoryScheduler(scheduler)  
+
+> 22 23
+
+wp_s1 = Waypoint(id="wp_s1", x=0, y=0, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 24
+
+wp_s2 = Waypoint(id="wp_s2", x=0, y=4, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 25
+
+wp_s3 = Waypoint(id="wp_s3", x=4, y=4, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 26
+
+wp_s4 = Waypoint(id="wp_s4", x=4, y=0, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 27
+
+wp_s5 = Waypoint(id="wp_s5", x=8, y=0, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 28
+
+wp_s6 = Waypoint(id="wp_s6", x=8, y=4, z=1.5, yaw=0, waypoint_type=" relative")  
+
+> 29 30
+
+search_nav = AeroNavigation(  
+
+> 31
+
+navigation_type=NavigationType.DISTANCE_DRIVEN, 
+
+33 32 data=[wp_s1, wp_s2, wp_s3, wp_s4, wp_s5, wp_s6],  
+
+> 33
+
+scheduling_type=SchedulingType.ORDERED  
+
+> 34
+
+) 
+
+> 35 36
+
+# ===================== WRAP TASKS INTO PRIORITY QUEUE =====================  
+
+> 37
+
+# Lower numeric priority indicates higher scheduling priority.  
+
+> 38
+
+search_task = PriorityQueue(  
+
+> 39
+
+data=search_nav,  
+
+> 40
+
+priority=10 # Lower priority than tracking.  
+
+> 41
+
+) 
+
+> 42 43
+
+final_nav_data = scheduler.generateNavigation(search_task)  
+
+> 44 45
+
+# ===================== SETUP VIP DETECTION AND TRACKING ANALYTICS =====================  
+
+> 46
+
+# Access the onboard camera sensor.  
+
+> 47
+
+camera = drone.getSensorByID("tello_cam1")  
+
+> 48
+
+camera_data_stream = camera.getDataStream()  
+
+> 49 50
+
+# Deploy vip detection analytics on the camera stream.  
+
+> 51
+
+vip_detect_analytics = VipDetectAnalytics()  
+
+> 52
+
+vip_detect_analytics.deploy(edge_compute)  
+
+> 53
+
+vip_detect_output = vip_detect_analytics.analyse(camera_data_stream)  
+
+> 54 55
+
+# Deploy vip follow analytics to obtain high-priority tracking navigation data.  
+
+> 56
+
+vip_follow_analytics = VipFollowAnalytics()  
+
+> 57
+
+vip_follow_analytics.deploy(edge_compute)  
+
+> 58
+
+tracking_nav_data = vip_follow_analytics.analyse(vip_detect_output)  
+
+> 59 60
+
+tracking_task = PriorityQueue(  
+
+> 61
+
+data=tracking_nav_data.get_data() if hasattr(tracking_nav_data, "get_data") else tracking_nav_data,  
+
+> 62
+
+priority=1 # High-priority task for vip tracking.  
+
+> 63
+
+) 
+
+> 64 65
+
+scheduler.clearNavigation() # Clear any existing navigation data.  
+
+> 66
+
+scheduler.addNavigation(tracking_task)  
+
+> 67 68
+
+# ===================== INITIATE MISSION =====================  
+
+> 69
+
+# Send navigation data to the drone.  
+
+> 70
+
+drone.navigate(final_nav_data)  
+
+> 71 72
+
+# Start the mission.  
+
+> 73
+
+drone.startMission()  
+
+> 74 75
+
+# ===================== CODE GENERATION =====================  
+
+> 76
+
+# Generate deployable code artifacts.  
+
+> 77
+
+code_gen = AeroDaasCodeGenerator(env)  
+
+> 78
+
+code_gen.generate_code() 
+
+> 79
+
+34 80 if __name__ == "__main__":  
+
+> 81
+
+main() 
+
+35
