@@ -6,85 +6,70 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-22
-- 运行时间：2026-03-22 19:42:08 UTC
+- 最新运行日期：2026-03-14 ~ 2026-03-23
+- 运行时间：2026-03-23 02:43:55 UTC
 - 运行状态：成功
-- 本次总论文数：21
-- 精读区：9
-- 速读区：12
+- 本次总论文数：16
+- 精读区：7
+- 速读区：9
 
 ### 今日简报（AI）
-今日精选 21 篇前沿论文，深度聚焦 AI 智能体社区的互学习机制与私有库代码生成突破。
-满分论文揭示了 Openclaw 智能体协作对教育的深远影响，并提出让 LLM 真正“掌握”而非仅“看到”私有库代码的新方法。
-建议普通读者关注多智能体系统在软件优化与无人机自主控制（AeroGen）中的实际落地应用。
-- 详情：[/202603/22/README](/202603/22/README)
+本期精选 16 篇论文，深度解析 LLM 智能体在游戏课程学习与多智能体协作中的核心进展。
+重点关注 Sensi 提出的“一次学一事”测试时学习框架，以及提升复杂工作流效率的受控存储架构。
+建议开发者探索如何利用策略驱动的存储层与自动化推理流，构建更具鲁棒性的智能体系统。
+- 详情：[/20260314-20260323/README](/20260314-20260323/README)
 
 ### 精读区论文标签
-1. [When Openclaw Agents Learn from Each Other: Insights from Emergent AI Agent Communities for Human-AI Partnership in Education](/202603/22/2603.16663v1-when-openclaw-agents-learn-from-each-other-insights-from-emergent-ai-agent-communities-for-human-ai-partnership-in-education)  
-   标签：评分：10.0/10、query:opclw
-   evidence：对Openclaw智能体社区的观察
-2. [To See is Not to Master: Teaching LLMs to Use Private Libraries for Code Generation](/202603/22/2603.15159v3-to-see-is-not-to-master-teaching-llms-to-use-private-libraries-for-code-generation)  
+1. [Sensi: Learn One Thing at a Time -- Curriculum-Based Test-Time Learning for LLM Game Agents](/20260314-20260323/2603.17683v1-sensi-learn-one-thing-at-a-time----curriculum-based-test-time-learning-for-llm-game-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：教大模型调用私有库API
-3. [Agentic workflow enables the recovery of critical materials from complex feedstocks via selective precipitation](/202603/22/2603.15491v1-agentic-workflow-enables-the-recovery-of-critical-materials-from-complex-feedstocks-via-selective-precipitation)  
+   evidence：基于课程学习和状态机控制的LLM智能体架构
+2. [Governed Memory: A Production Architecture for Multi-Agent Workflows](/20260314-20260323/2603.17787v1-governed-memory-a-production-architecture-for-multi-agent-workflows)  
    标签：评分：9.0/10、query:agent
-   evidence：使用AI智能体进行材料回收的多智能体工作流
-4. [TRUST-SQL: Tool-Integrated Multi-Turn Reinforcement Learning for Text-to-SQL over Unknown Schemas](/202603/22/2603.16448v1-trust-sql-tool-integrated-multi-turn-reinforcement-learning-for-text-to-sql-over-unknown-schemas)  
+   evidence：多智能体工作流的生产架构
+3. [SLEA-RL: Step-Level Experience Augmented Reinforcement Learning for Multi-Turn Agentic Training](/20260314-20260323/2603.18079v1-slea-rl-step-level-experience-augmented-reinforcement-learning-for-multi-turn-agentic-training)  
    标签：评分：9.0/10、query:agent
-   evidence：自主智能体使用工具进行元数据验证
-5. [TRUST-SQL: Tool-Integrated Multi-Turn Reinforcement Learning for Text-to-SQL over Unknown Schemas](/202603/22/2603.16448v2-trust-sql-tool-integrated-multi-turn-reinforcement-learning-for-text-to-sql-over-unknown-schemas)  
-   标签：评分：9.0/10、query:agent
-   evidence：集成工具的Text-to-SQL推理智能体
-6. [VeriAgent: A Tool-Integrated Multi-Agent System with Evolving Memory for PPA-Aware RTL Code Generation](/202603/22/2603.17613v1-veriagent-a-tool-integrated-multi-agent-system-with-evolving-memory-for-ppa-aware-rtl-code-generation)  
-   标签：评分：9.0/10、query:agent
-   evidence：集成工具的多智能体RTL生成系统
-7. [Who Tests the Testers? Systematic Enumeration and Coverage Audit of LLM Agent Tool Call Safety](/202603/22/2603.18245v1-who-tests-the-testers-systematic-enumeration-and-coverage-audit-of-llm-agent-tool-call-safety)  
-   标签：评分：9.0/10、query:agent
-   evidence：LLM智能体工具调用安全性审计
-8. [CyberJustice Tutor: An Agentic AI Framework for Cybersecurity Learning via Think-Plan-Act Reasoning and Pedagogical Scaffolding](/202603/22/2603.18470v1-cyberjustice-tutor-an-agentic-ai-framework-for-cybersecurity-learning-via-think-plan-act-reasoning-and-pedagogical-scaffolding)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于自主目标分解的“思考-计划-行动”推理周期
-9. [MemMA: Coordinating the Memory Cycle through Multi-Agent Reasoning and In-Situ Self-Evolution](/202603/22/2603.18718v1-memma-coordinating-the-memory-cycle-through-multi-agent-reasoning-and-in-situ-self-evolution)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于记忆周期协调的多智能体推理
+   evidence：基于强化学习的多轮智能体训练
+4. [AgenticScholar: Agentic Data Management with Pipeline Orchestration for Scholarly Corpora](/20260314-20260323/2603.13774v1-agenticscholar-agentic-data-management-with-pipeline-orchestration-for-scholarly-corpora)  
+   标签：评分：8.0/10、query:agent
+   evidence：具有流水线编排和规划的智能体数据管理
+5. [ATCC: Adaptive Concurrency Control for Unforeseen Agentic Transactions](/20260314-20260323/2603.13906v1-atcc-adaptive-concurrency-control-for-unforeseen-agentic-transactions)  
+   标签：评分：8.0/10、query:agent
+   evidence：针对智能体工作流和事务的自适应并发控制
+6. [LegacyTranslate: LLM-based Multi-Agent Method for Legacy Code Translation](/20260314-20260323/2603.14054v1-legacytranslate-llm-based-multi-agent-method-for-legacy-code-translation)  
+   标签：评分：8.0/10、query:agent
+   evidence：用于API感知代码翻译的多智能体框架
+7. [IEMAS: An Incentive-Efficiency Routing Framework for Open Agentic Web Ecosystems](/20260314-20260323/2603.17302v1-iemas-an-incentive-efficiency-routing-framework-for-open-agentic-web-ecosystems)  
+   标签：评分：8.0/10、query:agent
+   evidence：开放智能体网络生态系统和多智能体系统的路由框架
 
 ### 速读区论文标签
-1. [AeroGen: Agentic Drone Autonomy through Single-Shot Structured Prompting & Drone SDK](/202603/22/2603.14236v1-aerogen-agentic-drone-autonomy-through-single-shot-structured-prompting--drone-sdk)  
+1. [Infinite Problem Generator: Verifiably Scaling Physics Reasoning Data with Agentic Workflows](/20260314-20260323/2603.14486v1-infinite-problem-generator-verifiably-scaling-physics-reasoning-data-with-agentic-workflows)  
    标签：评分：8.0/10、query:agent
-   evidence：通过SDK集成实现LLM生成的无人机控制程序
-2. [Beyond Local Code Optimization: Multi-Agent Reasoning for Software System Optimization](/202603/22/2603.14703v1-beyond-local-code-optimization-multi-agent-reasoning-for-software-system-optimization)  
+   evidence：用于合成物理推理数据的智能体工作流
+2. [CodeScout: An Effective Recipe for Reinforcement Learning of Code Search Agents](/20260314-20260323/2603.17829v1-codescout-an-effective-recipe-for-reinforcement-learning-of-code-search-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：用于软件系统优化的多智能体推理
-3. [To See is Not to Master: Teaching LLMs to Use Private Libraries for Code Generation](/202603/22/2603.15159v2-to-see-is-not-to-master-teaching-llms-to-use-private-libraries-for-code-generation)  
+   evidence：使用标准工具的编程智能体强化学习方法
+3. [MemArchitect: A Policy Driven Memory Governance Layer](/20260314-20260323/2603.18330v1-memarchitect-a-policy-driven-memory-governance-layer)  
    标签：评分：8.0/10、query:agent
-   evidence：通过合成数据教导大模型调用私有库API
-4. [Loosely-Structured Software: Engineering Context, Structure, and Evolution Entropy in Runtime-Rewired Multi-Agent Systems](/202603/22/2603.15690v1-loosely-structured-software-engineering-context-structure-and-evolution-entropy-in-runtime-rewired-multi-agent-systems)  
+   evidence：持久化LLM智能体的记忆治理层
+4. [D-Mem: A Dual-Process Memory System for LLM Agents](/20260314-20260323/2603.18631v1-d-mem-a-dual-process-memory-system-for-llm-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：多智能体系统的工程架构与设计模式
-5. [Interpretable Context Methodology: Folder Structure as Agentic Architecture](/202603/22/2603.16021v1-interpretable-context-methodology-folder-structure-as-agentic-architecture)  
-   标签：评分：8.0/10、query:agent
-   evidence：文件系统结构作为智能体架构
-6. [VisBrowse-Bench: Benchmarking Visual-Native Search for Multimodal Browsing Agents](/202603/22/2603.16289v2-visbrowse-bench-benchmarking-visual-native-search-for-multimodal-browsing-agents)  
-   标签：评分：8.0/10、query:agent
-   evidence：多模态浏览器智能体视觉推理能力基准测试
-7. [Learning to Present: Inverse Specification Rewards for Agentic Slide Generation](/202603/22/2603.16839v1-learning-to-present-inverse-specification-rewards-for-agentic-slide-generation)  
-   标签：评分：8.0/10、query:agent
-   evidence：LLM智能体在强化学习环境中通过工具使用学习研究和规划内容
-8. [OmniCompliance-100K: A Multi-Domain, Rule-Grounded, Real-World Safety Compliance Dataset](/202603/22/2603.13933v1-omnicompliance-100k-a-multi-domain-rule-grounded-real-world-safety-compliance-dataset)  
+   evidence：用于智能体长程推理的双过程记忆系统
+5. [LLM NL2SQL Robustness: Surface Noise vs. Linguistic Variation in Traditional and Agentic Settings](/20260314-20260323/2603.17017v1-llm-nl2sql-robustness-surface-noise-vs-linguistic-variation-in-traditional-and-agentic-settings)  
    标签：评分：7.0/10、query:agent
-   evidence：用于安全合规数据采集的网页搜索智能体
-9. [Compute Allocation for Reasoning-Intensive Retrieval Agents](/202603/22/2603.14635v1-compute-allocation-for-reasoning-intensive-retrieval-agents)  
-   标签：评分：7.0/10、query:agent
-   evidence：推理密集型检索智能体的计算分配
-10. [CORAL: COntextual Reasoning And Local Planning in A Hierarchical VLM Framework for Underwater Monitoring](/202603/22/2603.14786v1-coral-contextual-reasoning-and-local-planning-in-a-hierarchical-vlm-framework-for-underwater-monitoring)  
-   标签：评分：7.0/10、query:agent
-   evidence：用于自主水下航行器语义推理和局部规划的分层VLM框架
-11. [Enhancing Linguistic Generalization of VLA: Fine-Tuning OpenVLA via Synthetic Instruction Augmentation](/202603/22/2603.16044v1-enhancing-linguistic-generalization-of-vla-fine-tuning-openvla-via-synthetic-instruction-augmentation)  
-   标签：评分：7.0/10、query:agent
-   evidence：通过 LLM 生成的指令微调 OpenVLA
-12. [IndexRAG: Bridging Facts for Cross-Document Reasoning at Index Time](/202603/22/2603.16415v1-indexrag-bridging-facts-for-cross-document-reasoning-at-index-time)  
+   evidence：智能体设置下的鲁棒性评估
+6. [LiveWeb-IE: A Benchmark For Online Web Information Extraction](/20260314-20260323/2603.13773v1-liveweb-ie-a-benchmark-for-online-web-information-extraction)  
    标签：评分：6.0/10、query:agent
-   evidence：多跳问答中的跨文档推理
+   evidence：使用自然语言查询进行在线网页信息提取的基准
+7. [SIA: A Synthesize-Inject-Align Framework for Knowledge-Grounded and Secure E-commerce Search LLMs with Industrial Deployment](/20260314-20260323/2603.16137v2-sia-a-synthesize-inject-align-framework-for-knowledge-grounded-and-secure-e-commerce-search-llms-with-industrial-deployment)  
+   标签：评分：6.0/10、query:agent
+   evidence：具备推理链的知识增强型且安全的大模型
+8. [Open-Source Reproduction and Explainability Analysis of Corrective Retrieval Augmented Generation](/20260314-20260323/2603.16169v1-open-source-reproduction-and-explainability-analysis-of-corrective-retrieval-augmented-generation)  
+   标签：评分：6.0/10、query:agent
+   evidence：纠正性RAG智能体动作的开源复现
+9. [SODIUM: From Open Web Data to Queryable Databases](/20260314-20260323/2603.18447v1-sodium-from-open-web-data-to-queryable-databases)  
+   标签：评分：6.0/10、query:agent
+   evidence：自动化网页探索与数据提取
 
 
 <div class="dpr-home-promo-card">

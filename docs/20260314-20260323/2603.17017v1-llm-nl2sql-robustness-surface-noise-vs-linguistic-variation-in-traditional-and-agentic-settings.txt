@@ -1,0 +1,166 @@
+Title: LLM NL2SQL Robustness: Surface Noise vs. Linguistic Variation in Traditional and Agentic Settings
+
+URL Source: https://arxiv.org/pdf/2603.17017v1
+
+Published Time: Thu, 19 Mar 2026 00:06:18 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# LLM NL2SQL Robustness: Surface Noise vs. Linguistic Variation in Traditional and Agentic Settings 
+
+Lifu Tu, Rongguang Wang, Tao Sheng, Sujjith Ravi, Dan Roth Oracle AI Abstract 
+
+Robustness evaluation for Natural Lan-guage to SQL (NL2SQL) systems is es-sential because real-world database envi-ronments are dynamic, noisy, and con-tinuously evolving, whereas conventional benchmark evaluations typically assume static schemas and well-formed user in-puts. In this work, we introduce a ro-bustness evaluation benchmark containing approximately ten types of perturbations and conduct evaluations under both tra-ditional and agentic settings. We as-sess multiple state-of-the-art large lan-guage models (LLMs), including Grok-4.1, Gemini-3-Pro, Claude-Opus-4.6, and GPT-5.2. Our results show that these models generally maintain strong perfor-mance under several perturbations; how-ever, notable performance degradation is observed for surface-level noise (e.g., character-level corruption) and linguistic variation that preserves semantics while al-tering lexical or syntactic forms. Further-more, we observe that surface-level noise causes larger performance drops in tradi-tional pipelines, whereas linguistic varia-tion presents greater challenges in agen-tic settings. These findings highlight the remaining challenges in achieving robust NL2SQL systems, particularly in handling linguistic variability. 
+
+1 Introduction 
+
+Natural Language to SQL (NL2SQL) systems aim to translate natural language questions into executable SQL queries, enabling users to interact with databases without requiring knowledge of database query languages. With the rapid progress of large language models (LLMs), recent NL2SQL systems (Dong et al., 2023; Pourreza and Rafiei, 2023; Gao et al., 2023) have achieved strong performance on widely used benchmarks such as Spider (Yu et al., 2018). However, these benchmarks typi-cally assume static database schemas and well-formed natural language queries, which differ significantly from real-world deployment sce-narios. In practice, database environments are dynamic, user queries may contain noise or ambiguity, and linguistic expressions can vary substantially while preserving the same semantic intent. Existing evaluations(Chang et al., 2023; Safarzadeh et al., 2025) show that NL2SQL systems remain sensitive to small per-turbations. However, prior work largely fo-cuses on single-pass query generation pipelines and does not fully examine how modern agen-tic NL2SQL systems(Lei et al., 2024) —which incorporate iterative reasoning, tool use, and execution feedback —behave under such per-turbations. Consequently, the robustness of both traditional and agent-based NL2SQL sys-tems remains insufficiently understood. To address this gap, we introduce a robust-ness evaluation framework that systematically examines NL2SQL performance under a di-verse set of perturbations. Specifically, we construct approximately ten types of pertur-bations that simulate realistic challenges, in-cluding surface-level noise such as character-level corruption and linguistic variations that preserve semantic meaning while altering lexi-cal or syntactic forms. Using this benchmark, we conduct a comprehensive empirical evalu-ation across several state-of-the-art large lan-guage models, including Grok-4.1, Gemini-3-Pro, Claude Opus 4.6, and GPT-5.2. We evaluate these models under both traditional single-pass generation settings and agentic set-tings that involve multi-step reasoning and tool interaction. Our study reveals that while modern LLM-based NL2SQL systems maintain strong per-formance under certain perturbations, they ex-1                                   
+
+> arXiv:2603.17017v1 [cs.CL] 17 Mar 2026 Perturbations Query origin In which year were the two most common causes of traffic accidents different from those in other years? BackTranslation (bt) In which year were the two most common causes of traffic accidents different from other years? Chinese (zh) 在哪一年，交通事故最常见的两个原因与其他年份不同 ?Past In which year was the two most common causes of traffic accidents different from those in other years? Future In which year will be the two most common causes of traffic accidents different from those in other years? InflectionalVariation In which year been the two most commoner causes of traffic accident different from those in other year? ButterFingers In which year w tre th vtwo mos b s ommo ucauses of tr wffic accidents different from those in other years? ChangeCharCase in w Hich y EA r we Re t HetWO mos TcOM mo N CA uSE s of Tra FF ic acci Dents d IF fe Rent from tho SE in ot Her yea Rs? SwapCharacters In which ey ar we er the two most common causes of traffic accidents different rf om those in toeh r years? Whitespace In whichy earwere t h e twomost comm on causes of trafficaccidents diffe r ent from those in o ther years?
+
+Table 1: Perturbations of a user query: the last two blocks present linguistic variation (preserves semantics while altering lexical or syntactic forms) and surface-level noise (e.g., character-level corruption). 
+
+hibit notable robustness weaknesses under oth-ers. In particular, surface-level noise leads to larger performance degradation in traditional pipelines, whereas linguistic variations pose greater challenges in agentic settings. By pro-viding a systematic perturbation-based bench-mark and comparative analysis across differ-ent system paradigms, our work contributes toward a deeper understanding of robustness challenges in modern NL2SQL systems. 
+
+2 Setup 
+
+2.1 Text2SQL Task 
+
+Text-to-SQL is the task of automatically trans-lating a natural language question into a struc-tured SQL query that can be executed on a relational database to retrieve the correct an-swer. Formally, given a database schema D
+
+and auxiliary documentation ϵ, a Text-to-SQL system f maps a user query Q to a correspond-ing SQL query s, such that s can be executed over D to produce the intended result: 
+
+s = f (q, D, ϵ )
+
+Traditional Setting. In this setting, the process typically consists of two stages. The first stage is schema linking, which identifies the tables and columns relevant to the user query. The retrieved schema elements are then provided as additional context alongside the original query. In the second stage, the fi-nal SQL statement is generated based on the combined information from the query and the linked schema. Generally, there is no interac-tion with the database during generation, and no iterative refinement is performed. 
+
+Agentic Setting. Inspired by real-world text-to-SQL workflows, the agentic setting has recently been adopted to generate final SQL through multiple interactions with the database. In this paradigm, the model itera-tively refines queries by leveraging execution feedback, debugging errors, and actively ex-ploring the database schema. For complex tasks —such as those in Spider 2.0 (Lei et al., 2024), agent-based frameworks have demon-strated more promising results compared to traditional state-of-the-art approaches. 
+
+2.2 Transformations 
+
+To evaluate the robustness of the Text-to-SQL model f (q, D, ϵ ), this work considers two types of variations: (1) perturbations applied to the user query q, and (2) updates made to the database D.
+
+Query Transformation. A user query can vary greatly when written by different users, robustness against changes in query question is critical for usability in applications. In-spired by the NL-Augmenter (Dhole et al., 2022), which is designed for data augmenta-tion and robustness evaluation, we use two dif-ferent types noises (surface-level noise and lin-guistic variation). Table 1 illustrates the per-turbation on a sampled user query. More de-tails are shown in Figure 1 and appendix B. 
+
+Multiple Databases. In real-world text-to-SQL systems, multiple types of databases may be involved, such as local databases (e.g., SQLite) and cloud databases (e.g., BigQuery). However, in current benchmarks —such as Spi-der 2.0 (Lei et al., 2024) —the corresponding database for a given query is specified and re-mains fixed during evaluation. To enable ro-bustness evaluation of agentic text-to-SQL sys-tems, we introduce additional databases for each query. We explore two strategies for this augmentation: randomly and similarity. Setup details in Appendix C. 2Figure 1: Results on R-NL2SQL-Tradition (adapt from Spider 1 (Yu et al., 2018)). LLMs generally maintain strong performance under several perturbations; however, notable performance degradation is still observed.   
+
+> Figure 2: Results for R-NL2SQL-Agentic (adapted from Spider 2 (Lei et al., 2024)). Using the Spider-Agent framework (Lei et al., 2024) (following ReAct (Yao et al., 2023))for evaluation, we substitute different LLMs. Earlier LLMs (e.g., GPT-4.1) achieved very low results. Traditional pipelines degrade more under surface-level noises, whereas agentic setups are more challenged by linguistic variations.
+
+2.3 Benchmarks 
+
+In this work, we utilize two datasets —Spi-der 1 (Yu et al., 2018) and Spider 2 (Lei et al., 2024) —to construct our benchmark, R-NL2SQL . For the traditional text-to-SQL set-ting, we randomly select 200 samples from the Spider 1 development set and apply nine transformations to the user questions. This portion of the benchmark is referred to as R-NL2SQL-Tradition . For the agen-tic setting, we use 135 samples from Spider 2.0-lite, with all samples leveraging SQLite databases. The R-NL2SQL-Agentic bench-mark includes two versions: (1) ten different transformations applied to the user queries, and (2) database updates involving the addi-tion of extra databases —either randomly or based on high similarity of database names —
+
+as described in Section 2.2. 
+
+2.4 Text-to-SQL Systems 
+
+Five different state-of-the-art LLMs are used in our experiments: GPT-5.2, GPT-4.1, Claude-opus-4-6, Gemini-3-pro, and grok-4-1-fast-reasoning. We use a temperature of 0 for inference. Average results of 5 runs are report. 3For the traditional setting, we consider zero-shot scenario. For the agentic setting, we use the Spider-Agent (Lei et al., 2024) (following ReAct (Yao et al., 2023)), which allows for multi-turn interaction with the database via command-line interfaces until the final answer is obtained. Following prior work, we use Ex-ecution Accuracy(EX) as our metric. 
+
+3 Results 
+
+3.1 Traditional Settings 
+
+Figure 1 presents robustness evaluation results for five different LLMs on the tradition set-ting, under various perturbations. LLMs gen-erally maintain strong performance under sev-eral perturbations. Across all models, perfor-mance drops the most under the ButterFinger (random typos) and back translation, Chinese translation perturbations, indicating particu-lar vulnerability to these types of noise. 
+
+3.2 Agentic Settings Permutation Results. Figure 2 1 dis-plays robustness evaluation results on the R-NL2SQL-Agentic benchmark. Overall, the models maintain relatively stable performance under formatting and grammatical variations such as CharCase, Whitespace. However, lin-guistic variations lead to noticeable per-formance degradation . Perturbations such as zh, bt, and infection changes cause larger drops across multiple mod-els , suggesting that NL2SQL systems remain sensitive to lexical noise. 
+
+Surface Noise vs. Linguistic Variation. 
+
+As shown in Table 2, surface-level noise leads to larger performance drops in traditional pipelines, whereas linguistic variations pose greater challenges in agentic settings. To further investigate and confirm that surface-level noise is less harmful than linguistic varia-tion, we introduce an additional setting, “one-perturbation”, in which only one randomly se-lected sentence is perturbed for each query transformation. We compare this setting against “all-perturbation”, where all sentences are perturbed. Figure 3 shows that linguistic variations (zh, inflection, past, future) cause 
+
+> 1Since the GPT-4.1 results for the agentic setting are low (12 –15), we have decided to skip the compre-hensive perturbation experiments.
+
+substantially larger performance drops. Over-all, linguistic variation is more challeng-ing, and reducing its proportion tends to improve performance.           
+
+> Figure 3: Execution accuracy of “one-perturbation” and “all-perturbation” in the agentic setting, confirming that linguistic varia-tions larger performance differences.
+
+Extra DB results. As shown in Figure 4, adding unrelated databases reduces execution accuracy. For both models, similarity-based retrieval/selection is more adversely affected by database clutter than by random selection, indicating another noise-related limitation of the agent framework.      
+
+> Figure 4: Execution accuracy when extra databases are added in the agentic setting.
+
+4 Conclusion 
+
+In this work, we introduce a robustness eval-uation benchmark containing approximately ten types of perturbations and conduct eval-uations under both traditional and agentic settings. We study two types of noise: (1) surface-level noise (e.g., character-level cor-ruption) and (2) linguistic variation that pre-serves semantics while changing lexical or syn-tactic form. We find that surface-level noise causes larger performance drops in traditional pipelines, whereas linguistic variation poses greater challenges in agentic settings. 4Limitations 
+
+In this work, we study two types of noise: (1) surface-level noise (e.g., character-level corrup-tion) and (2) linguistic variation that preserves semantics while altering lexical or syntactic form. During evaluation, we observed variance in API calls (outputs were non-deterministic even with temperature set to 0 and a fixed seed). To obtain more reliable results, we re-port the average over five runs. While ad-ditional runs could further improve stability, we limit to five due to cost. Each perturba-tion condition includes approximately 130 –200 samples. Our results suggest that linguistic variation poses greater challenges in agentic settings. Future work could explore agentic configurations that mitigate this drop. Another limitation concerns the comparison between the two noise types. An ideal anal-ysis would provide an apples-to-apples com-parison —reporting, for both datasets, perfor-mance under both the traditional and agentic settings. In practice, however, the two bench-marks rely on different pipelines. As shown in Spider 2 (Lei et al., 2024), Spider 2 poses sub-stantial challenges for traditional text-to-SQL methods, while Spider 1 is comparatively easy and thus not a good fit for evaluating agentic systems. To further validate the effects of the two noise types, we therefore consider two per-mutation ratios (“all-perturbation“ and “one-perturbation“). Overall, as shown in Figure 3, linguistic variation is more challenging: reduc-ing the proportion of linguistic-variation per-turbations tends to yield better performance. 
+
+References 
+
+Anthropic. 2026. Introducing Claude Opus 4.6. Anthropic News. Accessed: 2026-03-16. Shuaichen Chang, Jun Wang, Mingwen Dong, Lin Pan, Henghui Zhu, Alexander Hanbo Li, Wuwei Lan, Sheng Zhang, Jiarong Jiang, Joseph Lilien, and 1 others. 2023. Dr. spider: A diagnos-tic evaluation benchmark towards text-to-sql ro-bustness. arXiv preprint arXiv:2301.08881 .Google DeepMind. 2025. Gemini 3 pro: Model card and product page. https://ai.google. dev/gemini-api/docs/models#gemini-3-pro .Xiang Deng, Ahmed Hassan Awadallah, Christo-pher Meek, Oleksandr Polozov, Huan Sun, and Matthew Richardson. 2021. Structure-grounded pretraining for text-to-SQL. In Proceedings of the 2021 Conference of the North Ameri-can Chapter of the Association for Computa-tional Linguistics: Human Language Technolo-gies , pages 1337–1350, Online. Association for Computational Linguistics. Kaustubh D. Dhole, Varun Gangal, Sebastian Gehrmann, Aadesh Gupta, Zhenhao Li, Saad Mahamood, Abinaya Mahendiran, Simon Mille, Ashish Shrivastava, Samson Tan, Tongshuang Wu, Jascha Sohl-Dickstein, Jinho D. Choi, Ed-uard Hovy, Ondrej Dusek, Sebastian Ruder, Sa-jant Anand, Nagender Aneja, Rabin Banjade, and 107 others. 2022. Nl-augmenter: A frame-work for task-sensitive natural language augmen-tation. Preprint , arXiv:2112.02721. Xuemei Dong, Chao Zhang, Yuhang Ge, Yuren Mao, Yunjun Gao, lu Chen, Jinshu Lin, and Dongfang Lou. 2023. C3: Zero-shot text-to-sql with chatgpt. Preprint , arXiv:2307.07306. Yujian Gan, Xinyun Chen, Qiuping Huang, Matthew Purver, John R. Woodward, Jinxia Xie, and Pengsheng Huang. 2021. Towards robustness of text-to-SQL models against syn-onym substitution. In Proceedings of the 59th Annual Meeting of the Association for Compu-tational Linguistics and the 11th International Joint Conference on Natural Language Process-ing (Volume 1: Long Papers) , pages 2505–2515, Online. Association for Computational Linguis-tics. Dawei Gao, Haibin Wang, Yaliang Li, Xiuyu Sun, Yichen Qian, Bolin Ding, and Jingren Zhou. 2023. Text-to-sql empowered by large lan-guage models: A benchmark evaluation. CoRR ,abs/2308.15363. Fangyu Lei, Jixuan Chen, Yuxiao Ye, Ruisheng Cao, Dongchan Shin, Hongjin Su, Zhaoqing Suo, Hongcheng Gao, Wenjing Hu, Pengcheng Yin, and 1 others. 2024. Spider 2.0: Evaluating lan-guage models on real-world enterprise text-to-sql workflows. arXiv preprint arXiv:2411.07763 .Geling Liu, Yunzhi Tan, Ruichao Zhong, Yuanzhen Xie, Lingchen Zhao, Qian Wang, Bo Hu, and Zang Li. 2025. Solid-SQL: Enhanced schema-linking based in-context learning for robust text-to-SQL. In Proceedings of the 31st International Conference on Computational Linguistics , pages 9793–9803, Abu Dhabi, UAE. Association for Computational Linguistics. OpenAI. 2025a. Introducing GPT4.1 in the API . Accessed: [Insert Date Here]. OpenAI. 2025b. Introducing GPT5.2. Mohammadreza Pourreza and Davood Rafiei. 2023. DIN-SQL: Decomposed in-context learning of text-to-SQL with self-correction. In Thirty-seventh Conference on Neural Information Pro-cessing Systems .
+
+5Mohammadtaher Safarzadeh, Afshin Oroojlooy, and Dan Roth. 2025. Evaluating NL2SQL via SQL2NL. In Findings of the Association for Computational Linguistics: EMNLP 2025 ,pages 18954–18968, Suzhou, China. Association for Computational Linguistics. Irina Saparina and Mirella Lapata. 2024. Improv-ing generalization in semantic parsing by increas-ing natural language variation. In Proceedings of the 18th Conference of the European Chapter of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1178–1193, St. Julian’s, Malta. Association for Computational Linguistics. Samson Tan, Shafiq Joty, Min-Yen Kan, and Richard Socher. 2020. It’s morphin’ time! Combating linguistic discrimination with inflec-tional perturbations. In Proceedings of the 58th Annual Meeting of the Association for Computa-tional Linguistics , pages 2920–2935, Online. As-sociation for Computational Linguistics. xAI. 2025. Grok 4.1 fast and agent tools api. Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. 2023. ReAct: Synergizing reasoning and acting in language models. In International Conference on Learning Representations (ICLR) .Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga, Dongxu Wang, Zifan Li, James Ma, Irene Li, Qingning Yao, Shanelle Roman, Zilin Zhang, and Dragomir Radev. 2018. Spider: A large-scale human-labeled dataset for complex and cross-domain semantic parsing and text-to-SQL task. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Process-ing , pages 3911–3921, Brussels, Belgium. Associ-ation for Computational Linguistics. Tianshu Zhang, Kun Qian, Siddhartha Sahai, Yuan Tian, Shaddy Garg, Huan Sun, and Yun-yao Li. 2025. Evoschema: Towards text-to-sql robustness against schema evolution. Proc. VLDB Endow. , 18(10):3655 –3668. 
+
+In this work, AI assistants (ChatGPT) is used for polish the writing only. 
+
+A LLMs Used in Our Experiments 
+
+• GPT-4.1 (OpenAI, 2025a) 
+
+• GPT-5.2 (OpenAI, 2025b) 
+
+• Claude-opus-4-6 (Anthropic, 2026) 
+
+• Gemini-3-pro (DeepMind, 2025) 
+
+• grok-4-1-fast-reasoning (xAI, 2025). 
+
+B Transformations on Queries 
+
+Following are the detailed description for each transformation on a query: 
+
+Chinese (zh). This transformation trans-lates a given English query into Chinese. It changes the language of the query which pre-serve the content. It is one example to evalu-ate the multilingual generalization capability. In our experiments, we use GPT-5.2 as the English-Chinese Translator. 
+
+BackTranslation (bt). This transforma-tion translated a given English query into Chi-nese and back to English. This transformation acts like a paraphraser. Usually, multiple vari-ation can be created. In the implementation, GPT-5.2 is used. Check Appendix B.1 for the prompt template. 
+
+EnglishInflection. This transformation randomly selects words in the query and change them to a random inflection variance. This can be from plural to singular (or vice versa) for ouns and tense changes for verbs. Perturbation is constrained to be the same Part of Speech (POS) tag. This is adapted from the Morpheus (Tan et al., 2020) adversarial attack. 
+
+Past. This is a deterministic transformation that converts sentences in the query to past tense. 
+
+Future. This is a deterministic transforma-tion that converts sentences in the query to future tense. 
+
+ButterFinger This transformation adds noise erupting from keyboard typos making common spelling errors. Few letters picked at random are replaced with letters which are at keyboard positions near the source let-ter. The implementation is borrowed from NL-Augmenter (Dhole et al., 2022). 
+
+ChangeCharCase. This transformation randomly changes the selected characters to upper case in the query. 
+
+SwapChar. This transformation randomly selects pairs of adjacent characters in the query and swap them. To ensure naturalness, we set the probability as 0.05 for making the swap. 6WhiteSpace. This transformation inserts or deletes a single white space at randomly selected locations in the docstring. This rep-resents a common type of typos by humans. Following NL-Augmenter (Dhole et al., 2022), we use probability 0.1 for adding whitespaces and 0.05 for removing whitespaces. 
+
+B.1 Template for Chinese translation and BackTranslation 
+
+Give an English query {q} , the following tem-plate is used to generate a query: 
+
+Task: Translate the provided sentence into Chinese and then back into English. Return the result strictly as a JSON object. Instructions: Translate the English sentence into natural Mandarin Chinese. Translate that Chinese version back into English, capturing the literal meaning of the Chinese phrasing. Provide a "delta_analysis" field identifying any nuances lost or gained (e.g., changes in formality or specific idioms). Output Schema: {"original_en": "string", "translated_zh": "string", "back_translated_en": "string", "delta_analysis": "string" }Sentence to translate: "{q}" 
+
+C Multiple databases 
+
+C.1 Setup 
+
+Following are the two different ways to add extra databases in the agentic setting. 
+
+• Random: In this setting, in addition to the corresponding database, we randomly add 1, 2, or 5 extra databases during eval-uation for each user query. 
+
+• High Similarity: In this setting, for each database, we select up to 5 addi-tional databases that are most similar based on the semantic similarity of their database names. Then for each query, the additional 1, 2, or 5 databases are selected among these similar databases of the cor-responding database. Check more related details in Appendix C. 
+
+C.2 How to select the extra databases? 
+
+The five most semantically similar databases for each ground-truth database are shown be-low. Under the agentic setting, additional databases are added to the experimental envi-ronment. Table 2 illustrations of the five most similar databases for each database. 
+
+D Text-to-SQL Systems Setup 
+
+Five different state-of-the-art LLMs are used in our experiments: GPT-5.2, GPT-4.1, Claude-opus-4-6, Gemini-3-pro, and grok-4-1-fast-reasoning. We use a temperature of 0 for inference. For the traditional setting, we consider zero-shot scenario. For the agentic setting, we use the Spider-Agent, which allows for multi-turn interaction with the database via command-line interfaces until the final answer is ob-tained. 
+
+Metric. Following prior work, we use execu-tion accuracy(EX) as our metric. The execu-tion accuracy, which compares the execution output of the predicted SQL query with that of the ground truth SQL query on database instances. 
+
+E Related Work 
+
+Several prior studies have explored the robust-ness and generalization capabilities of Natu-ral Language to SQL (NL2SQL) systems (Gan et al., 2021; Deng et al., 2021; Saparina and Lapata, 2024; Zhang et al., 2025; Liu et al., 2025). Dr.Spider (Chang et al., 2023) ex-tends the Spider benchmark by introducing multiple perturbations, such as linguistic vari-ations and noise injection, to systematically evaluate model robustness under distribution shifts. Another line of work focuses on linguis-tic robustness. Safarzadeh et al. (2025) lever-7db 5 database names that are most similar bank_sales_trading electronic_sales, E_commerce, Brazilian_E_Commerce, northwind, AdventureWorks Pagila sqlite-sakila, chinook, Db-IMDB, imdb_movies, northwind electronic_sales E_commerce, Brazilian_E_Commerce, bank_sales_trading, northwind, AdventureWorks E_commerce Brazilian_E_Commerce, electronic_sales, bank_sales_trading, northwind, AdventureWorks Brazilian_E_Commerce E_commerce, electronic_sales, bank_sales_trading, northwind, AdventureWorks complex_oracle oracle_sql, modern_data, log, AdventureWorks, northwind California_Traffic_Collision city_legislation, f1, Airlines, delivery_center, EU_soccer EU_soccer IPL, Baseball, f1, WWE, BowlingLeague stacking modern_data, log, complex_oracle, delivery_center, school_scheduling imdb_movies Db-IMDB, EntertainmentAgency, music, chinook, Pagila Db-IMDB imdb_movies, Pagila, chinook, EntertainmentAgency, music WWE EU_soccer, IPL, Baseball, f1, EntertainmentAgency Baseball EU_soccer, IPL, f1, WWE, BowlingLeague northwind AdventureWorks, E_commerce, electronic_sales, Brazilian_E_Commerce, bank_sales_trading f1 EU_soccer, IPL, Baseball, WWE, Airlines EntertainmentAgency imdb_movies, Db-IMDB, music, WWE, EU_soccer education_business school_scheduling, northwind, AdventureWorks, modern_data, stacking music chinook, imdb_movies, Db-IMDB, EntertainmentAgency, Pagila sqlite-sakila Pagila, chinook, Db-IMDB, imdb_movies, northwind chinook sqlite-sakila, Pagila, music, Db-IMDB, imdb_movies modern_data stacking, complex_oracle, log, AdventureWorks, northwind log modern_data, stacking, complex_oracle, oracle_sql, delivery_center oracle_sql complex_oracle, modern_data, log, AdventureWorks, northwind school_scheduling education_business, BowlingLeague, northwind, AdventureWorks, modern_data IPL EU_soccer, Baseball, f1, WWE, BowlingLeague city_legislation California_Traffic_Collision, modern_data, log, education_business, school_scheduling AdventureWorks northwind, E_commerce, electronic_sales, Brazilian_E_Commerce, bank_sales_trading delivery_center Airlines, stacking, modern_data, AdventureWorks, log BowlingLeague Baseball, EU_soccer, IPL, WWE, school_scheduling Airlines delivery_center, f1, California_Traffic_Collision, AdventureWorks, modern_data 
+
+Table 2: Illustrations of the five most similar databases for each database. The similarity are based on judged by LLMs. 
+
+age SQL-to-NL generation to produce schema-aligned paraphrases of queries, enabling evalu-ation of NL2SQL models under semantically equivalent but linguistically diverse inputs. These studies highlight that previous models remain sensitive to input perturbations in tra-ditional settings. In our work, we conduct em-pirical evaluations of several state-of-the-art models under both traditional and agentic set-tings. 
+
+F Results of An Eariler LLM on Agentic Setting 
+
+Figure 5: Execution accuracy of GPT-4.1 in the agentic setting. The low accuracy indicates that earlier LLMs have much weaker agentic capabili-ties. 
+
+8
