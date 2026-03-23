@@ -6,70 +6,82 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-14 ~ 2026-03-23
-- 运行时间：2026-03-23 02:43:55 UTC
+- 最新运行日期：2026-03-23
+- 运行时间：2026-03-23 19:51:16 UTC
 - 运行状态：成功
-- 本次总论文数：16
-- 精读区：7
-- 速读区：9
+- 本次总论文数：20
+- 精读区：10
+- 速读区：10
 
 ### 今日简报（AI）
-本期精选 16 篇论文，深度解析 LLM 智能体在游戏课程学习与多智能体协作中的核心进展。
-重点关注 Sensi 提出的“一次学一事”测试时学习框架，以及提升复杂工作流效率的受控存储架构。
-建议开发者探索如何利用策略驱动的存储层与自动化推理流，构建更具鲁棒性的智能体系统。
-- 详情：[/20260314-20260323/README](/20260314-20260323/README)
+今日深度解析 20 篇 AI 论文，聚焦 LLM Agent 生态中的自我传播攻击与工具调用安全博弈。
+核心结论揭示了 Agent 间类似蠕虫的自我传播威胁，并探讨了安全验证机制对任务成功率产生的“税收”影响。
+建议开发者在构建自动化 Agent 时，需重点防范内生安全风险并警惕推荐系统中的偏见干扰。
+- 详情：[/202603/23/README](/202603/23/README)
 
 ### 精读区论文标签
-1. [Sensi: Learn One Thing at a Time -- Curriculum-Based Test-Time Learning for LLM Game Agents](/20260314-20260323/2603.17683v1-sensi-learn-one-thing-at-a-time----curriculum-based-test-time-learning-for-llm-game-agents)  
+1. [ClawWorm: Self-Propagating Attacks Across LLM Agent Ecosystems](/202603/23/2603.15727v2-clawworm-self-propagating-attacks-across-llm-agent-ecosystems)  
+   标签：评分：10.0/10、query:opclw
+   evidence：针对OpenClaw智能体框架的自传播蠕虫攻击
+2. [The Verifier Tax: Horizon Dependent Safety Success Tradeoffs in Tool Using LLM Agents](/202603/23/2603.19328v1-the-verifier-tax-horizon-dependent-safety-success-tradeoffs-in-tool-using-llm-agents)  
+   标签：评分：10.0/10、query:agent
+   evidence：研究多步工具使用LLM智能体中的运行时强制执行与安全权衡
+3. [HyEvo: Self-Evolving Hybrid Agentic Workflows for Efficient Reasoning](/202603/23/2603.19639v1-hyevo-self-evolving-hybrid-agentic-workflows-for-efficient-reasoning)  
+   标签：评分：10.0/10、query:agent
+   evidence：自动生成混合智能体工作流
+4. [Trojan's Whisper: Stealthy Manipulation of OpenClaw through Injected Bootstrapped Guidance](/202603/23/2603.19974v1-trojans-whisper-stealthy-manipulation-of-openclaw-through-injected-bootstrapped-guidance)  
+   标签：评分：10.0/10、query:opclw
+   evidence：评估 OpenClaw 针对引导注入攻击的安全性
+5. [Governing Dynamic Capabilities: Cryptographic Binding and Reproducibility Verification for AI Agent Tool Use](/202603/23/2603.14332v2-governing-dynamic-capabilities-cryptographic-binding-and-reproducibility-verification-for-ai-agent-tool-use)  
    标签：评分：9.0/10、query:agent
-   evidence：基于课程学习和状态机控制的LLM智能体架构
-2. [Governed Memory: A Production Architecture for Multi-Agent Workflows](/20260314-20260323/2603.17787v1-governed-memory-a-production-architecture-for-multi-agent-workflows)  
+   evidence：AI智能体工具使用和多智能体交互的安全层
+6. [VTC-Bench: Evaluating Agentic Multimodal Models via Compositional Visual Tool Chaining](/202603/23/2603.15030v2-vtc-bench-evaluating-agentic-multimodal-models-via-compositional-visual-tool-chaining)  
    标签：评分：9.0/10、query:agent
-   evidence：多智能体工作流的生产架构
-3. [SLEA-RL: Step-Level Experience Augmented Reinforcement Learning for Multi-Turn Agentic Training](/20260314-20260323/2603.18079v1-slea-rl-step-level-experience-augmented-reinforcement-learning-for-multi-turn-agentic-training)  
+   evidence：评估多模态模型中的工具使用熟练度和组合工具链
+7. [ItinBench: Benchmarking Planning Across Multiple Cognitive Dimensions with Large Language Models](/202603/23/2603.19515v1-itinbench-benchmarking-planning-across-multiple-cognitive-dimensions-with-large-language-models)  
    标签：评分：9.0/10、query:agent
-   evidence：基于强化学习的多轮智能体训练
-4. [AgenticScholar: Agentic Data Management with Pipeline Orchestration for Scholarly Corpora](/20260314-20260323/2603.13774v1-agenticscholar-agentic-data-management-with-pipeline-orchestration-for-scholarly-corpora)  
-   标签：评分：8.0/10、query:agent
-   evidence：具有流水线编排和规划的智能体数据管理
-5. [ATCC: Adaptive Concurrency Control for Unforeseen Agentic Transactions](/20260314-20260323/2603.13906v1-atcc-adaptive-concurrency-control-for-unforeseen-agentic-transactions)  
-   标签：评分：8.0/10、query:agent
-   evidence：针对智能体工作流和事务的自适应并发控制
-6. [LegacyTranslate: LLM-based Multi-Agent Method for Legacy Code Translation](/20260314-20260323/2603.14054v1-legacytranslate-llm-based-multi-agent-method-for-legacy-code-translation)  
-   标签：评分：8.0/10、query:agent
-   evidence：用于API感知代码翻译的多智能体框架
-7. [IEMAS: An Incentive-Efficiency Routing Framework for Open Agentic Web Ecosystems](/20260314-20260323/2603.17302v1-iemas-an-incentive-efficiency-routing-framework-for-open-agentic-web-ecosystems)  
-   标签：评分：8.0/10、query:agent
-   evidence：开放智能体网络生态系统和多智能体系统的路由框架
+   evidence：跨多个认知维度的规划能力基准测试
+8. [GoAgent: Group-of-Agents Communication Topology Generation for LLM-based Multi-Agent Systems](/202603/23/2603.19677v1-goagent-group-of-agents-communication-topology-generation-for-llm-based-multi-agent-systems)  
+   标签：评分：9.0/10、query:agent
+   evidence：基于大模型的多智能体系统通信拓扑生成
+9. [A Subgoal-driven Framework for Improving Long-Horizon LLM Agents](/202603/23/2603.19685v1-a-subgoal-driven-framework-for-improving-long-horizon-llm-agents)  
+   标签：评分：9.0/10、query:agent
+   evidence：长程规划的子目标驱动框架
+10. [Utility-Guided Agent Orchestration for Efficient LLM Tool Use](/202603/23/2603.19896v1-utility-guided-agent-orchestration-for-efficient-llm-tool-use)  
+   标签：评分：9.0/10、query:agent
+   evidence：效用引导的编排以实现高效工具使用
 
 ### 速读区论文标签
-1. [Infinite Problem Generator: Verifiably Scaling Physics Reasoning Data with Agentic Workflows](/20260314-20260323/2603.14486v1-infinite-problem-generator-verifiably-scaling-physics-reasoning-data-with-agentic-workflows)  
+1. [Is Your LLM-as-a-Recommender Agent Trustable? LLMs' Recommendation is Easily Hacked by Biases (Preferences)](/202603/23/2603.17417v2-is-your-llm-as-a-recommender-agent-trustable-llms-recommendation-is-easily-hacked-by-biases-preferences)  
    标签：评分：8.0/10、query:agent
-   evidence：用于合成物理推理数据的智能体工作流
-2. [CodeScout: An Effective Recipe for Reinforcement Learning of Code Search Agents](/20260314-20260323/2603.17829v1-codescout-an-effective-recipe-for-reinforcement-learning-of-code-search-agents)  
+   evidence：对深度研究等实际智能体工作流中LLM智能体的评估
+2. [FailureMem: A Failure-Aware Multimodal Framework for Autonomous Software Repair](/202603/23/2603.17826v1-failuremem-a-failure-aware-multimodal-framework-for-autonomous-software-repair)  
    标签：评分：8.0/10、query:agent
-   evidence：使用标准工具的编程智能体强化学习方法
-3. [MemArchitect: A Policy Driven Memory Governance Layer](/20260314-20260323/2603.18330v1-memarchitect-a-policy-driven-memory-governance-layer)  
+   evidence：混合工作流-智能体架构
+3. [Automated Membership Inference Attacks: Discovering MIA Signal Computations using LLM Agents](/202603/23/2603.19375v1-automated-membership-inference-attacks-discovering-mia-signal-computations-using-llm-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：持久化LLM智能体的记忆治理层
-4. [D-Mem: A Dual-Process Memory System for LLM Agents](/20260314-20260323/2603.18631v1-d-mem-a-dual-process-memory-system-for-llm-agents)  
+   evidence：利用LLM智能体自动化攻击设计
+4. [A Framework for Formalizing LLM Agent Security](/202603/23/2603.19469v1-a-framework-for-formalizing-llm-agent-security)  
    标签：评分：8.0/10、query:agent
-   evidence：用于智能体长程推理的双过程记忆系统
-5. [LLM NL2SQL Robustness: Surface Noise vs. Linguistic Variation in Traditional and Agentic Settings](/20260314-20260323/2603.17017v1-llm-nl2sql-robustness-surface-noise-vs-linguistic-variation-in-traditional-and-agentic-settings)  
+   evidence：大语言模型智能体安全性的形式化
+5. [Skilled AI Agents for Embedded and IoT Systems Development](/202603/23/2603.19583v1-skilled-ai-agents-for-embedded-and-iot-systems-development)  
+   标签：评分：8.0/10、query:agent
+   evidence：嵌入式系统的智能体框架
+6. [Helix: A Dual-Helix Co-Evolutionary Multi-Agent System for Prompt Optimization and Question Reformulation](/202603/23/2603.19732v1-helix-a-dual-helix-co-evolutionary-multi-agent-system-for-prompt-optimization-and-question-reformulation)  
+   标签：评分：8.0/10、query:agent
+   evidence：用于提示词优化和推理的多智能体系统
+7. [Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents](/202603/23/2603.19935v1-memori-a-persistent-memory-layer-for-efficient-context-aware-llm-agents)  
+   标签：评分：8.0/10、query:agent
+   evidence：大模型智能体的持久化上下文感知内存层
+8. [Retrieval-Augmented LLMs for Security Incident Analysis](/202603/23/2603.18196v1-retrieval-augmented-llms-for-security-incident-analysis)  
    标签：评分：7.0/10、query:agent
-   evidence：智能体设置下的鲁棒性评估
-6. [LiveWeb-IE: A Benchmark For Online Web Information Extraction](/20260314-20260323/2603.13773v1-liveweb-ie-a-benchmark-for-online-web-information-extraction)  
-   标签：评分：6.0/10、query:agent
-   evidence：使用自然语言查询进行在线网页信息提取的基准
-7. [SIA: A Synthesize-Inject-Align Framework for Knowledge-Grounded and Secure E-commerce Search LLMs with Industrial Deployment](/20260314-20260323/2603.16137v2-sia-a-synthesize-inject-align-framework-for-knowledge-grounded-and-secure-e-commerce-search-llms-with-industrial-deployment)  
-   标签：评分：6.0/10、query:agent
-   evidence：具备推理链的知识增强型且安全的大模型
-8. [Open-Source Reproduction and Explainability Analysis of Corrective Retrieval Augmented Generation](/20260314-20260323/2603.16169v1-open-source-reproduction-and-explainability-analysis-of-corrective-retrieval-augmented-generation)  
-   标签：评分：6.0/10、query:agent
-   evidence：纠正性RAG智能体动作的开源复现
-9. [SODIUM: From Open Web Data to Queryable Databases](/20260314-20260323/2603.18447v1-sodium-from-open-web-data-to-queryable-databases)  
-   标签：评分：6.0/10、query:agent
-   evidence：自动化网页探索与数据提取
+   evidence：用于安全事件分析的LLM语义推理
+9. [Speculative Policy Orchestration: A Latency-Resilient Framework for Cloud-Robotic Manipulation](/202603/23/2603.19418v1-speculative-policy-orchestration-a-latency-resilient-framework-for-cloud-robotic-manipulation)  
+   标签：评分：7.0/10、query:agent
+   evidence：云机器人中的运动规划与推理
+10. [The Autonomy Tax: Defense Training Breaks LLM Agents](/202603/23/2603.19423v1-the-autonomy-tax-defense-training-breaks-llm-agents)  
+   标签：评分：7.0/10、query:agent
+   evidence：防御训练对大模型智能体能力的影响
 
 
 <div class="dpr-home-promo-card">

@@ -1,0 +1,577 @@
+Title: FailureMem: A Failure-Aware Multimodal Framework for Autonomous Software Repair
+
+URL Source: https://arxiv.org/pdf/2603.17826v1
+
+Published Time: Thu, 19 Mar 2026 01:26:06 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# FailureMem: A Failure-Aware Multimodal Framework for Autonomous Software Repair 
+
+Ruize Ma 1,2, *, Yilei Jiang 3, ∗, Shilin Zhang 1,2, ∗, Zheng Ma 2, Yi Feng 1, †,Vincent Ng 4, Zhi Wang 1, Xiangyu Yue 3, Chuanyi Li 1, Lewei Lu 21Nanjing University 2SenseTime 3The Chinese University of Hong Kong 
+
+> 4
+
+University of Texas at Dallas 
+
+Abstract 
+
+Multimodal Automated Program Repair (MAPR) extends traditional program repair by requiring models to jointly reason over source code, textual issue descriptions, and visual artifacts such as GUI screenshots. While recent LLM-based repair systems have shown promising results, existing approaches face several limitations: rigid workflow pipelines restrict exploration during debugging, visual reasoning is often performed over full-page screenshots without localized grounding, and failed repair attempts are rarely transformed into reusable knowledge. To address these challenges, we propose FailureMem, a multimodal repair framework that integrates three key mechanisms: a hybrid workflow–agent architecture that balances structured localization with flexible reasoning, active perception tools that enable region-level visual grounding, and a Failure Memory Bank that converts past repair attempts into reusable guidance. Experiments on SWE-bench Multimodal demonstrate FailureMem improves the resolved rate over GUIRepair by 3.7%.Our code is available at https: //github.com/Ruize-Ma/FailureMem .
+
+1 Introduction 
+
+Software defects are an inevitable part of software development. Automated Program Repair (APR) aims to automatically generate patches that fix buggy programs while preserving intended behav-ior, typically using signals such as source code and test cases to synthesize code modifications (Huang et al., 2023, 2025a; Jiang et al., 2023; Wu et al., 2023; Huang et al., 2025b). Recent advances in large language models (LLMs) have significantly expanded the capabil-ity of APR systems. Leveraging their strong    
+
+> *Equal contribution. †Corresponding author. Email:
+> fy@nju.edu.cn
+
+code understanding and generation abilities, LLM-based approaches have progressed from function-level repair via fine-tuning and prompting (Huang et al., 2023; Jiang et al., 2023; Xia and Zhang, 2022, 2024) to repository-scale issue resolution, where autonomous agents analyze entire codebases and generate patches for real-world software is-sues (Yang et al., 2024b; Xia et al., 2025; Zhang et al., 2024). Benchmarks such as SWE-bench have been proposed to evaluate this capability by requir-ing models to resolve GitHub issues through patch generation that passes repository test suites. However, real-world debugging often relies on information beyond code and text. Many issue re-ports include visual artifacts, such as screenshots of graphical user interfaces, diagrams, or UI mockups, which convey important clues about the intended system behavior. To capture this richer context, recent work introduced SWE-bench Multimodal, which augments issue instances with visual infor-mation, giving rise to the task of Multimodal Au-tomated Program Repair (MAPR). Compared with text-only settings, solving such tasks requires mod-els to jointly reason over code, natural language descriptions, and visual observations, making the repair problem substantially more challenging. Formally, MAPR can be defined as follows: given a repository, a problem description (e.g., a GitHub issue), and associated visual artifacts (e.g., screenshots), the goal is to generate a patch that modifies the repository to resolve the reported is-sue. Figure 1 illustrates a representative instance. The issue report describes a rendering bug in a Nav component and includes a screenshot showing the faulty sidebar; the task is to generate a patch that fixes the visual defect reflected in the inter-face. Existing methods, such as GUIRepair (Huang et al., 2025c), have taken an important step toward addressing this problem by incorporating visual inputs into the repair process. However, current approaches still face several practical challenges. 1
+
+> arXiv:2603.17826v1 [cs.SE] 18 Mar 2026
+
+Reproduction link: [https:// codepen.io /anon/pen/ EqxmLa?editors =0010](https:// codepen.io /anon/pen/ EqxmLa?editors =0010) 
+
+Bug scenario screenshot: [https:// codepen.io /anon/pen/ EqxmLa?editors =0010] 
+
+Bug Screenshot 
+
+GUIRepair 
+
+Think ：The blank row appears because Item renders a placeholder <span>... This placeholder occupies space but has no 
+
+visible icon, matching the screenshot. To fix: do not render the icon placeholder when no icon is provided… 
+
+FailureMem 
+
+Patch Generation ：
+
+- if ( iconOnly && ! iconEl ) { 
+
+- iconEl = <span className ={`${prefix}nav -icon -placeholder`} />; 
+
+- }
+
+No Historical Memory Guidance! 
+
+Memory Retrieval ：### Case1: Chart.js -11116 
+
+正确的结果 
+
+Injection 
+
+Cognitive Layer 
+
+Cognitive Diagnosis : Modified base class to filter ticks after generation, instead of fixing the generator 
+
+loop in the specific subclass. 
+
+Negative Constraint : Do NOT modify abstract base classes to fix bugs specific to a subclass 
+
+implementation. 
+
+Golden Principle: Fix at the source of generation, not by filtering output in the abstraction layer. 
+
+Failed Patch Summary: Added post -processing loop in base class core.scale.js to splice out ticks 
+
+outside min/max bounds. Treats symptom in base class, masks root cause in generator. 
+
+Golden Patch Summary: Added guard clause `if ( maxDefined && tickValue > max) { break; }` in 
+
+generateTicks loop of subclass scale.linearbase.js . Prevents generation at source instead of filtering 
+
+after… 
+
+Code Layer 
+
+File Localization ： Guided by memory to fix the generator source, I target the specific Nav components 
+
+creating the placeholders ( item.jsx , etc.), explicitly avoiding downstream hacks in the generic Menu layer. 
+
+## …... 
+
+Crop: crop(bbox_2d=[0, 350, 180, 545], image_index =0) 
+
+Think ：…The cropped region reveals two types of blank rows: Nav.Item and SubNav entries without icons 
+
+render invisible placeholders. Guided by memory: (1) fix placeholder generation in ALL four components, not 
+
+just one ( Chart.js ); (2) address the CSS layer —override opacity:0 for icon -less items (wp -calypso) 
+
+… Cropped image 
+
+Patch Generation                                
+
+> item.jsx :
+> -if ( iconOnly && ! iconEl )
+> {
+> -iconEl = <span
+> className ={`${prefix}na
+> v-icon -placeholder`} />;
+> -}
+> + const showText =
+> iconOnly && ! hasIcon ;
+> + [`${prefix}nav -show -
+> text`]: showText ,
+> sub -nav.jsx :
+> -} else if (! iconEl ) {
+> -iconEl = <span
+> className ={`${prefix}
+> nav -icon -placeholder`}
+> />;
+> + } else if (! hasIcon ) {
+> +iconEl = null;
+> showLabelText = true;
+> + [`${prefix}nav -show -
+> text`]: showLabelText ,
+> popup -item.jsx :
+> -} else if (! iconEl ) {
+> -iconEl = <span
+> className ={`${prefix}n
+> av -icon -placeholder`}
+> />;
+> + } else if (! hasIcon ) {
+> +iconEl = null;
+> showLabelText = true;
+> + [`${prefix}nav -show -
+> text`]: showLabelText ,
+> group.jsx :
+> -newLabel = [
+> -<span
+> className ={`${prefix}nav -
+> icon -placeholder`} />,
+> -<span
+> key="label">{label}</span>,
+> -];
+> + const showText =
+> iconOnly ;
+> + [`${prefix}nav -show -text`]:
+> showText ,
+> main.scss :
+> + #{$nav -prefix} -item.#{$nav -prefix}show -
+> text ...,
+> + #{$nav -prefix} -sub -nav -item.#{$nav -
+> prefix}show -text ...,
+> + #{$nav -prefix} -popup -item.#{$nav -
+> prefix}show -text ...,
+> + #{$nav -prefix} -group -label.#{$nav -
+> prefix}show -text ... {
+> +opacity: 1;
+
+Repaired 
+
+outcome 
+
+Issue Title: [Nav] Items with unconfigured icons in iconOnly mode should not appear blank 
+
+Issue Report 
+
+Memory -Driven Fix! 
+
+Issue Summary: Modal overlay blocks nav bar on mobile… 
+
+Visual Analysis: Grey backdrop covers top header elements . Contextual Layer Figure 1: GUIRepair vs. FailureMem on alibaba-fusion/next-895 . FailureMem retrieves historical repair guidance, crops the screenshot to isolate the bug region, and produces a comprehensive five-file patch. 
+
+Challenge 1. Existing methods struggle to bal-ance structured reasoning and exploratory search. Workflow-based approaches follow predefined pipelines (e.g., issue understanding, file localiza-tion, patch generation), which efficiently constrain the search space but may overlook alternative hy-potheses. In contrast, agentic systems enable flexi-ble exploration via autonomous reasoning, yet they may lose direction during multi-step exploration and repeatedly inspect irrelevant components. 
+
+Challenge 2. Visual reasoning is often performed over full-page screenshots, which distribute atten-tion across many irrelevant interface regions. In Figure 1, the screenshot contains multiple UI ele-ments, including the main content area, navigation links, and surrounding layout components, while the actual defect is localized to the sidebar render-ing of the Nav component. Processing the entire screenshot equally can dilute the model’s attention and make it harder to isolate the precise visual anomaly that should guide the repair process. 
+
+Challenge 3. Current repair agents rarely trans-form previous repair attempts into reusable knowl-edge. For instance, when attempting to fix the side-bar rendering issue, a repair agent may generate several candidate patches that modify layout prop-erties or component structure. However, these at-tempts are typically treated as isolated trials rather 2than structured experiences. As a result, the agent cannot effectively retrieve analogous repair cases, analyze why earlier fixes failed (e.g., modifying the wrong layout container), or apply concrete repair pattern, such as adjusting component-level layout constraints, to guide subsequent repair attempts. To address these challenges, we propose Fail-ureMem , a multimodal repair framework for GUI issue resolution. FailureMem combines three key designs. First, it introduces a hybrid work-flow–agent architecture that keeps file and el-ement localization within a structured workflow while reserving an agentic loop for patch genera-tion, enabling controlled search with flexible ex-ploration. Second, it improves visual grounding through active perception tools , including Crop 
+
+and Grounding , together with an interactive Bash 
+
+environment that allows the agent to inspect repos-itories and verify assumptions before editing code. Third, it incorporates a Failure Memory Bank 
+
+that transforms historical repair trajectories into reusable guidance via contextual, cognitive, and code-level representations. We evaluate Failure-Mem on SWE-bench Multimodal. With GPT-5.1, it improves the resolved rate over GUIRepair (a SOTA MAPR model) by 3.7%. Our contributions are four-fold: (1) We propose a hybrid workflow–agent architecture for multi-modal program repair that balances structured lo-calization with flexible patch exploration; (2) We introduce active perception tools for localized vi-sual grounding together with an interactive repos-itory exploration environment; (3) We design a Failure Memory Bank that converts historical re-pair trajectories into reusable guidance for both localization and patch generation; (4) Experiments on SWE-bench Multimodal demonstrate consistent improvements over strong baselines. 
+
+2 A Motivating Example 
+
+We use an example from SWE-bench Multimodal (Figure 1) to illustrate the challenges of MAPR and preview how FailureMem addresses them. Issue alibaba-fusion/next-895 reports that in the Nav component’s iconOnly mode, items without an icon prop render as blank rows in the vertical sidebar. The screenshot shows icon entries interspersed with empty horizontal bars. 
+
+How GUIRepair Fails. GUIRepair localizes two files ( item.jsx and nav.jsx ) but misses other af-fected components and the Nav stylesheet. Its patch modifies only item.jsx , removing the placeholder logic for Nav.Item . However, the bug spans two layers: four components generate invisible place-holders (JS layer), and a global CSS rule hides labels under iconOnly mode (CSS layer). The patch therefore fixes one component in one layer and fails regression tests. This failure reflects the three challenges from Section 1. First, GUIRepair follows a fixed local-ization workflow that restricts exploration, causing it to miss the broader set of affected components and style rules. Second, visual reasoning operates on the full-page screenshot without region-level fo-cus, making it difficult to associate the visual symp-tom (empty rows between icons) with placeholder elements generated by multiple Nav components. Third, repair attempts are treated as isolated trials, preventing the system from leveraging historical repair experience or reusable repair patterns. 
+
+How FailureMem Works. FailureMem first re-trieves historical cases from a Failure Memory Bank (Challenge 3). Two cases provide useful guid-ance. A Chart.js axis-tick bug emphasizes fixing errors at the source of generation rather than fil-tering outputs in abstraction layers. A wp-calypso layout bug advises targeted CSS adjustments in-stead of modifying reusable component logic. Guided by these principles, the model local-izes all four affected components and the Nav stylesheet, going beyond the two files identified by GUIRepair. Unlike GUIRepair’s rigid work-flow—where early localization errors propagate through the pipeline, FailureMem combines struc-tured workflow with agentic reasoning, allowing the agent to revisit earlier steps and expand the search when inconsistencies arise (Challenge 1). During patch generation, the agent uses visual cropping to isolate the sidebar region, confirm-ing that blank rows correspond to icon-less en-tries rendering invisible placeholders (Challenge 2). The resulting patch modifies five files: it removes placeholder generation from four com-ponents ( Item , SubNav , PopupItem , Group ), in-troduces a nav-show-text CSS class for icon-less items, and adds an opacity: 1 override in 
+
+main.scss . The previously blank rows now dis-play text labels, and the patch passes all tests. 
+
+3 Method 
+
+We propose FailureMem, a MAPR framework com-bining a hybrid workflow–agent architecture, active 3Memory 
+
+> Bank
+> Memory
+> Selector
+> Injection
+
+## +
+
+> File
+> Localization
+
+## + 
+
+> Key
+> Files
+> Key Element
+> Identification
+> Tools
+> Patch
+> Generation
+
+## +
+
+> Patch
+> Memory suggests a
+> routing issue. I
+> should look for the
+> upstream Controller
+> ……
+> Following the
+> 'Golden Principle', I
+> must add the role
+> check before……
+> Input
+
+## + 
+
+> Code
+> Snippets
+> Input
+> Issue Report
+
+## +    
+
+> Key Files Code Snippets
+> Input
+> Issue Report
+
+## + 
+
+> Codebase Issue Report
+
+Figure 2: Overview of FailureMem. 
+
+perception tools, and a failure memory bank. Fig-ure 2 shows the overall architecture. 
+
+3.1 Problem Formulation 
+
+Given a software repository with codebase C and a multimodal issue report comprising a textual de-scription D and visual screenshots I, MAPR aims at generating a code patch ∆ such that the patched codebase C′ = C ⊕ ∆ passes a held-out test suite: 
+
+F(C′) |= Tspec (1) where ⊕ is the patch application operator, F(·)
+
+denotes program execution, and Tspec includes both fail-to-pass tests (verifying the issue is fixed) and pass-to-pass tests (verifying no regression). 
+
+3.2 Failure-aware Retrieval Module 
+
+LLM-based repair agents often produce plausible but incorrect patches and may repeat errors from prior attempts. To address this limitation, we intro-duce a failure memory bank, which stores histori-cal repair trajectories. We further design a failure-aware retrieval module that contrasts failed patches with ground-truth fixes to extract reusable repair patterns. By retrieving and reusing prior experi-ences, the model reduces recurring mistakes and improves transfer to new issues. 
+
+Hierarchical Memory Structure Design. The failure memory bank is defined as a collection of N
+
+entries: B = {M i}Ni=1 . As illustrated in Figure 1, we design three complementary layers to capture different levels of repair knowledge in each entry. 
+
+Mi = ⟨L ctx (i), Lcog (i), Lcode (i)⟩
+
+Contextual Layer ( Lctx ) provides retrieval keys for matching similar cases. It contains two text-based fields: the Issue Summary , which abstracts the bug scenario, and the Visual Analysis , which describes observable visual symptoms (e.g., “The modal overlay obscures the navigation bar”). In-stead of storing raw screenshots, we encode visual information as text. This decision reduces token cost during retrieval and avoids background noise in images, ensuring that the selector focuses on bug-relevant signals. Cognitive Layer ( Lcog ) provides high-level rea-soning guidance. It includes a Cognitive Diagnosis 
+
+that explains the causal mechanism of failure, a 
+
+Negative Constraint that prohibits incorrect repair strategies (e.g., “Do not modify downstream render-ing logic for upstream data errors”), and a Golden Principle that captures transferable design patterns (e.g., fixing errors at the source of generation rather than applying downstream filtering). This layer focuses on abstract repair knowledge to improve generalization across issues. In contrast, Code Layer (Lcode ) supplies implementation-level evidence. It stores Failed 
+
+and Golden Patch Summaries , explicitly highlight-ing structural divergences between incorrect and correct solutions. By grounding abstract principles in concrete code changes, this layer supports ac-tionable and executable repairs. Together, the Cog-nitive Layer shapes repair strategy at the reasoning level, while the Code Layer ensures alignment with precise implementation patterns. 
+
+Failure Memory Bank Construction. To con-struct the memory bank, we process historical fail-ure cases offline (see Appendix A for detailed data statistics and the distillation pipeline). For each case, we collect the agent’s failed patch Pf ail , the developer’s ground-truth patch Pgold , and the origi-nal issue report, including the textual description D
+
+and screenshots V. Using Gemini 3 Pro as the back-bone model, we analyze these multimodal inputs and distill them into hierarchical memory entries. Formally, for each historical failure case i, the con-4struction process is: 
+
+Mi = f distill (P (i)
+
+> f ail
+
+, P (i)
+
+> gold
+
+, D(i), V(i))
+
+where fdistill denotes the distillation model that takes the failed patch, ground-truth patch, issue description, and visual screenshots as inputs, and outputs the structured three-layer memory entry. The model is prompted to generate structured content for all three memory layers. For the Con-textual Layer, it abstracts the issue report into a concise Issue Summary and converts screenshots 
+
+V into a textual Visual Analysis , preserving visual symptoms for efficient retrieval. For the Cogni-tive Layer, it contrasts Pf ail and Pgold to identify the root cause, extracting the Cognitive Diagno-sis , Negative Constraints , and Golden Principles .For the Code Layer, it summarizes the implemen-tation differences into Failed and Golden Patch Summaries , capturing key divergences while filter-ing out project-specific noise. 
+
+Retrieving Memory Entries. Before file local-ization, we retrieve relevant historical memory en-tries. We employ a Selector Agent to identify the top-k most relevant cases. Given a new issue with description Dq and screenshots Vq, the Selector Agent receives all candidate Contextual Layers and directly selects the top-k most relevant entries in a single pass: 
+
+R = Selector 
+
+
+
+Dq, Vq, {L (i)
+
+> ctx
+
+}Ni=1 , k 
+
+
+
+where R ⊂ B and |R| = k.The retrieval process is modeled as a semantic selection task. The Selector Agent is presented with the current issue report, which contains both the textual description D and the associated visual screenshots V. It compares these inputs against the 
+
+Contextual Layer (Lctx ) of the candidate memo-ries, specifically aligning the current problem with the historical Issue Summary and Visual Analysis .This approach allows the agent to leverage its se-mantic understanding to find relevant precedents based on symptom similarity, rather than relying on superficial keyword overlap. Once R is obtained, the guidance context is con-structed by extracting the Cognitive and Code lay-ers from each retrieved entry: 
+
+G = {(Lcog (i), Lcode (i)) | M i ∈ R} 
+
+This guidance G is then injected into the model’s context at each subsequent phase. 
+
+3.3 Repair with a Hybrid Agent Framework 
+
+After retrieving the top-k memory entries, we adopt a hybrid agent–workflow architecture that balances structured fault localization with flexible patch generation. To reduce computational overhead in repository-scale contexts, we confine the agentic loop to the final patch generation stage, while us-ing a deterministic workflow for earlier localization steps. This design narrows the search space and im-proves token efficiency. At each phase, the injected Cognitive and Code layers further align the model’s reasoning with historical constraints, guiding both localization and repair decisions. 
+
+Phase 1: File Localization. The process begins by scanning the repository’s directory tree to iden-tify a candidate set of files relevant to the issue. The model receives the issue description, the file tree structure, and the retrieved memory entries. At this stage, the injected Cognitive Layer helps the model filter out irrelevant domains (e.g., distinguishing between test files and source code) based on his-torical failure patterns. This phase operates in a single-pass inference mode to efficiently narrow the search space without invoking external tools. 
+
+Phase 2: Key Element Identification. Once the candidate files are determined, the system iden-tifies the specific classes or functions requiring modification. To handle the token limit, we uti-lize a Skeleton Compression strategy (detailed in Appendix B.1). We parse the candidate files to retain only class signatures, function headers, and docstrings, while abstracting implementation bod-ies. The model analyzes these skeletons alongside the injected memory to pinpoint the key elements. The memory injection here is critical for prevent-ing architectural misalignments, such as guiding the model to focus on the controller logic rather than view definitions when the memory suggests a backend root cause. Like the previous phase, this step does not utilize an agentic loop. 
+
+Phase 3: Agentic Patch Generation. This final stage is the only phase where the model operates as an autonomous agent with a multi-turn execution loop. The input comprises the full raw code of the identified key elements, the issue description, and the retrieved memory. We equip the agent with a specific suite of tools to verify logic and resolve multimodal ambiguities: (1) Active Visual Perception. To address the res-olution limitations of standard multimodal models, the agent utilizes a Crop tool to zoom into spe-5cific regions for detailed inspection. Additionally, a Grounding tool enables the agent to draw bound-ing boxes around bug-related UI elements. This action explicitly focuses the model’s attention on relevant visual contexts, mitigating the noise from unrelated interface components. Implementation details are provided in Appendix B.2. (2) Interactive Environment. A Bash tool (op-erating within a strictly sandboxed execution envi-ronment as described in Appendix B.3) allows the agent to execute commands. This enables the agent to actively explore the repository structure and ver-ify code logic dynamically, such as checking de-pendency versions or running reproduction scripts, before committing to specific modifications. During this loop, the model iteratively refines its plan using these tools, while continuously re-ceiving guidance from the injected Cognitive and 
+
+Code layers. These memory layers help the agent apply proven repair principles, reference success-ful implementation patterns, and avoid failure modes identified in past repair attempts. This dual-sided memory guidance significantly improves the agent’s ability to make reliable repair decisions. 
+
+4 Experiment 
+
+4.1 Experimental Setup Benchmark. We evaluate FailureMem on SWE-bench Multimodal (SWE-bench M) (Yang et al., 2025b), which consists of 617 real-world GitHub issues spanning 17 popular JavaScript repositories. This benchmark requires multimodal reasoning, as visual information is strictly necessary for resolv-ing over 83% of the tasks (Yang et al., 2025b). 
+
+Baselines. We primarily benchmark against GUIRepair (Huang et al., 2025c), the current SOTA open-source multimodal workflow-based approach. We also report results from text-centric workflows like Agentless (Ma et al., 2024) and generalist agents like SWE-agent (Yang et al., 2024b), along-side commercial systems (e.g., Globant Code Fixer) as upper-bound references. 
+
+Implementation Details. We reproduce the offi-cial implementation of GUIRepair. All experiments use a sampling temperature of 0 for deterministic generation and follow the Pass@1 evaluation proto-col, allowing only a single predicted patch without re-ranking. Final results are reported as the aver-age of three independent runs. Experiments are conducted on four NVIDIA A100 (80GB) GPUs. 
+
+4.2 Results and Discussion 
+
+Table 1 shows FailureMem consistently outper-forms the baseline GUIRepair across all tested foundation models. Specifically, when equipped with GPT-5.1, our framework achieves a resolved rate of 33.1%, yielding a significant absolute im-provement of 3.7% over the baseline. We observe similar consistent gains with GPT-4.1 (+2.3%) and Claude 4.5 (+2.3%), validating that the benefits of our failure-aware mechanism are model-agnostic. Furthermore, FailureMem surpasses all other refer-ence baselines, including both agent-based frame-works such as SWE-agent and workflow-based sys-tems like Agentless Lite. 
+
+Ablations. To analyze the contributions of each component, we perform an ablation study on SWE-bench Multimodal with the GPT-5.1 backend (See Table 2). We define a Base configuration that mir-rors the GUIRepair workflow, a standard multi-modal agent without dynamic exploration or histor-ical memory. The +Active Perception variant yields a 1.4% improvement over the baseline (28.6% → 30.0%). Our error analysis indicates that the Base agent frequently hallucinates DOM element attributes when processing downsampled full-page screen-shots. The inclusion of the Crop and Ground-ing tools effectively mitigates this by allowing the model to request high-resolution re-sampling of specific regions, thereby converting vague visual signals into precise coordinate-level constraints. The +Bash environment contributes a 1.6% gain (30.2%). We observed that purely generative agents often propose theoretically valid but environmen-tally incompatible patches, such as referencing non-existent relative paths or deprecated API ver-sions. The interactive shell shifts the paradigm from “write-and-pray” to “verify-then-commit”, enabling the agent to validate file structures and dependencies before attempting a fix. Notably, +FailureMem delivers the largest indi-vidual performance boost (+2.3%, reaching 30.9%). This suggests that a significant portion of repair failures stems not from a lack of capability, but from cognitive recurrence —the tendency to re-peatedly attempt plausible but incorrect solutions (e.g., modifying the view layer for a state logic bug). By injecting negative constraints, Failure-Mem effectively prunes these high-probability fail-ure branches early in the reasoning process. The Full Framework achieves 33.1%, a cumu-6Method LLM (Resolved Rate %) Repository Breakdown (Resolved Rate %) 
+
+> next
+> bpmn-js
+> carbon
+> eslint
+> lighthouse
+> grommet
+> highlight.js
+> openlayers
+> prettier
+> prism
+> quarto-cli
+> scratch-gui
+
+Other Baselines 
+
+SWE-agent Multimodal GPT-4o 12.4 0.0 27.8 1.5 0.0 5.6 0.0 2.6 51.9 7.7 0.0 0.0 0.0 Computer-Use Agents GPT-4o 20.1 - - - - - - - - - - - -Agentless Lite GPT-5.1 28.4 15.4 53.7 14.9 9.1 9.3 4.8 10.3 94.9 7.7 2.6 0.0 0.0 Zencoder NA 27.5 15.4 51.9 11.2 18.2 13.0 19.0 10.3 81.0 7.7 18.4 8.3 0.0 
+
+GUIRepair vs. Ours (GPT-4.1) 
+
+GUIRepair GPT-4.1 28.8 17.9 66.7 12.7 36.4 7.4 4.8 2.6 96.2 7.7 2.6 4.2 0.0 
+
+FailureMem (Ours) GPT-4.1 31.1 (+2.3) 23.1 68.5 12.7 18.2 13.0 9.5 5.1 97.5 15.4 13.2 4.2 0.0 
+
+GUIRepair vs. Ours (GPT-5.1) 
+
+GUIRepair GPT-5.1 29.4 23.1 57.4 11.9 36.4 13.0 4.8 5.1 97.5 15.4 5.3 4.2 0.0 
+
+FailureMem (Ours) GPT-5.1 33.1 (+3.7) 25.6 63.0 17.9 36.4 18.5 14.3 7.7 97.5 7.7 10.5 4.2 0.0 
+
+GUIRepair vs. Ours (GPT-5.2) 
+
+GUIRepair GPT-5.2 29.8 28.2 61.1 11.9 27.3 13.0 19.0 0.0 97.5 15.4 0.0 4.2 0.0 
+
+FailureMem (Ours) GPT-5.2 33.3 (+3.5) 28.2 66.7 15.7 27.3 20.4 9.5 10.3 97.5 15.4 10.5 4.2 0.0 
+
+GUIRepair vs. Ours (Claude 4 Sonnet ) 
+
+GUIRepair Claude 4 28.6 20.5 61.1 11.9 45.5 11.1 4.8 5.1 96.2 7.7 0.0 0.0 0.0 
+
+FailureMem (Ours) Claude 4 32.5 (+3.9) 23.1 68.5 14.9 36.4 16.7 9.5 7.7 97.5 15.4 13.2 4.2 0.0 
+
+GUIRepair vs. Ours (Claude 4.5 Opus thinking) 
+
+GUIRepair Claude 4.5 31.5 23.1 64.8 13.4 54.5 16.7 9.5 5.1 97.5 15.4 5.3 4.2 0.0 
+
+FailureMem (Ours) Claude 4.5 33.8 (+2.3) 23.1 68.5 17.2 36.4 18.5 19.0 7.7 97.5 15.4 13.2 4.2 0.0 
+
+Table 1: Comprehensive Performance on SWE-bench Multimodal. We compare FailureMem against state-of-the-art baselines. Columns under Repository Breakdown show the resolved rate (%) for each specific repository.              
+
+> Configuration Resolved Rate (%) Improvement Base (Standard Workflow) 28.6 -+ Active Perception 30.0 (+1.4)
+> + Bash Environment 30.2 (+1.6)
+> + FailureMem (Memory Only) 30.9 (+2.3)
+> Full Framework 33.1 (+4.5)
+
+Table 2: Ablation Analysis on GPT-5.1. We com-pare the Full Framework against the Base and single-component variants. “Active Perception” enables Crop/Grounding tools; “Bash” provides an interac-tive shell; “FailureMem” injects negative memory con-straints. 
+
+lative improvement of +4.5%. This performance exceeds any single component, confirming that the modules address orthogonal failure modes: Active Perception ensures the input is accurate, Failure-Mem ensures the plan is sound, and Bash ensures the execution is valid. 
+
+Memory Ablations. We investigate the distinct contributions of the cognitive and code layers within FailureMem. To rigorously isolate these components, we conducted experiments using the GPT-5.1 backbone. In all experimental settings, the retrieval mechanism remains constant: the Se-lector Agent identifies the top-3 relevant memory                                
+
+> Configuration Memory Fields Performance Cognitive Code Failure Resolved Rate (%)
+> (A) Cognitive Only ✓-✓154 / 517 29.8 (B) Code Only (RAG) -✓-158 / 517 30.6 (C) Positive Only ✓✓-158 / 517 30.6 (D) Raw Patch ✓Diffs ✓159 / 517 30.8
+> (E) Full Summary (Ours) ✓✓✓171 / 517 33.1
+
+Table 3: Component Analysis of FailureMem. We evaluate the impact of different memory compositions. The Failure column indicates the inclusion of Failed Patch Summaries and Negative Constraints. Configura-tion (E) represents the proposed method. 
+
+entries based on the Contextual Layer. We vary only the specific information fields injected into the repair agent’s context. Table 3 presents the results of five configurations. Variant (A) retains only the cognitive components (Diagnosis and Neg-ative Constraints). Variant (B) simulates a stan-dard RAG baseline by providing only the Golden Patch Summary. Variant (C) represents a positive-reinforcement setup, providing both the Golden Principle and Golden Patch Summary. Variant (D) replaces the natural language summaries in the Code Layer with raw git diffs. Finally, Config-uration (E) represents our full framework. Variant (A) relies on high-level reasoning, pro-7viding the Cognitive Diagnosis and Negative Con-straints without concrete code examples. This con-figuration yields the lowest performance at 29.8%. While the model correctly identifies architectural constraints, it struggles to translate abstract direc-tives into valid syntax specific to the target reposi-tory. In multimodal repair tasks involving complex DOM APIs, abstract reasoning must be supported by explicit code references provided by the Code Layer to facilitate correct implementation. We further analyzed whether the form of the Code Layer influences performance. Variant (D) re-places the distilled patch summaries with raw code diffs, resulting in a performance drop to 30.8%. Raw patches frequently contain project-specific ar-tifacts, such as variable naming conventions or un-related context lines, which introduce noise into the context window. Natural language summaries extract the core repair logic from these implementa-tion details. This filtering process allows the agent to transfer the underlying fix pattern to the current issue more effectively than direct code copying. The comparison between Variant (C) and our proposed framework (E) highlights the core contri-bution of this work. Variant (C) provides compre-hensive positive guidance, including both Golden Principles and Golden Patch Summaries, yet its per-formance plateaus at 30.6%, identical to the Code Only baseline. This result suggests that providing correct examples alone is insufficient to prevent the model from repeating common mistakes. The inclusion of failure components in Configuration (E) improves the resolved rate to 33.1%. By explic-itly contrasting the Failed Patch Summary with the Golden Patch Summary, the framework provides a discriminative signal. This signal enables the agent to distinguish between the correct solution and plausible but incorrect alternatives that positive examples alone cannot identify. 
+
+Memory Size Impacts. We evaluate different numbers of retrieved memory entries, k ∈{1, 3, 5, 10 }, using GPT-5.1 and Claude 4. In Fig-ure 3, both models follow an inverted U-shaped trend: performance improves from k = 1 to k = 3 ,peaking at 33.1% (GPT-5.1) and 32.5% (Claude 4), then declines as k increases further. At k = 10 ,resolved rates drop to 31.4% and 30.8%, likely due to context dilution from excessive retrieved code. We therefore set k = 3 as the default to balance information coverage and reasoning focus. 1 3 5 10    
+
+> Number of Retrieved Memories ( k)
+> 28
+> 29
+> 30
+> 31
+> 32
+> 33
+> 34
+> 35
+> Resolved Rate (%)
+> 30.8
+> 33.1 32.6
+> 31.4
+> 30.2
+> 32.5 31.9
+> 30.8
+> GPT-5.1 Claude 4
+
+Figure 3: Impact of Retrieval Size k. Both models exhibit an inverted U-shape trend, peaking at k = 3 .
+
+5 Related Work 
+
+Research on LLM-based Automated Program Repair (APR) has progressed from early fine-tuning approaches (Wang et al., 2023; Xia et al., 2023a; Yang et al., 2025a; Silva et al., 2023) and prompting-based methods (Fan et al., 2023; Xia et al., 2023b; Xia and Zhang, 2022; Zhang et al., 2023a; Xia and Zhang, 2024; Zhao et al., 2024; Xu et al., 2025; Yang et al., 2024a; Xiao et al., 2025; Peng et al., 2024; Xiang et al., 2024; Jiang et al., 2025; Fan et al., 2026), to autonomous agents for repository-level issue resolution (Jimenez et al., 2024; Antoniades et al., 2024; Liu et al., 2024; Meng et al., 2024). While systems such as SWE-agent (Yang et al., 2024b) and Agentless (Ma et al., 2024) improve general debugging, they lack the multimodal capabilities required for GUI-based tasks. Specialized tools exist for limited visual domains, such as UI design (Yuan et al., 2025) and accessibility (Zhang et al., 2023b), but general-purpose multimodal repair remains under-explored. The current SOTA, GUIRepair (Huang et al., 2025c), extends agentless workflows with cross-modal reasoning to incorporate visual infor-mation. However, existing approaches suffer from passive perception, relying only on static inputs without active visual exploration, and statelessness, treating each repair attempt independently without leveraging historical experience. These limitations motivate the need for agents with active tool use and memory mechanisms to support more robust multimodal reasoning. 
+
+6 Conclusion 
+
+We propose FailureMem, an experience-driven framework for Multimodal Automated Program Re-pair that integrates a hybrid workflow–agent archi-tecture, active visual grounding, and a hierarchical failure memory bank. Experiments on SWE-bench 8Multimodal show consistent improvements over strong baselines. 
+
+Limitations 
+
+Despite FailureMem’s performance gains, two lim-itations remain. The iterative agentic loop and de-tailed memory contexts increase inference costs to $0.33 per issue, a 13% rise compared to GUIRe-pair’s $0.29. We consider this tradeoff acceptable given the 3.7% improvement in resolution rate and the relatively low cost of autonomous compute ver-sus human effort. Additionally, FailureMem de-pends on the diversity of its offline memory bank. Rare or unprecedented failure modes without his-torical analogues bypass the contrastive distillation process, causing the system to revert to standard agentic behavior. 
+
+Ethics Statement 
+
+This work studies Multimodal Automated Program Repair and proposes FailureMem to improve the reliability of automated software debugging. Our goal is to assist developers by identifying and re-pairing software defects more effectively. The sys-tem is intended as a decision-support tool, and gen-erated patches should be reviewed and validated by developers before deployment in production en-vironments. Automated repair systems may occa-sionally generate incorrect or incomplete patches, and human oversight remains essential for ensuring software safety and correctness. The memory bank used in FailureMem is con-structed from publicly available software reposi-tories and issue reports, which may include tex-tual descriptions and screenshots of user interfaces. These artifacts are processed to extract abstract re-pair knowledge rather than storing raw sensitive content. We do not intentionally collect personal or confidential data, and the framework is designed to store summarized repair experiences rather than proprietary code whenever possible. Nevertheless, practitioners should ensure that memory construc-tion follows appropriate data governance policies when applied to private repositories. Automated program repair technologies may also be misused if deployed without sufficient safe-guards. For example, blindly applying automat-ically generated patches could introduce regres-sions or security vulnerabilities. Our framework therefore emphasizes learning from failed repair attempts and negative constraints, aiming to reduce recurring mistakes rather than encouraging fully autonomous code modification. Finally, the use of large language models and multimodal reasoning systems requires substan-tial computational resources. Our experiments are conducted on GPU infrastructure, which has en-vironmental implications. Future work will ex-plore more efficient memory retrieval and reason-ing strategies to reduce computational costs while maintaining repair effectiveness. 
+
+References        
+
+> Antonis Antoniades, Albert Örwall, Kexun Zhang, Yuxi Xie, Anirudh Goyal, and William Wang. 2024. Swe-search: Enhancing software agents with monte carlo tree search and iterative refinement. arXiv preprint arXiv:2410.20285 .Kaixuan Fan, Kaituo Feng, Manyuan Zhang, Tianshuo Peng, Zhixun Li, Yilei Jiang, Shuang Chen, Peng Pei, Xunliang Cai, and Xiangyu Yue. 2026. Explor-ing reasoning reward model for agents. Preprint ,arXiv:2601.22154. Zhiyu Fan, Xiang Gao, Martin Mirchev, Abhik Roy-choudhury, and Shin Hwei Tan. 2023. Automated repair of programs from large language models. In
+> 45th International Conference on Software Engineer-ing (ICSE) , pages 1469–1481. Kai Huang, Xiangxin Meng, Jian Zhang, Yang Liu, Wenjie Wang, Shuhao Li, and Yuqing Zhang. 2023. An empirical study on fine-tuning large language models of code for automated program repair. In
+> 38th International Conference on Automated Soft-ware Engineering (ASE) , pages 1162–1174. Kai Huang, Jian Zhang, Xinlei Bao, Xu Wang, and Yang Liu. 2025a. Comprehensive fine-tuning large language models of code for automated program re-pair. IEEE Transactions on Software Engineering (TSE) , pages 1–25. Kai Huang, Jian Zhang, Xiangxin Meng, and Yang Liu. 2025b. Template-guided program repair in the era of large language models. In 47th International Con-ference on Software Engineering (ICSE) , pages 367– 379. Kai Huang, Jian Zhang, Xiaofei Xie, and Chunyang Chen. 2025c. Seeing is fixing: Cross-modal reason-ing with multimodal llms for visual software issue fixing. arXiv preprint arXiv:2506.16136 .Nan Jiang, Kevin Liu, Thibaud Lutellier, and Lin Tan. 2023. Impact of code language models on automated program repair. In 45th International Conference on Software Engineering (ICSE) , pages 1430–1442. Yilei Jiang, Yaozhi Zheng, Yuxuan Wan, Jiaming Han, Qunzhong Wang, Michael R. Lyu, and Xiangyu Yue.
+
+92025. Screencoder: Advancing visual-to-code gen-eration for front-end automation via modular multi-modal agents. Preprint , arXiv:2507.22827. Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and Karthik R Narasimhan. 2024. SWE-bench: Can language mod-els resolve real-world github issues? In 12th Inter-national Conference on Learning Representations (ICLR) .Yizhou Liu, Pengfei Gao, Xinchen Wang, Jie Liu, Yexuan Shi, Zhao Zhang, and Chao Peng. 2024. Marscode agent: Ai-native automated bug fixing. 
+
+arXiv preprint arXiv:2409.00899 .Yingwei Ma, Qingping Yang, Rongyu Cao, Binhua Li, Fei Huang, and Yongbin Li. 2024. Alibaba lingmaa-gent: Improving automated issue resolution via com-prehensive repository exploration. arXiv preprint arXiv:2406.01422 .Xiangxin Meng, Zexiong Ma, Pengfei Gao, and Chao Peng. 2024. An empirical study on llm-based agents for automated bug fixing. arXiv preprint arXiv:2411.10213 .Yun Peng, Shuzheng Gao, Cuiyun Gao, Yintong Huo, and Michael Lyu. 2024. Domain knowledge matters: Improving prompts with fix templates for repairing python type errors. In 46th International Conference on Software Engineering (ICSE) , pages 1–13. André Silva, Sen Fang, and Martin Monperrus. 2023. Repairllama: Efficient representations and fine-tuned adapters for program repair. arXiv preprint arXiv:2312.15698 .Weishi Wang, Yue Wang, Shafiq Joty, and Steven CH Hoi. 2023. Rap-gen: Retrieval-augmented patch gen-eration with codet5 for automatic program repair. In 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (FSE) , pages 146–158. Yi Wu, Nan Jiang, Hung Viet Pham, Thibaud Lutellier, Jordan Davis, Lin Tan, Petr Babkin, and Sameena Shah. 2023. How effective are neural networks for fixing security vulnerabilities. In 32nd International Symposium on Software Testing and Analysis (ISSTA) ,pages 1282–1294. Chunqiu Steven Xia, Yinlin Deng, Soren Dunn, and Lingming Zhang. 2025. Demystifying llm-based software engineering agents. Proc. ACM Softw. Eng. (FSE) .Chunqiu Steven Xia, Yifeng Ding, and Lingming Zhang. 2023a. The plastic surgery hypothesis in the era of large language models. In 38th International Con-ference on Automated Software Engineering (ASE) ,pages 522–534. Chunqiu Steven Xia, Yuxiang Wei, and Lingming Zhang. 2023b. Automated program repair in the era of large pre-trained language models. In 45th International Conference on Software Engineering (ICSE) , pages 1482–1494. Chunqiu Steven Xia and Lingming Zhang. 2022. Less training, more repairing please: revisiting automated program repair via zero-shot learning. In 30th ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software En-gineering (FSE) , pages 959–971. Chunqiu Steven Xia and Lingming Zhang. 2024. Auto-mated program repair via conversation: Fixing 162 out of 337 bugs for $0.42 each using chatgpt. In 33rd International Symposium on Software Testing and Analysis (ISSTA) , pages 819–831. Jiahong Xiang, Xiaoyang Xu, Fanchu Kong, Mingyuan Wu, Zizheng Zhang, Haotian Zhang, and Yuqun Zhang. 2024. How far can we go with practi-cal function-level program repair? arXiv preprint arXiv:2404.12833 .YuanAn Xiao, Weixuan Wang, Dong Liu, Junwei Zhou, Shengyu Cheng, and Yingfei Xiong. 2025. Predi-catefix: Repairing static analysis alerts with bridging predicates. arXiv preprint arXiv:2503.12205 .Junjielong Xu, Ying Fu, Shin Hwei Tan, and Pinjia He. 2025. Aligning the objective of llm-based pro-gram repair. In 2025 IEEE/ACM 47th International Conference on Software Engineering (ICSE) , pages 2548–2560. IEEE. Boyang Yang, Haoye Tian, Weiguo Pian, Haoran Yu, Haitao Wang, Jacques Klein, Tegawendé F Bis-syandé, and Shunfu Jin. 2024a. Cref: An llm-based conversational software repair framework for pro-gramming tutors. In 33rd International Symposium on Software Testing and Analysis (ISSTA) , pages 882– 894. Boyang Yang, Haoye Tian, Jiadong Ren, Hongyu Zhang, Jacques Klein, Tegawende Bissyande, Claire Le Goues, and Shunfu Jin. 2025a. Morepair: Teach-ing llms to repair code via multi-objective fine-tuning. 
+
+ACM Transactions on Software Engineering and Methodology (TOSEM) .John Yang, Carlos Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, and Ofir Press. 2024b. Swe-agent: Agent-computer interfaces enable automated software engineering. Advances in Neural Information Processing Systems (NIPS) ,37:50528–50652. John Yang, Carlos E Jimenez, Alex L Zhang, Kil-ian Lieret, Joyce Yang, Xindi Wu, Ori Press, Niklas Muennighoff, Gabriel Synnaeve, Karthik R Narasimhan, and 1 others. 2025b. Swe-bench mul-timodal: Do ai systems generalize to visual soft-ware domains? In 13th International Conference on Learning Representations (ICLR) .
+
+10 Mingyue Yuan, Jieshan Chen, Zhenchang Xing, Aaron Quigley, Yuyu Luo, Tianqi Luo, Gelareh Moham-madi, Qinghua Lu, and Liming Zhu. 2025. Designre-pair: Dual-stream design guideline-aware frontend re-pair with large language models. In 2025 IEEE/ACM 47th International Conference on Software Engineer-ing (ICSE) , pages 2483–2494. IEEE. Quanjun Zhang, Chunrong Fang, Tongke Zhang, Bowen Yu, Weisong Sun, and Zhenyu Chen. 2023a. Gamma: Revisiting template-based automated program repair via mask prediction. In 38th International Con-ference on Automated Software Engineering (ASE) ,pages 535–547. Yuntong Zhang, Haifeng Ruan, Zhiyu Fan, and Abhik Roychoudhury. 2024. Autocoderover: Autonomous program improvement. In 33rd International Sym-posium on Software Testing and Analysis (ISSTA) ,pages 1592–1604. Yuxin Zhang, Sen Chen, Lingling Fan, Chunyang Chen, and Xiaohong Li. 2023b. Automated and context-aware repair of color-related accessibility issues for android apps. In 31st ACM Joint European Soft-ware Engineering Conference and Symposium on the Foundations of Software Engineering (FSE) , pages 1255–1267. Jiuang Zhao, Donghao Yang, Li Zhang, Xiaoli Lian, Zitian Yang, and Fang Liu. 2024. Enhancing auto-mated program repair with solution design. In 39th International Conference on Automated Software En-gineering (ASE) , pages 1706–1718. 
+
+A Data Construction for FailureMem 
+
+We detail the offline construction process of the Failure Memory Bank, specifically focusing on how empirical failure trajectories are collected and distilled into structured memory entries. 
+
+A.1 Data Source and Trajectory Collection 
+
+Our memory bank is strictly derived from the devel-opment set of the SWE-bench Multimodal bench-mark, which comprises 102 real-world visual soft-ware issues. To capture natural, high-probability failure patterns, we first ran FailureMem without the Failure Memory Bank (i.e., using only the hy-brid workflow-agent architecture and active percep-tion tools, powered by GPT-5.1) to attempt all 102 instances. The evaluation yielded a clear behavioral split: the memory-free variant correctly resolved 18 is-sues but failed to produce valid patches for the re-maining 84 instances. We exclusively utilize these 84 failed trajectories as our source material for memory construction. The 18 successful instances were intentionally excluded to ensure the memory bank remains focused on learning from failures rather than redundant positive imitation. For each of the 84 failed instances, we collected the incorrect patch output ( Pf ail ) from this variant to serve as the contrastive counterpart to the developer-verified ground truth ( Pgold ). 
+
+A.2 Offline Distillation Pipeline 
+
+To transform raw failed trajectories into the hier-archical memory entries defined in Section 3.2, we implemented an automated offline distillation pipeline. We utilized Gemini 3 Pro as the reasoning engine to conduct a contrastive root cause analysis. For each of the 84 failed instances, the pipeline constructs a multimodal context tuple 
+
+⟨D , I, P f ail , P gold ⟩, where: • D: The original natural language issue de-scription. • I: Up to three visual symptom screenshots (encoded as base64 images). • Pf ail : The incorrect patch generated by the memory-free variant. • Pgold : The correct developer patch. The distillation model is prompted to compare 
+
+Pf ail against Pgold and abstract the multimodal inputs into our three-layer memory architecture: 
+
+Contextual Layer ( Lctx ): The model synthe-sizes the raw inputs into two text-based fields: the Issue Summary, which abstracts the bug scenario, and the Visual Analysis, which textually describes the visual symptoms (e.g., “The modal overlay ob-scures the navigation bar”). This deliberate transla-tion from raw screenshots to text minimizes token consumption and prevents visual background noise from distracting the selector agent during the re-trieval phase. 
+
+Cognitive Layer ( Lcog ): The model extracts high-level reasoning guidance consisting of three components. It generates a Cognitive Diagnosis that explains the causality behind the failure; for-mulates a Negative Constraint that explicitly for-bids the specific incorrect strategies (e.g., “Do not modify downstream rendering logic for upstream data errors”); and outlines a Golden Principle that defines the correct design pattern. 
+
+Code Layer ( Lcode ): To provide concrete refer-ences, the model generates a Failed Patch Summary and a Golden Patch Summary. These summaries highlight the specific implementation divergence 11 between the incorrect and correct solutions, offer-ing the agent an empirical reference for the repair strategy while filtering out project-specific noise found in raw diffs. To ensure the reliability of the memory bank, the pipeline includes a strict field-level validation step. Any generated entry missing the required structural layers, containing empty strings for critical rea-soning steps, or exhibiting hallucinated syntax is automatically rejected and retried with exponential backoff. This rigorous filtering resulted in a high-fidelity memory bank containing 84 well-structured memory entries ready for retrieval. 
+
+A.3 Memory Bank Statistics and Case Example 
+
+The final memory bank comprises 84 distinct mem-ory entries derived from the development set fail-ures. Table 4 details the distribution of these em-pirical failure trajectories across the repositories in-cluded in the SWE-bench Multimodal benchmark. This distribution ensures the retrieved memory en-tries cover a wide spectrum of visual structures, rendering frameworks (e.g., PDF generation, Can-vas drawing), and architectural patterns.          
+
+> Table 4: Repository Distribution of the Memory Bank. The 84 failed trajectories used for extracting negative constraints span 5 distinct repositories.
+> Repository Count of Failed Trajectories
+> Automattic/wp-calypso 37 chartjs/Chart.js 16 markedjs/marked 11 diegomura/react-pdf 10 processing/p5.js 10
+> Total Memory Entries 84
+
+To illustrate the exact payload injected into the agent’s context during Phase 3, we present a complete, distilled memory entry for the in-stance Automattic__wp-calypso-21964 in Fig-ure 4. Extraneous metadata utilized exclusively for offline pipeline routing has been omitted for clarity. 
+
+B Extended Methodology Details 
+
+This appendix provides detailed engineering de-scriptions of the core components discussed in the main text: the skeleton compression strategy used for context management (§B.1), the implementa-tion of Active Perception tools (§B.2), and the sand-boxed execution environment for codebase explo-ration (§B.3). 
+
+B.1 Skeleton Compression Strategy 
+
+Providing the complete source code of all candi-date files to the model is often impractical: a single file in a large front-end repository can span thou-sands of lines, and the full context of multiple files easily exceeds the effective context window of cur-rent language models. To address this, we design a skeleton compression strategy that retains the structural outline of each file while aggressively re-moving implementation bodies, yielding a concise yet informative representation. 
+
+AST-Based Structure Extraction. We leverage an Abstract Syntax Tree (AST) parser to identify the structural elements of each source file. Con-cretely, we employ the Babel parser—a widely-used, plugin-extensible parser for JavaScript and TypeScript—invoked as an external process. The parser is configured with a comprehensive set of syntax plugins (including JSX, TypeScript, class properties, optional chaining, nullish coalescing, decorators, pipeline operators, and others) to en-sure broad compatibility across diverse repository coding conventions. For repositories that use non-standard or unconventional coding patterns, we maintain repository-specific parser configurations that handle edge cases such as recursive node traver-sal with cycle detection or null-safe property access during AST walking. The parser performs a recursive traversal of the AST and extracts two categories of structural ele-ments: • Classes : Each class declaration is recorded with its name, start line, end line, and a list of its methods (each with name, start line, and end line). Both named and anonymous class declara-tions are captured, including those assigned via 
+
+module.exports .• Functions : Named function declarations, arrow function expressions, and function expressions assigned to variables or object properties are recorded with their names and line spans. 
+
+Skeleton Construction. Given the extracted structure, we construct the skeleton representation through the following procedure: 1. Initialize an empty template of the same length as the original file (one empty string per line). 2. Retain class boundaries : For each class, copy the declaration header (start line) and the clos-ing brace (end line) into the template. For each 12 method within the class, similarly retain the method signature line and closing line. 3. Retain function signatures : For each function, copy the start line and the end line. Addition-ally, if the function signature spans multiple lines (e.g., functions with long parameter lists), we expand downward from the start line for up to 20 additional lines, stopping when we en-counter an empty line or a line ending with a block delimiter ( { or }). This ensures that multi-line function signatures are preserved in their entirety. 4. Preserve comments, imports, and exports :All comment lines (single-line // , multi-line 
+
+/* */ , and JSDoc * lines), import statements, and export statements are unconditionally re-tained. These provide semantic context about the file’s dependencies and public interface. 5. Collapse consecutive blank lines : Sequences of more than two consecutive blank lines are collapsed to at most two, preventing large gaps where function bodies were removed. The compression is applied conditionally: files shorter than a configurable threshold (in lines) are provided in their entirety, since the overhead of full inclusion is minimal. Files exceeding this thresh-old are compressed. In rare cases where the com-pressed skeleton itself exceeds 5,000 lines (e.g., for exceptionally large auto-generated files), we trun-cate to the first 5,000 lines. If compression yields an empty result (e.g., for declarative configuration files with no class or function structure), the full file content is used as a fallback. This skeleton format typically achieves a 5–20 ×
+
+compression ratio compared to the original file, making it feasible to present dozens of candidate files simultaneously within a single prompt while preserving the structural information necessary for fault localization. 
+
+B.2 Implementation of Active Perception Tools 
+
+Our framework equips the agent with two com-plementary visual analysis tools—C ROP and GROUNDING —that enable it to actively manipu-late and inspect bug scenario screenshots during the repair process. Both tools operate on raw pixel coordinates specified directly by the agent. 
+
+Coordinate Specification. When the agent in-vokes a visual tool, it outputs a bounding box in the form [xmin , y min , x max , y max ], where coordinates are specified in absolute pixel units relative to the top-left corner of the image. The agent determines these coordinates by reasoning about the spatial layout of the screenshot based on its visual under-standing. No external grounding module (e.g., Set-of-Mark prompting or DOM tree parsing) is em-ployed; the agent directly estimates pixel regions from the rendered screenshot. An image index pa-rameter allows the agent to select which screenshot to operate on when multiple bug scenario images are available. 
+
+Crop Tool. The C ROP tool extracts a sub-region from a screenshot to enable detailed inspection of fine-grained visual artifacts. Upon receiving the agent’s bounding box, the system: 1. Decodes the base64-encoded screenshot into a pixel buffer. 2. Validates and clamps the bounding box coordi-nates to the image boundaries to prevent out-of-bounds errors. 3. Extracts the specified rectangular region. 4. Re-encodes the cropped region as a new image and injects it into the subsequent conversation turn as a user message containing the cropped image. This tool is designed for scenarios requiring pixel-level examination, such as verifying whether a bor-der is 1 px too thick, whether an icon is rendered at incorrect resolution, or whether text overflow is occurring at a specific breakpoint. 
+
+Grounding Tool. The G ROUNDING tool anno-tates the original screenshot with a bounding box overlay to highlight the bug-affected region while preserving the full page context. Given the agent’s bounding box and an optional text label, the sys-tem: 1. Decodes the screenshot into a pixel buffer. 2. Draws a colored rectangle (red, 3 px width) at the specified coordinates on a copy of the image. 3. If a text label is provided, renders it above the bounding box with a contrasting background for readability. 4. Re-encodes the annotated image and injects it into the conversation as a new visual input. This tool is particularly useful for layout and po-sitioning bugs, where the spatial relationship be-tween the highlighted region and the surrounding page elements is critical for diagnosis. 
+
+Tool Usage Protocol. Both tools follow a strict single-tool-per-turn protocol: the agent issues ex-13 actly one tool call per response, then waits for the system to return the actual result (the processed im-age) before proceeding. This prevents hallucinated tool outputs and ensures that subsequent reasoning is grounded in real visual evidence. The agent is en-couraged to use visual tools as its first action when bug scenario images are available, establishing a concrete visual understanding before proceeding to code-level analysis. The processed images (both originals and tool outputs) are persisted to disk for post-hoc analysis. 
+
+B.3 Bash Environment Constraints 
+
+To support codebase exploration during patch gen-eration, we provide the agent with a sandboxed shell execution environment. This allows the agent to inspect files, search for patterns, and understand the repository structure when the provided code snippets are insufficient for generating a correct fix. 
+
+Execution Model. Each shell command is exe-cuted as an independent subprocess with its work-ing directory set to the repository root. The cd com-mand is explicitly blocked, as directory changes do not persist across invocations; instead, the agent uses relative paths from the project root (e.g., cat src/components/Button.js ). This stateless exe-cution model simplifies security enforcement and prevents path-related confusion. 
+
+Security Isolation. We enforce a multi-layered security policy to ensure that the agent’s shell ac-cess is strictly read-only: • Command blacklist : Destructive file system operations ( rm , mv , cp , mkdir , touch , chmod ), version control mutations ( git reset , git checkout , git clean , git merge , git rebase ,
+
+git push ), network utilities ( curl , wget , ssh ,
+
+scp ), package managers ( npm , pip , apt ), and pro-cess control commands ( kill , sudo ) are rejected before execution. • Redirect blocking : Output redirection opera-tors ( >, », 2> , &> ) are forbidden to prevent any file writes. Pipe operators ( |) are allowed for command chaining (e.g., grep | head ) but are validated to ensure the downstream command is not a write-capable utility. • Injection prevention : Command substitution ($(...) and backticks) and background execu-tion ( &) are blocked to prevent privilege escala-tion and uncontrolled process spawning. In-place file editing via sed -i is specifically detected and rejected while allowing read-only sed usage for text extraction. • Command chaining : Semicolon-separated com-mand chains are permitted, but each sub-command is individually validated against the blacklist before execution. 
+
+Resource Limits. To prevent runaway processes and excessive context injection, we impose the fol-lowing constraints: • Timeout : Each command is subject to a 120-second execution timeout. Commands exceeding this limit are terminated, and the agent receives a timeout notification. • Output truncation : Command output is capped at 300 lines or 50 KB (whichever is reached first). When truncation occurs, the agent is informed and advised to narrow its query (e.g., by us-ing more specific patterns or limiting the search scope to a subdirectory). • Directory exclusion : Common non-source di-rectories ( node_modules , .git , dist , build ,
+
+coverage , etc.) are excluded from search and traversal operations to reduce noise and improve response time. 
+
+Permitted Operations. Within these constraints, the agent can freely execute read-only operations including file reading ( cat , head , tail ), pattern searching ( grep with recursive, case-insensitive, and context-line options), file discovery ( find , ls ), and text processing ( wc , sort , awk in read-only mode). This set of operations is sufficient for the agent to navigate unfamiliar codebases, trace im-port chains, locate related files, and gather the con-textual information necessary for patch generation. 14 Memory Entry Example: Automattic__wp-calypso-21964 
+
+Contextual Layer ( Lctx )
+
+• Issue Summary: OAuth client_id parameter is dropped when navigating from Signup back to Login form, causing loss of custom branding/styling. • Visual Analysis: The login page reverts to generic styling instead of custom branded styling after a user clicks ’Already have an account?’. The expected behavior is that the login page should retain custom branding (driven by 
+
+client_id ) when returning from the Signup form. 
+
+Cognitive Layer ( Lcog )
+
+• Cognitive Diagnosis: The agent attempted to fix a View-layer link generation issue by modifying Controller-layer route initialization, failing to propagate data to the actual UI component. It calculated initialUrl in 
+
+client/signup/controller.js to include query strings, assuming this would implicitly preserve the parame-ters during navigation. However, the ’Back to Login’ link is explicitly rendered by a React component using a helper function, so the controller-level variable had no effect on the rendered UI. The Golden Patch demonstrates the ’Selector Pattern’: retrieving the persisted state from the store within the View component and passing it explicitly to the URL generation utility. • Negative Constraints: 
+
+– Do NOT attempt to fix UI link generation issues by modifying controller initialization variables that are not passed to the view. – Do NOT assume URL parameters persist automatically across route changes; explicitly inject them into link generators. • Golden Principle: Reconstruct navigation state explicitly in View components using Store Selectors, rather than relying on implicit Controller context preservation. 
+
+Code Layer ( Lcode )
+
+• Failed Patch Summary: Modified client/signup/controller.js (Controller). Added logic to reconstruct 
+
+initialUrl from context including query strings. The bug wasn’t about the controller losing context, but about the View component ( SignupForm ) generating a link that lacked the parameter. Modifying a local variable in the controller without passing it to the view has no effect on the rendered HTML. • Golden Patch Summary: The fix involves updating the URL generation utility to support the client_id parameter, and connecting the View component to the Redux store to retrieve the current client ID. – lib/paths/login/index.js (Utility): Updated the login function to append ?client_id=... if 
+
+oauth2ClientId is provided, centralizing URL logic to ensure consistency. – components/signup-form/index.jsx (View): Used the connect wrapper to retrieve 
+
+getCurrentOAuth2Client(state) from Redux and explicitly injected oauth2ClientId into the 
+
+getLoginLink method, ensuring the component has access to global context data. 
+
+Figure 4: An instantiated Memory Entry utilized during the final repair phase. The structured fields align with the defined hierarchical memory architecture ( Lctx , Lcog , Lcode ). It is presented across both columns for readability. 
+
+15
