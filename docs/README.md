@@ -6,91 +6,79 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-27
-- 运行时间：2026-03-27 19:45:03 UTC
+- 最新运行日期：2026-03-28
+- 运行时间：2026-03-28 19:25:50 UTC
 - 运行状态：成功
-- 本次总论文数：23
-- 精读区：11
+- 本次总论文数：19
+- 精读区：7
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选 23 篇前沿论文，深度解析多步工具编排优化与金融智能体实战评测。
-重点关注通过约束数据合成提升工具调用能力，以及在 MCP 协议下金融场景的满分表现。
-建议优先研读两篇满分论文，并关注大模型在长对话中推理能力下降的潜在风险。
-- 详情：[/202603/27/README](/202603/27/README)
+今日深度解析 19 篇 AI 论文，重点攻克医疗影像智能体的可审计推理与 MCP 服务器的安全权限审计。
+核心结论指出 MedOpenClaw 能在非结构化影像中实现精准推理，同时揭示了多智能体协作中存在的“选择瓶颈”挑战。
+建议开发者关注异步工程策略与标准化评分自动化，以提升复杂垂直领域智能体的落地可靠性。
+- 详情：[/202603/28/README](/202603/28/README)
 
 ### 精读区论文标签
-1. [Training LLMs for Multi-Step Tool Orchestration with Constrained Data Synthesis and Graduated Rewards](/202603/27/2603.24709v1-training-llms-for-multi-step-tool-orchestration-with-constrained-data-synthesis-and-graduated-rewards)  
-   标签：评分：10.0/10、query:agent
-   evidence：训练LLM进行多步工具编排和API调用
-2. [FinMCP-Bench: Benchmarking LLM Agents for Real-World Financial Tool Use under the Model Context Protocol](/202603/27/2603.24943v1-finmcp-bench-benchmarking-llm-agents-for-real-world-financial-tool-use-under-the-model-context-protocol)  
-   标签：评分：10.0/10、query:agent
-   evidence：大型语言模型智能体在金融工具使用和 API 协议方面的基准测试
-3. [Automating Computational Chemistry Workflows via OpenClaw and Domain-Specific Skills](/202603/27/2603.25522v1-automating-computational-chemistry-workflows-via-openclaw-and-domain-specific-skills)  
+1. [MedOpenClaw: Auditable Medical Imaging Agents Reasoning over Uncurated Full Studies](/202603/28/2603.24649v1-medopenclaw-auditable-medical-imaging-agents-reasoning-over-uncurated-full-studies)  
    标签：评分：10.0/10、query:opclw
-   evidence：通过 OpenClaw 自动化化学工作流
-4. [Solver-Aided Verification of Policy Compliance in Tool-Augmented LLM Agents](/202603/27/2603.20449v1-solver-aided-verification-of-policy-compliance-in-tool-augmented-llm-agents)  
+   evidence：基于OpenClaw的可审计医学影像智能体
+2. [Auditing MCP Servers for Over-Privileged Tool Capabilities](/202603/28/2603.21641v1-auditing-mcp-servers-for-over-privileged-tool-capabilities)  
    标签：评分：9.0/10、query:agent
-   evidence：工具增强型大模型智能体的策略合规性
-5. [Deliberative multi-agent large language models improve clinical reasoning in ophthalmology](/202603/27/2603.21447v1-deliberative-multi-agent-large-language-models-improve-clinical-reasoning-in-ophthalmology)  
+   evidence：审计 MCP 服务器中的工具能力
+3. [AI Co-Scientist for Ranking: Discovering Novel Search Ranking Models alongside LLM-based AI Agents with Cloud Computing Access](/202603/28/2603.22376v1-ai-co-scientist-for-ranking-discovering-novel-search-ranking-models-alongside-llm-based-ai-agents-with-cloud-computing-access)  
    标签：评分：9.0/10、query:agent
-   evidence：用于临床推理的多智能体大模型审议委员会
-6. [Polaris: A Gödel Agent Framework for Small Language Models through Experience-Abstracted Policy Repair](/202603/27/2603.23129v1-polaris-a-gdel-agent-framework-for-small-language-models-through-experience-abstracted-policy-repair)  
+   evidence：基于大语言模型的科学发现与搜索排序智能体
+4. [How are AI agents used? Evidence from 177,000 MCP tools](/202603/28/2603.23802v1-how-are-ai-agents-used-evidence-from-177000-mcp-tools)  
    标签：评分：9.0/10、query:agent
-   evidence：通过元推理和策略修复实现递归自我改进
-7. [Environment Maps: Structured Environmental Representations for Long-Horizon Agents](/202603/27/2603.23610v1-environment-maps-structured-environmental-representations-for-long-horizon-agents)  
+   evidence：评估了17.7万个用于AI智能体的MCP工具
+5. [Self-Evolving Multi-Agent Framework for Efficient Decision Making in Real-Time Strategy Scenarios](/202603/28/2603.23875v1-self-evolving-multi-agent-framework-for-efficient-decision-making-in-real-time-strategy-scenarios)  
    标签：评分：9.0/10、query:agent
-   evidence：长程智能体的结构化环境表示
-8. [APISENSOR: Robust Discovery of Web API from Runtime Traffic Logs](/202603/27/2603.23852v1-apisensor-robust-discovery-of-web-api-from-runtime-traffic-logs)  
+   evidence：用于即时战略游戏推理与规划的多智能体框架
+6. [DUPLEX: Agentic Dual-System Planning via LLM-Driven Information Extraction](/202603/28/2603.23909v1-duplex-agentic-dual-system-planning-via-llm-driven-information-extraction)  
    标签：评分：9.0/10、query:agent
-   evidence：从流量日志中为大模型智能体发现Web API
-9. [Experiential Reflective Learning for Self-Improving LLM Agents](/202603/27/2603.24639v1-experiential-reflective-learning-for-self-improving-llm-agents)  
+   evidence：智能体双系统规划与PDDL映射
+7. [TopoPilot: Reliable Conversational Workflow Automation for Topological Data Analysis and Visualization](/202603/28/2603.25063v1-topopilot-reliable-conversational-workflow-automation-for-topological-data-analysis-and-visualization)  
    标签：评分：9.0/10、query:agent
-   evidence：用于智能体推理与适应的反思学习
-10. [Formal Semantics for Agentic Tool Protocols: A Process Calculus Approach](/202603/27/2603.24747v1-formal-semantics-for-agentic-tool-protocols-a-process-calculus-approach)  
-   标签：评分：9.0/10、query:agent
-   evidence：对MCP和SGD等智能体工具集成协议的形式化验证
-11. [SEVerA: Verified Synthesis of Self-Evolving Agents](/202603/27/2603.25111v1-severa-verified-synthesis-of-self-evolving-agents)  
-   标签：评分：9.0/10、query:agent
-   evidence：自演化智能体程序的验证合成
+   evidence：用于自动化复杂科学可视化工作流的智能体框架
 
 ### 速读区论文标签
-1. [Mi:dm K 2.5 Pro](/202603/27/2603.18788v1-midm-k-25-pro)  
+1. [When Agents Disagree: The Selection Bottleneck in Multi-Agent LLM Pipelines](/202603/28/2603.20324v1-when-agents-disagree-the-selection-bottleneck-in-multi-agent-llm-pipelines)  
    标签：评分：8.0/10、query:agent
-   evidence：针对多步推理和智能体工作流优化的LLM
-2. [Mi:dm K 2.5 Pro](/202603/27/2603.18788v2-midm-k-25-pro)  
+   evidence：多智能体LLM流水线中的选择瓶颈
+2. [Effective Strategies for Asynchronous Software Engineering Agents](/202603/28/2603.21489v1-effective-strategies-for-asynchronous-software-engineering-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：针对智能体工作流的推理优化
-3. [Reasoning Gets Harder for LLMs Inside A Dialogue](/202603/27/2603.20133v1-reasoning-gets-harder-for-llms-inside-a-dialogue)  
+   evidence：用于软件工程的异步多智能体协作
+3. [Agentic Automation of BT-RADS Scoring: End-to-End Multi-Agent System for Standardized Brain Tumor Follow-up Assessment](/202603/28/2603.21494v1-agentic-automation-of-bt-rads-scoring-end-to-end-multi-agent-system-for-standardized-brain-tumor-follow-up-assessment)  
    标签：评分：8.0/10、query:agent
-   evidence：大模型在任务导向对话中的推理鲁棒性
-4. [StreamingClaw Technical Report](/202603/27/2603.22120v2-streamingclaw-technical-report)  
-   标签：评分：8.0/10、query:opclw
-   evidence：用于实时智能体的StreamingClaw技术报告
-5. [Environment Maps: Structured Environmental Representations for Long-Horizon Agents](/202603/27/2603.23610v2-environment-maps-structured-environmental-representations-for-long-horizon-agents)  
+   evidence：用于自动化医疗评分与评估的多智能体系统
+4. [Aerial Agentic AI: Synergizing LLM and SLM for Low-Altitude Wireless Networks](/202603/28/2603.22866v1-aerial-agentic-ai-synergizing-llm-and-slm-for-low-altitude-wireless-networks)  
    标签：评分：8.0/10、query:agent
-   evidence：长程智能体规划的结构化表示
-6. [Efficient Benchmarking of AI Agents](/202603/27/2603.23749v1-efficient-benchmarking-of-ai-agents)  
+   evidence：集成大语言模型和小语言模型智能体的分层框架
+5. [PaperVoyager : Building Interactive Web with Visual Language Models](/202603/28/2603.22999v1-papervoyager--building-interactive-web-with-visual-language-models)  
    标签：评分：8.0/10、query:agent
-   evidence：AI智能体的高效基准测试与评估
-7. [Willful Disobedience: Automatically Detecting Failures in Agentic Traces](/202603/27/2603.23806v1-willful-disobedience-automatically-detecting-failures-in-agentic-traces)  
+   evidence：用于工具调用和交互式网页合成的自主智能体
+6. [VehicleMemBench: An Executable Benchmark for Multi-User Long-Term Memory in In-Vehicle Agents](/202603/28/2603.23840v1-vehiclemembench-an-executable-benchmark-for-multi-user-long-term-memory-in-in-vehicle-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：自动检测多步智能体轨迹和工具调用中的失败
-8. [Prompt Control-Flow Integrity: A Priority-Aware Runtime Defense Against Prompt Injection in LLM Systems](/202603/27/2603.18433v1-prompt-control-flow-integrity-a-priority-aware-runtime-defense-against-prompt-injection-in-llm-systems)  
+   evidence：车载智能体的工具交互特性
+7. [Can LLMs Prove Robotic Path Planning Optimality? A Benchmark for Research-Level Algorithm Verification](/202603/28/2603.19464v1-can-llms-prove-robotic-path-planning-optimality-a-benchmark-for-research-level-algorithm-verification)  
    标签：评分：7.0/10、query:agent
-   evidence：针对LLM系统和API提示词注入的防御机制
-9. [RouterKGQA: Specialized--General Model Routing for Constraint-Aware Knowledge Graph Question Answering](/202603/27/2603.20017v1-routerkgqa-specialized--general-model-routing-for-constraint-aware-knowledge-graph-question-answering)  
+   evidence：大语言模型在机器人路径规划最优性方面的推理
+8. [The Workload-Router-Pool Architecture for LLM Inference Optimization: A Vision Paper from the vLLM Semantic Router Project](/202603/28/2603.21354v1-the-workload-router-pool-architecture-for-llm-inference-optimization-a-vision-paper-from-the-vllm-semantic-router-project)  
    标签：评分：7.0/10、query:agent
-   evidence：基于智能体的知识图谱引导推理方法
-10. [LLM-Powered Workflow Optimization for Multidisciplinary Software Development: An Automotive Industry Case Study](/202603/27/2603.21439v1-llm-powered-workflow-optimization-for-multidisciplinary-software-development-an-automotive-industry-case-study)  
+   evidence：vLLM中的智能体路由与工具选择
+9. [Agentic Automation of BT-RADS Scoring: End-to-End Multi-Agent System for Standardized Brain Tumor Follow-up Assessment](/202603/28/2603.21494v2-agentic-automation-of-bt-rads-scoring-end-to-end-multi-agent-system-for-standardized-brain-tumor-follow-up-assessment)  
    标签：评分：7.0/10、query:agent
-   evidence：用于软件开发的LLM驱动工作流优化
-11. [LLM-Powered Workflow Optimization for Multidisciplinary Software Development: An Automotive Industry Case Study](/202603/27/2603.21439v2-llm-powered-workflow-optimization-for-multidisciplinary-software-development-an-automotive-industry-case-study)  
+   evidence：用于标准化医学评分工作流的多智能体系统
+10. [ELITE: Experiential Learning and Intent-Aware Transfer for Self-improving Embodied Agents](/202603/28/2603.24018v1-elite-experiential-learning-and-intent-aware-transfer-for-self-improving-embodied-agents)  
    标签：评分：7.0/10、query:agent
-   evidence：基于图的LLM服务工作流优化
-12. [How Far Are Vision-Language Models from Constructing the Real World? A Benchmark for Physical Generative Reasoning](/202603/27/2603.24866v1-how-far-are-vision-language-models-from-constructing-the-real-world-a-benchmark-for-physical-generative-reasoning)  
+   evidence：自我改进具身智能体的经验学习
+11. [Detect--Repair--Verify for LLM-Generated Code: A Multi-Language, Multi-Granularity Empirical Study](/202603/28/2603.23633v1-detect--repair--verify-for-llm-generated-code-a-multi-language-multi-granularity-empirical-study)  
    标签：评分：6.0/10、query:agent
-   evidence：物理生成推理和过程约束的基准测试
+   evidence：评估LLM生成代码的安全性和修复工作流
+12. [Back to Basics: Revisiting ASR in the Age of Voice Agents](/202603/28/2603.25727v1-back-to-basics-revisiting-asr-in-the-age-of-voice-agents)  
+   标签：评分：6.0/10、query:agent
+   evidence：现实世界语音智能体中的 ASR 鲁棒性
 
 
 <div class="dpr-home-promo-card">
