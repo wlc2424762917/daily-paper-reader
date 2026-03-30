@@ -1,0 +1,393 @@
+Title: CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training
+
+URL Source: https://arxiv.org/pdf/2603.23559v1
+
+Published Time: Thu, 26 Mar 2026 00:05:10 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+Yuxi Chen * 1 Haoyu Zhai * 1 Chenkai Wang * 1 Rui Yang 1 Lingming Zhang 1 Gang Wang 1 Huan Zhang 1
+
+# Abstract 
+
+GUI agents are rapidly shifting from multi-module pipelines to end-to-end, native vision-language models (VLMs) that perceive raw screenshots and directly interact with digital de-vices. Despite rapid progress on general GUI tasks, CAPTCHA solving remains a major chal-lenge. On the other hand, although specialized CAPTCHA solving pipelines exist, they cannot handle general GUI tasks. To address this gap, we introduce ReCAP: a CAPTCHA-capable na-tive GUI agent that can robustly solve modern, interactive CAPTCHA challenges, while preserv-ing their performance as a general GUI agent. We first develop a dynamic CAPTCHA system spanning seven representative CAPTCHA types, designed to stress primitive and complementary capabilities for CAPTCHA solving (e.g., robust OCR under heavy noise and text stylization, fine-grained visual understanding, and precise control). Then, we develop an automated data collection and curation pipeline that generates large-scale CAPTCHA interaction trajectories paired with reasoning traces. As CAPTCHA solving often requires multi-step interaction and recovery from intermediate mistakes, we further leverage failed trajectories to construct self-correction data, train-ing agents to reflect on errors and correct their ac-tions online. Across held-out test sets, ReCAP im-proves CAPTCHA-solving success from roughly 30% to 80%, while maintaining strong perfor-mance on general GUI-agent benchmarks. 
+
+# 1. Introduction 
+
+CAPTCHA (Completely Automated Public Turing test to tell Computers and Humans Apart) is a critical security 
+
+> *
+
+Equal contribution 1University of Illinois Urbana-Champaign. Correspondence to: Yuxi Chen <yuxi5@illinois.edu >, Huan Zhang <huan@huan-zhang.com >. Code, model and data are available at: https://github.com/ASTRAL-Group/ ReCAP-Agent .
+
+Preprint. March 26, 2026. 
+
+Figure 1. Performance on CAPTCHA and general GUI agent benchmarks. Left: CAPTCHA solving performance across seven challenge types. Right: Performance on general GUI agent bench-marks. ReCAP-32B consistently outperforms baseline GUI agents and prior frameworks on all seven CAPTCHA challenges while maintaining strong general GUI capabilities. 
+
+mechanism for protecting online services from automated attacks (Ahn et al., 2003). Their design has evolved rapidly in response to advances in machine learning. Modern CAPTCHAs increasingly rely on complex visual under-standing and interactive behaviors like continuous control and semantic reasoning, rather than static text recognition alone (Searles et al., 2023). Recent GUI agents including OpenCUA (Wang et al., 2025), UI-TARS (Qin et al., 2025), and Qwen3-VL (Yang et al., 2025) have demonstrated strong ability on general-purpose GUI interaction tasks, including web browsing, desktop and mobile control, and application usage. Large-scale trajec-tory datasets from Aguvis (Xu et al., 2024), GUI World (Chen et al., 2024), and AgentNet (Wang et al., 2025) have enabled models to acquire broad GUI grounding and inter-action skills. Despite this progress, these agents are not explicitly designed for unique challenges posed by modern CAPTCHAs. Consequently, they tend to underperform on CAPTCHA solving as they lack complementary skills re-quired for CAPTCHA solving, including robust OCR under heavy noise and various text stylization, fine-grained visual understanding, and precise control. Solving CAPTCHA has become a challenging task for evaluating the robustness and generalization capabilities of GUI agents (Wu et al., 2025b), 1
+
+> arXiv:2603.23559v1 [cs.CR] 23 Mar 2026 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training
+
+as CAPTCHAs may naturally appear during daily computer-use. Yet, there is a lack of public and systematic research on studying CAPTCHA solving in native GUI agents. Several recent systems have explored general-purpose ap-proaches to solving modern CAPTCHAs, including Halli-gan (Teoh et al., 2025) and Oedipus (Deng et al., 2025). Al-though effective on specific CAPTCHA benchmarks, these systems frame CAPTCHA solving as a standalone problem, and their transferability to unseen CAPTCHA variants and broader GUI interaction remain limited. To address this gap, we introduce ReCAP: a CAPTCHA-capable native GUI agent that can robustly solve modern, in-teractive CAPTCHA challenges. Our approach is enabled by a dynamic, interactive CAPTCHA system spanning seven representative CAPTCHA types: Text, Compact Text, Icon Match, Icon Selection, Paged, Slider, and Image Grid. They are procedurally generated to capture diverse visual lay-outs and interaction patterns and to stress complementary CAPTCHA-solving capabilities. Building on this system, we develop a scalable data collection and curation pipeline that automatically generates large-scale successful interac-tion trajectories paired with chain-of-thought (CoT) reason-ing traces. As CAPTCHA solving often requires multi-step interaction and recovery from intermediate mistakes, we further exploit failed trajectories to construct self-correction data, training agents to reflect on errors, adjust their rea-soning, and revise actions toward the correct solution. To mitigate the imbalance caused by the large disparity in se-quence lengths, we adopt a weighted training objective that assigns equal total weight to reasoning and action tokens. Across held-out test sets in our dynamic CAPTCHA system, ReCAP-32B improves CAPTCHA solving success rates from roughly 30% to 80%. ReCAP models also achieve substantial gains on real-world CAPTCHAs benchmark con-sisting of 26 CAPTCHA variants, while maintaining strong performance on general GUI agent benchmarks. Finally, we present ablation studies and analyses that validate the contributions of CoT reasoning and self-correction data. By open-sourcing our dataset, model, and code, we aim to pro-vide a foundation for future research on CAPTCHA-capable GUI agents. 
+
+# 2. Related Works 
+
+GUI Agent The development of Vision-Language Mod-els (VLMs) has catalyzed a shift toward GUI agent capable of navigating graphical user interfaces. Early work in this domain primarily addressed grounding language instruc-tions to static UI components using supervised learning on datasets of screen-action pairs. However, the field has rapidly transitioned toward end-to-end agents that operate on raw pixel observations to generate low-level control se-quences (e.g., clicks, scrolls, and typing) (Nguyen et al., 2025; Zheng et al., 2024a). GUI agent benchmarks such as Mind2Web (Deng et al., 2023), ScreenSpot (Cheng et al., 2024), and Android Control (Li et al., 2024) have shifted the focus toward open-ended interaction across diverse op-erating systems and web environments. Modern agents increasingly leverage high-resolution en-coders and specialized architectures to handle fine-grained visual details. For instance, CogAgent (Hong et al., 2024) and Ferret-UI (You et al., 2024) introduce specialized vi-sion towers to improve the perception of small UI elements. Concurrently, the integration of structured reasoning has become a standard. Recent state-of-the-art models like UI-TARS (Qin et al., 2025) and OpenCUA (Wang et al., 2025) employ autoregressive formulations that interleave visual perception with chain-of-thought reasoning. This trend has been further reinforced by advances in multimodal founda-tion models, including large open-weight vision-language models that support direct action generation and tool use (Bai et al., 2025; Yang et al., 2025). Overall, the field is rapidly converging toward general-purpose GUI agents that can handle diverse interactive tasks using a unified perception-reasoning-action interface. 
+
+Evolution of CAPTCHAs CAPTCHAs were originally introduced as text-recognition challenges that exploited the gap between human perception and machine OCR ca-pabilities (Ahn et al., 2003). More recently, reasoning CAPTCHAs mark a shift from simple pattern recognition toward tasks requiring logical reasoning, contextual under-standing, and multi-step interactions (Gossweiler et al., 2009; Gao et al., 2021). Unlike traditional CAPTCHAs, their designs explicitly target cognitive abilities that remain difficult for automated solvers. As deep learning signifi-cantly improved OCR performance, text-based CAPTCHAs became largely ineffective, motivating a transition from ”hard-to-read” to ”hard-to-reason” challenges (Singh & Pal, 2014; Hitaj et al., 2020). Modern systems, such as Google’s reCAPTCHA v2, employ rich visual-semantic tasks including image classification, object localization, and spatial reasoning (Searles et al., 2023). Beyond static puz-zles, contemporary CAPTCHAs increasingly incorporate behavioral signals and multi-step interactive sequences to distinguish human-like interaction from automated scripts. 
+
+Automated CAPTCHA Solving The evolution of CAPTCHA complexity has prompted a parallel advance-ment in automated solvers. Early approaches typically relied on task-specific pipelines. For instance, specialized solvers from GeeSolver (Zhao et al., 2023) and Plesner et al. (2024) utilize object detection and classification approaches and excel in solving specific CAPTCHA categories for which they are tuned. While effective, these methods lack the flexi-bility to adapt to new or hybrid CAPTCHA designs without significant retraining or design. More recently, frameworks like PhishDecloaker (Teoh et al., 2024), Halligan (Teoh 2CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training  
+
+> Figure 2. The suite of CAPTCHA challenges in our dynamic CAPTCHA system, designed to train fundamental CAPTCHA-solving primitives. The challenges are grouped into four core interaction primitives: Optical Character Recognition (OCR), Continuous Control (Dragging), Spatial Localization (Clicking), and Visual Semantic Comprehension.
+
+et al., 2025), and Oedipus (Deng et al., 2025) have demon-strated the potential of Vision-Language Models (VLMs) as generalized solvers. For instance, the Halligan frame-work formulates diverse CAPTCHA challenges as a unified search problem, abstracting natural-language instructions into optimization objectives and modeling complex interac-tions through a structured action space. In addition, Oedipus targets reasoning CAPTCHAs by introducing a domain-specific language that decomposes challenges into atomic, LLM-easy operations, allowing end-to-end automated solv-ing while relying on hand-designed task decomposition. Despite these gains, current generalized solvers often rely on repeated model calls, external heuristics, or explicit search procedures, which introduce high latency and fail to capture the temporal continuity of human interaction. There is a no-table lack of research into whether GUI agents can natively internalize CAPTCHA-solving as a general capability. 
+
+# 3. Methodology 
+
+In this section, we outline the key components of our ap-proach. We first introduce a dynamic CAPTCHA system that decomposes modern challenges into core interaction primitives. We then describe a data collection pipeline that produces solution and self-correction traces with explicit reasoning-action structure. Finally, we present a training paradigm that jointly models CoT reasoning and actions to integrate perception, reasoning, and interaction. 
+
+3.1. Dynamic CAPTCHA System 
+
+To train a successful CAPTCHA-solving agent, large-scale and diverse data are essential. Existing CAPTCHA datasets, including Open CaptchaWorld (Luo et al., 2025) and MCA-Bench (Wu et al., 2025a), take an important first step by collecting CAPTCHA instances from real online providers. However, they fall short of supporting scalable training, as their dataset sizes are limited and their CAPTCHA instances lack sufficient diversity and randomization. To bridge this gap, we conduct a comprehensive study based on prior literature Searles et al. (2023) and an exten-sive analysis of widely deployed CAPTCHAs: Google’s reCAPTCHA, Geetest, Arkose Labs, hCAPTCHA, etc. Through our study, we identify a set of core interaction prim-itives required for successful CAPTCHA solving, which are generally not included in a general GUI agent dataset. Motivated by these identified interaction primitives and their absence in existing datasets, we develop a dynamic CAPTCHA system spanning seven CAPTCHA challenges: Text, Compact Text, Icon Match, Icon Selection, Paged, Slider, and Image Grid. Each challenge type is designed to model a set of core interaction primitives commonly ob-served in modern CAPTCHAs: optical character recognition (OCR), continuous control, precise spatial localization, and visual semantic comprehension. Collectively, these variants prepare the model with the core skills required to handle di-verse CAPTCHA challenges. Figure 2 provides an overview of the challenge variants in our dynamic CAPTCHA system. Each challenge is randomly generated and accompanied by a meta API that provides access to complete ground truth information, including answer label, target coordinates, user interactions, etc. The environment supports interactive ac-tions with real-time feedback. Upon submission, the server returns structured JSON feedback (e.g., solved: true/false ). More detailed description of the CAPTCHA challenges and their design is provided in Appendix Section C. 
+
+Stochastic Rendering A key limitation of specialized datasets is their tendency to induce overfitting to fixed lay-out artifacts. To address this, our Flask-based rendering engine injects stochasticity into many layers of the DOM at request time. The server dynamically samples CSS variables controlling spatial layout (e.g., padding, margins, container widths, etc.) and styling (e.g., color palettes, font sizes, weights, etc.), in addition to alternating submission methods. This deliberate visual and structural variance encourages the agent to rely on semantic understanding rather than fixed color or layout heuristics. 
+
+Unbounded Generation via Visual Diversity In addi-tion to stochastic layout and styling, our CAPTCHA sys-tem includes a broad bank of visual assets, including icons from Font Awesome, categorized images (Ma, 2024), back-ground images (Dung, 2022), and distorted text images 3CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training  
+
+> Figure 3. Data collection and curation pipeline for our CAPTCHA training dataset. a) shows the reasoning solution trace generation pipeline; b) shows the self-correction trace generation pipeline.
+
+(hammer888, 2024). These assets are randomly composed with varying colors, scales, and placements, yielding a com-binational space that allows the system to generate effec-tively unbounded unique CAPTCHA instances. This diver-sity mitigates overfitting to specific visual patterns and pro-motes robust generalization across appearance variations. Overall, the proposed system combines task-specific chal-lenge designs with stochastic rendering and visual diversity to generate an effectively unbounded CAPTCHA space, en-couraging semantic reasoning over layout memorization and improving robustness to real-world variations. 
+
+3.2. Scalable Data Collection and Curation 
+
+With the help of our dynamic CAPTCHA system, generat-ing large-scale CAPTCHA trajectory data become possible. The ground-truth annotations (e.g., target coordinates and environment metadata) provided by our system enable scal-able generation of expert solutions and self-correction traces, as we will discuss in this section. 
+
+Solution Trace Generation with Reasoning Data One key challenge in improving CAPTCHA-solving capabil-ity is collecting large-scale training data with minimal hu-man supervision. To address this challenge, we utilize the 
+
+groundtruth provided by our dynamic CAPTCHA system. This supervision guides an expert reasoning model (e.g., a SOTA strong model) toward producing both correct final an-swers and aligned intermediate reasoning steps. Specifically, we provide the expert with a screenshot of the CAPTCHA and a carefully curated prompt that prompts the expert to rea-son as if the ground truth were unknown. However, we also explicitly supply the ground truth solution and annotation, which constrains the expert’s final action sequence to match the ground truth. The expert generates structured reasoning, and we perform automatic checks to ensure that the reason-ing trace does not cheat and directly use the answer. We append the ground truth actions and obtain reasoning-action traces. Figure 3(a) illustrates the workflow. The reasoning-action trace offers several advantages over action-only supervision. Explicit reasoning exposes inter-mediate semantic decisions such as object identification, target verification, and termination conditions, allowing the model to learn not only what action to take but why it is taken. By abstracting away from pixel-level appearance, reasoning provides a consistent decision structure across vi-sually diverse CAPTCHA instances, which in turn improves generalization and enables reliable transfer of learned prim-itives to unseen variants and out-of-distribution layouts. In Section 4.5, we present an ablation study to validate the importance of reasoning data. 
+
+Self-correction Trace Generation In addition to expert solution traces, we generate self-correction traces through a rejection-sampling-based pipeline that targets realistic model failures. Self-correction traces expose the model to realistic failure cases that are not captured by expert solu-tion traces alone. By retrospectively analyzing incorrect attempts and demonstrating how erroneous reasoning or ac-tions should be revised, these traces provide explicit super-vision for error recovery and help the model avoid repeating common mistakes on challenging variants. We validate their importance through an ablation study in Section 4.6. Figure 3 b) illustrates the workflow of the self-correction trace generation pipeline. For each CAPTCHA instance, we first use a student model to attempt solving the challenge and record its full interaction trace, including intermedi-ate reasoning and actions. The system then automatically verifies the results against ground truth. If the solution is incorrect, we treat the attempt as a valuable learning sig-nal and trigger the generation of the self-correction trace. We provide the expert model with the complete context of 4CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+the unsuccessful attempt. This includes the original and intermediate screenshots and the student model’s reasoning-action trace. Using a specially curated prompt, the expert model is instructed to retrospectively analyze the failure. The expert model is asked to identify the source of the error and generate a corrective reasoning trace as if it had discov-ered the mistake autonomously, while implicitly guided by the recovery ground truth solution and annotations. 
+
+Multi-Action Outputs Unlike many GUI tasks, one unique challenge in CAPTCHA systems is their imposed time limitation. Most GUI agents that emit a single action per step are unsuitable for solving complex CAPTCHA. Our data contain structured output sequence with multiple GUI actions within a single response when necessary (e.g., sequential clicks required to solve a CAPTCHA). This de-sign reduces unnecessary interaction rounds, important for solving real-world CAPTCHA systems. 
+
+3.3. Training Paradigm 
+
+Our scalable reasoning and self-correction data curation enables us to finetune state-of-the-art (SOTA) VLMs for CAPTCHA capability. Each training sample consists of an interleaved sequence of reasoning text and structured action tokens, where a single response may contain multi-ple GUI actions. As reasoning traces are typically much longer than action sequences, naive token-level training can overemphasize linguistic generation at the expense of pre-cise interaction. To address this imbalance, we reweigh reasoning and action tokens within a unified loss function. 
+
+Unified Loss Function Given a training trajectory repre-sented as a token sequence y, we define two disjoint index sets: T for reasoning tokens and A for action tokens. The model is trained autoregressively to predict each token con-ditioned on the visual observation x and all preceding tokens. We then use a unified negative log-likelihood objective with different weights assigned to reasoning and action tokens: 
+
+Ltotal = − 1
+
+|T | + |A| 
+
+> 
+
+λthink 
+
+X
+
+> t∈T
+
+log pθ (yt | x, y <t )+ λact 
+
+X
+
+> t∈A
+
+log pθ (yt | x, y <t )
+
+
+
+.
+
+where λthink and λact are tunable hyperparameters. This uni-fied loss preserves the simplicity of standard model training while explicitly emphasizing action accuracy. 
+
+# 4. Experiments 
+
+In this section, we report the model training setup and statis-tics we obtain from the experiments and ablation studies. 
+
+4.1. Model Training 
+
+We follow the training paradigm described in Section 3.3 to finetune Qwen3-VL-8B-Thinking and Qwen3-VL-32B-Thinking (Yang et al., 2025). Both the reasoning and ac-tion losses are weighted equally, with λthink = λact = 0 .5,and models are trained for a single epoch over approxi-mately 230 ,000 samples. We refer to the resulting models as ReCAP-8B and ReCAP-32B. 
+
+Training Data Our training corpus consists of approx-imately 150 ,000 solution trajectories and 10 ,000 self-correction trajectories generated by our scalable data col-lection and curation pipeline (Section 3.2) with Qwen2.5-VL-72B-Instruct as the expert reasoning model, covering all seven CAPTCHA challenge types evenly. To preserve general GUI interaction capabilities, we additionally mix in approximately 50 ,000 general GUI grounding and in-teraction trajectories from Aguvis (Xu et al., 2024) and 
+
+23 ,000 interaction trajectories from AgentNet (Wang et al., 2025). This combined training set enables the model to acquire CAPTCHA-specific interaction skills while main-taining performance on broader tasks. 
+
+4.2. Evaluation on Dynamic CAPTCHA System 
+
+4.2.1. E XPERIMENT SETUP 
+
+We evaluate a range of open-source GUI agent models, in-cluding UI-TARS-1.5-7B (Qin et al., 2025), Qwen3-VL-8B-Thinking and Qwen3-VL-32B-Thinking, as well as Ope-nAI’s Computer-Use Agent (OpenAI CUA). In addition, we benchmark Halligan (Teoh et al., 2025) as a state-of-the-art specialized CAPTCHA-solving framework. Finally, we benchmark our ReCAP-8B and ReCAP-32B models. All models are evaluated on a fixed set of 1,000 CAPTCHA instances generated by the same dynamic rendering engine, using a disjoint held-out testing set . The experiment cov-ers all seven challenges evenly with substantial variation in layout, styling, and appearance. For each CAPTCHA challenge, models are given a budget of 5 steps to solve the challenge, while Image Grid and Paged challenges are given 8 steps. For the Halligan framework, we evaluate each CAPTCHA type on 100 samples due to budget constraints, as evaluation requires a large number of OpenAI API calls and does not impose an interaction-step limit. Our primary evaluation metric is the CAPTCHA solving success rate, defined as the fraction of challenges success-fully solved within the interaction budget. We additionally report the average number of model calls in successful test cases. Together, these metrics capture both end-to-end task success and the efficiency of GUI interactions. 4.2.2. R ESULTS & D ISCUSSION 
+
+Table 1 summarizes the performance of all evaluated mod-els or frameworks. ReCAP models significantly outper-form all baselines across all CAPTCHA types. ReCAP-32B achieves the highest overall success rate (81.00%), followed by ReCAP-8B (71.90%), while general-purpose GUI agents and specialized pipelines remain below 35.00%. 5CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training                                                                                                                                                          
+
+> Table 1. CAPTCHA solving performance on our dynamic CAPTCHA system across different models and frameworks. All models are evaluated on a fixed set of 1,000 CAPTCHA instances generated by the same dynamic rendering engine, using a disjoint held-out testing set. SR (%) denotes the solved rate; Avg. Step is calculated based on the average number of model calls in successful test cases. Higher SR ( ↑) and lower steps ( ↓) are better. Best values are highlighted and second-best values are underlined per column. Model Metric Text Compact Text Icon Match Icon Selection Paged Slider Image Grid Overall
+> Open-source GUI Agents
+> UI-TARS-1.5-7B SR (%) ↑28.57 17.36 51.30 66.01 44.68 18.88 0.75 33.60 Avg. Steps ↓2.31 2.39 2.24 1.78 2.98 2.56 3.44 2.47 Qwen3-VL-Thinking-8B SR (%) ↑33.54 25.83 27.49 41.10 59.85 5.47 4.38 28.70 Avg. Steps ↓2.44 2.55 2.66 1.83 2.84 2.71 4.00 2.52 Qwen3-VL-Thinking-32B SR (%) ↑37.89 29.17 25.15 38.36 63.50 8.59 2.92 29.70 Avg. Steps ↓2.51 2.57 2.74 1.58 2.99 3.00 3.25 2.55
+> Closed-source GUI Agents
+> OpenAI CUA SR (%) ↑36.02 33.33 081.50 65.69 08.03 31.80 Avg. Steps ↓3.00 2.95 –1.57 2.61 –3.82 2.33
+> Specialized Pipelines
+> Halligan Framework SR (%) ↑42.00 44.00 2.00 14.00 8.00 2.00 64.00 25.14 Avg. Steps ↓≥3≥3≥5≥3≥5≥3≥3–
+> Ours
+> ReCAP-8B SR (%) ↑60.25 47.50 95.32 80.14 72.99 88.28 52.55 71.90 Avg. Steps ↓1.24 1.25 1.14 1.38 2.59 1.42 2.11 1.54
+> ReCAP-32B SR (%) ↑62.11 55.83 99.42 82.88 85.40 100.00 78.10 81.00
+> Avg. Steps ↓1.31 1.34 1.03 1.12 2.87 1.00 2.21 1.54
+
+The largest improvements occur on interaction-intensive challenges such as Icon Match, Slider, and Image Grid, where our models achieve a significant performance boost. These tasks require precise spatial reasoning and interaction, which general GUI agents struggle to handle reliably. 
+
+ReCAP models are significantly more efficient. ReCAP-32B requires only an average of 1.54 model-call steps to successfully solve a CAPTCHA, compared to 2-4 steps for general GUI agents and at least 3-5 steps for the Halli-gan framework. It is important to note that Halligan step numbers represent the minimum interaction steps and are often higher in practice due to multiple sequential API calls. Therefore, Halligan frequently incurs substantially higher latency, often on the order of tens of seconds per challenge. Since each step involves a full model inference, GUI state recording, and action execution, step count serves as a strong proxy for both inference cost and end-to-end latency. In practice, pipelines with numerous interaction rounds are more likely to exceed CAPTCHA time limits and fail due to refresh or expiration. ReCAP models, on the other hand, achieve significantly lower average execution time of less than 3s and are better suited for real-world deployment. 
+
+4.3. Evaluation on Real-World CAPTCHAs 
+
+4.3.1. E XPERIMENT SETUP 
+
+To evaluate whether the skills learned from our dynamic CAPTCHA system can be transferred to CAPTCHAs in the wild, we further benchmark our models on real-world CAPTCHA challenges following the evaluation protocol and dataset introduced by Halligan (Teoh et al., 2025). This benchmark includes interactive visual CAPTCHAs col-lected from major CAPTCHA providers, covering a wide range of challenge designs and interaction patterns encoun-tered in real world. Specifically, the benchmark includes CAPTCHAs from Google’s reCAPTCHA, hCAPTCHA, GeeTest, Arkose Labs, and Amazon, spanning diverse task formats including image selection, icon matching, rotation alignment, object counting, and slider-based puzzles. We evaluate Qwen3-VL-8B-Thinking, Qwen3-VL-32B-Thinking, ReCAP-8B, ReCAP-32B, and the Halligan frame-work. Following Teoh et al. (2025), all challenges are eval-uated in an interactive setting where the model observes ren-dered CAPTCHA frames, issues GUI actions, and receives binary success feedback upon submission. A challenge is considered successfully solved if the model completes the task and obtains a valid pass signal within the allowed interaction budget. Importantly, our models are not trained on this real-world CAPTCHA dataset and are evaluated in a zero-shot transfer 
+
+setting, whereas Halligan is explicitly designed to handle these specific CAPTCHA types. For a fair comparison, all Halligan results are obtained by running the released framework under the same evaluation protocol. 4.3.2. R ESULTS & D ISCUSSION 
+
+Table 2 presents the results. ReCAP models consistently outperform the corresponding baseline on most real-world CAPTCHA types, indicating effective skill trans-
+
+6CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training                                                                                                                                                       
+
+> Table 2. CAPTCHA solving performance on real-world CAPTCHAs across different models and framework. Our models are evaluated in a zero-shot setting without training on this real-world CAPTCHA dataset, whereas Halligan (H) is explicitly de-signed for these CAPTCHA types. ReCAP-8B and ReCAP-32B
+> denote our finetuned models. Hdenotes the Halligan framework.
+> Qwen-8B and Qwen-32B denote Qwen3-VL-Thinking-8B and Qwen3-VL-Thinking-32B respectively. All numbers are solve rates (%). Best values are highlighted and second-best values are underlined per row.
+> CAPTCHA Type ReCAP -8B ReCAP -32B HQwen -8B Qwen -32B
+> tencent/vtt 32 41 829 28 mtcaptcha 21 22 66 14 10 yandex/text 36 49 82 27 24 botdetect 54 61 80 52 52 recaptchav2 27 63 61 30 23 baidu/rotate 14 33 79 56hcaptcha 21 26 224 20 geetest/slide 36 26 16 97lemin 18000amazon/waf 16 10 644funcaptcha/counting 41 42 54 40 41 funcaptcha/hand number 34 51 40 21 31 funcaptcha/galaxies 98 97 100 96 95 funcaptcha/dice pair 39 43 27 32 36 funcaptcha/card 40 41 25 28 25 funcaptcha/square icon 48 40 82 43 37 funcaptcha/rotated 46 57 85 56 62 arkose/3d rollball 832 151arkose/dice match 715 869arkose/orbit match 17 20 811arkose/rockstack 18 22 13 11 6arkose/numbermatch 10 28 889geetest/icon 510 231geetest/iconcrush 13 14 70 96geetest/gobang 0336 02yandex/kaleidoscope 12 11 47 42
+
+fer to CAPTCHAs in the wild. ReCAP-32B achieves best or second-best results on many interaction-intensive chal-lenges (e.g., recaptchav2 , htcaptcha , and multiple Arkose Lab challenges), where precise spatial reasoning and contin-uous control are critical. Notably, on several difficult Arkose challenges where baselines and the Halligan framework per-form poorly, our models achieve non-trivial success rates, despite not being trained on the benchmark. Scaling from ReCAP-8B to ReCAP-32B generally improves performance, but gains are uneven. While ReCAP-32B pro-vides clear benefits on visually complex challenges, ReCAP-8B remains competitive and occasionally performs better on structured challenges such as geetest/slide , amazon/waf .The Halligan framework remains noticeably stronger on text-heavy and pattern-recognition CAPTCHAs (e.g., mt-captcha and yandex/text ), highlighting the complementary strengths of task-specific frameworks. However, Halligan typically requires substantially longer interaction sequences and higher latency, whereas our models can solve many challenges within a small number of interaction steps. 
+
+4.4. Evaluation on General GUI Agent Benchmarks Experiment Setup In addition to CAPTCHA-specific evaluations, we assess whether finetuning on our dynamic CAPTCHA system preserves general GUI interaction capa-bilities. To this end, we evaluate our models on established general-purpose GUI agent benchmarks, including Android Control (Li et al., 2024), ScreenSpot-V2 (Cheng et al., 2024), and Multimodal-Mind2Web (Zheng et al., 2024b; Deng et al., 2023). The benchmark introduction and evalua-tion settings are provided in the Appendix Section D.3. We evaluate the baseline and ReCAP models in Sec-tion 4.2.1. All evaluations follow the official benchmark protocols, metrics, and task splits. Performance is reported using the standard success rate metric for each benchmark. These experiments are intended to examine the influence of finetuning on baseline models.                                  
+
+> Table 3. Model performance on Android Control, ScreenSpot-V2 and Multimodal-Mind2Web benchmarks .ReCAP-8B and
+> ReCAP-32B denote our finetuned models. Qwen-8B and Qwen-32B denote Qwen3-VL-Thinking-8B and Qwen3-VL-Thinking-32B respectively. CUA denotes OpenAI’s computer use agent (OpenAI CUA). All numbers are success rates (%). Best values are highlighted and second-best values are underlined per row.
+> Benchmark ReCAP -8B ReCAP -32B Qwen -8B Qwen -32B CUA
+> Android Control (low) 58.60 67.40 65.80 67.20 37.00 Android Control (high) 43.80 49.80 49.00 50.80 28.80 ScreenSpot-V2 80.03 93.24 92.06 94.5 71.86 Multimodal-Mind2Web 38.37 44.73 42.58 42.91 48.49
+
+Results & Discussion Table 3 shows that finetuning on our dynamic CAPTCHA system largely preserves general GUI agent performance. ReCAP-32B matches or slightly outperforms its baseline on Android Control and Multimodal-Mind2Web, and remains competitive on ScreenSpot-V2, indicating that sufficient model capacity allows CAPTCHA-specific supervision to be absorbed with-out degrading general GUI capabilities. These results sug-gest that structured reasoning-action training can even provide modest transfer benefits to complex web and app interaction tasks. 
+
+In contrast, ReCAP-8B exhibits consistent performance degradation across all benchmarks. We attribute this drop to limited model capacity: jointly learning CAPTCHA-specific interaction primitives and general GUI behaviors intro-duces representational interference, highlighting a capacity-generalization trade-off for smaller models. 
+
+4.5. Ablation Study on CoT Reasoning 
+
+We evaluate the impact of CoT reasoning traces by com-paring the Qwen3-VL-8B-Thinking model finetuned with 7CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+and without explicit CoT reasoning supervision. Both mod-els are trained on the same data, and the only difference is whether reasoning traces are included during training. 4.5.1. E XPERIMENT SETUP 
+
+The experiment setup follows Section 4.2.1. We bench-mark both models on 1,000 CAPTCHA challenges from our dynamic CAPTCHA system. Each model is allocated a maximum of 5 interaction steps per challenge, while Image Grid and Paged challenges are allocated up to 8 steps due to their higher interaction complexity. 4.5.2. R ESULTS AND DISCUSSION                                       
+
+> Table 4. Ablation study evaluating the impact of CoT reasoning on CAPTCHA solving performance. The table compares Qwen3-VL-Thinking-8B model finetuned without CoT reasoning data against the same base model finetuned with CoT reasoning data across seven CAPTCHA challenges. SR (%) denotes the success rate; Avg. Steps is computed over successful test cases.
+> w/o Reasoning Data w/ Reasoning Data CAPTCHA Type SR (%) Avg. Steps SR (%) Avg. Steps Text 55.90 1.33 60.25 1.24 Compact Text 45.00 1.36 47.50 1.25 Icon Match 88.89 1.16 95.32 1.14 Icon Selection 74.66 1.49 80.14 1.38 Paged 69.34 2.69 72.99 2.59 Slider 84.38 1.44 88.28 1.42 Image Grid 40.88 2.20 52.55 2.11
+> Overall 66.40 1.61 71.90 1.54
+
+Table 4 shows that adding reasoning traces consistently im-proves performance across all CAPTCHA types, increasing the overall success rate from 66.40% to 71.90%. The largest gains occur on complex tasks such as Image Grid and Icon Match. Average steps remain comparable (1.61 → 1.54), indicating that reasoning traces improve decision quality rather than interaction length. The findings suggest that ex-plicit CoT reasoning supervision enhances CAPTCHA-solving accuracy without increasing the number of inter-action steps. 4.6. Ablation Study on Self-Correction Trace 
+
+We also evaluate the impact of self-correction traces by comparing Qwen3-VL-8B-Thinking model finetuned with and without self-correction traces. Both models are trained with full reasoning-action supervision on expert solution traces. The only difference is the inclusion of self-correction traces derived from failed attempts. 4.6.1. E XPERIMENT SETUP 
+
+This ablation study follows the same setup described in Section 4.5.1.                                       
+
+> Table 5. Ablation study evaluating the impact of self-correction traces on CAPTCHA solving performance. The table compares Qwen3-VL-Thinking-8B model finetuned without self-correction traces against the same base model finetuned with self-correction traces across seven CAPTCHA challenges. SR (%) denotes the success rate; Avg. Steps is computed over successful test cases.
+> w/o Correction Traces w/ Correction Traces CAPTCHA Type SR (%) Avg. Steps SR (%) Avg. Steps Text 43.48 1.04 60.25 1.24 Compact Text 40.00 1.17 47.50 1.25 Icon Match 86.55 1.26 95.32 1.14 Icon Selection 78.08 1.39 80.14 1.38 Paged 69.34 2.63 72.99 2.59 Slider 66.41 1.55 88.28 1.42 Image Grid 50.36 2.17 52.55 2.11
+> Overall 62.90 1.60 71.90 1.54
+
+4.6.2. R ESULTS AND DISCUSSION 
+
+Table 5 presents the results. Self-correction traces yield con-sistent performance gains across all seven CAPTCHA types. Improvements are especially pronounced on text-heavy chal-lenges such as Text (+16.77pp) and Compact Text (+7.50pp), where recognition errors are common. Interaction-intensive tasks that require precise control and multi-step coordina-tion, including Slider (+21.9pp), Icon Match (+8.77pp), and Paged (+3.65pp), also benefit noticeably. Even on Image Grid, where the task is already challenging, we observe a modest improvement (+2.19pp). The average number of steps remains comparable (overall 1.60 → 1.54), indicating that the model becomes more successful without requiring substantially longer interaction sequences. Overall, the success rate improves from 62.90% to 71.90%. 
+
+These findings validate self-correction traces as a key component of the data curation pipeline and substan-tially improve robustness across all CAPTCHA types. 
+
+# 5. Conclusion 
+
+We present ReCAP, a CAPTCHA-capable native GUI agent that robustly solves modern, interactive CAPTCHA chal-lenges. By introducing a dynamic CAPTCHA system and a scalable reasoning-action data generation pipeline with ret-rospective self-correction traces, ReCAP learns the core in-teraction primitives underlying contemporary CAPTCHAs. Extensive experiments show that models trained under this paradigm achieve strong performance on both synthetic and real-world CAPTCHA benchmarks, with significantly lower interaction latency, while preserving strong perfor-mance on general GUI agent benchmarks. These results position CAPTCHA solving not as a standalone task, but as a transferable skill set that advances the capabilities of native GUI agents. 8CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+# Impact Statement 
+
+While our results demonstrate that native GUI agents can solve a broad class of modern CAPTCHAs, the goal of this work is not to enable real-world exploitation, but to probe the limits of vision-language model reasoning under adversarial, interactive conditions. By systematically de-composing CAPTCHA challenges into a set of learnable interaction primitives and analyzing agentic self-correction behaviors, we provide a structured framework for stress-testing existing human-verification mechanisms. These in-sights are intended to boost the development of more robust verification systems, motivating a shift away from static visual puzzles toward behavior-centric protocols that are more resilient to emerging GUI agents. 
+
+# References 
+
+Ahn, L. V., Blum, M., Hopper, N. J., and Langford, J. Captcha: using hard ai problems for security. In Pro-ceedings of the 22nd International Conference on The-ory and Applications of Cryptographic Techniques , EU-ROCRYPT’03, pp. 294–311, Berlin, Heidelberg, 2003. Springer-Verlag. ISBN 3540140395. Bai, S., Chen, K., Liu, X., Wang, J., Ge, W., Song, S., Dang, K., Wang, P., Wang, S., Tang, J., Zhong, H., Zhu, Y., Yang, M., Li, Z., Wan, J., Wang, P., Ding, W., Fu, Z., Xu, Y., Ye, J., Zhang, X., Xie, T., Cheng, Z., Zhang, H., Yang, Z., Xu, H., and Lin, J. Qwen2.5-vl technical report, 2025. URL https://arxiv.org/abs/2502.13923 .Chen, D., Huang, Y., Wu, S., Tang, J., Chen, L., Bai, Y., He, Z., Wang, C., Zhou, H., Li, Y., Zhou, T., Yu, Y., Gao, C., Zhang, Q., Gui, Y., Li, Z., Wan, Y., Zhou, P., Gao, J., and Sun, L. Gui-world: A dataset for gui-oriented multimodal llm-based agents, 2024. Cheng, K., Sun, Q., Chu, Y., Xu, F., Li, Y., Zhang, J., and Wu, Z. Seeclick: Harnessing gui grounding for advanced visual gui agents, 2024. URL https://arxiv.org/ abs/2401.10935 .Deng, G., Ou, H., Liu, Y., Zhang, J., Zhang, T., and Liu, Y. Oedipus: Llm-enchanced reasoning captcha solver. In Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security , CCS ’25, pp. 6–20, New York, NY, USA, 2025. Association for Computing Machinery. ISBN 9798400715259. doi: 10. 1145/3719027.3744872. URL https://doi.org/ 10.1145/3719027.3744872 .Deng, X., Gu, Y., Zheng, B., Chen, S., Stevens, S., Wang, B., Sun, H., and Su, Y. Mind2web: Towards a generalist agent for the web. In Thirty-seventh Conference on Neu-ral Information Processing Systems , 2023. URL https: //openreview.net/forum?id=kiYqbO3wqw .Dung, N. Q. Bg-20k: High-resolution background im-ages. https://www.kaggle.com/datasets/ nguyenquocdungk16hl/bg-20o , 2022. Accessed: 2024-01-24. Gao, Y., Gao, H., luo, S., Zi, Y., Zhang, S., Mao, W., Wang, P., Shen, Y., and Yan, J. Research on the security of visual reasoning CAPTCHA. In 30th USENIX Security Sym-posium (USENIX Security 21) , pp. 3291–3308. USENIX Association, August 2021. ISBN 978-1-939133-24-3. URL https://www.usenix.org/conference/ usenixsecurity21/presentation/gao .Gossweiler, R., Kamvar, M., and Baluja, S. What’s up captcha? a captcha based on image orientation. In Proceedings of the 18th International Conference on World Wide Web , WWW ’09, pp. 841–850, New York, NY, USA, 2009. Association for Computing Machinery. ISBN 9781605584874. doi: 10.1145/ 1526709.1526822. URL https://doi.org/10. 1145/1526709.1526822 .Gou, B., Wang, R., Zheng, B., Xie, Y., Chang, C., Shu, Y., Sun, H., and Su, Y. Navigating the digital world as humans do: Universal visual grounding for GUI agents. In The Thirteenth International Conference on Learning Representations , 2025. URL https://openreview. net/forum?id=kxnoqaisCT .hammer888. Captcha dataset for computer vision research. Hugging Face Dataset Repository, 2024. URL https://huggingface.co/datasets/ hammer888/captcha-data . Accessed: 2025-01-10. Hitaj, D., Hitaj, B., Jajodia, S., and Mancini, L. V. Capture the bot: Using adversarial examples to improve captcha robustness to bot attacks, 2020. URL https://arxiv. org/abs/2010.16204 .Hong, W., Wang, W., Lv, Q., Xu, J., Yu, W., Ji, J., Wang, Y., Wang, Z., Zhang, Y., Li, J., Xu, B., Dong, Y., Ding, M., and Tang, J. Cogagent: A visual language model for gui agents, 2024. URL https://arxiv.org/abs/ 2312.08914 .Li, W., Bishop, W., Li, A., Rawles, C., Campbell-Ajala, F., Tyamagundlu, D., and Riva, O. On the effects of data scale on ui control agents. 2024. URL https: //arxiv.org/abs/2406.03679 .Luo, Y., Li, Z., Liu, J., Cui, J., Zhao, X., and Shen, Z. Open captchaworld: A comprehensive web-based platform for testing and benchmarking multimodal llm agents, 2025. URL https://arxiv.org/abs/2505.24878 .9CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+Ma, M. Google recaptcha image dataset. https: //www.kaggle.com/datasets/mikhailma/ test-dataset , 2024. Accessed: 2025-01-10. Nguyen, D., Chen, J., Wang, Y., Wu, G., Park, N., Hu, Z., Lyu, H., Wu, J., Aponte, R., Xia, Y., Li, X., Shi, J., Chen, H., Lai, V. D., Xie, Z., Kim, S., Zhang, R., Yu, T., Tanjim, M., Ahmed, N. K., Mathur, P., Yoon, S., Yao, L., Kveton, B., Kil, J., Nguyen, T. H., Bui, T., Zhou, T., Rossi, R. A., and Dernoncourt, F. Gui agents: A survey, 2025. URL 
+
+https://arxiv.org/abs/2412.13501 .Plesner, A., Vontobel, T., and Wattenhofer, R. Breaking recaptchav2. In 2024 IEEE 48th Annual Computers, Software, and Applications Conference (COMPSAC) , pp. 1047–1056, 2024. doi: 10.1109/COMPSAC61105.2024. 00142. Qin, Y., Ye, Y., Fang, J., Wang, H., Liang, S., Tian, S., Zhang, J., Li, J., Li, Y., Huang, S., et al. Ui-tars: Pioneer-ing automated gui interaction with native agents. arXiv preprint arXiv:2501.12326 , 2025. Searles, A., Nakatsuka, Y., Ozturk, E., Paverd, A., Tsudik, G., and Enkoji, A. An empirical study & evaluation of modern captchas, 2023. URL https://arxiv.org/ abs/2307.12108 .Singh, V. P. and Pal, P. Survey of different types of captcha. 
+
+International Journal of Computer Science and Informa-tion Technologies , 5(2):2242–2245, 2014. Teoh, X., Lin, Y., Liu, R., Huang, Z., and Dong, J. S. PhishDecloaker: Detecting CAPTCHA-cloaked phish-ing websites via hybrid vision-based interactive mod-els. In 33rd USENIX Security Symposium (USENIX Security 24) , pp. 505–522, Philadelphia, PA, August 2024. USENIX Association. ISBN 978-1-939133-44-1. URL https://www.usenix.org/conference/ usenixsecurity24/presentation/teoh .Teoh, X., Lin, Y., Li, S., Liu, R., Sollomoni, A., Harel, Y., and Dong, J. S. Are captchas still bot-hard? general-ized visual captcha solving with agentic vision language model. In Proceedings of the 34th USENIX Conference on Security Symposium , USA, 2025. USENIX Associa-tion. ISBN 978-1-939133-52-6. Wang, X., Wang, B., Lu, D., Yang, J., Xie, T., Wang, J., Deng, J., Guo, X., Xu, Y., Wu, C. H., Shen, Z., Li, Z., Li, R., Li, X., Chen, J., Zheng, B., Li, P., Lei, F., Cao, R., Fu, Y., Shin, D., Shin, M., Hu, J., Wang, Y., Chen, J., Ye, Y., Zhang, D., Du, D., Hu, H., Chen, H., Zhou, Z., Yao, H., Chen, Z., Gu, Q., Wang, Y., Wang, H., Yang, D., Zhong, V., Sung, F., Charles, Y., Yang, Z., and Yu, T. Opencua: Open foundations for computer-use agents, 2025. URL 
+
+https://arxiv.org/abs/2508.09123 .Wu, Z., Wu, Z., Xu, F., Wang, Y., Sun, Q., Jia, C., Cheng, K., Ding, Z., Chen, L., Liang, P. P., and Qiao, Y. Os-atlas: A foundation action model for generalist gui agents. 2024. URL https://arxiv.org/abs/2410.23218 .Wu, Z., Xue, Y., Feng, Y., Wang, X., and Song, Y. Mca-bench: A multimodal benchmark for evaluating captcha robustness against vlm-based attacks, 2025a. URL 
+
+https://arxiv.org/abs/2506.05982 .Wu, Z., Xue, Y., Feng, Y., Wang, X., and Song, Y. Mca-bench: A multimodal benchmark for evaluating captcha robustness against vlm-based attacks, 2025b. URL 
+
+https://arxiv.org/abs/2506.05982 .Xu, Y., Wang, Z., Wang, J., Lu, D., Xie, T., Saha, A., Sahoo, D., Yu, T., and Xiong, C. Aguvis: Unified pure vision agents for autonomous gui interaction, 2024. Yang, A., Li, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Gao, C., Huang, C., Lv, C., Zheng, C., Liu, D., Zhou, F., Huang, F., Hu, F., Ge, H., Wei, H., Lin, H., Tang, J., Yang, J., Tu, J., Zhang, J., Yang, J., Yang, J., Zhou, J., Zhou, J., Lin, J., Dang, K., Bao, K., Yang, K., Yu, L., Deng, L., Li, M., Xue, M., Li, M., Zhang, P., Wang, P., Zhu, Q., Men, R., Gao, R., Liu, S., Luo, S., Li, T., Tang, T., Yin, W., Ren, X., Wang, X., Zhang, X., Ren, X., Fan, Y., Su, Y., Zhang, Y., Zhang, Y., Wan, Y., Liu, Y., Wang, Z., Cui, Z., Zhang, Z., Zhou, Z., and Qiu, Z. Qwen3 technical report, 2025. URL https: //arxiv.org/abs/2505.09388 .You, K., Zhang, H., Schoop, E., Weers, F., Swearngin, A., Nichols, J., Yang, Y., and Gan, Z. Ferret-ui: Grounded mobile ui understanding with multimodal llms, 2024. URL https://arxiv.org/abs/2404.05719 .Zhao, R., Deng, X., Wang, Y., Yan, Z., Han, Z., Chen, L., Xue, Z., and Wang, Y. Geesolver: A generic, efficient, and effortless solver with self-supervised learning for breaking text captchas. In 2023 IEEE Symposium on Security and Privacy (SP) , pp. 1649–1666, 2023. doi: 10.1109/SP46215.2023.10179379. Zheng, B., Gou, B., Kil, J., Sun, H., and Su, Y. Gpt-4v(ision) is a generalist web agent, if grounded, 2024a. URL 
+
+https://arxiv.org/abs/2401.01614 .Zheng, B., Gou, B., Kil, J., Sun, H., and Su, Y. Gpt-4v(ision) is a generalist web agent, if grounded. 2024b. URL 
+
+https://arxiv.org/abs/2401.01614 .10 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+# A. Limitations of this Study 
+
+Like many similar studies, we rely on synthetic data to train our model. While this allows us to generate a large number of examples, there is always a gap between these simulations and the messy, unpredictable real world. Second, we focus on the logic of solving the puzzle, not on mimicking human behavior. We do not simulate factors like mouse speed or hesitation, which some security systems use to detect bots even if the puzzle is solved correctly. Finally, running large AI models requires significant computing power. While our method is efficient in terms of steps, making these large models fast and cheap enough for real-time use remains a challenge. 
+
+# B. Self-correction Capability Case Study 
+
+This section presents qualitative case studies that illustrate the model’s self-correction capability under realistic CAPTCHA-solving scenarios. We focus on two representative challenge types: interaction-intensive image slider challenge and classic text-like challenge. In all cases, we include reasoning traces and highlight the intermediate decision-making process that leads to successful correction. For clarity, we omit the low-level GUI action sequences in this section, as they follow directly from the reasoning. 
+
+B.1. Image Grid Challenge 
+
+> User
+
+Solve the CAPTCHA as per the given instructions. You may need to interact with various elements such as checkboxes, image grids, sliders, or text inputs to complete the CAPTCHA challenge.  
+
+> ÆAssistant
+
+I’ve encountered a reCAPTCHA checkbox verification. My procedure will be to click the box, await the loading of the image matrix, and finally, select the tiles as prompted. 
+
+> User
+
+Continue solving the CAPTCHA. Observe the current state and take the next actions. 
+
+11 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training  
+
+> ÆAssistant
+
+I observe an image grid with nine image tiles, none of which depict crosswalks. The images show various outdoor scenes including roads, a fire hydrant, a bicycle, and buildings. I infer that the task requires selecting tiles with crosswalks, but since none are present, no tiles need to be selected. I plan to open the image grid, confirm the absence of crosswalks in all tiles, and then press the ’Verify’ button to complete the challenge as instructed. 
+
+> User
+
+Continue solving the CAPTCHA. Observe the current state and take the next actions.  
+
+> ÆAssistant
+
+I observe a reCAPTCHA grid with nine image tiles, each depicting various outdoor scenes including roads, a fire hydrant, a bicycle, and buildings. The instruction asks to select all squares with crosswalks. Upon careful examination, tile 0 does indeed show a crosswalk, while the others do not. The correct approach is to carefully identify and select only the tile with crosswalks. I plan to click on tile 0, as it matches the criteria, and then press the ’Verify’ button to complete the challenge successfully. This sequence ensures that only the correct tile is selected, adhering to the CAPTCHA requirements. 
+
+12 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+B.2. Text-like Challenge 
+
+> User
+
+Solve the CAPTCHA as per the given instructions. You may need to interact with various elements such as checkboxes, image grids, sliders, or text inputs to complete the CAPTCHA challenge.  
+
+> ÆAssistant
+
+I observe a text CAPTCHA on a security verification page with a warped image displaying ’WYHM’. The layout includes an input field and a submit button. I infer that the task requires typing the characters from the image into the input field. My plan is to focus on the input field, type ’WYHM’ exactly as seen, and then press the submit button. This sequence follows the planned actions provided, ensuring the CAPTCHA is solved correctly. 
+
+> User
+
+Continue solving the CAPTCHA. Observe the current state and take the next actions.  
+
+> ÆAssistant
+
+I observe that the CAPTCHA scene involves a text entry challenge with the warped letters ’NYHM’. The layout includes an input field and a submit button, essential for completing the task. In my previous attempt, I misinterpreted the first letter as ’W’ instead of ’N’, leading to an incorrect submission of ’WYHM’. This mistake highlights the importance of accurately recognizing each character, especially when they are warped or stylized. The correct actions involve clicking on the input field at the precise location, typing ’NYHM’ accurately, and then clicking the submit button. I plan to first focus on the input field at the correct relative point, ensuring I type the characters exactly as they appear, paying close attention to the letter ’N’. After typing ’NYHM’, I will click the submit button at the specified location to complete the CAPTCHA successfully. 
+
+13 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+# C. Dynamic CAPTCHA System Design 
+
+This section provides a detailed description of the individual CAPTCHA challenge types in our dynamic CAPTCHA system. As introduced in Section 3.1, each challenge is designed to isolate and exercise a specific subset of fundamental interaction primitives required for modern CAPTCHA solving. While the main text focuses on the system-level design principles, this section documents the task formulations, visual layouts, and interaction requirements of each challenge variant. • Text-like Challenge Figure 4 demonstrates text-like CAPTCHA challenges. These challenges present distorted alphanumeric strings against diverse backgrounds. Solving them require agent’s ability to perform precise OCR and text entry. We utilize a dataset of distorted text images (hammer888, 2024) that are rendered within dynamically sized containers. The “Compact” variant imposes constraints on the viewpoint size, compelling the agent to adapt to the dense UI layouts commonly found on many webpages.     
+
+> (a) Regular Text CAPTCHA Challenge (b) Compact Text CAPTCHA Challenge
+> Figure 4. Text-like CAPTCHA Challenges
+
+• Grounding-related Challenge Figure 5 shows a grounding-related CAPTCHA challenge. To train object recognition and precise coordinate clicking, we implement an Icon Selection challenge. The system renders a grid of Font Awesome icons with randomized rotations, colors, and positions. The agent must semantically map a textual instruction to a visual entity and execute a click event.  
+
+> Figure 5. Icon Selection CAPTCHA Challenge
+
+• Drag-related Challenge Figure 6 demonstrates drag-related CAPTCHA challenges. GUI agents often face challenges in performing continuous manipulation tasks. The Slider challenge simulates a puzzle-piece alignment task using vector-based masking. The agent’s objective is to calculate the visual offset of a missing puzzle piece and drag a slider handle to align it accurately. The Icon Match challenge requires the agent to identify a pair of identical icons among distractors and drag one onto the other. This task trains the agent’s object association and drag mechanics. Together, these two tasks effectively enforce visual alignment reasoning and fine-grained continuous control. 14 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training     
+
+> (a) Slider CAPTCHA Challenge (b) Icon Match CAPTCHA Challenge
+> Figure 6. Drag-related CAPTCHA Challenges
+
+• Paged Challenge Figure 7 shows paged CAPTCHA challenges. In this challenge, the target page is hidden within a paginated view, requiring the agent to navigate through multiple pages to locate and select the correct icon or image. This trains short-term memory and sequential planning.     
+
+> (a) Icon-based Paged CAPTCHA Challenge (b) Image-based Paged CAPTCHA Challenge
+> Figure 7. Paged CAPTCHA Challenges
+
+• Image Grid Challenge Figure 8 shows an image grid CAPTCHA challenge. Modeled after Google’s reCAPTCHA v2, this challenge presents a 3 × 3 grid of images. The agent must select all tiles matching a specific semantic category. This specifically targets the model’s ability to perform open-set visual classification and comprehensive skills to handle multi-step interactions.     
+
+> (a) 1st Step (b) 2nd Step
+> Figure 8. Image Grid CAPTCHA Challenge
+
+15 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+# D. More Details in Data Creation & Solution Evaluation Pipelines 
+
+In this section, we delve deeper into our data generation and curation pipeline, as well as the evaluation benchmark for CAPTCHAs and general GUI tasks. 
+
+D.1. Prompt for Data Generation & Curation Pipeline Solution Trace Reasoning Prompt 
+
+"You are documenting the internal reasoning for a CAPTCHA-solving assistant before it acts. \n" f"Challenge type: {challenge_type}. \n" f"Challenge details: {describe_challenge(challenge_type, solution_data)} \n" f"Planned actions: {describe_actions(challenge_type, solution_data)}\n" f"You are also provided with initial CAPTCHA screenshot and the annotated version of the screenshot with the actions steps the assistant should take. While you can use the annotations to understand the scene, you should not mention the existence of the annotations in your reasoning.\n" """ **REQUIREMENTS** - You should think base on the provided images. - Describe what you **observe** in the CAPTCHA scene (layout, visual cues, objects, etc.). - Explain what you **infer** from those observations (what the task requires). - Describe what you **plan** to do (actions) step by step. Make sure you exactly follow the order included in planned actions. - Example output: "I observe that I am currently in a webpage that ask me solve a CAPTCHA. The CAPTCHA asks me to select the icon "book". Below the text instruction of the CAPTCHA, I can see a canvas with several icons of different color in the river background. On top left of the canvas, there’s a purple icon that looks like "duck", to the right there’s an icon that looks like "car", ...... On the second row I see a blue "book" icon, which may be the icon I should click ..... I need to perform multiple actions to solve this CAPTCHA: I should click on the "book" icon on the second row to finish the task." **CAPTCHA-specific Hints** - For CAPTCHAs that use the "type" operation, remember to click on the input box first before typing in the answer. - For Image Grid, you should describe each image block and make a judgment on whether the required element exists, then click on the correct image blocks. - When a submit/verify button is present, end the plan by clicking it. Some slider and icon CAPTCHAs do not have a submit button and generally submit automatically after the main action is completed. """ 
+
+Correction Trace Reasoning Prompt 
+
+"You are documenting the correction internal reasoning for a CAPTCHA-solving assistant after a failed attempt. \n" "You are given the images of the CAPTCHA before and after your failed attempt, as well as an annotated image with action steps to solve the CAPTCHA (3 images in total). Although you have access to the ground truth actions and annotated image, you should pretend to find out the error by yourself from the failed attempt reasoning and updated images. You should never mention the ground truth actions or annotated image in your response." f"Challenge type: {challenge_type}." f"Challenge details: {describe_challenge(challenge_type, solution_data)}" 
+
+16 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+f"Previous reasoning: {model_reasoning}" f"Correct actions: {solver_actions_formatted}" f""" **REQUIREMENTS** - Your output should ONLY contain the thinking part, NOT the action part. The actions will be added separately. - Describe what you **observe and infer** in the CAPTCHA scene (layout, visual cues, objects, etc.). - Analyze what you **did wrong** in your previous attempt and why the correct actions are right. - Describe what you **plan** to do (correct actions) step by step. Make sure you exactly follow the order included in correct actions. - Example output: "I observe that I am currently in a webpage that asks me to solve a CAPTCHA. The CAPTCHA asks me to select the icon "book". Below the text instruction of the CAPTCHA, I can see a canvas with several icons of different color in the river background. On top left of the canvas, there’s a purple icon that looks like "duck", to the right there’s an icon that looks like "car", ...... On the second row I see a blue "book" icon, which may be the icon I should click. In my previous attempt, I incorrectly clicked on the "car" icon because Imisidentified it as a "book". Looking at the second image, I can see that this action was wrong and the CAPTCHA failed. The correct approach is to click on the blue "book" icon on the second row, which clearly represents a book, not acar. I need to perform multiple actions to solve this CAPTCHA: I should click on the "book" icon on the second row to finish the task." 
+
+D.2. Prompt for Dynamic CAPTCHA System & Halligan Benchmark System Prompt 
+
+# Tools You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags: {tool_desc} For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags: <tool_call> {{"name": <function-name>, "arguments": <args-json-object>}} </tool_call> # Response format Response format for every step: 1) A single <tool_call>...</tool_call> block containing only the JSON: {{"name": <function-name>, "arguments": <args-json-object>}}. Rules: - Be brief: output concise thoughts. - Do not output anything else outside those parts. - If finishing, use action=terminate in the tool call. 
+
+Initial User Prompt 
+
+Solve the CAPTCHA as per the given instructions. You may need to interact with various elements such as checkboxes, image grids, sliders, or text inputs to 
+
+17 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training    
+
+> complete the CAPTCHA challenge.
+
+Follow-up User Prompt             
+
+> Continue solving the CAPTCHA. Observe the current state and take the next actions.
+
+D.3. More Details in General GUI Agent Benchmarks 
+
+In this subsection, we provide additional information about the general GUI agent benchmark used in Section 4.4. D.3.1. A NDROID CONTROL 
+
+Android Control is a large-scale dataset comprising 15,283 demonstrations of human tasks performed in Android apps (Li et al., 2024). For every task, Android Control provides both high-level and low-level human-generated instructions describing it. In the high-level setting, the model is required to autonomously plan and execute actions over multiple steps, whereas in the low-level setting, the model follows human-annotated instructions to perform the next-step action. Following the setting of Li et al. (2024), we randomly sample 500 step-action instances from the full AndroidControl test set to construct our evaluation subset. For grounding performance evaluation, we use UGround’s pre-generated GPT-4o planning data for a more comparable element accuracy outcome (Gou et al., 2025). We report step accuracy under both high-level and low-level task settings. During inference, we set the temperature to 0 to reduce sampling variability and ensure stable model outputs. 
+
+User Prompt                                                                               
+
+> Your task is to help the user identify the precise coordinates (x, y) of aspecific area/element/object on the screen based on adescription. -Your response should aim to point to the center or arepresentative point within the described area/element/object as accurately as possible. -If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose. -Your answer should be asingle string (x, y) corresponding to the point of the interest. Description: {description} Answer:"""
+
+D.3.2. S CREEN SPOT -V2 ScreenSpot-V2 (Wu et al., 2024) is a large-scale benchmark for evaluating visual grounding and spatial localization in GUI environments. The benchmark challenges models to identify precise screen coordinates corresponding to a natural-language description of a target UI element, requiring fine-grained visual perception and accurate reasoning over layout, affordances, and contextual cues. ScreenSpot-V2 contains 1,273 tasks across web, desktop, and mobile domains. It also addresses approximately 11.32% of samples in the original ScreenSpot dataset (Cheng et al., 2024) that contained errors or ambiguities. We adapt the standard setting without a planner, directly using the original instructions from ScreenSpot. We report grounding accuracy by computing if the predicted location falls within the ground truth element’s bounding box. During inference, we set the temperature to 0 to reduce sampling variability and ensure stable model outputs. For ReCAP-32B model, we tuned the prompt by removing the system prompt and adding explicit instructions in the user prompt. For all other models, we use the original ScreenSpot instructions as the user prompts without modification. 
+
+System Prompt                                      
+
+> You are ahelpful assistant. The user will give you an instruction, and you MUST left click on the corresponding UI element via tool call. If you are not sure about where to click, guess amost likely one.\n\n# Tools
+
+18 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags: <tools> {"type": "function", "function": {"name": "computer_use", "description": "Use amouse to interact with a computer.\n* The screen’s resolution is 1000x1000.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. \n* You can only use the left_click action to interact with the computer.", "parameters": {"properties": {"action": {"description": "The action to perform. The available actions are:\n* ‘left_click‘: Click the left mouse button with coordinate (x, y).", "enum": ["left_click"], "type": "string"}, "coordinate": {"description": "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates to move the mouse to. Required only by ‘action=left_click‘.", "type": "array"}, "required": ["action"], "type": "object"}}} </tools> For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags: <tool_call> {"name": <function-name>, "arguments": <args-json-object>} </tool_call> 
+
+User Prompt for ReCAP-32B 
+
+Output the bounding box in the image corresponding to the instruction "{instruction}" with grounding. Your output should be in the format of a JSON array inside ‘‘‘json‘‘‘ code block, like this: ‘‘‘json [{{"bbox_2d": [x1, y1, x2, y2]}}] ‘‘‘. Make sure to strictly follow this format. 
+
+D.3.3. M ULTIMODAL -M IND 2W EB 
+
+Multimodal-Mind2Web is the multimodal version of Mind2Web, a dataset built for developing and evaluating generalist agents for the web that can follow language instructions to complete complex tasks on any website. We evaluate baseline model and ReCAP models’ Web grounding performance using Multimodal-Mind2Web (MM-Mind2Web) (Zheng et al., 2024b). MM-Mind2Web is the multimodal version of Mind2Web (Deng et al., 2023), which consists of three parts in its test dataset, a total of 1013 tasks. We base our evaluation pipeline on UGround’s offline evaluation pipeline (Gou et al., 2025). As we evaluate our model for grounding performance, we use UGround’s pre-generated GPT-4o planning data for a more comparable element accuracy outcome. UGround’s planned actions dataset consists in total of 4751 actions for the three parts of MM-Mind2Web dataset. Given the way we hosted our ReCAP model, we need to supply the system prompt through the hosting API. We intentionally input system prompt and user prompt in each API query to the Qwen3-VL baseline as well as the ReCAP models. For OpenAI CUA, it does not require a system prompt. We select “ browser ” environment for “computer use preview ” tool instead. 
+
+System Prompt 
+
+Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description. - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible. - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose. - Your answer should be a single string (x, y) corresponding to the point of the interest. 
+
+19 CAPTCHA Solving for Native GUI Agents: Automated Reasoning-Action Data Generation and Self-Corrective Training 
+
+User Prompt 
+
+Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description. - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible. - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose. - Your answer should be a single string (x, y) corresponding to the point of the interest. Description: {description} Answer: 
+
+User Prompt for OpenAI CUA 
+
+Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description. - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible. - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose. - You must left click on the center of corresponding point of interest regardless type of element. Do not drag any element. Description: {description} 
+
+20

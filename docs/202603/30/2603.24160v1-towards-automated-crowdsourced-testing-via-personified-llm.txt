@@ -1,0 +1,1194 @@
+Title: Towards Automated Crowdsourced Testing via Personified-LLM
+
+URL Source: https://arxiv.org/pdf/2603.24160v1
+
+Published Time: Thu, 26 Mar 2026 01:07:19 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+## Towards Automated Crowdsourced Testing via Personified-LLM 
+
+SHENGCHENG YU, Technical University of Munich, Germany 
+
+YUCHEN LING, State Key Laboratory for Novel Software Technology, Nanjing University, China 
+
+CHUNRONG FANG, State Key Laboratory for Novel Software Technology, Nanjing University, China 
+
+ZHENYU CHEN, State Key Laboratory for Novel Software Technology, Nanjing University, China 
+
+CHUNYANG CHEN, Technical University of Munich, Germany The rapid proliferation and increasing complexity of software demand robust quality assurance, with graphical user interface (GUI) testing playing a pivotal role. Crowdsourced testing has proven effective in this context by leveraging the diversity of human testers to achieve rich, scenario-based coverage across varied devices, user behaviors, and usage environments. In parallel, automated testing, particularly with the advent of large language models (LLMs), offers significant advantages in controllability, reproducibility, and efficiency, enabling scalable and systematic exploration. However, automated approaches often lack the behavioral diversity characteristic of human testers, limiting their capability to fully simulate real-world testing dynamics. To address this gap, we present PersonaTester , a novel personified-LLM-based framework designed to automate crowdsourced GUI testing. By injecting representative personas, defined along three orthogonal dimensions: testing mindset, exploration strategy, and interaction habit, into LLM-based agents, PersonaTester enables the simulation of diverse human-like testing behaviors in a controllable and repeatable manner. Experimental results demonstrate that PersonaTester faithfully reproduces the behavioral patterns of real crowdworkers, exhibiting strong intra-persona consistency and clear inter-persona variability (117.86% – 126.23% improvement over the baseline). Moreover, persona-guided testing agents consistently generate more effective test events and trigger more crashes (100+) and functional bugs (11) than the baseline without persona, thus substantially advancing the realism and effectiveness of automated crowdsourced GUI testing. CCS Concepts: • Software and its engineering → Software testing and debugging .Additional Key Words and Phrases: Software Testing, Crowdsourced Testing, LLM, LLM Personification 
+
+ACM Reference Format: 
+
+Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen. 2026. Towards Automated Crowdsourced Testing via Personified-LLM. 1, 1 (March 2026), 24 pages. https://doi.org/10.1145/nnnnnnn. nnnnnnn 
+
+1 Introduction 
+
+With the increasing complexity and interactivity of modern software systems, ensuring robust quality assurance has become more critical than ever [ 55 ]. Among various testing paradigms, 
+
+Authors’ Contact Information: Shengcheng Yu, Technical University of Munich, Heilbronn, Germany, shengcheng.yu@tum. de; Yuchen Ling, State Key Laboratory for Novel Software Technology, Nanjing University, Nanjing, China, yuchenling@ smail.nju.edu.cn; Chunrong Fang, State Key Laboratory for Novel Software Technology, Nanjing University, Nanjing, China, fangchunrong@nju.edu.cn; Zhenyu Chen, State Key Laboratory for Novel Software Technology, Nanjing University, Nanjing, China, zychen@nju.edu.cn; Chunyang Chen, Technical University of Munich, Heilbronn, Germany, chun-yang. chen@tum.de. Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org. 
+
+© 2026 Copyright held by the owner/author(s). Publication rights licensed to ACM. ACM XXXX-XXXX/2026/3-ART https://doi.org/10.1145/nnnnnnn.nnnnnnn , Vol. 1, No. 1, Article . Publication date: March 2026.  
+
+> arXiv:2603.24160v1 [cs.SE] 25 Mar 2026 2Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+crowdsourced testing has emerged as a powerful manual testing strategy that leverages the collec-tive intelligence of a distributed pool of human testers ( i.e., crowdworkers) recruited via online platforms to evaluate software quality [ 8 , 42 ]. As a scalable extension of traditional manual testing, crowdsourced testing enables rapid recruitment of participants from diverse backgrounds, devices, and regions, thereby capturing a wide range of real-world user behaviors. This diversity brings significant benefits in terms of scenario coverage, functional exploration, and defect discovery, especially for systems with complex or user-centric interfaces [ 50 ]. Crowdworkers contribute heterogeneous interaction styles shaped by differences in culture, education, domain knowledge, testing mindset, and input preferences, helping trigger bugs that are difficult to identify through conventional testing. Widely adopted in both industry and academia, platforms such as uTest, Baidu CrowdTest, and MoocTest have facilitated thousands of test campaigns across web, mobile, and desktop software [43, 44]. A key strength of crowdsourced testing lies in its ability to amplify behavioral diversity. Crowd-workers contribute heterogeneous interaction styles shaped by differences in education, culture, domain knowledge, testing mindset, and input preferences, resulting in rich and varied testing traces. This diversity improves functional and scenario-level coverage and allows for the detection of edge-case bugs and usability issues often missed by conventional in-house testing. For example, alpha and beta testing in game development frequently rely on crowds to uncover region- or device-specific problems. Prior studies have shown that crowdsourced test reports frequently capture real-world failure scenarios that are difficult to replicate through automated testing alone [6, 15]. However, the manual nature of crowdsourced testing also introduces inherent limitations [ 6,53 , 57 ]. Coordination overhead, result variability, lack of reproducibility, and high labor costs make it difficult to scale consistently, particularly across iterative development cycles. While diversity is its greatest strength, it also poses challenges in maintaining test reliability, coverage traceability, and feedback consolidation. These issues have led to increasing interest in evolving crowdsourced testing into a more scalable, automated paradigm, one that can simulate the breadth of human behavior while minimizing the downsides of human involvement. Recent advancements in automated testing [ 1, 18 , 19 , 27 , 32 , 39 ], particularly those driven by large language models (LLMs) [ 22 ], offer opportunities in this regard. LLMs possess strong reasoning capabilities and can generate semantically meaningful test actions with minimal manual supervision. However, conventional LLM-based agents often lack the behavioral variability and interaction richness exhibited by real human testers [ 4, 22 , 23 ], making them less effective at replicating the diverse exploration paths in crowdsourced testing. Most automated approaches adopt fixed strategies, resulting in repetitive and narrow test behaviors that fail to reflect real-world usage diversity. To address this gap, we propose PersonaTester , a novel framework that evolves traditional crowdsourced testing into an automated crowdsourced testing paradigm by integrating crowd-worker personas into LLM-based testing workflows. PersonaTester harnesses human behavioral diversity by explicitly modeling three orthogonal dimensions: testing mindset, exploration strategy, and interaction habit, derived from large-scale analysis of real crowdsourced test traces. These personas serve as lightweight cognitive profiles that guide LLM-driven decision-making, allow-ing each automated test instance to reflect unique and realistic testing behavior. By combining human-inspired diversity with LLM-enabled scalability and control, PersonaTester preserves the strengths of both human intelligence and artificial intelligence. Instead of simply integrating human domain knowledge through mechanisms such as knowledge graphs ( i.e., app-side knowledge), the human-side information, such as personality traits or interaction preferences of testers, should also be considered for better diversity. In essence, PersonaTester reimagines crowdsourced testing not as a purely manual process [ 52 ], but as a synergistic collaboration between the collective behavioral patterns of human testers and the reasoning power of LLMs. This paradigm shift unlocks a new  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 3
+
+direction for scalable, reproducible, and human-like software testing, bringing the benefits of crowd diversity into automated test generation without relying on human labor. 
+
+PersonaTester introduces a structured yet flexible framework for personified LLM-based GUI testing, consisting of four tightly integrated components: LLM personification modeling, GUI state understanding, LLM-based decision-making, and operation execution with feedback validation. At the core of the framework lies its personification mechanism, which models the LLM testing agent’s behavior using empirically grounded personas defined along three orthogonal dimensions: Testing Mindset, Exploration Strategy, and Interaction Habit. These dimensions capture cognitive orientation ( e.g., sequential vs. divergent logic), interaction preferences ( e.g., clicking, input-driven actions, or core function prioritization), and input styles ( e.g., short valid, long boundary, or invalid values). Through empirical analysis of real-world crowdsourced testing reports, we construct nine representative personas that reflect diverse testing behaviors observed in practice. Personas are explicitly injected into the LLM’s prompt, ensuring that decisions of LLM agents remain coherent, reproducible, and aligned with realistic behavioral patterns. During each testing session, the LLM agent operates iteratively. The process begins with robust GUI perception, where screenshots are processed through a hybrid pipeline combining computer vision techniques and multimodal large language models (MLLMs) to extract textual, structural, and spatial widget information. A filtering mechanism removes static or non-interactable elements and identifies transient components ( e.g., drop-down menus), after which the GUI is textualized into a JSON representation that supports precise downstream reasoning. LLM agents then receive contextual prompts containing the structured GUI state, test history, and assigned persona, and first generate a high-level testing intent ( e.g., “modify alarm setting”) to clarify the reasoning objective. This is followed by the generation of a specific operation aligned with both the intent and the agent’s interaction habit. This two-step process promotes interpretability and consistency, allowing for semantically rich and behaviorally meaningful test sequences. The generated operations are executed based on the mapped GUI coordinates. Following execution, PersonaTester validates the effect of the operation through intent-based state checking and visual-semantic bug detection using MLLMs. This closed-loop design, linking reasoning, execution, and validation, enables intelligent, autonomous GUI testing that authentically simulates the diverse strategies of human crowdworkers. Experimental results demonstrate that the proposed PersonaTester effectively imitates human crowdworkers, thus automating and enhancing the crowdsourced testing. PersonaTester can achieve 117.86% – 126.23% improvement in intra-persona consistency and distinct inter-persona variability over the baseline. Specifically, agents with the same persona consistently exhibit highly similar exploration trends, closely aligning with their assigned persona characteristics, while agents with different personas demonstrate notably varied exploration behaviors. Furthermore, by injecting personas representing diverse testing mindsets, exploration strategies, and interaction habits, persona-guided agents generate testing events more effectively, closely correlated with persona attributes, and consistently surpass the performance of agents without persona injection. Additionally, persona-guided agents identify more crash bugs (100+) and functional bugs (11) compared to the baseline, highlighting the effectiveness and practicality of PersonaTester in automating and enhancing crowdsourced GUI testing. The noteworthy contributions of this paper can be concluded as follows: 
+
+• This paper presents PersonaTester , a novel framework that practically enables personified LLM agents to simulate diverse and realistic human-like GUI testing behaviors, which is the first work to apply the “persona” concept to software testing. 
+
+• This paper introduces a structured three-dimensional persona schema that systematically models testing mindsets, exploration strategies, and interaction habits for test exploration.  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. 4Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+• Empirical experiments show persona-guided LLM agents enhance test diversity and effec-tiveness, outperforming the non-personified baseline in bug triggering. 
+
+2 Preliminary Study 
+
+To ground the design of PersonaTester in real-world testing practices, we first conduct an investigation into a large corpus of crowdsourced GUI testing reports. This analysis allows us to abstract common behavioral patterns of human testers into structured persona dimensions and configurations, which serve as the foundation of our personified testing framework. We then present an illustrative example that demonstrates how different persona-guided agents explore the same testing task in distinct ways. These motivate the need for simulating diverse human-like testing behaviors, highlighting the potential of integrating persona modeling into automated crowdsourced testing. 
+
+2.1 Persona Investigation from Real Crowdsourced Testing 
+
+To ensure the realism and representativeness of our persona modeling, we conduct an empirical investigation into real-world crowdsourced GUI testing behaviors. We randomly sample 1,500 GUI exploration traces from a public dataset of crowdsourced test reports drawn from one of the most widely used and academically studied platforms 1 [6 , 51 , 56 ]. This dataset includes approximately 23,000 reports spanning over 50 software systems and involving more than 1,100 distinct crowd-workers. Notably, the testing process on this platform does not assign crowdworkers fixed tasks; instead, they are only provided with requirement documentation describing the app’s functionality. This open-ended testing setup encourages testers to explore autonomously and naturally, allowing individual behavioral traits to be more clearly expressed. Through qualitative analysis of the sampled traces, we identify three recurring and discriminative aspects of crowdworker behavior: their testing mindset ( e.g., whether their exploration is sequential and methodical or divergent and opportunistic), exploration strategy ( e.g., emphasis on clickable elements, input interactions, or core functional paths), and interaction habit ( e.g., the nature and length of input text during test operations). These three dimensions describe the user interactions of crowdworkers from the high-level mindset, middle-level strategy, and concrete low-level habits, respectively. Such dimensions not only recur consistently across traces but also align with prior work on human testing behavior and software testing diversity. Together, they offer a compact yet expressive space for modeling crowdworker variability in test generation. We then manually annotate each of the 1,500 traces across the three dimensions. The annotation is performed by three authors independently and finalized through consensus. Among the 18 possible combinations (2 × 3 × 3), we identify 9 persona configurations with frequencies exceeding 1%, ranging from 2.27% to 21.80%. These 9 configurations together account for 95.40% of all observed traces, while the remaining combinations fall below the 1% threshold. We therefore select these empirically grounded 9 personas in PersonaTester , balancing behavioral diversity with real-world representativeness. Notably, this subset satisfies pairwise coverage across all dimensions [ 26 ], ensuring that each attribute is represented in multiple combinations. This design supports com-prehensive evaluation of how different persona traits influence test behavior and defect discovery, while preserving theoretical completeness and practical feasibility. 
+
+2.2 Illustrative Example 
+
+To demonstrate the behavioral diversity and practical testing effectiveness enabled by persona-guided LLM-based GUI testing, we present an illustrative example involving three testing sessions 
+
+> 1Anonymized for the double-anonymous review criteria. , Vol. 1, No. 1, Article . Publication date: March 2026.
+
+Towards Automated Crowdsourced Testing via Personified-LLM 5
+
+conducted by PersonaTester configured with distinct personas: Persona B , Persona C , and 
+
+Persona E (design details of persona-guided LLM agents in Section 3.1). The specific task given to the LLM agents is to explore the alarm clock management function of the given app. Each persona defines a unique combination of testing mindset, exploration strategy, and interaction habit, which in turn drives the agent’s behavior during test execution (see Fig. 1). This example highlights how the personas lead to differentiated exploration paths that correspond to the variability of human testers in crowdsourced testing and reveal potential issues from diverse perspectives. Path 1 Path 2 
+
+Path 3               
+
+> ①click switch to
+> close the alarm clock;
+> ②click the closed
+> alarm clock;
+> ③click the menu
+> button of “Type”;
+> ④select the “On
+> Specified Week Days”;
+> ②click the
+> keyboard button;
+> ③click the “H” area
+> & input invalid char;
+> ④click the “M” area
+> & input invalid char; ⑤click the
+> “Save” button
+> ③open the
+> “Vibration” switch;
+> ④click the “Sound
+> and Vibration”;
+> ⑤click the “Audio
+> Channel” menu;
+> ②click the
+> “Customize” button;
+> ⑤click the
+> “Save” button
+
+Starting 
+
+Activity 
+
+Fig. 1. Motivating Example: Exploration Trace of Personified-LLM Agents with Different Personas 
+
+Persona B (Path 1) : Testing Mindset A. sequential & coherent, Exploration Strategy b. core function focused, Interaction Habit ii. valid & short input 
+
+Persona C (Path 2) : Testing Mindset A. sequential & coherent, Exploration Strategy c. input oriented, Interaction Habit iii. invalid input 
+
+Persona E (Path 3) : Testing Mindset B. divergent & non-linear, Exploration Strategy a. click oriented, Interaction Habit ii. valid & short input 
+
+In the first case (Path 1 in Fig. 1), the agent equipped with Persona B exhibits a sequential and coherent testing mindset, a core-function-focused exploration strategy, and a habit of providing short and valid inputs. This agent follows a task-directed and systematic exploration pattern, beginning by clicking the switch to disable an existing alarm clock. It then accesses the editing page of the deactivated alarm, navigates to the menu for configuring the alarm type, selects the “On Specified Week Days” option, and finally clicks the “Save” button to confirm the changes. This exploration not only aligns well with the defined behavioral profile of Persona B but also leads to the discovery of a functional bug : after editing a closed alarm and modifying its type, the updated alarm cannot be reopened or deleted. This bug is triggered specifically by the sequence of opening a closed alarm, changing its type, and saving the changes, a condition that is unlikely to be encountered through standard automated testing policies that lack contextual and purpose-driven reasoning. The bug discovery here illustrates the importance of incorporating persona-driven exploration logic into the testing process. In contrast, the agent with Persona C (Path 2 in Fig. 1) also follows a sequential and coherent testing mindset but is configured with an input-oriented exploration strategy and a habit of generating short, invalid inputs. The agent initiates its exploration by clicking the “+” button to add a new alarm, followed by interactions with the time-setting interface. It attempts to enter invalid characters in both the hour and minute input areas and proceeds to click the “Save” button. This trace represents a valuable testing trajectory that assesses the robustness of the input-handling 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. 6 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen 
+
+logic. Such behavior reflects the persona’s orientation toward identifying improper input scenarios, a type of testing often missed by traditional automated tools that lack a notion of adversarial interaction patterns. The third trace (Path 3 in Fig. 1), driven by Persona E , reflects a markedly different behavioral style. With a divergent and non-linear testing mindset, a click-oriented exploration strategy, and a preference for short and valid interactions, the agent initiates testing by clicking the “+” button but quickly deviates into secondary settings. It selects the “Customize” option, enables the “Vibration” toggle, accesses the “Sound and Vibration” settings page, and opens the “Audio Channel” configuration menu. This behavior typifies a curious, exploratory user and enables the testing of GUI states beyond primary functionalities. This exploration contributes much to coverage diversity by exercising peripheral pathways that structured exploration strategies might overlook. Together, these three exploration traces illustrate how different personas guide LLM-based agents toward distinct and meaningful testing behaviors. Persona B uncovers a critical functional bug through systematic task-focused navigation, Persona C tests boundary conditions of input validation, and Persona E exercises lesser-explored GUI pathways through non-linear interac-tion. Crucially, only with persona-guided LLM exploration can such behavioral differentiation be achieved. Traditional automated GUI testing frameworks, relying on uniform and deterministic strategies, lack the flexibility to simulate diverse user perspectives. In contrast, the persona-driven design of PersonaTester allows LLM-based testing agents to adopt human-like reasoning pat-terns and behavioral intents, enabling realistic, adaptive, and effective GUI exploration. This set of examples underscores the practical value of integrating personified LLM agents into crowdsourced GUI testing, enhancing the automation of crowdsourced GUI testing while preserving the richness and variability of human tester behavior. 
+
+3 Methodology 
+
+PersonaTester integrates human-like behavioral diversity to automate crowdsourced testing through a structured pipeline driven by personified LLM agents (Fig. 2). We first formalize personas, representing the testing mindset, exploration strategy, and interaction habit, respectively. Based on empirical analysis of real-world crowdsourced testing behaviors, we select nine representative personas to guide LLM behavior. The iterative process then begins with GUI state understanding, where app GUI screenshots are processed using CV and multimodal models to extract and persist structured widget representations. Test generation proceeds via a two-step prompting process, intent formulation followed by persona-aligned operation generation, enhancing interpretability and consistency. Finally, the operation is executed, and its outcome is verified through intent checking and MLLM-based bug triggering. This end-to-end framework combines the exploration automation with the behavioral realism of crowdworkers, offering a novel paradigm for GUI testing. ReAct 
+
+> Mechanism
+> Intent
+> Generation
+> Operation
+> Generation
+> Persona -
+> Guided
+> Reasoning
+> Identity
+> Specification
+> Task
+> Specification
+> Persona
+> Conditioning
+> Historical
+> Context
+> Current
+> GUI State
+> Extra
+> Requirements
+> LLM
+> Prompting
+> ……
+> Personification for LLM
+> Testing
+> Mindset
+> Exploration
+> Strategy
+> Interaction
+> Habit
+
+×
+
+×     
+
+> Clock
+> Oriented
+> Core Func
+> Focused
+> Input
+> Oriented
+> Sequential
+> &Coherent
+> Divergent &
+> Non -linear
+> Valid
+> &Short
+> Valid
+> &Long Invalid
+> Real -world
+> Crowdsourced
+> Test Report
+> Intent Check
+> (MLLM)
+> Widget -Coordinate
+> Mapping
+> Operation Execution
+> Bug Triggering
+> (MLLM)
+> Operation Execution & Check
+> LLM Decision -Making
+> for GUI Test Generation GUI State Understanding
+> Widget
+> Recognition
+> (CV+OCR)
+> Static Info
+> Removing
+> (MLLM)
+> Transient Widget
+> Recognition
+> (MLLM)
+> Widget
+> Labeling
+> Widget
+> Textualization
+> (LLM, to JSON)
+> Deduplication
+
+Fig. 2. Overview of PersonaTester Workflow 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 7
+
+3.1 Personification for LLM 
+
+To simulate the behavioral diversity observed in real-world crowdsourced testing, we adopt a persona-based modeling approach, drawing inspiration from established concepts in human-computer interaction (HCI) and conversational AI. In general, a persona refers to a fictitious yet data-driven representation of a user archetype, commonly used to model user needs, behaviors, and goals in system design and evaluation [ 10 ]. In the context of LLM applications, personas have been used to shape response style, reasoning logic, and domain alignment by embedding role-specific attributes into prompts [ 13 ]. Building on these foundations, we define a persona in our framework as an abstract tester profile that encapsulates specific behavioral tendencies and decision-making preferences frequently observed in crowdworkers. Guided by empirical analysis of real crowdsourced test reports, we introduce a structured and interpretable schema that de-composes human testing behavior into three orthogonal dimensions: Testing Mindset (cognitive orientation during exploration), Exploration Strategy (preferred interaction targets), and Interaction Habit (input generation style). This structured formulation supports the systematic instantiation of diverse, personified LLM-based testing agents, each emulating a distinct and realistic tester profile to enrich automated GUI testing with human-like behavioral diversity. This is the first work to apply “persona” to software testing. Testing                                                                                                                                                                                                                                                                              
+
+> Mindset
+> Exploration
+> Strategy
+> Interaction
+> Habit
+> •You are acrowdworker testing a{{APP_TYPE}} app called "{{APP_NAME}}"{{SCENARIO -SPEC}} .
+> •You are an exploratory tester with divergent thinking preference .In testing, you adopt an intuitive, curiosity -driven approach, frequently altering the test path based on what
+> you see or discover in the UI .You are easily distracted by new or unexpected elements on the screen, and aim to uncover edge cases and unexpected behaviors through
+> exploration .For example, when you test acertain function, you midway notice a"Help" button and tap it out of curiosity .From there, you could either return to the original
+> task or branch into anew test path sparked by visual curiosity .
+> •Meanwhile, you are an input -based explorer, always prioritizing and focusing on tapping input fields and typing texts to drive interaction .However, you will not repeat
+> interacting with the same input field .Moreover, if the current page shows no input fields or only tested input fields, you will try your best to find one through tapping .For
+> example :……
+> •In the current session, you have performed the following operations :…… The structure of the current page is …… Your task is to (1)generate atest intent …… ,(2)and then
+> determine aspecific operation …… Return aJSON object as …… For the next move, you plan to perform an input operation :{{INPUT_OP}}
+> •As atester, when doing input operations, you prefer short inputs that are relevant to the context .For example, in testing grammar check, types along sentence with grammar
+> issue :"The teacher give us many homeworks yesterday and we was trying to finished it but it were too hard so nobody don't understand what to do" .
+> •……
+
+Fig. 3. Example of Prompt for LLM Personification ( Persona F )
+
+Testing Mindset defines the high-level cognitive orientation of the agent, which influences the structure and logic of the exploration process. We model this using two attributes: A. sequen-tial_and_coherent , representing crowdworkers who follow a structured and linear exploration path with a goal-directed flow; and B. divergent_and_non-linear , denoting crowdworkers who adopt more scattered, curiosity-driven paths. These attributes abstract the principal thinking patterns observed in crowdsourced testing sessions and capture a wide range of human cognitive styles. Exploration Strategy specifies the tactical preference of the agent when choosing where to interact in the GUI. It consists of three commonly observed testing tendencies: a. click_oriented ,favoring general interaction with clickable widgets; b. core_function_focused , prioritizing features central to app functionality; and c. input_oriented , concentrating on widgets that accept user input. These categories are derived from an empirical investigation of the previous study [56] that most user interactions in crowdsourced GUI testing (>90%) fall into click and input actions, and that functional goal orientation is a primary heuristic for manual testing. Interaction Habit captures the style of input generation during testing. Since input operations are highly sensitive to the content and type of values, we model input behavior with three distinctive attributes: i. valid_and_short , corresponding to standard user entries; ii. valid_and_long , representing stress testing via lengthy or extreme values; and iii. invalid , focusing on edge-case or error-triggering input. This dimension reflects realistic variance in user interaction behavior that can significantly influence the app execution path and potential for defect discovery. To instantiate personified LLM agents, we define a persona as a tuple: Persona = ⟨𝑚, 𝑠, ℎ ⟩, 𝑚 ∈{𝐴, 𝐵 }, 𝑠 ∈ { 𝑎, 𝑏, 𝑐 }, ℎ ∈ { 𝑖, 𝑖𝑖, 𝑖𝑖𝑖 }. Each tuple encodes a complete behavioral profile used to prompt and constrain the LLM agent’s test generation behavior. This formalization enables the instantiation 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. 8 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen                                     
+
+> Table 1. Configuration of Persona-Guided LLM Agent
+> Persona-Guided Agent Testing Mindset Exploration Strategy Interaction Habit ABabciii iii
+> Persona A ✓✓✓
+> Persona B ✓✓✓
+> Persona C ✓✓✓
+> Persona D ✓✓✓
+> Persona E ✓✓✓
+> Persona F ✓✓✓
+> Persona G ✓✓✓
+> Persona H ✓✓✓
+> Persona I ✓✓✓
+
+of personified agents with well-defined behavioral priors, facilitating controlled experimentation and reliable behavior emulation in automated GUI testing. By conditioning the LLM agents with these persona tuples during prompt construction, PersonaTester achieves consistent, reproducible, and realistic simulation of diverse human testing behaviors, significantly advancing the integration of human factors into automated GUI testing. 
+
+3.2 GUI State Understanding 
+
+A critical foundation of PersonaTester lies in its capability to interpret the app GUI state. This interpretation must not only capture the visible structure and semantics of each state, but also dynamically reflect transient states and actionable GUI elements essential for persona-guided reasoning. To this end, we design a multi-stage GUI understanding method that combines traditional Computer Vision (CV) techniques with multimodal large language models (MLLMs). This hybrid strategy ensures both precision and generalizability across varied GUI contexts. The GUI state understanding process begins with widget recognition, which uses a combination of traditional CV and OCR techniques to extract raw GUI elements from the GUI states [ 53 ]. This step identifies widget boundaries and textual content while preserving layout information. Importantly, we do not directly rely on end-to-end MLLMs for this step, as such models cannot perform well on complex GUI layouts without extensive fine-tuning and often miss structural information critical for downstream reasoning [ 33 ]. Following initial recognition, we perform static infomation removal using an MLLM-based filter to eliminate GUI elements that do not contribute to meaningful interaction [ 23 ]. These include persistent status bars, decorative elements, and non-functional text. This step improves the signal-to-noise ratio of the GUI state and prevents the agent from being distracted by irrelevant components. Next, transient widget recognition is applied to identify context-sensitive GUI elements, such as temporary modals, dropdown menus, or pop-up windows. These transient widgets are often overlooked by static parsing but play a significant role in determining the current GUI state. The MLLM is used again in this phase, leveraging its visual-linguistic reasoning to distinguish ephemeral elements from the persistent layout. The refined set of GUI widgets then undergoes widget labeling, where each GUI element is categorized ( e.g., button, input field, toggle switch) and associated with a semantic descriptor. This facilitates downstream interpretation by the LLM agent and ensures the agent receives structured, labeled input aligned with its persona-guided decision-making. Then, in the widget textualization step, we convert the labeled GUI state into a structured JSON representation using an LLM. Each GUI widget is expressed as a key-value pair that captures its type, content, and potential interactions. This JSON representation serves as the semantic abstraction of the GUI state, enabling consistent interpretation across different LLM prompts. The use of LLMs in this stage allows for robust natural language grounding, especially when widget labels or contexts are ambiguous. Finally, to optimize performance and avoid redundant processing, we incorporate widget persistence. Screenshots  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 9
+
+with high visual similarity (cosine similarity above 0.99, which is determined according to existing studies [ 51 , 55 ]) are detected and cached, allowing the system to reuse previously parsed JSON representations. This not only reduces computational overhead but also ensures consistent state interpretation in recurring GUI contexts. 
+
+PersonaTester balances the strengths of CV algorithms with the flexible semantic reasoning capabilities of (M)LLMs. By explicitly addressing both persistent and transient elements, and transforming visual information into a structured, persona-comprehensible format, our GUI state understanding module establishes a robust foundation for intelligent and diverse test exploration. 
+
+3.3 LLM Decision-Making for GUI Test Generation 
+
+As an automated crowdsourced testing approach, PersonaTester features a structured decision-making pipeline, designed to generate semantically meaningful and persona-guided GUI testing behaviors. This process unfolds iteratively, drawing inspiration from the ReAct paradigm, where each step dynamically determines the next test action based on the current context, including GUI state, testing history, and persona configuration. The decision-making prompt is constructed in a modular fashion. It begins with explicit identity and task specifications to inform the LLM about the target app and the scenario-specific testing goal. Crucially, the prompt embeds the persona profile, particularly the testing mindset and exploration strategy, which steers the reasoning process. For example, a persona with a sequential and task-focused profile is guided to prioritize central GUI elements in a top-down logical order, whereas a divergent persona may explore peripheral or less conventional interface paths. The prompt also integrates the historical interaction context and the structured GUI representation generated during the perception phase, promoting coherence and reducing semantic redundancy across operations. Built upon this contextual foundation, PersonaTester adopts a two-stage reasoning and action process. First, the LLM performs test intent generation, articulating a high-level goal such as “attempt to toggle notification settings”. This semantic layer enhances interpretability, aligns with persona logic, and guides hidden element discovery where necessary. Next, intent-based test generation is carried out, producing a concrete GUI operation aligned with both the intended goal and the persona’s interaction habit. For instance, personas inclined toward boundary testing may issue long or invalid inputs, while others may favor short and valid entries. When no immediate interaction target is detected, the system proactively searches for hidden or transient widgets ( e.g., 
+
+drop-down menus), leveraging the generated intent as a guide. This decoupled design, reasoning followed by action, yields multiple advantages over single-step approaches. It improves behavioral modularity, enhances debugging and traceability, and ensures greater consistency across testing sessions. Additionally, it supports tasks such as intent-alignment checking and widget prioritization. To ensure robustness and behavioral fidelity, the prompt design further incorporates safeguards against repeated operations, enforces persona-aligned behavior, and prioritizes transient widgets to prevent missed ephemeral elements. The LLM’s output is structured, comprising the test intent, tar-get widget reference, action type, optional parameters ( e.g., text or scroll direction), and a summary for downstream traceability. In summary, this decision-making framework enables PersonaTester 
+
+to generate interpretable, diverse, and strategically guided GUI testing behaviors. By integrating persona modeling, context awareness, and a ReAct-style reasoning-action mechanism, the system effectively simulates real-world crowdworker behavior while maintaining automation advantages such as stability, reproducibility, and semantic clarity. 
+
+3.4 Operation Execution & Check 
+
+Once a test operation is generated, PersonaTester proceeds to execute and validate it. This stage ensures not only the actual execution of the operation but also the semantic verification of  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. 10 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+its intent and the detection of potential GUI-related defects. The process begins by translating the abstract target widget and associated operation into precise screen coordinates, using the structured GUI state representation constructed during the perception phase. This coordinate-level mapping guarantees compatibility with low-level GUI drivers, enabling accurate and device-agnostic interaction. The specified operation, such as tapping, text input, or scrolling, is then carried out on the device, after which the resulting screen is captured and passed to the validation pipeline. The validation consists of two complementary procedures. First, an intent check verifies whether the executed operation achieves its intended effect. This is performed using an MLLM, which compares the expected outcome, defined by the generated intent, with the updated GUI state. This semantic validation provides a lightweight mechanism for assessing whether the app responds as expected. Second, a bug detection mechanism analyzes the post-operation interface for anomalies, including visual layout inconsistencies, missing or broken widgets, and signs of failure such as error messages or unexpected UI resets. By utilizing visual-linguistic reasoning, the approach remains robust across diverse interface designs and application scenarios. This design enables PersonaT-ester to conduct intelligent GUI exploration, while continuously assessing the effectiveness of diverse testing behaviors. 
+
+4 Experiment 
+
+To evaluate PersonaTester , we conduct a comprehensive study covering key aspects of personified-LLM-based crowdsourced testing. Our experiments investigate whether LLM agents guided by personas can simulate human-like testing behaviors and enhance automated crowdsourced testing. We assess behavioral consistency and diversity across different personas (RQ1), the effectiveness of generated test events in performing meaningful interactions (RQ2), and the agents’ ability to trigger both crash and functional bugs (RQ3). The evaluation spans a diverse set of real-world apps and tasks, using both quantitative metrics and user study analyses to validate the findings. 
+
+4.1 Experimental Setting 
+
+4.1.1 Research Questions (RQ). To evaluate PersonaTester in automated crowdsourced testing, we design a set of research questions (RQs) targeting key aspects of the framework. These RQs focus on assessing the behavioral patterns of persona-guided LLM agents, their test generation effectiveness, and their ability to trigger bugs, core factors that reflect the capacity to simulate human-like testing behaviors and improve the diversity and quality of GUI testing. 
+
+RQ1 examines the exploration trends of PersonaTester , referring to whether persona-guided testing leads to consistent or distinguishable behavioral patterns. We evaluate intra-persona consistency (RQ1.1) by checking if the same persona produces stable exploration traces across runs, and inter-persona variability (RQ1.2) by comparing behaviors across different personas on the same task. To further assess alignment, we conduct a user study (RQ1.3) where participants rate how well each behavior reflects the corresponding persona dimensions. 
+
+RQ2 evaluates the test generation effectiveness , indicating whether persona-guided agents generate realistic and effective test events (RQ2.1), and whether their behaviors align with their defined interaction habits (RQ2.2). We analyze the quantity and quality of generated events, espe-cially for input operations, to determine if different personas exhibit distinct and consistent action patterns that contribute to meaningful interaction diversity. 
+
+RQ3 targets the bug triggering capability of persona-guided LLM agents. Beyond behavioral diversity, a primary goal of GUI testing is to identify app bugs. We evaluate how effectively the agents can uncover crash bugs (RQ3.1), typically triggered by invalid operations or edge-case inputs, as well as functional bugs (RQ3.2), such as misbehaving workflows, logic errors, or UI display issues.  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 11
+
+By analyzing the overlap situation of bugs triggered by each persona-guided LLM, we assess the practical benefits of incorporating human-like behavior diversity into LLM-based test automation. We do not adopt code coverage as an evaluation metric because our testing tasks are scenario-specific and goal-driven, where coverage does not reliably indicate whether an agent meaningfully completes or exercises the target functionality [ 52 ]. In such settings, high coverage may result from unrelated interactions that do not contribute to the testing objective. Instead, we design our research questions to provide a comprehensive and task-aligned evaluation of PersonaTester ,assessing the behavioral fidelity of personified agents, the validity of generated test events, the realism of input behaviors, and the ability to trigger functional and crash-inducing bugs. This multifaceted evaluation better reflects the effectiveness of emulating the diversity and intent of real-world crowdworkers in automated crowdsourced GUI testing. To comprehensively evaluate our approach, RQ1–RQ3 are designed to capture complementary yet interrelated aspects of persona-guided testing. RQ1 examines whether different personas result in consistent and distinct exploration behaviors, validating the fidelity and interpretability of our structured persona modeling. It ensures that the injected personas meaningfully steer the agent’s testing patterns. RQ2 then assesses the quality of actions produced along these paths, focusing on their contextual validity, executability, and functional soundness. While RQ1 focuses on how personas shape behavior, RQ2 verifies what those behaviors yield in terms of actionable tests. Building on both, RQ3 investigates whether persona-guided agents can effectively uncover real faults, demonstrating the practical impact of diverse exploration strategies. Together, these RQs establish that our approach not only produces distinct and interpretable behaviors (RQ1), but also maintains test reliability (RQ2) and achieves tangible testing value (RQ3). 
+
+4.1.2 Data Preparation. To ensure the generality and representativeness of our empirical evaluation, we collect a diverse set of 15 mobile apps as the subjects under test, balancing experimental generalization with practical resource constraints. The selected apps span a wide range of functional domains, including note-taking, shopping, travel, reading, etc. , to ensure representativeness. The included apps have varied GUI structures and interaction patterns. This broad domain coverage is intended to reduce domain-specific bias and to verify that PersonaTester generalizes across different usage flows. These apps are selected from prior studies [ 32 , 53 ], including 4 open-source and 11 commercial apps. Such apps are well-documented, publicly available, and widely studied apps with established experimental artifacts and realistic GUI complexity. This allows us to evaluate the effectiveness of PersonaTester for realistic and heterogeneous app conditions. To construct the evaluation tasks, we manually analyze the user interface, feature set, and documented usage patterns of each app through hands-on exploration and official app descriptions. This process involves identifying the primary user flows and high-frequency operations that represent the core functionality of the app [ 52 ]. Based on this analysis, we formulate a task per app that captures a realistic and representative user scenario, ensuring that the testing context aligns with actual usage behaviors (details on our online resources in Section 7). We ensure that the evaluation reflects meaningful real-world interactions rather than abstract exploratory behaviors. This also allows us to assess the performance of each agent in contextually rich scenarios where human-like reasoning and persona alignment can play a significant role. Given the cost of multiple runs across different personas and baselines, scaling further is infeasible. 
+
+4.1.3 Baseline Construction. We implement the baseline as a non-persona agent using the complete 
+
+PersonaTester framework with the personification module disabled, while keeping GUI under-standing, decision-making, and execution identical. This isolates the effect of persona injection and ensures a fair, controlled comparison. In cumulative experiments, we run the baseline nine times to match the number of personified agents, enabling equitable aggregation and reducing single-run  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. 12 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+variance. We also report one-to-one comparisons between each personified agent and the baseline to provide a fine-grained assessment. In this work, we focus on task-oriented GUI testing, where agents are expected to complete specific functional scenarios rather than perform unguided exploration. Random testing strategies are not comparable, as they target whole-app exploration and lack semantic guidance aligned with predefined tasks [ 25 , 47 , 52 ] (nevertheless, we run the random strategy to present the performance, and the data can be seen from Section 7). Our baseline is a non-personified agent sharing the same decision-making process but without persona conditioning, allowing us to isolate the impact of structured persona injection. While PersonaTester adopts a similar LLM-based testing pipeline to prior approaches, a direct comparison is unnecessary, as our method is designed to be model-agnostic and pluggable. It can be integrated into existing frameworks, enhancing them with structured behavioral diversity rather than replacing or competing with them. 
+
+4.1.4 Experimental Configuration. To conduct a rigorous and reproducible evaluation of PersonaT-ester , we carefully configure the experimental environment. The architecture of PersonaTester 
+
+relies on multiple LLM calls for different sub-tasks within the testing pipeline. Specifically, we use the GPT 4o model for GUI understanding and post-operation validation, due to its superior multi-modal capabilities, which are essential for accurately interpreting screenshots and triggering GUI anomalies. The temperature is set to 0 for GPT 4o to ensure deterministic and consistent outputs. For the testing decision-making agent, we adopt the GPT o4-mini model, a lightweight and efficient LLM variant. This model is selected to simulate real-world usage conditions where computational cost is a concern, without significantly compromising reasoning ability. The reasoning_effort is set to “medium” to balance response quality and latency. We use GPT-based models due to their strong performance in complex reasoning, contextual understanding, and multimodal capabilities, features critical for GUI testing tasks involving screen interpretation and intent generation. Our goal is to evaluate the effectiveness of persona-guided agent design, and using a state-of-the-art model ensures that observed outcomes reflect the method’s potential rather than model limitations. Nonetheless, PersonaTester is model-agnostic and can be adapted to open-source LLMs as they continue to improve in accuracy and capability. In order to better illustrate the configurability, we replace the GPT models with DeepSeek models [ 11 ] to see the performance (see Section 7). The results clearly support our conclusion that with different models, PersonaTester can show obvious intra-cluster cohesion and inter-cluster separation. To account for the stochastic nature of LLM-based decision-making and to capture potential behavioral patterns, each task is executed five times per agent configuration, each time with a 20-minute execution. In order to determine the execution time, we recruit five graduate students who command the necessary and basic knowledge for crowdsourced GUI testing (as representatives for common crowdworkers [ 31 ]), and the average time of each of them to finish each task is around 10 minutes. We double the time for LLM agents and set the limit to 20 minutes. This repetition allows us to observe intra-persona consistency and enables the computation of statistically robust metrics for evaluation. Running multiple sessions per task also provides insight into whether the agents demonstrate stable behavioral traits aligned with their assigned personas across executions. 
+
+4.2 RQ1: Exploration Trend 
+
+To assess whether PersonaTester exhibits exploration behaviors that are consistent within the same persona and diverse across different personas, we design a comprehensive evaluation consisting of three components: intra-cluster cohesion (RQ1.1), inter-cluster separation (RQ1.2), and persona consistency (RQ1.3). This evaluation enables us to determine whether the behavioral differences encoded in personas are faithfully reflected in the test paths produced by the agents.  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 13
+
+For RQ1.1, intra-cluster cohesion quantifies the degree to which repeated test executions of the same persona result in similar exploration trajectories. For each persona and each task, we conduct five independent test runs. The similarity between each pair of paths is computed, and their average is reported as the cohesion score. The cohesion is calculated as the mean pairwise similarity across all 
+
+𝑛 × ( 𝑛 − 1)/ 2 combinations, where 𝑛 = 5 denotes the number of runs: Cohesion intra =    
+
+> Í𝑛 𝑖 =1,𝑗 =1,𝑖 <𝑗 sim 𝑖,𝑗
+> 𝑛
+
+.For RQ1.2, inter-cluster separation measures the distinctiveness between different personas by computing the average similarity between paths generated by different persona-guided agents. Specifically, for each pair of personas 𝑀 and 𝑁 , we compare every test trace from 𝑀 with every trace from 𝑁 , and calculate the average of all 5 × 5 = 25 pairwise similarities: Separation inter (𝑀, 𝑁 ) =   
+
+> Í5
+> 𝑖 =1
+> Í5
+> 𝑗 =1sim 𝑖,𝑗
+> 25
+
+. A high intra-cluster cohesion combined with low inter-cluster similarity indicates that each persona induces stable yet distinct exploration behavior. X A B C D E F G H I
+
+> (Non-)Personified LLM Agent
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+> Intra-Cluster Cohesion Similarity
+
+Fig. 4. RQ1.1: Intra-Cluster Cohesion 
+
+To compute the similarity between two test paths, we first encode each path as a vector and then measure the cosine similarity between them. The path vectorization process is a multi-step procedure designed to capture semantic-level behavioral patterns in a principled and interpretable man-ner. First, we validate the exploration traces to construct cleaned and inter-pretable test traces. To transform raw GUI interactions into concise natural language phrases, we apply a light-weight, rule-based purification pro-cess [ 51 ]. Each interaction is first mapped to its action type ( e.g., click, input) based on execution logs, and the corresponding widget label is extracted from GUI metadata and OCR results. These elements are then combined using simple verb-object templates ( e.g., “click save button”, “input alarm time”) [ 40 , 51 ], with fallback descriptions for unlabeled widgets. The resulting phrases are normalized for consistency and subsequently encoded using SBERT, providing a semantically meaningful and scalable representation of exploration traces. Each action phrase is individually encoded using Sentence-BERT (SBERT) [ 30 ], which converts the sentence into a 384-dimensional vector representation. The entire sequence of encoded actions is then passed through a bidirectional LSTM (BiLSTM) model [ 9 ], which aggregates the sequence into a fixed-size 256-dimensional vector representing the full test path. We choose SBERT because it provides semantically meaningful embeddings for short natural language phrases, making it well-suited for encoding individual GUI actions. To capture the sequential and contextual structure of entire test paths, we use a BiLSTM, which effectively models both forward and backward dependencies in action sequences. This combination ensures that both semantic intent and behavioral flow are preserved in the final path representation. This model configuration, including SBERT and BiLSTM, is selected based on GPT-assisted parameter tuning and prior studies in semantic sequence encoding. Cosine similarity is computed over path-level embeddings generated by a BiLSTM, which aggregates SBERT-encoded action phrases in sequence. Each action phrase is produced through a rule-based purification process that abstracts low-level GUI events into concise, semantically meaningful descriptions. The BiLSTM captures both the semantic content and the sequential dependencies of these actions, ensuring that variations in execution order and context are preserved in the final embedding. Applying cosine similarity to these embeddings allows us to quantify differences in exploration behavior, 
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026.
+
+14 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen 
+
+capturing not just which actions were taken but also how they were structured. This design aligns with our goal of evaluating persona-induced behavioral patterns, supporting the measurement of intra-persona cohesion and inter-persona separation in a principled and order-sensitive manner. To prepare for the user study evaluating persona consistency (RQ1.3), we recruited 20 participants with relevant experience in software GUI testing, including graduate students specializing in software engineering and professional QA engineers or testers with over five years of industry experience. For the study materials, we generated a set of complete video recordings capturing GUI exploration traces produced by different persona-guided LLM agents across various tasks. All videos were carefully anonymized to remove any labels or identifiers that might reveal the underlying persona. After viewing each video, participants were provided with a list of predefined persona profiles, each described along three dimensions: testing mindset, exploration strategy, and interaction habit. Participants were asked to evaluate the degree to which the observed agent behavior aligned with each persona profile using a 10-point Likert scale [ 16 ], where 1 indicated no match and 10 indicated a perfect match. This design allowed us to quantitatively assess the interpretability and semantic fidelity of the persona-driven behaviors from a human perspective. For the intra-cluster cohesion, we quantify the similarity between multiple test sessions executed by the same persona-guided agent on the same task. As shown in Fig. 4, most personified agents demonstrate high intra-persona consistency, with scores often approaching or exceeding 0.9. This indicates that the decision-making process of each agent is stably guided by its assigned persona, resulting in reproducible behavior patterns across repeated runs. In contrast, the non-personified baseline agent ( Persona X ) exhibits noticeably lower cohesion, ranging from 0.31 to 0.7, reflecting less stable and more erratic exploration behavior in the absence of explicit behavioral modeling. These findings confirm that persona injection not only informs the high-level intent of an agent but also anchors its interaction behavior in a consistent and repeatable manner. X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.56 0.54 0.55 0.57 0.59 0.52 0.59 0.50 0.43 0.64 
+
+0.54 0.96 0.30 0.48 0.55 0.60 0.47 0.58 0.53 0.62 
+
+0.55 0.30 0.96 0.38 0.49 0.66 0.50 0.51 0.50 0.59 
+
+0.57 0.48 0.38 0.91 0.31 0.48 0.53 0.56 0.50 0.57 
+
+0.59 0.55 0.49 0.31 0.92 0.63 0.47 0.59 0.45 0.64 
+
+0.52 0.60 0.66 0.48 0.63 0.99 0.51 0.60 0.53 0.59 
+
+0.59 0.47 0.50 0.53 0.47 0.51 0.99 0.58 0.51 0.62 
+
+0.50 0.58 0.51 0.56 0.59 0.60 0.58 0.94 0.59 0.54 
+
+0.43 0.53 0.50 0.50 0.45 0.53 0.51 0.59 0.98 0.56 
+
+0.64 0.62 0.59 0.57 0.64 0.59 0.62 0.54 0.56 0.92 
+
+Task 1 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.40 0.57 0.28 0.55 0.37 0.60 0.59 0.58 0.52 0.47 
+
+0.57 0.93 0.53 0.42 0.43 0.49 0.63 0.67 0.47 0.57 
+
+0.28 0.53 0.99 0.36 0.45 0.44 0.45 0.56 0.46 0.54 
+
+0.55 0.42 0.36 0.94 0.24 0.46 0.47 0.57 0.50 0.52 
+
+0.37 0.43 0.45 0.24 0.93 0.59 0.55 0.58 0.53 0.45 
+
+0.60 0.49 0.44 0.46 0.59 0.98 0.49 0.60 0.42 0.60 
+
+0.59 0.63 0.45 0.47 0.55 0.49 0.92 0.56 0.50 0.56 
+
+0.58 0.67 0.56 0.57 0.58 0.60 0.56 0.92 0.48 0.57 
+
+0.52 0.47 0.46 0.50 0.53 0.42 0.50 0.48 0.91 0.40 
+
+0.47 0.57 0.54 0.52 0.45 0.60 0.56 0.57 0.40 0.97 
+
+Task 2 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.31 0.50 0.27 0.37 0.26 0.47 0.44 0.52 0.45 0.52 
+
+0.50 0.98 0.36 0.46 0.43 0.48 0.64 0.56 0.47 0.63 
+
+0.27 0.36 0.86 0.27 0.49 0.54 0.51 0.57 0.50 0.54 
+
+0.37 0.46 0.27 0.91 0.51 0.46 0.61 0.62 0.49 0.61 
+
+0.26 0.43 0.49 0.51 0.90 0.60 0.56 0.57 0.52 0.52 
+
+0.47 0.48 0.54 0.46 0.60 0.92 0.50 0.54 0.49 0.57 
+
+0.44 0.64 0.51 0.61 0.56 0.50 0.92 0.59 0.52 0.50 
+
+0.52 0.56 0.57 0.62 0.57 0.54 0.59 0.98 0.50 0.55 
+
+0.45 0.47 0.50 0.49 0.52 0.49 0.52 0.50 0.98 0.46 
+
+0.52 0.63 0.54 0.61 0.52 0.57 0.50 0.55 0.46 0.91 
+
+Task 3 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.47 0.25 0.65 0.25 0.65 0.66 0.50 0.64 0.51 0.63 
+
+0.25 0.94 0.45 0.57 0.57 0.64 0.39 0.53 0.42 0.54 
+
+0.65 0.45 0.94 0.49 0.50 0.49 0.44 0.54 0.45 0.62 
+
+0.25 0.57 0.49 0.94 0.39 0.55 0.50 0.57 0.46 0.57 
+
+0.65 0.57 0.50 0.39 0.92 0.65 0.57 0.58 0.53 0.57 
+
+0.66 0.64 0.49 0.55 0.65 0.91 0.59 0.63 0.52 0.54 
+
+0.50 0.39 0.44 0.50 0.57 0.59 0.90 0.51 0.48 0.53 
+
+0.64 0.53 0.54 0.57 0.58 0.63 0.51 0.96 0.54 0.62 
+
+0.51 0.42 0.45 0.46 0.53 0.52 0.48 0.54 0.96 0.46 
+
+0.63 0.54 0.62 0.57 0.57 0.54 0.53 0.62 0.46 0.93 
+
+Task 4 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.39 0.39 0.44 0.39 0.48 0.59 0.46 0.56 0.45 0.57 
+
+0.39 0.90 0.32 0.58 0.28 0.51 0.56 0.59 0.47 0.58 
+
+0.44 0.32 0.90 0.44 0.66 0.63 0.46 0.57 0.46 0.63 
+
+0.39 0.58 0.44 0.94 0.36 0.60 0.61 0.63 0.49 0.57 
+
+0.48 0.28 0.66 0.36 0.93 0.55 0.45 0.52 0.49 0.65 
+
+0.59 0.51 0.63 0.60 0.55 0.98 0.51 0.58 0.50 0.65 
+
+0.46 0.56 0.46 0.61 0.45 0.51 0.97 0.47 0.42 0.54 
+
+0.56 0.59 0.57 0.63 0.52 0.58 0.47 0.96 0.47 0.60 
+
+0.45 0.47 0.46 0.49 0.49 0.50 0.42 0.47 0.90 0.49 
+
+0.57 0.58 0.63 0.57 0.65 0.65 0.54 0.60 0.49 0.92 
+
+Task 5 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.31 0.41 0.26 0.50 0.52 0.51 0.55 0.54 0.43 0.60 
+
+0.41 0.94 0.40 0.43 0.65 0.55 0.42 0.59 0.41 0.55 
+
+0.26 0.40 0.94 0.38 0.40 0.49 0.53 0.58 0.40 0.62 
+
+0.50 0.43 0.38 0.87 0.59 0.51 0.61 0.51 0.45 0.55 
+
+0.52 0.65 0.40 0.59 0.92 0.53 0.53 0.56 0.48 0.57 
+
+0.51 0.55 0.49 0.51 0.53 0.99 0.50 0.51 0.39 0.50 
+
+0.55 0.42 0.53 0.61 0.53 0.50 0.88 0.52 0.37 0.63 
+
+0.54 0.59 0.58 0.51 0.56 0.51 0.52 0.87 0.44 0.62 
+
+0.43 0.41 0.40 0.45 0.48 0.39 0.37 0.44 0.91 0.45 
+
+0.60 0.55 0.62 0.55 0.57 0.50 0.63 0.62 0.45 0.90 
+
+Task 6 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.53 0.30 0.60 0.30 0.61 0.49 0.52 0.58 0.50 0.54 
+
+0.30 0.93 0.55 0.65 0.45 0.63 0.62 0.57 0.47 0.59 
+
+0.60 0.55 0.92 0.58 0.63 0.48 0.63 0.56 0.53 0.65 
+
+0.30 0.65 0.58 0.92 0.31 0.53 0.45 0.56 0.51 0.59 
+
+0.61 0.45 0.63 0.31 0.94 0.58 0.53 0.54 0.47 0.58 
+
+0.49 0.63 0.48 0.53 0.58 0.92 0.63 0.56 0.48 0.63 
+
+0.52 0.62 0.63 0.45 0.53 0.63 0.99 0.54 0.49 0.58 
+
+0.58 0.57 0.56 0.56 0.54 0.56 0.54 0.90 0.53 0.59 
+
+0.50 0.47 0.53 0.51 0.47 0.48 0.49 0.53 0.90 0.53 
+
+0.54 0.59 0.65 0.59 0.58 0.63 0.58 0.59 0.53 0.92 
+
+Task 7 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.40 0.53 0.38 0.27 0.71 0.58 0.56 0.57 0.49 0.64 
+
+0.53 0.92 0.48 0.55 0.57 0.62 0.49 0.57 0.48 0.57 
+
+0.38 0.48 0.93 0.43 0.51 0.54 0.56 0.56 0.50 0.57 
+
+0.27 0.55 0.43 0.92 0.54 0.46 0.52 0.58 0.47 0.52 
+
+0.71 0.57 0.51 0.54 0.94 0.69 0.54 0.57 0.54 0.59 
+
+0.58 0.62 0.54 0.46 0.69 0.93 0.66 0.52 0.58 0.64 
+
+0.56 0.49 0.56 0.52 0.54 0.66 0.97 0.71 0.55 0.73 
+
+0.57 0.57 0.56 0.58 0.57 0.52 0.71 0.97 0.47 0.68 
+
+0.49 0.48 0.50 0.47 0.54 0.58 0.55 0.47 0.96 0.46 
+
+0.64 0.57 0.57 0.52 0.59 0.64 0.73 0.68 0.46 0.97 
+
+Task 8 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.30 0.36 0.61 0.66 0.59 0.61 0.50 0.57 0.50 0.62 
+
+0.36 0.91 0.56 0.21 0.52 0.55 0.65 0.61 0.47 0.64 
+
+0.61 0.56 0.91 0.65 0.33 0.52 0.47 0.59 0.44 0.50 
+
+0.66 0.21 0.65 0.90 0.39 0.51 0.52 0.52 0.48 0.52 
+
+0.59 0.52 0.33 0.39 0.98 0.58 0.61 0.54 0.48 0.59 
+
+0.61 0.55 0.52 0.51 0.58 0.99 0.41 0.61 0.49 0.61 
+
+0.50 0.65 0.47 0.52 0.61 0.41 0.92 0.57 0.56 0.63 
+
+0.57 0.61 0.59 0.52 0.54 0.61 0.57 0.93 0.47 0.60 
+
+0.50 0.47 0.44 0.48 0.48 0.49 0.56 0.47 0.99 0.52 
+
+0.62 0.64 0.50 0.52 0.59 0.61 0.63 0.60 0.52 0.93 
+
+Task 9 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.44 0.46 0.28 0.24 0.35 0.45 0.58 0.50 0.41 0.57 
+
+0.46 0.96 0.28 0.60 0.35 0.58 0.49 0.55 0.47 0.60 
+
+0.28 0.28 0.92 0.47 0.30 0.58 0.58 0.55 0.51 0.58 
+
+0.24 0.60 0.47 0.90 0.64 0.51 0.48 0.51 0.50 0.59 
+
+0.35 0.35 0.30 0.64 0.95 0.60 0.53 0.57 0.44 0.59 
+
+0.45 0.58 0.58 0.51 0.60 0.99 0.50 0.61 0.52 0.51 
+
+0.58 0.49 0.58 0.48 0.53 0.50 0.88 0.53 0.51 0.60 
+
+0.50 0.55 0.55 0.51 0.57 0.61 0.53 0.99 0.50 0.61 
+
+0.41 0.47 0.51 0.50 0.44 0.52 0.51 0.50 0.99 0.48 
+
+0.57 0.60 0.58 0.59 0.59 0.51 0.60 0.61 0.48 0.99 
+
+Task 10 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.52 0.68 0.54 0.44 0.52 0.51 0.50 0.57 0.46 0.56 
+
+0.68 0.93 0.52 0.39 0.50 0.53 0.56 0.63 0.48 0.52 
+
+0.54 0.52 0.92 0.62 0.38 0.49 0.62 0.59 0.46 0.55 
+
+0.44 0.39 0.62 0.98 0.26 0.63 0.48 0.57 0.46 0.60 
+
+0.52 0.50 0.38 0.26 0.90 0.58 0.45 0.59 0.44 0.61 
+
+0.51 0.53 0.49 0.63 0.58 0.95 0.50 0.59 0.50 0.59 
+
+0.50 0.56 0.62 0.48 0.45 0.50 0.99 0.61 0.51 0.58 
+
+0.57 0.63 0.59 0.57 0.59 0.59 0.61 0.91 0.51 0.54 
+
+0.46 0.48 0.46 0.46 0.44 0.50 0.51 0.51 0.89 0.43 
+
+0.56 0.52 0.55 0.60 0.61 0.59 0.58 0.54 0.43 0.91 
+
+Task 11 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.39 0.45 0.50 0.29 0.41 0.45 0.58 0.51 0.44 0.61 
+
+0.45 0.90 0.33 0.30 0.35 0.56 0.60 0.52 0.46 0.61 
+
+0.50 0.33 0.99 0.67 0.43 0.51 0.48 0.60 0.52 0.62 
+
+0.29 0.30 0.67 0.94 0.53 0.47 0.59 0.56 0.53 0.52 
+
+0.41 0.35 0.43 0.53 0.94 0.52 0.54 0.57 0.45 0.60 
+
+0.45 0.56 0.51 0.47 0.52 0.89 0.58 0.53 0.47 0.60 
+
+0.58 0.60 0.48 0.59 0.54 0.58 0.97 0.51 0.42 0.56 
+
+0.51 0.52 0.60 0.56 0.57 0.53 0.51 0.97 0.46 0.59 
+
+0.44 0.46 0.52 0.53 0.45 0.47 0.42 0.46 0.91 0.49 
+
+0.61 0.61 0.62 0.52 0.60 0.60 0.56 0.59 0.49 0.92 
+
+Task 12 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.39 0.45 0.65 0.49 0.60 0.52 0.48 0.59 0.47 0.57 
+
+0.45 0.93 0.50 0.55 0.39 0.67 0.63 0.63 0.51 0.62 
+
+0.65 0.50 0.93 0.51 0.59 0.54 0.48 0.60 0.51 0.61 
+
+0.49 0.55 0.51 0.93 0.56 0.52 0.56 0.59 0.55 0.57 
+
+0.60 0.39 0.59 0.56 0.94 0.51 0.56 0.63 0.55 0.58 
+
+0.52 0.67 0.54 0.52 0.51 0.95 0.64 0.61 0.45 0.60 
+
+0.48 0.63 0.48 0.56 0.56 0.64 0.98 0.59 0.53 0.57 
+
+0.59 0.63 0.60 0.59 0.63 0.61 0.59 0.99 0.53 0.64 
+
+0.47 0.51 0.51 0.55 0.55 0.45 0.53 0.53 0.88 0.50 
+
+0.57 0.62 0.61 0.57 0.58 0.60 0.57 0.64 0.50 0.93 
+
+Task 13 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.70 0.57 0.63 0.68 0.60 0.53 0.50 0.62 0.52 0.65 
+
+0.57 0.99 0.48 0.63 0.54 0.70 0.59 0.58 0.51 0.64 
+
+0.63 0.48 0.93 0.53 0.55 0.55 0.48 0.57 0.52 0.64 
+
+0.68 0.63 0.53 0.91 0.53 0.58 0.51 0.58 0.45 0.59 
+
+0.60 0.54 0.55 0.53 0.90 0.54 0.47 0.52 0.46 0.55 
+
+0.53 0.70 0.55 0.58 0.54 0.95 0.58 0.59 0.56 0.56 
+
+0.50 0.59 0.48 0.51 0.47 0.58 0.93 0.57 0.47 0.58 
+
+0.62 0.58 0.57 0.58 0.52 0.59 0.57 0.92 0.53 0.61 
+
+0.52 0.51 0.52 0.45 0.46 0.56 0.47 0.53 0.88 0.53 
+
+0.65 0.64 0.64 0.59 0.55 0.56 0.58 0.61 0.53 0.91 
+
+Task 14 
+
+X A B C D E F G H I
+
+X
+
+A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G
+
+H
+
+I
+
+0.60 0.54 0.57 0.41 0.39 0.52 0.52 0.57 0.57 0.65 
+
+0.54 0.92 0.34 0.66 0.49 0.48 0.59 0.61 0.55 0.60 
+
+0.57 0.34 0.91 0.35 0.40 0.64 0.56 0.55 0.47 0.58 
+
+0.41 0.66 0.35 0.91 0.49 0.48 0.60 0.58 0.49 0.64 
+
+0.39 0.49 0.40 0.49 0.93 0.57 0.48 0.57 0.52 0.61 
+
+0.52 0.48 0.64 0.48 0.57 0.99 0.64 0.59 0.55 0.58 
+
+0.52 0.59 0.56 0.60 0.48 0.64 0.92 0.57 0.49 0.63 
+
+0.57 0.61 0.55 0.58 0.57 0.59 0.57 0.93 0.48 0.60 
+
+0.57 0.55 0.47 0.49 0.52 0.55 0.49 0.48 0.92 0.49 
+
+0.65 0.60 0.58 0.64 0.61 0.58 0.63 0.60 0.49 0.98 
+
+Task 15 
+
+Fig. 5. RQ1.2: Inter-Cluster Separation 
+
+To assess behavioral distinctiveness across personas, we measure inter-cluster separation among agents executing the same tasks. As shown in Fig. 5, pairwise similarity matrices reveal that inter-persona similarities are consistently far lower than intra-persona ones, confirming that each persona drives distinct exploration behavior. For instance, although Persona B and Persona C 
+
+share a sequential mindset, their differing strategies and input habits result in notable behavioral divergence, with similarity scores ranging from 0.27 to 0.67. Likewise, divergent personas like 
+
+Persona E and Persona G show clear separation from structured ones like Persona A and Persona 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 15 
+
+B. These results highlight the effectiveness of our persona configuration space in producing diverse, behaviorally meaningful testing patterns. For RQ1.3, the results indicate a high degree of perceived consistency between the persona-guided agent behaviors and their intended persona profiles. The average ratings across all participants are 8.35 for Testing Mindset, 8.70 for Exploration Strategy, and 8.80 for Interaction Habit (all scores are over or equal to 7). These high scores suggest that participants were able to consistently recognize and interpret the distinct behavioral characteristics encoded in the personas. Among the three dimensions, Interaction Habit achieves the highest average rating (8.80) with relatively low standard deviation (0.77), indicating that participants found the input style and behavioral tendencies ( e.g., inputting valid and long or invalid values) particularly distinguishable and reliably expressed. Testing Mindset follows closely with an average score of 8.35 and the lowest standard deviation (0.67), showing stable agreement across participants in identifying sequential or divergent thinking patterns in agent behavior. Exploration Strategy, while still receiving strong ratings (average of 8.70), exhibits the highest variability with a standard deviation of 1.08. This suggests that although participants generally perceived exploration intent ( e.g., click-focused or core-function-focused) as aligned with the persona descriptions, such strategies may be somewhat more subjective or less consistently expressed compared to the other dimensions. These results validate that the behaviors produced by persona-guided LLM agents are not only diverse and consistent but also interpretable and semantically meaningful from a human perspective. The strong alignment between agent behavior and persona descriptions confirms the effectiveness of PersonaTester in simulating realistic and distinguishable crowdworker-like testing styles. 
+
+4.3 RQ2: Test Generation Effectiveness 
+
+RQ2 investigates the effectiveness of persona-guided LLM agents in generating test events during automated GUI exploration. We evaluate this effectiveness from two perspectives: general test event generation, which includes all interaction types such as clicks and navigations, and input event generation, which focuses specifically on text-based input actions like entering values into forms or fields. In this study, we define test generation effectiveness as the degree to which a generated test event contributes meaningfully to the exploration of the app under test. Specifically, we consider a test event to be effective if it leads to a successful and semantically valid interaction, such as triggering a new GUI state, invoking a meaningful response, or progressing a task scenario. We calculate the proportion of effective events to all events and show the results in Fig. 6. X A B C D E F G H I
+
+> (Non-)Personified LLM Agent
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> 100
+> Test Generation Effectiveness (%)
+
+(a) RQ2.1: General Test Generation Effectiveness X A B C D E F G H I 
+
+> (Non-)Personified LLM Agent
+> 0
+> 20
+> 40
+> 60
+> 80
+> Input Event Generation Effectiveness (%)
+
+(b) RQ2.2: Input Test Generation Effectiveness Fig. 6. RQ2: Test Generation Effectiveness 
+
+Most persona-guided agents perform comparatively better than the non-personified baseline agent ( Persona X ) in terms of overall test event generation effectiveness, outperforming by 33% – 47% on average. Several agents consistently outperform the baseline. This indicates that the integration of persona-guided behavioral intent does not compromise the LLM’s ability to interact  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. 16 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+with the GUI. On the contrary, it appears to guide the agent toward producing more purposeful and executable test actions. A more distinct pattern is observed in input event generation effectiveness, presented in Fig. 6b. The results clearly demonstrate that this capability is strongly influenced by the exploration strategy specified in the persona. Agents with input-oriented strategies ( i.e., Persona C , Persona F , Persona I) achieve consistently high effectiveness scores across multiple tasks, outperforming the baseline 
+
+Persona X by 683.32% – 697.50% on average. Their behaviors are aligned with a focused intent to interact with input fields, resulting in a higher frequency of valid and semantically appropriate text inputs. In contrast, agents with click-oriented exploration strategies ( i.e., Persona A , Persona E ,
+
+Persona G ) consistently exhibit low input event effectiveness, outperforming the baseline Persona X by -28.03% – -6.60% on average. These agents prioritize interaction with clickable UI elements and generally ignore input components, as specified in their persona definitions. Agents with core-function-focused strategies ( i.e., Persona B , Persona D , Persona H ) show more variable performance, outperforming the baseline Persona X by 80.31% – 156.59% on average. While they occasionally produce valid input events during task-oriented workflows, their effectiveness in this area remains inconsistent and generally moderate. These results confirm that the persona design can directly shape the LLM agent’s attention and interaction patterns. The strong alignment between input-oriented strategies and input event generation effectiveness demonstrates the importance of fine-grained behavioral modeling in achieving targeted test coverage. Overall, the findings support the conclusion that persona-guided agents not only enhance diversity and realism in automated GUI testing, but also contribute to the generation of more meaningful and functional test events. 
+
+4.4 RQ3: Bug Triggering Capability 
+
+RQ3 evaluates the practical effectiveness of persona-guided LLM agents in triggering bugs during automated GUI testing. Specifically, we focus on two categories of bugs: crash bugs and functional bugs. The goal is to determine whether the diversity introduced through personification contributes meaningfully to bug triggering beyond what a single non-personified agent can achieve. Crash bug triggering results are summarized in Fig. 7. Each subfigure presents a comparison between the set of crash bugs triggered by the non-personified agent, Persona X , and each persona-guided agent ( Persona A through Persona I ). The overlapping regions illustrate the shared bug findings, while non-overlapping regions highlight unique discoveries. Across all comparisons, persona-guided agents demonstrate an ability to trigger both common and distinct crash bugs relative to the baseline. Six of the agents trigger over 20 distinct bugs that are not covered by the baseline Persona X , among which Persona E has the best performance, triggering 26 distinct bugs. Intuitively, persona-guided agents trigger 29 – 38 crash bugs in total on different tasks while 
+
+Persona X can only trigger 22 crash bugs. This suggests that the exploratory diversity introduced through persona configurations enables agents to reach UI states or usage paths that are less accessible to a generic strategy. We observe that a small number of bugs are uniquely triggered by the non-personified baseline agent. These cases are largely due to the inherent randomness in the baseline’s decision-making, which occasionally leads to alternative, unstructured paths that are not aligned with any defined persona. However, such behavior is non-repeatable and shows no consistent pattern. In contrast, persona-guided agents exhibit stable, interpretable behaviors. While our current persona set is not exhaustive, these findings suggest that expanding the diversity of personas can further improve bug coverage. Overall, the results highlight that personified agents can uncover unique bugs aligned with their behavioral profiles, validating the value of structured diversity in automated GUI testing. 
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026.
+
+Towards Automated Crowdsourced Testing via Personified-LLM 17 17 113 19                 
+
+> 9X
+> ALL
+> 9X × ALL
+> 925 13
+> X
+> A
+> X × A
+> 11 24 11
+> XB
+> X × B
+> 11 26 11
+> X
+> C
+> X × C
+> 10 18 12
+> XD
+> X × D
+> 12 26 10
+> XE
+> X × E
+> 714 15
+> XF
+> X × F
+> 515 17
+> XG
+> X × G
+> 11 22 11
+> XH
+> X × H
+> 12 20 10
+> XI
+> X × I
+
+Fig. 7. RQ3.1: Crash Bug Triggering Capability 
+
+To further assess the practicality, we compare the cumulative results of nine persona-guided agents ( Persona A through Persona I ) against a nine-run result of the Persona X , as shown in subfigure “9X × ALL”. In this setting, we simulate the scenario of replacing nine human crowd-workers with nine diverse persona-driven agents. The results indicate that the persona-guided group collectively discovers a significantly broader set of crash bugs. While there is some overlap, the union of unique bugs found by the persona agents substantially exceeds that of nine repetitions of the baseline. This confirms that behavioral diversity, rather than repetition, is the key factor in maximizing crash bug exposure. Functional bug triggering results are presented in Table 2. The table lists functional bugs triggered by each agent across a set of predefined tasks. Each entry corresponds to a specific bug triggered by an agent in a particular task. Bug IDs in Table 2 are assigned based on matched failure symptoms and triggering conditions. If multiple agents encounter the same issue under similar interaction paths and GUI states, their findings are grouped under a single ID. This process ensures that cross-agent overlaps reflect actual shared bug discoveries rather than superficial similarity. All reported functional bugs are confirmed through manual inspection. Three of the authors independently review the exploration traces, including UI context, executed actions, and resulting outcomes. A functional bug is labeled only when all reviewers reach consensus, ensuring consistent and objective validation. The multimodal LLM is used solely for analyzing GUI-level visual issues (e.g., layout errors), not for determining functional correctness. Summing across all tasks, Persona H achieves the highest triggering count (6 bugs), followed by 
+
+Persona B and Persona G (4 bugs each). Interestingly, the non-personified agent only triggers 3 bugs in total, which are all triggered by some of the persona-guided agents. These results reveal a similar trend to crash bug triggering: persona-guided agents are not only capable of discovering the same set of functional defects as the baseline but also contribute to triggering additional, previously unseen issues. 
+
+Table 2. RQ3.2: Functional Bug Triggering Capability                                                     
+
+> Task ID Persona X Persona A Persona B Persona C Persona D Persona E Persona F Persona G Persona H Persona I
+> 4fb11 fb11 fb11 fb11 fb11 fb11 fb11 5fb10 fb10 fb10 fb10 6fb1 fb1 fb1 fb1 fb1 9fb6 fb7 fb7 fb9 fb6 fb7 fb8 fb8 10 fb2 fb3 fb2 15 fb4 fb4 fb4 fb4 fb5 fb4 fb4 SUM 3343233463
+
+To illustrate the influence of persona configurations on functional bug triggering, we highlight some representative cases where the behavioral traits of persona-guided agents directly contribute to the discovery of functional bugs. 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. 18 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen 
+
+fb2 (Timing-Sensitive Filtering Error) is triggered only when the alarm filter is applied at the very start of the session. This bug is discovered by agents with Persona A and Persona G, both of which adopt the sequential testing mindset and click-oriented strategy that prioritize early interaction with top-level UI elements. Their methodical behavior aligns precisely with the temporal condition required to expose this transient issue. 
+
+fb3 (Alarm Editing Lock-In) (the bug presented in Section 2.2) leads to an inactive alarm to become uneditable after a type change. This is triggered exclusively by the agent using Persona B ,which emphasizes coherent, goal-driven exploration. The persona’s complete workflow execution, including editing and saving, is essential to reach the bug state. 
+
+fb5 (Peripheral Page Rendering Bug) occurs on a rarely visited “Support Development” page, where lower content fails to render. Persona F , designed with divergent and input-seeking traits, navigates through non-obvious paths while searching for input opportunities, uncovering a bug that task-focused strategies would likely miss. 
+
+fb7 (Text-Length UI Overlap) involves a visual flaw where the “Send” button is obscured by long text input. Agents with Persona A , Persona F , Persona H , all configured with long-valid input interaction habit, consistently surface this bug. Their interaction habit simulates realistic user stress conditions, revealing UI vulnerabilities missed by short or default inputs. These examples demonstrate that persona traits such as interaction timing, input style, and exploration breadth have a tangible impact on the types of bugs discovered. By encoding realistic user behaviors, PersonaTester enables automated agents to uncover defects that align with real-world usage patterns. In summary, the findings from RQ3 confirm that persona-guided LLM agents enhance the bug triggering capability of automated GUI testing. By embedding diverse behavioral intents into the agents, PersonaTester simulates a virtual crowd of testers whose collective exploration patterns lead to higher bug triggering than generic or repetitive automation. This validates the practical benefit of incorporating behavioral diversity in automated testing, particularly in settings where maximizing bug discovery is critical. 
+
+4.5 Threats to Validity 
+
+One threat to internal validity stems from the manual labeling of exploration traces used in the similarity analysis and user study. To reduce bias, we applied cross-validation and used standard-ized linguistic templates for action descriptions. The user study also employed randomized trace presentation and anonymized persona identities to minimize experimenter and participant bias. External validity may be limited by our selection of test apps, tasks, and the defined personas. While these cover diverse behavioral patterns and real-world tasks, they may not capture the full spectrum of user behaviors or application domains. To mitigate this, we varied task types and UI structures and grounded persona design in real-world crowdworker data. Measurement validity also presents a risk, as metrics like path similarity may not fully capture complex behavioral nuances. To address this, we complement quantitative analysis with qualitative assessments, including a user study to evaluate semantic alignment, ensuring a more robust validation of persona-driven testing fidelity. We have tried our best to design a rigorous evaluation protocol that balances reproducibility, interpretability, and realism. These steps collectively strengthen the validity of our findings and support the broader applicability of persona-guided LLM agents in automated GUI testing. 
+
+4.6 Discussion 
+
+4.6.1 Novelty Highlight. A key contribution of PersonaTester is how we simulate crowdsourced testing through a structured, automated approach. Rather than replicating the same agent multiple times or relying on implicit behavioral randomness, we inject diverse personas into a shared LLM-based testing framework. This allows personified agents to represent different crowdworker  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 19
+
+archetypes, and enables them to work collectively to emulate the behavioral diversity of the real-world crowdsourced testing paradigm. The resulting ensemble of persona-guided agents produces complementary testing behaviors that, together, achieve broader exploration and more effective bug triggering than any single agent alone. To sum up, PersonaTester can be positioned as an automated realization of crowdsourced GUI testing. 
+
+4.6.2 Influence of App Characteristics. The effectiveness can be influenced by factors such as GUI and functional complexity, UI frameworks, and application domain. While a detailed factor-wise analysis is beyond the scope of this study, we mitigate potential bias by selecting apps from diverse domains with varied GUI structures and interaction patterns, implicitly covering different levels of complexity. We observe consistent trends across these heterogeneous apps, suggesting that persona-guided agents are robust to such variations. A more fine-grained analysis of how specific app characteristics affect persona-guided testing remains an important direction for future work. 
+
+4.6.3 Addressing LLM Inherent Limitations. PersonaTester mitigates inherent LLM limitations such as uncertainty, hallucination, and reproducibility through explicit design choices. A two-stage intent verification mechanism validates each proposed action against the current GUI context using an independent LLM-as-a-judge, reducing misaligned decisions and preventing error propagation. In addition, deterministic LLM settings ( e.g., temperature = 0) are used to ensure stable and reproducible behavior across runs, enabling fair evaluation of persona effects. 
+
+4.6.4 Economic Cost Analysis. PersonaTester adopts a modular model configuration to balance accuracy and efficiency. The lightweight o4-mini model is used for decision-making, while the more capable multimodal GPT-4o model is reserved for GUI understanding and post-execution validation, where higher precision is needed. Based on our measurements, GUI understanding and validation consume, on average, 112,386 input tokens (~$0.28) and 12,305 output tokens (~$0.12) per task per agent. The decision-making process consumes 70,569 input tokens (~$0.08) and 45,720 output tokens (~$0.20). In total, each task execution costs ~$0.68 per agent, which is substantially more economical than recruiting a real-world crowdworker to perform the same testing task. The breakout tables for the results are available on our online supplementary materials (Section 7) due to page limit. This cost-effectiveness enables scalable deployment of PersonaTester for automated crowdsourced testing. 
+
+5 Related Work 5.1 LLM-based GUI Testing: Automated and Crowdsourced 
+
+Recent studies have explored leveraging LLMs to augment automated GUI testing. Liu et al. [22 ]propose GPTDroid, which passes the app GUI state to an LLM and iteratively “chats” with the app to generate test actions. Wang et al. [ 37 ] introduce LLMDroid, which combines traditional automated exploration with occasional LLM guidance. Overall, these studies demonstrate that LLMs can drive human-like exploratory testing, strategically navigating app GUI and increasing coverage, if used judiciously to balance insight versus cost. Beyond raw coverage, researchers are using LLMs to pursue more semantic testing goals aligned with app functionality and user scenarios. Yu et al. 
+
+comprehensively analyze the capabilities of LLMs in generating and migrating GUI test scripts [ 54 ]. Yoon et al. develop DroidAgent [ 49 ], an autonomous LLM-driven tester that sets high-level task goals and then executes the GUI steps to fulfill them. Similarly, Yu et al. successively present ScenTest [ 52 ] and ScenGen [ 58 ], which are frameworks that mirror the manual testing process by assigning different sub-tasks to LLM agents or knowledge graph enhanced modules. LLMs have also been applied to migrate GUI test scripts across different apps or platforms. Traditional test migration techniques relied on static widget mappings between apps with similar  
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026. 20 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen
+
+functionality, but this often breaks down when the GUI diverges [ 60 ]. Zhang et al. [ 59 ] propose an abstraction-concretization paradigm using LLMs. Another approach by Cao et al. [ 2 ] uses LLM “intention understanding” to migrate tests. These studies illustrate how LLMs serve as software testing translators, carrying out test reuse by understanding the purpose behind GUI actions. Another promising application is using LLMs to interpret bug reports and reproduce the described issues on the GUI. AdbGPT [ 7] is an early system that employs GPT 3.5 to extract structured S2R steps from a free-form bug report, then iteratively uses ChatGPT to select matching GUI widgets and execute each step. Wang et al. [38 ] introduce ReBL, which forgoes explicit step extraction and instead feeds the entire bug description to the LLM, coupled with a feedback loop during execution. Another effort is ReActDroid by Huang et al. [14 ], which combines “Reasoning + Acting” prompts to infer missing context and steps from just the crash summary. These advances show that LLMs can serve as powerful natural language intermediaries in testing: they read and comprehend bug descriptions or logs, then drive the app GUI to reenact failures for developers. LLMs can also be utilized to enhance the crowdsourced testing, including task allocation [ 5,41 , 46 ], report clustering [ 3, 12 , 21 , 57 ], report duplication detection [ 17 , 40 , 45 ], prioritization [ 6, 35 , 48 ], quality detection [ 56 ], etc. LLMPrior [ 20 ], a representative LLM-based framework, prioritizes crowdsourced bug reports by leveraging semantic understanding. However, no existing work has aimed to enhance crowdsourced testing by automating the behavior of crowdworkers; current methods still rely heavily on human participation and its inherent unpredictability. This paper introduces PersonaTester , a personified-LLM-based framework that simulates diverse tester behaviors through designed personas, thereby improving the efficiency, reliability, and controllability of crowdsourced testing without sacrificing behavioral diversity. 
+
+5.2 LLM Personification 
+
+Another active research area is LLM personification, injecting personas into LLMs to steer behav-ior and enhance task performance. Originally explored in conversational AI ( e.g., PersonaChat), personification has gained traction as a powerful prompt-engineering strategy across domains [ 36 ]. Role-based prompts ( e.g., “act as a software tester”) influence the LLM’s reasoning style and focus. Recent studies suggest that well-aligned personas can improve task outcomes. For instance, Hu et al. [13 ] find that LLM responses vary notably in tone and content across 162 tested personas, with benefits dependent on persona-task alignment and prompt formulation. In software engineering, prompting LLMs as testers or developers leads to more relevant and focused responses. Multi-agent frameworks have also embraced persona specialization, e.g., Luo et al. [24 ] and Qian et al. [29 ]demonstrate that role-assigned LLM agents (planner, coder, tester) achieve better collaboration and structured reasoning. These findings collectively highlight persona injection as a practical means for achieving more effective and targeted LLM behavior. Beyond NLP tasks, LLM personification gains traction in HCI for simulating user personas. Sun 
+
+et al. [ 34 ] introduce Persona-L, which uses ability-based persona prompts to model users with complex needs, such as individuals with disabilities. In social and educational simulations, Park 
+
+et al. [28 ] present “generative agents”, LLMs with personalities that interact autonomously in virtual environments, exhibiting human-like behaviors. These studies highlight the versatility of persona-based techniques, showing the ability to steer LLM outputs for human-centered reasoning. LLM personification is a versatile method for guiding an LLM’s knowledge, style, and reasoning, enhancing its effectiveness for specific roles or user needs. 
+
+6 Conclusion 
+
+This paper presents PersonaTester , a novel framework that integrate persona into LLM-driven agents to automates crowdsourced testing. By modeling testers across three dimensions (testing 
+
+> , Vol. 1, No. 1, Article . Publication date: March 2026.
+
+Towards Automated Crowdsourced Testing via Personified-LLM 21 
+
+mindset, exploration strategy, interaction habit), PersonaTester enables realistic and diverse test behaviors. Experimental results show strong intra-persona consistency and clear inter-persona differentiation, effectively replicating real-world crowdworker patterns. Compared to baseline agents, PersonaTester improves test generation effectiveness and bug triggering rates, showing its potential to bridge the gap between manual and automated testing paradigms. 
+
+7 Data Availability 
+
+More details and the replication package are on https://sites.google.com/view/personatester .
+
+Acknowledgments 
+
+The authors would like to thank the anonymous reviewers for their insightful comments. 
+
+References 
+
+[1] Domenico Amalfitano, Anna Rita Fasolino, Porfirio Tramontana, Salvatore De Carmine, and Atif M Memon. 2012. Using GUI ripping for automated testing of Android applications. In Proceedings of the 27th IEEE/ACM International Conference on Automated Software Engineering . 258–261. [2] Shaoheng Cao, Minxue Pan, Yuanhong Lan, and Xuandong Li. 2025. Intention-Based GUI Test Migration for Mobile Apps using Large Language Models. Proceedings of the ACM on Software Engineering 2, ISSTA (2025), 2296–2318. [3] Hao Chen, Song Huang, Yuchan Liu, Run Luo, and Yifei Xie. 2021. An effective crowdsourced test report clustering model based on sentence embedding. In 2021 IEEE 21st International Conference on Software Quality, Reliability and Security (QRS) . IEEE, 888–899. [4] Mengzhuo Chen, Zhe Liu, Chunyang Chen, Junjie Wang, Boyu Wu, Jun Hu, and Qing Wang. 2025. Standing on the Shoulders of Giants: Bug-Aware Automated GUI Testing via Retrieval Augmentation. Proceedings of the ACM on Software Engineering 2, FSE (2025), 825–846. [5] Qiang Cui, Junjie Wang, Guowei Yang, Miao Xie, Qing Wang, and Mingshu Li. 2017. Who should be selected to perform a task in crowdsourced testing?. In 2017 IEEE 41st Annual Computer Software and Applications Conference (COMPSAC) , Vol. 1. IEEE, 75–84. [6] Chunrong Fang, Shengcheng Yu, Quanjun Zhang, Xin Li, Yulei Liu, and Zhenyu Chen. 2024. Enhanced Crowdsourced Test Report Prioritization via Image-and-Text Semantic Understanding and Feature Integration. IEEE Transactions on Software Engineering (2024). [7] Sidong Feng and Chunyang Chen. 2024. Prompting is all you need: Automated android bug replay with large language models. In Proceedings of the 46th IEEE/ACM International Conference on Software Engineering . 1–13. [8] Ruizhi Gao, Yabin Wang, Yang Feng, Zhenyu Chen, and W Eric Wong. 2019. Successes, challenges, and rethinking–an industrial investigation on crowdsourced mobile application testing. Empirical Software Engineering 24, 2 (2019), 537–561. [9] Alex Graves, Navdeep Jaitly, and Abdel-rahman Mohamed. 2013. Hybrid speech recognition with deep bidirectional LSTM. In 2013 IEEE workshop on automatic speech recognition and understanding . IEEE, 273–278. [10] Jonathan Grudin and John Pruitt. 2002. Personas, participatory design and product development: An infrastructure for engagement. In PDC . 144–152. [11] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, et al . 2025. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 (2025). [12] Rui Hao, Yang Feng, James A Jones, Yuying Li, and Zhenyu Chen. 2019. CTRAS: Crowdsourced test report aggregation and summarization. In 2019 IEEE/ACM 41st International Conference on Software Engineering (ICSE) . IEEE, 900–911. [13] Tiancheng Hu and Nigel Collier. 2024. Quantifying the Persona Effect in LLM Simulations. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 10289–10307. [14] Yuchao Huang, Junjie Wang, Zhe Liu, Mingyang Li, Song Wang, Chunyang Chen, Yuanzhe Hu, and Qing Wang. 2025. One Sentence Can Kill the Bug: Auto-replay Mobile App Crashes from One-sentence Overviews. IEEE Transactions on Software Engineering (2025). [15] Yuekai Huang, Junjie Wang, Song Wang, Zhe Liu, Yuanzhe Hu, and Qing Wang. 2020. Quest for the golden approach: An experimental evaluation of duplicate crowdtesting reports detection. In Proceedings of the 14th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM) . 1–12. [16] Ankur Joshi, Saket Kale, Satish Chandel, and D Kumar Pal. 2015. Likert scale: Explored and explained. British journal of applied science & technology 7, 4 (2015), 396. , Vol. 1, No. 1, Article . Publication date: March 2026. 22 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen 
+
+[17] Taemin Kim and Geunseok Yang. 2022. Predicting duplicate in bug report using topic-based duplicate learning with fine tuning-based bert algorithm. IEEE Access 10 (2022), 129666–129675. [18] Yuanchun Li, Ziyue Yang, Yao Guo, and Xiangqun Chen. 2017. Droidbot: a lightweight ui-guided test input generator for android. In 2017 IEEE/ACM 39th International Conference on Software Engineering Companion (ICSE-C) . IEEE, 23–26. [19] Yuanchun Li, Ziyue Yang, Yao Guo, and Xiangqun Chen. 2019. Humanoid: A deep learning-based approach to automated black-box android app testing. In 2019 34th IEEE/ACM International Conference on Automated Software Engineering (ASE) . IEEE, 1070–1073. [20] Yuchen Ling, Shengcheng Yu, Chunrong Fang, Guobin Pan, Jun Wang, and Jia Liu. 2025. Redefining crowdsourced test report prioritization: An innovative approach with large language model. Information and Software Technology 179 (2025), 107629. [21] Di Liu, Yang Feng, Xiaofang Zhang, James A Jones, and Zhenyu Chen. 2020. Clustering crowdsourced test reports of mobile applications using image understanding. IEEE transactions on software engineering 48, 4 (2020), 1290–1308. [22] Zhe Liu, Chunyang Chen, Junjie Wang, Mengzhuo Chen, Boyu Wu, Xing Che, Dandan Wang, and Qing Wang. 2024. Make llm a testing expert: Bringing human-like interaction to mobile gui testing via functionality-aware decisions. In 
+
+Proceedings of the IEEE/ACM 46th International Conference on Software Engineering . 1–13. [23] Zhe Liu, Chunyang Chen, Junjie Wang, Mengzhuo Chen, Boyu Wu, Yuekai Huang, Jun Hu, and Qing Wang. 2024. Unblind text inputs: predicting hint-text of text input in mobile apps via LLM. In Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems . 1–20. [24] Jing Luo, Run Luo, Longze Chen, Liang Zhu, Chang Ao, Jiaming Li, Yukun Chen, Xin Cheng, Wen Yang, Jiayuan Su, et al . 2024. PersonaMath: Enhancing Math Reasoning through Persona-Driven Data Augmentation. arXiv preprint arXiv:2410.01504 (2024). [25] Mostafa Mohammed, Haipeng Cai, and Na Meng. 2019. An empirical comparison between monkey testing and human testing (wip paper). In Proceedings of the 20th ACM SIGPLAN/SIGBED International Conference on Languages, Compilers, and Tools for Embedded Systems . 188–192. [26] Changhai Nie and Hareton Leung. 2011. A survey of combinatorial testing. ACM Computing Surveys (CSUR) 43, 2 (2011), 1–29. [27] Minxue Pan, An Huang, Guoxin Wang, Tian Zhang, and Xuandong Li. 2020. Reinforcement learning based curiosity-driven testing of android applications. In Proceedings of the 29th ACM SIGSOFT international symposium on software testing and analysis . 153–164. [28] Joon Sung Park, Joseph C O’Brien, Carrie J Cai, Meredith Ringel Morris, Percy Liang, Michael S Bernstein, et al . 2023. Generative agents: Interactive simulacra of human behavior. arXiv. Org (2023, April 7) https://arxiv. org/abs/2304.03442 v2 (2023). [29] Chen Qian and Xin Cong. 2023. Communicative agents for software development. arXiv preprint arXiv:2307.07924 6, 3 (2023). [30] Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks. In 
+
+Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing . Hong Kong, China, 3982–3992. doi:10.18653/v1/D19-1410 [31] Iflaah Salman, Ayse Tosun Misirli, and Natalia Juristo. 2015. Are students representatives of professionals in software engineering experiments?. In 2015 IEEE/ACM 37th IEEE international conference on software engineering , Vol. 1. IEEE, 666–676. [32] Ting Su, Guozhu Meng, Yuting Chen, Ke Wu, Weiming Yang, Yao Yao, Geguang Pu, Yang Liu, and Zhendong Su. 2017. Guided, stochastic model-based GUI testing of Android apps. In Proceedings of the 2017 11th joint meeting on foundations of software engineering . 245–256. [33] Yanqi Su, Zhenchang Xing, Chong Wang, Chunyang Chen, Sherry Xu, Qinghua Lu, and Liming Zhu. 2025. Automated Soap Opera Testing Directed by LLMs and Scenario Knowledge: Feasibility, Challenges, and Road Ahead. Proceedings of the ACM on Software Engineering 2, FSE (2025), 757–778. [34] Lipeipei Sun, Tianzi Qin, Anran Hu, Jiale Zhang, Shuojia Lin, Jianyan Chen, Mona Ali, and Mirjana Prpa. 2025. Persona-L has Entered the Chat: Leveraging LLMs and Ability-based Framework for Personas of People with Complex Needs. In Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems . 1–31. [35] Yao Tong and Xiaofang Zhang. 2021. Crowdsourced test report prioritization considering bug severity. Information and Software Technology 139 (2021), 106668. [36] Yu-Min Tseng, Yu-Chao Huang, Teng-Yun Hsiao, Wei-Lin Chen, Chao-Wei Huang, Yu Meng, and Yun-Nung Chen. 2024. Two tales of persona in llms: A survey of role-playing and personalization. arXiv preprint arXiv:2406.01171 
+
+(2024). [37] Chenxu Wang, Tianming Liu, Yanjie Zhao, Minghui Yang, and Haoyu Wang. 2025. LLMDroid: Enhancing Automated Mobile App GUI Testing Coverage with Large Language Model Guidance. Proceedings of the ACM on Software Engineering 2, FSE (2025), 1001–1022. , Vol. 1, No. 1, Article . Publication date: March 2026. Towards Automated Crowdsourced Testing via Personified-LLM 23 
+
+[38] Dingbang Wang, Yu Zhao, Sidong Feng, Zhaoxu Zhang, William GJ Halfond, Chunyang Chen, Xiaoxia Sun, Jiangfan Shi, and Tingting Yu. 2024. Feedback-driven automated whole bug report reproduction for android apps. In Proceedings of the 33rd ACM SIGSOFT International Symposium on Software Testing and Analysis . 1048–1060. [39] Jue Wang, Yanyan Jiang, Chang Xu, Chun Cao, Xiaoxing Ma, and Jian Lu. 2020. Combodroid: generating high-quality test inputs for android apps via use case combinations. In Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering . 469–480. [40] Junjie Wang, Mingyang Li, Song Wang, Tim Menzies, and Qing Wang. 2019. Images don’t lie: Duplicate crowdtesting reports detection with screenshot information. Information and Software Technology 110 (2019), 139–155. [41] Junjie Wang, Song Wang, Jianfeng Chen, Tim Menzies, Qiang Cui, Miao Xie, and Qing Wang. 2019. Characterizing crowds to better optimize worker recommendation in crowdsourced testing. IEEE Transactions on Software Engineering 
+
+47, 6 (2019), 1259–1276. [42] Junjie Wang, Ye Yang, Song Wang, Jun Hu, and Qing Wang. 2022. Context-and fairness-aware in-process crowdworker recommendation. ACM Transactions on Software Engineering and Methodology (TOSEM) 31, 3 (2022), 1–31. [43] Junjie Wang, Ye Yang, Song Wang, Yuanzhe Hu, Dandan Wang, and Qing Wang. 2020. Context-aware in-process crowdworker recommendation. In Proceedings of the ACM/IEEE 42nd international conference on software engineering .1535–1546. [44] Qing Wang, Zhenyu Chen, Junjie Wang, and Yang Feng. 2022. Intelligent Crowdsourced Testing . Springer. [45] Xiaoxue Wu, Wenjing Shan, Wei Zheng, Zhiguo Chen, Tao Ren, and Xiaobing Sun. 2023. An intelligent duplicate bug report detection method based on technical term extraction. In 2023 IEEE/ACM International Conference on Automation of Software Test (AST) . IEEE, 1–12. [46] Miao Xie, Qing Wang, Guowei Yang, and Mingshu Li. 2017. Cocoon: Crowdsourced testing quality maximization under context coverage constraint. In 2017 IEEE 28th International Symposium on Software Reliability Engineering (ISSRE) .IEEE, 316–327. [47] Yiheng Xiong, Ting Su, Jue Wang, Jingling Sun, Geguang Pu, and Zhendong Su. 2024. General and practical property-based testing for android apps. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 53–64. [48] Yuxuan Yang and Xin Chen. 2021. Crowdsourced test report prioritization based on text classification. IEEE Access 10 (2021), 92692–92705. [49] Juyeon Yoon, Robert Feldt, and Shin Yoo. 2024. Intent-driven mobile gui testing with autonomous large language model agents. In 2024 IEEE Conference on Software Testing, Verification and Validation (ICST) . IEEE, 129–139. [50] Shengcheng Yu. 2019. Crowdsourced report generation via bug screenshot understanding. In 2019 34th IEEE/ACM International Conference on Automated Software Engineering . IEEE, 1277–1279. [51] Shengcheng Yu, Chunrong Fang, Zhenfei Cao, Xu Wang, Tongyu Li, and Zhenyu Chen. 2021. Prioritize crowdsourced test reports via deep screenshot understanding. In 2021 IEEE/ACM 43rd International Conference on Software Engineering (ICSE) . IEEE, 946–956. [52] Shengcheng Yu, Chunrong Fang, Mingzhe Du, Zimin Ding, Zhenyu Chen, and Zhendong Su. 2024. Practical, Automated Scenario-based Mobile App Testing. IEEE Transactions on Software Engineering (2024). [53] Shengcheng Yu, Chunrong Fang, Xin Li, Yuchen Ling, Zhenyu Chen, and Zhendong Su. 2024. Effective, Platform-Independent GUI Testing via Image Embedding and Reinforcement Learning. ACM Transactions on Software Engineering and Methodology 33, 7 (2024), 1–27. [54] Shengcheng Yu, Chunrong Fang, Yuchen Ling, Chentian Wu, and Zhenyu Chen. 2023. Llm for test script generation and migration: Challenges, capabilities, and opportunities. In 2023 IEEE 23rd International Conference on Software Quality, Reliability, and Security . IEEE, 206–217. [55] Shengcheng Yu, Chunrong Fang, Ziyuan Tuo, Quanjun Zhang, Chunyang Chen, Zhenyu Chen, and Zhendong Su. 2023. Vision-based mobile app gui testing: A survey. arXiv preprint arXiv:2310.13518 (2023). [56] Shengcheng Yu, Chunrong Fang, Quanjun Zhang, Zhihao Cao, Yexiao Yun, Zhenfei Cao, Kai Mei, and Zhenyu Chen. 2023. Mobile app crowdsourced test report consistency detection via deep image-and-text fusion understanding. IEEE Transactions on Software Engineering 49, 8 (2023), 4115–4134. [57] Shengcheng Yu, Chunrong Fang, Quanjun Zhang, Mingzhe Du, Jia Liu, and Zhenyu Chen. 2024. Semi-supervised Crowd-sourced Test Report Clustering via Screenshot-Text Binding Rules. Proceedings of the ACM on Software Engineering 1, FSE (2024), 1540–1563. [58] Shengcheng Yu, Yuchen Ling, Chunrong Fang, Quan Zhou, Chunyang Chen, Shaomin Zhu, and Zhenyu Chen. 2025. LLM-Guided Scenario-based GUI Testing. arXiv preprint arXiv:2506.05079 (2025). [59] Yakun Zhang, Chen Liu, Xiaofei Xie, Yun Lin, Jin Song Dong, Dan Hao, and Lu Zhang. 2024. LLM-based Abstraction and Concretization for GUI Test Migration. arXiv preprint arXiv:2409.05028 (2024). [60] Yakun Zhang, Qihao Zhu, Jiwei Yan, Chen Liu, Wenjie Zhang, Yifan Zhao, Dan Hao, and Lu Zhang. 2024. Synthesis-Based Enhancement for GUI Test Case Migration. In Proceedings of the 33rd ACM SIGSOFT International Symposium on 
+
+, Vol. 1, No. 1, Article . Publication date: March 2026. 24 Shengcheng Yu, Yuchen Ling, Chunrong Fang, Zhenyu Chen, and Chunyang Chen 
+
+Software Testing and Analysis . 869–881. , Vol. 1, No. 1, Article . Publication date: March 2026.
