@@ -1,0 +1,755 @@
+Title: ASTER -- Agentic Science Toolkit for Exoplanet Research
+
+URL Source: https://arxiv.org/pdf/2603.26953v1
+
+Published Time: Tue, 31 Mar 2026 00:19:14 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+> RASTI 000 , 1– ?? (0000) Preprint 31 March 2026 Compiled using rasti L ATEX style file v3.0
+
+# - Agentic Science Toolkit for Exoplanet Research 
+
+# Emilie Panek, 1★ Alexander Roman, 1 Gaurav Shukla, 1 Leonardo Pagliaro, 2 Katia Matcheva 1 and Konstantin Matchev 1
+
+> 1Department of Physics and Astronomy, University of Alabama, Tuscaloosa, AL, 35487, USA
+> 2Department of Physics and Astronomy ‘Galileo Galilei’, University of Padova, Vicolo dell’Osservatorio 3, I-35122 Padova, Italy
+> Accepted XXX. Received YYY; in original form ZZZ
+
+ABSTRACT 
+
+## The rapid expansion of exoplanet atmospheric observations and the proliferation of a wide range of specialized modeling tools has created a need for flexible, accessible, and user-friendly workflows. Transmission spectroscopy, in particular, has become a key technique for probing atmospheric composition of transiting exoplanets. The analyses of these data require the combination of archival queries, literature search, the use of radiative transfer models, and Bayesian retrieval frameworks, each demanding specialized expertise. Modern large language models (LLMs) enable the coordinated execution of complex, multi-step tasks by AI agents with tool integration, structured prompts, and iterative reasoning. In this study we present ASTER, an Agentic Science Toolkit for Exoplanet Research. ASTER is an orchestration framework that brings LLM capability to the exoplanetary community by enabling LLM-driven interaction with integrated domain-specific tools, workflow planning and management, and support for common data analysis tasks. Currently ASTER incorporates tools for downloading planetary parameters and observational datasets from the NASA Exoplanet Archive, as well as the generation of transit spectra from the TauREx radiative transfer model, and the completion of Bayesian retrieval of planetary parameters within the TauREx framework. Beyond tool integration, the agent assists users by proposing alternative modeling approaches, reporting potential issues and suggesting solutions, as well as higher-level interpretations. We demonstrate ASTER’s workflow through a complete case study of WASP-39b, performing multiple retrievals using observational data from different sources available on the archive. The agent efficiently transitions between datasets, generates appropriate forward model spectra and performs retrievals that recover atmospheric parameters reported in the literature. ASTER provides a unified platform for the characterization of exoplanet atmospheres. Ongoing development and community contributions will continue expanding ASTER’s capabilities toward broader applications in exoplanet research. 
+
+1 INTRODUCTION 
+
+The characterization of exoplanet atmospheres has rapidly evolved over the past decade, driven by increasingly precise observations and analysis frameworks. Transmission spectroscopy, in particular, has become a key technique for probing atmospheric composition of transiting exoplanets (Charbonneau et al. 2000; Seager & Sas-selov 2000; Burrows 2014; Sing et al. 2015; Tsiaras et al. 2018; Edwards et al. 2023). Despite this progress, the analysis of transmis-sion spectroscopy data remains a technically demanding and com-plex process (Barstow & Heng 2020; MacDonald & Batalha 2023). A complete analysis typically requires the coordinated execution of multiple steps, including archival queries for stellar and planetary parameters, accessing observational datasets, forward modeling of synthetic spectra, and Bayesian retrieval analyses. These steps are managed manually, requiring substantial time and expertise to coor-dinate tools, interpret outputs, and diagnose failures at any stage of the workflow. Recent advances in large language models (LLMs) offer new op-portunities for managing such complex scientific pipelines (Brown et al. 2020a; Yao et al. 2023b; Schick et al. 2023; Zhang et al. 2025). LLMs have progressed from passive text-generation systems into general-purpose computational interfaces capable of planning, reasoning, and interacting with external tools through structured prompts and function calls. When embedded within agentic frame-works, these models can coordinate multi-step workflows, and assist users in navigating large computational systems (Yao et al. 2023a; Plaat et al. 2025). Rather than replacing established scientific meth-ods, such systems have the potential to orchestrate existing tools and increase efficiency, reproducibility, and accessibility. Exoplanet atmospheric analysis provides a well-suited field for the development of agentic scientific workflows. Modern studies rely on complex computational pipelines that combine database queries, radiative-transfer modeling, and statistical inference, all of which must be coordinated and reproducible. In addition, machine learning is being increasingly used to help with the data simulation and pa- 
+
+> ©0000 The Authors
+> arXiv:2603.26953v1 [astro-ph.EP] 27 Mar 2026
+
+# 2 E. Panek et al. 
+
+rameter retrievals (Zingales & Waldmann 2018; Márquez-Neila et al. 2018; Soboczenski et al. 2018; Nixon & Madhusudhan 2020; Yip et al. 2021; Ardévol Martínez et al. 2022; Yip et al. 2022; Forestano et al. 2023; Unlu et al. 2023; Aubin et al. 2023; Lueber et al. 2025; Forestano et al. 2025; Roman et al. 2026). Yet existing pipelines often remain fragmented across notebooks and software packages, limit-ing reuse and increasing the barrier to entry for new researchers. At the same time, the rapid growth of exoplanet data from current and upcoming facilities accentuates the need for flexible and user-guided analysis frameworks (an up-to-date count of discovered exoplanets is available here 1). In this work, we introduce ASTER (Agentic Science Toolkit for Ex-oplanet Research), an AI agent equipped with tools designed specif-ically for exoplanet atmospheric analysis. ASTER integrates LLM-based planning with exoplanet tools to support end-to-end transmis-sion spectroscopy analyses. The current set of available tools enables: (i) automated download of planetary and stellar parameters from the NASA exoplanet archive (Akeson et al. 2013; Christiansen et al. 2025), (ii) generation of forward transmission spectra using the Tau-REx framework (Waldmann et al. 2015; Al-Refaie et al. 2021), (iii) querying of publicly available transmission spectroscopy datasets from the NASA exoplanet archive, and (iv) Bayesian atmospheric re-trieval using TauREx, for constraining atmospheric parameters from these observations. These tools are accessed through a structured in-terface that enables reliable coordination and reproducible execution (Roman & Roman 2026). The agent functions as a workflow coordinator or assistant that executes tools, reads and interprets intermediate tool outputs, exe-cutes additional tools, takes steps to correct errors should they occur, summarizes or displays findings, and proposes next steps (such as alternative modeling assumptions, parameterizations, or data selec-tions). The agent handles the technical implementation details while leaving scientific judgment and decision-making in the hands of the researcher. In this sense, ASTER operates not only as a tool executor, but as a scientific assistant that can identify potential issues, sug-gest improvements, and help contextualize results within the broader modeling landscape. ASTER provides a foundation for adaptive exoplanet research workflows. While the present implementation focuses on transmis-sion spectroscopy, the framework is designed to expand naturally to other areas of exoplanet science through community-driven tool de-velopment. More broadly, ASTER illustrates how agentic AI systems can enhance scientific reasoning and workflow management without displacing human expertise in the era of increasingly complex data and models. The paper is organized as follows: In Section 2, we introduce the methodology of ASTER. We first describe the Orchestral AI frame-work (Roman & Roman 2026), including security hooks, cost track-ing, and the set of built-in tools provided by Orchestral. In Section 3, we focus on the implementation of domain-specific tools within ASTER. We describe how tools are developed and integrated into the Orchestral framework. We then present the set of ASTER tools designed for exoplanet atmospheric analysis, which includes archive queries, forward modeling, data access, and retrieval workflows. In Section 4, we present example interactions with ASTER to illustrate how the agent responds to scientific questions. These examples are intended to present the agent’s reasoning process, tool usage, and interaction style, providing readers with a concrete understanding of how ASTER supports exploratory and guided analysis. In Section 5,  
+
+> 1https://exoplanetarchive.ipac.caltech.edu/
+
+we apply ASTER to the practical case of WASP-39b and discuss the results of the analysis. Using multiple publicly available transmis-sion spectroscopy datasets, we demonstrate an end-to-end workflow. Finally, Section 6 summarizes our conclusions and discusses the lim-itations of the approach. We outline potential extensions of ASTER and future directions for agent-assisted exoplanet research. 
+
+2 METHODS 
+
+ASTER is implemented as an exoplanet-specific application of the Orchestral AI framework 2 (Roman & Roman 2026). Orchestral pro-vides the underlying agent infrastructure, handling the context man-agement, tool schema construction and validation, tool execution, and controlled execution of multi-step workflows. The architecture of Orchestral is shown in Figure 1, and an example of the user in-terface (UI) is shown in Figure 2. ASTER adopts this architecture and extends it with modular tools tailored to exoplanet atmospheric analysis. Other examples of AI agents built with the Orchestral AI framework applied to different domains in physics are presented in Menzo et al. (2025), Knipfer et al. (2026). In this section and the following section, we describe the ASTER agent architecture, including an overview of the Orchestral AI frame-work, and ASTER’s exoplanet tools. 
+
+2.1 Orchestral overview 
+
+Orchestral AI (Roman & Roman 2026) is a Python framework de-signed for scientific applications of AI agents. It makes agent be-havior transparent, debuggable, and portable across different LLM providers. Instead of hiding execution logic behind complex con-cepts, Orchestral keeps control flow explicit and easy to inspect. One feature of Orchestral is provider agnosticism, meaning that the framework provides a unified interface to multiple LLM providers, such as OpenAI, Anthropic, or Google. This allows users to switch models without rewriting code, avoiding vendor lock-in. This is de-sirable in an institutional setting as universities and labs may require researchers to use a particular inference provider or local comput-ing resources. Orchestral also uses a synchronous execution model, which makes agent behavior easier to debug, lowering the barrier to entry for domain experts in astrophysics unfamiliar with asyn-chronous programming. In general, an AI agent is a system including the following core elements: An LLM, the “context”, and a set of tools (see Figure 1). AI agents may also include additional features such as longer-term memory, model selection mechanisms, security safeguards, and context management tools. The context is a record of all messages, tool calls, and tool outputs. In the Orchestral AI framework it also tracks associated metadata in-cluding token usage and cost. The context can be saved, loaded, and even continued with a different LLM provider. Orchestral automat-ically validates that tool calls and tool results match correctly. This prevents common errors that can occur when tool outputs are missing or misaligned with requests. The LLM performs reasoning and selects actions based upon the current context. Typically it “acts” by generating tokens, which can be thought of as words (or parts of words). These may be in the form of natural language responses to the user (the typical behavior in chatbot tools such as ChatGPT) or in specially coded structures    
+
+> 2https://orchestral-ai.com/ RASTI 000 , 1– ?? (0000)
+
+# ASTER - Agentic Science Toolkit for Exoplanet Research 3
+
+that indicate the use of tools or other special functions. If a user asks an agent equipped with a planetary data search tool the question “what is the temperature of WASP 39”, the agent might immediately respond with “<tool> tool_name: ‘get_stellar_info’, parameters: {star_name: ’WASP-39’}</tool> ” and the system then detects and executes this pattern. Actual examples of ASTER tool calls are discussed in Section 4. Defining tools in this way leverages “in-context learning,” a phenomenon in which LLMs can adapt their behavior based on information provided within the prompt, even when that information was not explicitly encountered during training Brown et al. (2020b). We define a set of functions which carry out concrete actions, and present them to the agent along with descriptions of how and when to use them. Tools form a bridge between the LLM and external software. In Orchestral, tools are easily defined as Python objects, the docstring and type hints are automatically processed into the “tool schema” language that the LLM expects. Orchestral also provides a Python decorator “ @define_tool " which allows any Python function to be used as a tool. One notable feature of tools is that they can return outputs in any format. Their outputs are inserted as strings into the conversation context alongside user messages. In the prior example, after querying the hypothetical get_stellar_info tool, the out-put might be “ WASP-39: Temperature: 5400 ±150 𝐾 , Radius: 
+
+0.8950 .023 𝑅 ⊙ , ... ” In some cases the tool may return an er-ror, for example, if the agent queried: get_stellar_temp(‘Death Star’) it might return: “ Star not found, please check the stellarhosts database. ”As illustrated in Figure 1, the agent runs in an iterative loop. At each step, it reads the current context, asks the LLM to produce a response, checks whether tool calls are requested, executes those tools if present, and then updates the context with the results. This loop continues until no further tool calls are required or a stopping condition is reached. The LLM never executes code directly. All external actions happen through tools, which are executed outside the model in a controlled environment. 
+
+Security hooks 
+
+While modern commercial LLMs generally behave in predictable and desirable ways, they can sometimes take surprising and harmful actions. This is often the result of a “misunderstanding” of the user’s intent on the part of the model, analogous to an “honest mistake” by human collaborators. However, a growing body of AI safety research has demonstrated that, under certain conditions, language models can also violate explicit instructions or engage in strategically harmful behavior, including deception or rule circumvention Hubinger et al. (2024); OpenAI et al. (2024). Since these agents are equipped with tools granting them access to external systems, in some cases exe-cuting arbitrary terminal commands, it is imperative that guardrails be put in place to detect and block unwanted behavior. Orchestral incorporates multiple layers of execution safety through a system of hooks that intercept tool calls before and after execution, enabling structured control over agent behavior and supporting safe, human-supervised workflows. One key mechanism is user validation, implemented through a “user-approval hook”. A simple approach is to require the user to approve all tool executions. While this guarantees safety, it is often impractical, as it interrupts the workflow and places a significant bur-den on the user. Heuristic rules provide a more efficient alternative by detecting and blocking clearly dangerous actions, such as destructive shell commands; however, they may miss more subtle risks and can be overly restrictive. A more flexible approach is to employ a separate LLM to eval-  
+
+> Figure 1. Schema of internal workings of the agent object. The agent com-prises the LLM, the tools and the context. Figure adapted from Roman & Roman (2026).
+> Figure 2. Example of the Orchestral interface. The LLM provider can be changed in the bottom left corner, below the space where users write their messages. The cost tracking can be seen in the top right corner.
+
+uate proposed actions. In practice, specialized policy models can classify actions according to their safety, capturing more nuanced behavior than heuristics while remaining lightweight and efficient. However, such models are not perfectly reliable and must be used conservatively. In Orchestral, these approaches are combined into a hybrid sys-tem. Heuristic checks first block clearly harmful actions, after which a safeguard LLM classifies remaining actions as safe, unsafe, or uncer-  
+
+> RASTI 000 , 1– ?? (0000)
+
+# 4 E. Panek et al. 
+
+tain. Unsafe actions are blocked, while uncertain cases are escalated to the user for explicit approval. This layered approach balances safety, usability, and flexibility without unnecessarily interrupting routine workflows. Roman & Roman (2026) These mechanisms ensure a strict separation between reasoning and execution: the language model proposes actions, while the orchestration layer enforces safety and validation. 
+
+Cost tracking 
+
+Orchestral includes built-in cost and token-usage tracking at the framework level. Every interaction with an LLM provider records token counts and associated costs, which are accumulated within the agent’s context object. This information persists across turns and tool calls, allowing users to monitor computational cost in real time. Because the context is provider-agnostic, cost tracking remains consistent even when switching between different models or providers within the same workflow. The Orchestral UI also supports setting a cost ceiling which will interrupt execution if reached. This enables cost-aware experimentation, such as using lower-cost or local models for exploratory reasoning, followed by higher-capability models for final execution. These features are particularly relevant for long-running or iterative scientific analyses, where uncontrolled LLM usage could otherwise become quickly expensive. 
+
+Conversations history 
+
+Orchestral manages conversation history through the context object that encapsulates and validates the complete sequence of messages exchanged between the user, the LLM, and any external tools. This history includes prompts, model responses, tool calls, and tool outputs, ensuring that each step in the reasoning process is preserved and logically consistent. The system automatically verifies that tool calls and their results match correctly, and maintains provider-agnostic encoding so conversations can be saved and resumed across different LLM providers. This persistent conversa-tional history is particularly valuable in science for bookkeeping and retracing a train of thoughts. 
+
+Built-in tool set Filesystem: 
+
+• ReadFileTool , reads files with character encoding detec-tion, line ranges, and syntax highlighting for code and structured files. This tool is well-suited for inspecting code, configuration files, or large text documents efficiently. 
+
+• WriteFileTool , writes content to files with convenient features such as automatic backup and directory creation. 
+
+• EditFileTool , performs edits to existing files by applying only the necessary modifications. 
+
+• ListDirectoryTool , recursively lists directory contents with optional filtering. This tool is useful for exploring project struc-tures or preparing inputs for batch operations. 
+
+• FileSearchTool , executes regular-expression–based searches across files, returning matching lines along with surround-ing context. 
+
+• FindFilesTool , locates files using glob-style patterns (e.g., **/*.py, *.md). 
+
+Execution: 
+
+• RunCommandTool , provides access to a persistent shell ses-sion where the working directory, environment variables, and state are maintained across commands. 
+
+• RunPythonTool , executes Python code directly with a pre-loaded set of commonly used libraries. Suitable for data analysis, scripting, or validating logic without needing external setup. 
+
+Web & research: 
+
+• WebSearchTool , performs web searches and extracts structured results. 
+
+Utilities: 
+
+• TodoRead/TodoWrite , enables task tracking directly within the conversation. 
+
+• DisplayImageTool , renders images in supported inter-faces, allowing visual outputs to be displayed inline for clearer com-munication and analysis. 
+
+3 TOOL IMPLEMENTATION 
+
+We now turn to the practical question of how domain-specific func-tionality is implemented. As described earlier, all interactions be-tween the agent and external software are accomplished through tools. Tools define the actions an agent is able to perform and form the building blocks from which the scientific workflow is constructed. This section describes how tools are defined and used within the Orchestral framework, with a focus on ASTER tools for exoplanet applications. 
+
+3.1 Getting started 
+
+ASTER builds on top of the Orchestral framework and requires ad-ditional dependencies specific to exoplanet atmospheric analysis. These requirements are maintained separately and are documented at https://github.com/emipanek/aster. Users should ensure that all ASTER-specific dependencies are installed before running or devel-oping new tools. 
+
+3.2 The role of tools 
+
+The interaction between the agent and the tools follows a loop rea-soning and execution pattern: (i) The agent receives the current context. (ii) The language model responds, possibly invoking tools. (iii) If tool calls are not present, the response is passed to the user. (iv) If tool calls are present, the arguments are validated. (v) The tool call passes though all pre-call hooks for approval. (vi) If approved, the tool is executed. (vii) The tool’s output is passed though all post-call hooks. (viii) The processed output is added to the agent’s context. (ix) Repeat. 
+
+3.3 How to write a tool 
+
+Orchestral supports two primary ways of defining tools: 
+
+• Function-based tools, using a decorator 
+
+• Class-based tools, for stateful or more complex behavior In both cases, tools are written in standard Python syntax and rely on type hinting and docstrings to define their functioning. From these comments, Orchestral generates a universal tool object that can be used with any LLM. When using the function-based tool definition, the function sig-nature represents the parameters the agent is allowed to control. The variable names will be visible to the agent, and it will decide based   
+
+> RASTI 000 , 1– ?? (0000)
+
+# ASTER - Agentic Science Toolkit for Exoplanet Research 5
+
+upon the context and the tool description (defined by the docstring) how to use these arguments. Thus, clear and descriptive variable names and good documentation are strongly encouraged, as they in-form the agent’s decision-making process. When a tool is called, its code is executed once. The tool may call external libraries, run sci-entific models, or interact with data on disk. Tools should avoid side effects beyond what is necessary for their task and should always produce a well-defined output. Errors should be clearly passed to the agent along with relevant suggestions of how to remedy them, allowing the agent to detect failures and respond appropriately. 
+
+3.4 Tool example 
+
+Having described the general structure and behavior of tools, we now illustrate these concepts with a concrete example. The following example demonstrates how to define a simple tool, highlighting how inputs are specified, how execution is performed, and how results are returned to the agent. Listing 1: Example of the implementation of the “GetExoplanetParameter” tool. All of the documentation text in this example is captured and included as descriptions of the tool and arguments in the “tool schema” that is visible to the agent.  
+
+> 1
+
+class GetExoplanetParameters(BaseTool):  
+
+> 2
+
+"""  
+
+> 3
+
+Get exoplanet parameters from NASA Exoplanet Archive via TAP service.  
+
+> 45
+
+This tool allows programmatic access to exoplanet data from the NASA Exoplanet Archive.  
+
+> 6
+
+Uses the "pscomppars" table by default, which provides composite parameters for confirmed  
+
+> 7
+
+exoplanets combining data from multiple sources. Note that parameters may not be self-consistent  
+
+> 8
+
+as they come from different sources.  
+
+> 910
+
+IMPORTANT: Users should cite the archive 's DOI if they use any datasets for research.  
+
+> 11
+
+"""  
+
+> 12 13
+
+planet_name: str = RuntimeField(  
+
+> 14
+
+description="Name of the exoplanet (e.g., 'Kepler-10 b '), must match exactly with the archive."  
+
+> 15
+
+) 
+
+> 16
+
+columns: list = RuntimeField(  
+
+> 17
+
+default=["pl_radj", "pl_bmassj", "pl_eqt"],  
+
+> 18
+
+description="""List of parameter columns to retrieve. Common columns include:  
+
+> 19
+
+- pl_name: Planet name  
+
+> 20
+
+- hostname: Stellar name  
+
+> 21
+
+- pl_orbper: Orbital Period [days]  
+
+> 22
+
+- pl_orbsmax: Semi-major Axis [AU]  
+
+> 23
+
+- pl_rade: Planet Radius [Earth Radii]  
+
+> 24
+
+- pl_radj: Planet Radius [Jupiter Radii]  
+
+> 25
+
+- pl_bmasse: Planet Mass [Earth Masses]  
+
+> 26
+
+- pl_bmassj: Planet Mass [Jupiter Masses]  
+
+> 27
+
+- pl_eqt: Planet Equilibrium Temperature [K]  
+
+> 28
+
+- st_rad: Star Radius [Solar Radii]  
+
+> 29
+
+- st_teff: Star Temperature [K]  
+
+> 30
+
+- st_mass: Star Mass [Solar Masses]  
+
+> 31
+
+- st_met: Stellar Metallicity [dex]  
+
+> 32
+
+- st_logg: Stellar surface gravity [log10(cm/s^2)]  
+
+> 33 34
+
+Full list at: https://exoplanetarchive.ipac.caltech.edu/docs/API_PS_columns.html"""  
+
+> 35
+
+) 
+
+> 36
+
+... 
+
+Listing 2: Abbreviated example code to define and use the ASTER agent.  
+
+> 1
+
+from orchestral import Agent  
+
+> 2
+
+# Other Orchestral imports ...  
+
+> 34
+
+from aster_toolkit import (  
+
+> 5
+
+RunTaurexModelTool,  
+
+> 6
+
+SetTaurexPaths,  
+
+> 7
+
+SimulateTaurexRetrieval,  
+
+> 8
+
+GetExoplanetParameters,  
+
+> 9
+
+DownloadDataset  
+
+> 10
+
+)
+
+RASTI 000 , 1– ?? (0000) 6 E. Panek et al.  
+
+> 11 12
+
+# Set workspace directory  
+
+> 13
+
+base_directory = 'workspace ' 
+
+> 14 15
+
+# Construct list of tools  
+
+> 16
+
+tools = [  
+
+> 17
+
+# File and command tools  
+
+> 18
+
+RunCommandTool(base_directory=base_directory, persistent=True),  
+
+> 19
+
+WriteFileTool(base_directory=base_directory),  
+
+> 20
+
+ReadFileTool(base_directory=base_directory, show_line_numbers=True),  
+
+> 21
+
+EditFileTool(base_directory=base_directory),  
+
+> 22
+
+FileSearchTool(base_directory=base_directory),  
+
+> 23
+
+WebSearchTool(),  
+
+> 24
+
+TodoRead(),  
+
+> 25
+
+TodoWrite(),  
+
+> 26
+
+DisplayImageTool,  
+
+> 27 28
+
+# TauREx modeling tools  
+
+> 29
+
+SetTaurexPaths,  
+
+> 30
+
+RunTaurexModelTool(base_directory=base_directory),  
+
+> 31
+
+SimulateTaurexRetrieval(base_directory=base_directory),  
+
+> 32 33
+
+# Data acquisition tools  
+
+> 34
+
+GetExoplanetParameters(),  
+
+> 35
+
+DownloadDataset(base_directory=base_directory)  
+
+> 36
+
+] 
+
+> 37 38
+
+agent = Agent(  
+
+> 39
+
+# llm=Claude(),  
+
+> 40
+
+llm=GPT(model="gpt-4.1-mini"),  
+
+> 41
+
+tools=tools,  
+
+> 42
+
+tool_hooks=[UserApprovalHook()],  
+
+> 43
+
+system_prompt=system_prompt  
+
+> 44
+
+) 
+
+> 45 46
+
+# Launch the UI  
+
+> 47
+
+from orchestral.ui.app import server as app_server  
+
+> 48
+
+app_server.run_server(agent, host= 'localhost ', port=8000) 
+
+> 49
+
+Listing 2 illustrates the general structure and behavior of an Or-chestral tool within ASTER. While individual tools differ in their scientific purpose, they all follow the same design principles: ex-plicit instructions explaining how and when to use the tool, clearly defined inputs, and structured outputs that can be composed into larger workflows. 
+
+3.5 Overview of available ASTER tools 
+
+This subsection summarizes the exoplanet-specific tools imple-mented within ASTER at the time of writing, which extend the built-in Orchestral tool set described earlier. These exoplanet tools provide the functionality needed for end-to-end transmission spec-troscopy analyses, including database queries, forward-model gener-ation, data access, and retrieval execution. 
+
+3.5.1 Downloading planetary systems parameters 
+
+This tool uses the NASA exoplanet archive’s 3 TAP (Table Access Protocol) service to directly download planetary parameters (see  
+
+> 3
+
+https://exoplanetarchive.ipac.caltech.edu/ 
+
+Akeson et al. (2013) and Christiansen et al. (2025) for further de-tails on the functionality of NASA Exoplanet archive). This tool is the example presented in the tool example of Listing 1. The most important parameters for our transmission spectroscopy example are the planet parameters, such as planet radius, planet mass, or equi-librium temperature, as well as the star parameters: stellar radius, stellar mass and effective stellar temperature. Users can request any available parameter set from the Planetary Systems (ps) or Planetary Systems Composite Parameters (pscomppars) tables. The default is to use pscompars table. In the Planetary Systems table, one exoplanet can have multiple sets of parameters from various papers, each table row contains one parameter set from one paper, leaving empty cells when values are not provided. This is the reason why we are using the composite table, which provides a single set of composite parameters for each confirmed exoplanet, combining data from multiple sources. One downside of using this table is that the parameters are not neces-sarily self-consistent, as they are taken from different sources. This tool allows us to access up-to-date values in CSV format. 4 
+
+> 4
+
+An interesting note is that the agent is really flexible regarding the planet name, it will still print the right parameters if it is being asked for wasp 39b, WASP-39b or even waps-39B. RASTI 000 , 1– ?? (0000) ASTER - Agentic Science Toolkit for Exoplanet Research 7              
+
+> Molecule Reference
+> H2OPolyansky et al. (2018); Chubb et al. (2021) CO Li et al. (2015); Chubb et al. (2021) CO 2Yurchenko et al. (2025) CH 4Yurchenko et al. (2024) NH 3Coles et al. (2019); Chubb et al. (2021) HCN Barber et al. (2013); Chubb et al. (2021) H2SAzzam et al. (2016); Chubb et al. (2021) C2H2Chubb et al. (2020, 2021) Na Allard, N. F. et al. (2019); Chubb et al. (2021) KAllard, N. F. et al. (2016); Chubb et al. (2021) TiO McKemmish et al. (2019, 2024) VO Bowesman et al. (2024)
+> Table 1. Sources of cross-section data used in this work, downloaded from the Exomol website.
+
+3.5.2 Running a forward model 
+
+This tool uses TauREx (Waldmann et al. 2015; Al-Refaie et al. 2021) to simulate theoretical transmission spectra. TauREx (Waldmann et al. 2015; Al-Refaie et al. 2021) is a radiative transfer code that calculates spectra of exoplanet atmospheres, using a plane-parallel approximation. In order to compute how an atmosphere absorbs and transmits light, TauREx needs opacity and Collision Induced Absorption (CIA) files. Opacity files store the wavelength dependent absorption properties of molecules and CIA files describe absorption that occurs not because of individual molecules, but because pairs of molecules collide. For this example we downloaded our opacity files from the Exomol 5 website and our CIA files from HITRAN 6. The references for the molecular cross-section data used in this study are listed in Table 1. The tool starts by checking if the opacity and CIA file paths required by TauREx are set, and asks the user to provide them if not. Once the paths are confirmed, the tool is generating a transmission model using the parameters previously downloaded. The agent can also call the two tools at once, if the user directly asks for a model for a specific planet in a single message. For this study, the agent builds an isothermal temperature profile. This tool overall ensures that the TauREx environment is set properly and facilitates easy modeling of spectra for different exoplanets. 
+
+3.5.3 Downloading available transmission spectroscopy data 
+
+This tool downloads transmission spectroscopy datasets from the NASA Exoplanet Archive (see Akeson et al. (2013) and Christiansen et al. (2025) for further details on the functionality of NASA Ex-oplanet archive), using the generation of the necessary wget com-mands. The user can ask to download a set of parameters and the agent will walk the user through the following process: (i) Please go to https://exoplanetarchive.ipac.caltech.edu/cgi-bin/atmospheres/nph-firefly?atmospheres (ii) Use the filters on the website to select the desired planet and choose the instruments or specific observations you want. (iii) Select the spectra by checking the boxes. (iv) Click on “Download all checked spectra”. (v) The website will generate wget commands or provide a URL to a page with wget commands.   
+
+> 5https://www.exomol.com/data/molecules/
+> 6https://hitran.org/cia/
+
+(vi) Please provide me either the wget commands as text, the URL to the wget page, or if you saved the wget commands to a file, upload the file or give me the file path. The agent can then download and process the selected datasets. This process allows users to access any public dataset available on the NASA Exoplanet Archive without needing to manually reformat the data for retrieval analysis. The tool cannot be fully automated because the generated wget commands are not persistent over time. Once the path to the wget commands is provided, the agent executes those commands to download IPAC tables and saves them as per-planet CSV files. The agent then reads the CSV files, extracts the relevant spectral information, and produces two outputs: a data file (spectrum.dat) and a metadata file (metadata.json). The data file contains three columns: wavelength (in microns), transit depth, and the error on the transit depth. The metadata file includes the authors of the dataset’s first publication, a URL to the associated paper, the observing facility and instruments used, and the units corresponding to each column in the data file. Direct use of the NASA Exoplanet Archive TAP system is not viable for this task because the legacy ’transitspec’ table has been retired and is no longer being updated after the summer of 2023. The archive explicitly directs users to the newer Atmospheric Spectroscopy Table instead, which is not retrievable through TAP in the same way. 
+
+3.5.4 Running a retrieval 
+
+This next tool runs a TauREx (Waldmann et al. 2015; Al-Refaie et al. 2021) retrieval starting from an observed transmission spectrum and a simple forward model. The user can either provide the path to an observation file or let the agent download a dataset using the tool described previously. TauREx supports multiple retrieval modes: re-duced, full, and equilibrium. The reduced mode uses a predefined set of common molecules: H 2O, CH 4, CO 2, CO and NH 3. This is the simplest configuration and is therefore used as the default when no mode is explicitly specified by the user. The full mode allows the user to define a custom set of molecules. The user can also ask the agent to use every molecule available, in which case the agent inspects the available cross-section files in the path specified earlier and uses the complete set of molecules. The user also defines an initial mixing ra-tio for each molecule, as the starting point before the retrieval begins. In both the reduced and full modes the fitted parameters are the mix-ing ratios of each molecules. The equilibrium mode relies on ACE (Agúndez et al. 2012; Agúndez, M. et al. 2020) to compute the ther-mochemical equilibrium abundances by minimizing the Gibbs free energy. In this case the fitted parameters are the metallicity and C/O ratio. TauREx currently supports the following optimizers: Nestle (Skilling 2004; Mukherjee et al. 2006; Shaw et al. 2007; Feroz et al. 2009), MultiNest (Feroz et al. 2009; Buchner et al. 2014), and Ultra-Nest (Buchner 2021). All three rely on nested sampling, a Bayesian inference method that explores the parameter space and simultane-ously estimates the Bayesian evidence (Buchner 2014, 2019). Nested sampling is well-suited for multi-modal posterior distributions and problems with parameter degeneracies because it explores parameter space globally rather than locally. While all three are based on nested sampling, they differ in their practical use cases. Nestle is lightweight and faster, making it more appropriate for simple, low-dimensional problems. MultiNest is well-established and commonly applied in exoplanets analysis. UltraNest is a more recent implementation that provides improved numerical stability and better performance for high-dimensional parameter spaces.   
+
+> RASTI 000 , 1– ?? (0000)
+
+# 8 E. Panek et al. 
+
+3.5.5 Plotting the results 
+
+This tool generates corner plots from the posterior of a retrieval run, using the corner library (Foreman-Mackey 2016). It offers an easy way to see the parameter distributions and their correlations. Corner plots are common in retrieval studies because they reveal the overall structure of the solution space. The agent can automatically generate simple corner plots with-out user intervention, returning them alongside the retrieval results. A basic corner plot is also produced and stored when the retrieval tool is executed. This dedicated plotting tool extends that function-ality by providing sensible defaults and configurable arguments for commonly adjusted formatting options. It is particularly useful for comparing multiple retrieval runs, as it can overlay posteriors from different results within a single corner plot, facilitating direct compar-ison. For more specialized visualizations, the code-based approach discussed in Section 3.7 can be used. 
+
+3.6 Sequential tool execution 
+
+These tools get used in combination to accomplish complicated tasks, sometimes without the user explicitly asking. For example, if you ask for a transmission spectrum of WASP-39b, the agent knows that entails first searching for the parameters and then running the forward model tool. The agent decomposes the request into a sequence of subtasks, selects the appropriate tools, and executes them in the correct order. This behavior highlights the agent’s ability to perform implicit planning, allowing it to autonomously execute multi-step scientific tasks. 
+
+3.7 Tools vs. Skills 
+
+A recurring idea in recent work on coding agents is that code provides a near-universal interface to computation: given sufficient capabil-ity and access to a terminal environment, an agent can in principle implement arbitrary functionality through code generation and ex-ecution. This perspective, which became increasingly prominent in 2024–2025, has led to the view that instead of building special-ized tools, one can equip agents with “skills”, typically expressed as natural language instructions or reusable code snippets provided in context. In this paradigm, a skill may take the form of a struc-tured prompt, markdown file, or retrieval mechanism that injects task-specific guidance into the agent’s context. In contrast, a tool is a predefined function with a fixed interface that executes a specific operation. We argue that both approaches have complementary strengths. On one hand, if an agent has access to a sufficiently expressive environment such as a terminal, many tasks can in principle be ac-complished through direct code generation. This suggests that not all functionality must be exposed as explicit tools. On the other hand, tools are valuable when reliability, safety, or structure is required. For example, if agents consistently struggle with a recurring task, encapsulating that functionality in a tool can improve robustness. Tools can also enforce constraints or maintain state in ways that are difficult to achieve through prompting alone. For example, in Or-chestral the file read and edit system tracks which files an agent has read and blocks blind modifications to unseen files, thereby reducing the risk of unintended changes. Other tasks exhibit a high degree of variability and open-ended structure that is difficult to capture with a fixed function interface. For instance, generating a scientific plot in-volves a large design space of stylistic and semantic choices, making it cumbersome to parameterize as a tool. In such cases, requiring the agent to directly write code is often more natural and efficient. For such open-ended tasks, skills provide a flexible, user-friendly mecha-nism for guiding agent behavior. They also allow non-technical users to encode preferences, domain knowledge, and heuristics in natural language without needing to define rigid interfaces. In our own experiments, we initially implemented a dedicated tool for generating corner plots of posterior distributions, but later found that we preferred the agent to use its built-in coding tools to write the code directly, guided by a skill describing best practices and stylistic preferences. Conversely, in our testing, we observed that the agent required trial and error to correctly configure TauREx and, in some cases, hallucinated a nonexistent TauREx run_transit() 
+
+function. We contend that this is a case where a dedicated tool such as RunTaurexModel greatly improves reliability and efficiency. 
+
+4 CONVERSATION EXAMPLE 
+
+To illustrate the range of tasks supported by the agent, we present here an example conversation between a user and the agent. The user input is shown in the “User” black boxes, the agent output is shown in the “Agent” blue boxes, and the orange boxes indicate a tool call, where one can explicitly see the parameters chosen by the agent. This exchange demonstrates how different requests are formulated in natural language and how the agent interprets and executes them, from data acquisition to analysis and visualization. 
+
+User 
+
+> Hey ASTER! How are you doing? Describe the available tools
+
+Agent                       
+
+> Hello! I’m here and ready to assist you with exoplanet atmospheric research using TauREx spectral modeling. Here’s a description of the tools available to me: (i) Get Exoplanet Parameters : Retrieve planet and host star pa-rameters from the NASA Exoplanet Archive for specific exoplanets. (ii) Download Dataset : Download transit spectra of exoplanets from the NASA Exoplanet Archive using wget commands or URLs provided by the user. (iii) Run TauREx Forward Model : Generate synthetic forward model transmission spectra for exoplanets based on given parameters. (iv) Run TauREx Atmospheric Retrieval : Perform atmospheric retrievals by fitting model parameters to observed transmission spec-tra using nested sampling algorithms. (v) Set TauREx Paths : Configure the paths to linelists opacity (xsec) and collision-induced absorption (CIA) files, which are re-quired inputs for TauREx. (vi) File Operations :Read, write, and edit files within the workspace to manage configuration and data files. (vii) Run Command : Execute shell commands in the workspace environment. (viii) Search Tools : Search file contents using regex or perform web searches for additional information. (ix) Display Images : Show plots and figures generated during the analysis. (x) Todo List Management : Keep track of tasks and progress in the current conversation. These tools allow me to assist you end-to-end in exoplanet atmo-spheric modeling, from data acquisition and forward modeling to atmospheric retrieval and analysis. How can I assist you today?
+> RASTI 000 , 1– ?? (0000)
+
+# ASTER - Agentic Science Toolkit for Exoplanet Research 9
+
+User 
+
+Can you give me parameters of wasp39 b ? 
+
+Agent 
+
+GetExoplanetParameters 
+
+tool call: GetExoplanetParameters( planet_name="WASP-39b", columns="[’pl_name’, ’hostname’, ’pl_orbper’, ’pl_radj’, ’pl_orbsmax’, ’pl_bmassj’, ’pl_eqt’, ’st_rad’, ’st_teff’]" )response: Parameters for WASP-39b: Planet Name: WASP-39b Star Name: WASP-39 Orbital Period: 4.0553 days Semi-major Axis: 0.04828 AU Planet Radius: 1.279 RJup Planet Mass: 0.281 MJup Equilibrium Temp: 1166 K Star Radius: 0.939 Rsun Star Temp: 5485 K Star Mass: 0.913 Msun Stellar Metallicity: 0.01 dex Stellar log(g): 4.453 log10(cm/s 2)
+
+Here are the parameters for WASP-39b: 
+
+• Planet Name: WASP-39b 
+
+• Star Name: WASP-39 
+
+• Orbital Period: 4.0553 days 
+
+• Semi-major Axis: 0.04828 AU 
+
+• Planet Radius: 1.279 Jupiter radii 
+
+• Planet Mass: 0.281 Jupiter masses 
+
+• Equilibrium Temperature: 1166 K 
+
+• Star Radius: 0.939 Solar radii 
+
+• Star Temperature: 5485 K 
+
+• Star Mass: 0.913 Solar masses 
+
+• Stellar Metallicity: 0.01 dex 
+
+• Stellar surface gravity (log g): 4.453 log10(cm/s 2)If you need any further information or want to proceed with modeling or retrieval using these parameters, just let me know! 
+
+User 
+
+Can you make a forward model? 
+
+Agent 
+
+RunCommand: ’ls linelists/’ 
+
+output: Command: ls linelists/ Return Code: 1 Output: ls: linelists/: No such file or directory 
+
+It seems the linelists directory needed for TauREx forward modeling is not present in the workspace. The linelists directory should contain the subdirectories ’xsec/’ for opacity files and ’cia/’ for collision-induced absorption files. Do you want me to guide you on how to download or set up the required linelists for TauREx? 
+
+[h] 
+
+Figure 3. A plot generated, formatted, and displayed by the agent during the example conversation. It represents the transmission spectrum for WASP-39b, calculated by the agent and shown using the DisplayImage tool. 
+
+User 
+
+Here they are: "/Path/to/xsec" "/Path/to/cia_hitran" 
+
+Agent 
+
+SetTaurexPaths 
+
+tool call: SetTaurexPaths( opacity_path="/path/to/xsec", cia_path="/path/to/cia" )response: Paths set successfully! 
+
+RunTaurexModel 
+
+tool call: RunTaurexModel( star_radius="0.939", planet_radius="1.279", planet_mass="0.281", orbital_period="4.0553", semi_major_axis="0.04828", planet_temp="1166", atm_min_pressure="0.001", atm_max_pressure="100.0", filename="wasp39b_forward_model" )response: Taurex model run successfully with output file: wasp39b_forward_model_spectrum.png 
+
+DisplayImage 
+
+image: wasp39b_forward_model_spectrum.png (Figure 3) I have generated a forward model transmission spectrum for WASP-39b using the available parameters. Here is the plot of the synthetic spectrum. If you want, I can help with atmospheric retrievals, further analysis, or other tasks. Just let me know! 
+
+User 
+
+Please download spectra for wasp39b with nirspec RASTI 000 , 1– ?? (0000) 10 E. Panek et al. 
+
+Agent 
+
+To download spectra for WASP-39b observed with NIRSpec, please follow these steps: (i) Go to the NASA Exoplanet Archive atmospheres Firefly interface: https://exoplanetarchive.ipac.caltech.edu/cgi-bin/atmospheres/nph-firefly (ii) Use the filters to select planet: “WASP-39b” and instru-ment: “NIRSpec”. (iii) Check the boxes next to the spectra you want to download. (iv) Click on “Download all checked spectra”. (v) The website will provide you with wget commands or a URL to a wget command page. Please upload or paste ONE of the following for me: 
+
+• The wget commands text directly 
+
+• The URL to the wget page (starting with https://exoplanetarchive.ipac.caltech.edu/staging/) 
+
+• Or if you saved the wget commands to a file, upload that file Then I can download and organize the spectra for you. 
+
+User 
+
+https://exoplanetarchive.ipac.caltech.edu/work/TMP_rnIuBD_33318/ atmospheres/tab1/wget_atmospheres.bat 
+
+Agent 
+
+> DownloadDataset
+
+tool call: DownloadDataset( wget_url="https://exoplanetarchive.ipac.caltech.edu/work... output_dir="spectra/WASP_39_b_nirspec" )response: Download complete! Query ID: query002 Planets processed: WASP_39_b_3 Working files: download_dataset_tool/query002/ Final spectra saved to: spectra/WASP_39_b_nirspec/ Spectrum file paths: - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_4988_1/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_5087_1/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_5077_1/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_5502_6/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_4988_2/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_4988_4/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_4988_3/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_5502_4/spectrum.dat - spectra/WASP_39_b_nirspec/WASP_39_b_3/WASP_39_b _3.11466_5502_5/spectrum.dat 
+
+The NIRSpec spectra for WASP-39b have been successfully down-loaded and organized in the directory spectra/WASP_39_b_nirspec/. There are multiple spectrum files available. If you want, I can help you analyze, visualize, or perform atmospheric retrievals on any of these datasets. Just let me know which specific spectrum file you are interested in or what you would like to do next. 
+
+User 
+
+Can you now do a retrieval using the multinest optimizer and fitting temperature, planet radius and the molecular abundances? 
+
+Agent 
+
+> ReadFile: skills/retrieval_best_practices.md
+
+output: File: skills_retrieval_best_practices.md (lines 1-20 of 180) 
+
+File: skills/retrieval_best_practices.md (lines 1-50 of 180) 
+
+``` markdown 1→# Retrieval Best Practices 2→
+
+3→This skill provides guidance on setting up atmospheric retrievals for optimal performance and physically meaningful results. 4→
+
+5→## Parameter Bounds 6→
+
+7→### General Principles 8→
+
+9→The bounds you set directly control: 10 →1. **Runtime**: Wider bounds = longer retrieval time 11 →2. **Physical plausibility**: Bounds should reflect realistic atmospheric conditions 12 →3. **Convergence**: Overly wide bounds can make it harder to find solutions 13 →
+
+14 →### Molecular Abundance Bounds 15 →
+
+16 →**Chemical abundance limits (log10 mixing ratio)**: 17 →- **Lower limit**: `-9 `
+
+18 → - Abundances below this limit have essentially no measurable spectroscopic effect 19 → - Values below this are computationally wasteful and practically indistinguishable 20 → - **Never use bounds lower than -9** ... 
+
+``` 
+
+RASTI 000 , 1– ?? (0000) ASTER - Agentic Science Toolkit for Exoplanet Research 11 
+
+> SimulateTaurexRetrieval
+
+tool call: SimulateTaurexRetrieval( observation_path="download_dataset_tool/query001/... fit_params="[’planet_radius’, ’T’, ’H2O’, ’CH4’, ’CO’, ’CO2’, ’NH3’]", optimizer="multinest", num_live_points="100", star_radius="0.939", planet_radius="1.279", planet_mass="0.281", planet_temp="1166", atm_min_pressure="0.001", atm_max_pressure="100000", nlayers="100", retrieval_mode="reduced", output_basename="wasp39b/retrievals" )response: TauREx Retrieval Complete! Best-fit parameters: - planet_radius: 1.2925015939305264 - T: 1250.5205667982082 - log_H2O: -8.2292746957802 - log_CH4: -8.663445411550889 - log_CO: -7.854728018181991 - log_CO2: -8.197589024993974 - log_NH3: -6.9616671497038976 Log-likelihood: {’local log-evidence’: 649.9154831} Output files (in workspace): - fit_png: wasp39b/retrievals/..._multinest_fit.png - corner_png: wasp39b/retrievals/..._multinest_corner.png - wavelength_npy: wasp39b/retrievals/..._wavelength.npy - spectrum_npy: wasp39b/retrievals/..._spectrum.npy - samples_npy: wasp39b/retrievals/..._multinest_samples.npy - weights_npy: wasp39b/retrievals/..._multinest_weights.npy 
+
+> DisplayImage
+
+image: wasp39b/retrievals/radius_temp_h2o_ch4_co_co2_nh3_ multinest_fit.png (Figure 4) 
+
+The atmospheric retrieval for WASP-39b using the multinest optimizer is complete. The retrieval fit parameters were the planet radius, temperature, and molecular abundance. Best-fit values obtained: 
+
+• Planet radius: 1.293 Jupiter radii 
+
+• Temperature: 1251 K 
+
+• H2O log(abundance): approximately -8 
+
+• CH4 log(abundance): approximately -9 
+
+• CO log(abundance): approximately -8 
+
+• CO2 log(abundance): approximately -8 
+
+• NH3 log(abundance): approximately -7 I have displayed the fit plot showing the observed and retrieved spectrum. If you want, I can also show the corner plot for the posterior distributions or help with further analysis. 
+
+Figure 4. A plot generated, formatted, and displayed by the agent during the example conversation. It represents the best-fit model (orange curve) retrieved by the agent on WASP-39b NIRSpec observation (blue points). Parameter Value Stellar mass 0.913 M ⊙
+
+Stellar radius 0.939 R ⊙
+
+Stellar effective temperature 5485 K Planet mass 0.281 M 𝑗𝑢 𝑝 
+
+Planet radius 1.279 R 𝑗𝑢 𝑝 
+
+Planet equilibrium temperature 1166 K 
+
+Table 2. Planetary and stellar parameters for WASP-39b used in this study. Values were obtained automatically by the agent and verified against the NASA Exoplanet Archive. 
+
+5 FURTHER RESULTS 
+
+In addition to the previous example interaction, in this section we showcase additional capabilities and present the complete set of results produced by the agent for the test case of WASP-39b. This includes figures generated throughout the analysis pipeline, shown in the order they were created, from the initial setup to the final retrieval outcomes. We follow the path of a typical exploratory process: extraction of planetary parameters, spectra binning experiment, visualization of observations and a comparison of two retrievals. We begin by presenting the planetary and stellar parameters automatically extracted by the agent from NASA Exoplanet Archive for WASP-39b. These parameters define the physical setup of the system and serve as inputs for all subsequent modeling and retrieval steps. The quoted values were cross-checked and found to be consistent with the published reference parameters. They are shown in Table 2. We then tested the agent’s ability to perform rebinning of the output spectrum generated by the RunTaurexModel tool. Note that ASTER currently does not have a dedicated rebinning tool and, the agent instead accomplished this task using only its built-in coding tools. This demonstrates its flexibility and ability to generalize from the available context. Using Table 2 system parameters, we prompted the agent to generate transmission spectra at multiple spectral resolutions, each prompt is specified within the caption of the respective figure (see Figures 5, 6, and 7). When no resolution is specified, the agent calculates the spectrum at the native model resolution, which is the resolution of the cross-section files (see 
+
+RASTI 000 , 1– ?? (0000) 12 E. Panek et al.   
+
+> Figure 5. Transmission spectrum at native resolution in the background (gray points), overlaid with a binned spectrum (red curve) recalculated by the agent.
+> Prompt: Can you bin down the spectrum and plot both resolutions on a same plot?
+
+Figure 3). We requested the agent to reduce the resolution without specifying a value. The agent chose a resolution of R = 100, as shown in Figure 5. We also asked the agent to bin the native spectrum down to a JWST resolution and Ariel resolution. We emphasize that the agent was not given information about instruments design or spectral specifications (resolution or spectral range). The resulting spectra are shown in Figures 6 and 7, which were directly generated by the agent. The agent decided to break the binned spectra into different JWST instruments and Ariel bands. For comparison, NIRISS SOSS covers approximately 0.6–2.8 𝜇 m with a wavelength dependent resolution ranging from R ≈ 700 at short wavelengths to R ≈ 1500 at longer wavelengths. The agent chose to approximate this mode using a representative resolution of R = 700 for this task. NIRSpec covers 0.6-5.3 𝜇 m with a resolution of R ≈ 100 in the prism mode, R ≈ 1000 in the medium resolution mode, and R ≈ 2700 in the high resolution mode. The agent chose to use the medium resolution mode (R ≈ 1000) for this task. MIRI covers approximately 5–12 𝜇 min its low-resolution spectroscopic (LRS) mode with a resolution of R ≈ 100, the agent chose to use this resolution for the task. On the other hand, Ariel covers 1.25–7.8 𝜇 m using a combination of a low-resolution near-infrared spectrometer and the AIRS medium-resolution spectrometer. The near-IR spectrometer (1.25–1.95 𝜇 m) operates at low resolution with R ≈ 30, while the AIRS instrument is split into two channels covering 1.95–3.9 𝜇 m and 3.9–7.8 𝜇 m with a wavelength-dependent resolution of R ≈ 30–200. Accordingly, the agent chose to approximate these modes using representative resolutions for each band. This illustrates the abilities of the agent to perform common scientific tasks with minimal prompting, making use of the built-in Orchestral programming tools and leveraging the reasoning and planning capabilities of LLMs. For the next exercise, we requested that the agent download observational datasets from the NASA Exoplanet Archive for WASP-39b, specifically using JWST NIRSpec instrument, and display them. Figure 8 presents the 9 datasets that were publicly available on NASA Exoplanet Archive (JWST Transiting Exoplanet Community Early Release Science Team et al. 2023; Alderson et al. 2023; Rustamkulov et al. 2023; Carter et al. 2024). The agent easily downloaded and plotted the selected observations. We next asked the agent to perform a retrieval analysis on two of the JWST observations. For the first retrieval, the agent used an         
+
+> Figure 6. Transmission spectrum at native resolution in the background (gray points), overlaid with a binned spectrum recalculated by the agent.
+> Prompt: Can you now bin the forward model down to JWST medium resolu-tion?
+> Figure 7. Transmission spectrum at native resolution in the background (gray points), with a binned down spectrum recalculated by the agent on top.
+> Prompt: Can you now bin the forward model down to Ariel resolution?
+> Figure 8. Comparison of all nine observations for WASP-39b with NIRSpec. These observations are public and are published in JWST Transiting Exo-planet Community Early Release Science Team et al. (2023); Alderson et al. (2023); Rustamkulov et al. (2023); Carter et al. (2024). This figure was pro-duced by the agent.
+> Prompt: Can you plot all the observations in a same figure for comparison?
+> RASTI 000 , 1– ?? (0000)
+
+# ASTER - Agentic Science Toolkit for Exoplanet Research 13                    
+
+> Fitted Parameter Retrieval 1 Retrieval 2
+> 𝑇 1318.5 666.5
+> 𝑅 𝑝 1.29 1.30
+> log H 2O-8.5 -4.0
+> log CH 4-8.8 -7.1
+> log CO -8.0 -5.7
+> log CO 2-8.7 -5.0
+> log NH 3-7.0 -8.6
+> Table 3. Fitted parameters from the two retrieval runs. The results are dis-cussed in Section 5.
+> Figure 9. Comparison of the two retrieval results launched by the agent. The first observation used by the agent (JWST Transiting Exoplanet Community Early Release Science Team et al. 2023) and the corresponding retrieved spectrum are shown in blue. The second observation used by the agent (Rus-tamkulov et al. 2023) and the corresponding retrieved spectrum are shown in red.
+> Prompt: Can you do a plot with the two observations and the two retrieved spectra so I can compare the results?
+
+observation published by JWST Transiting Exoplanet Community Early Release Science Team et al. (2023) and for the second retrieval the observation by Rustamkulov et al. (2023). The resulting best-fit models together with the observations and the posterior distributions for the fitted parameters are shown in Figures 9 and 10. The agent was given instructions to retrieve the planet temperature, planet ra-dius, H 2O, CH 4, CO, CO 2, and NH 3 abundances. The bounds were not explicitly specified but some recommendations are provided in the retrieval_best_practices skill, which captures the domain expert prior experience (see Section 3.7). The recommended planet radius bounds were ±0.5 of the radius value, and the recommended temperature bounds were ±500 of the temperature value. The molec-ular abundance bounds were set to [ 10 −9;10 −2], following the skill recommendation. The agent used the Multinest optimizer option (rec-ommended in the skill file) with the minimum number of live points set to 100. For this proof of concept exercise, we limited the chem-ical inventory to the listed molecules above. The agent proceeded to perform both retrievals autonomously without further prompt-ing. For Figure 10 the agent followed the plotting recommendations described in the corner_plots skill, and displayed both retrieval results on the same figure. Figure 10 shows the posterior distributions for each fitted parameter for both retrievals. While the focus of the present study is to demonstrate the technical capabilities of an agen-tic workflow, and an in-depth analysis of the observations is beyond the scope of this paper, one can see that both retrievals favor different solutions. The red retrieval generally exhibits narrower, more peaked   
+
+> Figure 10. Corner plot of the posterior distributions of the fitted parameters from the retrievals launched by the agent. The blue distributions are cor-responding to the first retrieval on JWST Transiting Exoplanet Community Early Release Science Team et al. (2023) data. The red distributions are cor-responding to the second retrieval on Rustamkulov et al. (2023) data.
+> Prompt: Can you now do a corner plot with the probability distribution re-sults of the two retrievals on the same corner plot figure?
+
+distributions, meaning that those parameters are better constrained with smaller uncertainties, whereas the blue retrieval has broader dis-tributions, indicating weaker constraints and stronger degeneracies. This is expected since the JWST Transiting Exoplanet Community Early Release Science Team et al. (2023) data spans 3.0-5.5 𝜇 m, while Rustamkulov et al. (2023) data spans 0.5-5.5 𝜇 m with NIR-Spec’s PRISM mode. We can also see that the red and blue posterior distributions are offset, indicating possible disagreements. This mis-match is also expected because wider wavelength coverage includes additional spectral features and probes different atmospheric layers, shifting the best-fit values. The planet radius remains the most con-sistent between the two retrievals because it primarily controls the overall transit depth normalization, which is well constrained even with limited wavelength coverage and does not strongly depend on detailed spectral features. One can improve the quality of the fit by adding a more comprehensive molecular list in the retrieval model, consistent with previous studies. In this work, our objective was to demonstrate the feasibility and efficiency of using an agent to perform end-to-end retrieval analyses. In that respect, the results presented here successfully validate the capabilities of ASTER: the agent is able to autonomously handle data acquisition, model generation, retrieval execution, and result interpretation within a realistic scientific workflow. This proof of concept application to WASP-39b demonstrates that agents can be effectively integrated with existing exoplanet tools. 
+
+6 CONCLUSION 
+
+In this paper, we have presented the Agentic Science Toolkit for Exoplanet Research. The goal of ASTER is not to replace existing   
+
+> RASTI 000 , 1– ?? (0000)
+
+# 14 E. Panek et al. 
+
+frameworks, but to act as an assistant that can coordinate common tasks and provide suggestions. In this work, we applied ASTER to data acquisition, modeling, retrieval, and visualization in the context of transmission spectroscopy of exoplanets’ atmospheres. It is important to note that the goal of the present study is not to improve upon previous analyses of WASP-39b’s NIRSpec observa-tions. These observations have been extensively studied by Roy-Perez et al. (2026, 2025); Esparza-Borges et al. (2025, 2023); Grant et al. (2023); Rustamkulov et al. (2023); Alderson et al. (2023). Instead, our goal is to illustrate the capabilities of ASTER on a realistic test case and demonstrate that an agent can effectively conduct core tasks in exoplanet research workflows. We have shown that the agent can autonomously orchestrate the full pipeline, from obtaining plane-tary parameters and downloading datasets from public repositories to generating transmission spectra from radiative transfer models, performing Bayesian retrievals of atmospheric parameters, and visu-alizing the results. The successful autonomous execution of multiple retrievals using different datasets, along with their comparison, high-lights the flexibility and utility of the approach. In this sense, the goal of the study is achieved: we demonstrate that an agent can reliably integrate existing exoplanet tools into a coherent, reproducible, and efficient analysis framework. Unlike a fixed script, which encodes a predefined sequence of operations, ASTER dynamically adapts its behavior based on in-termediate results, user input, and evolving context, enabling more flexible and interactive scientific workflows. Additionally, the LLM retains a broad base of knowledge from its training data, which can be useful when a query is under-specified or when a tool call implicitly relies on prior knowledge. For example, ASTER was not explicitly provided with the spectral resolution of Ariel, which was required for the rebinning experiment; nevertheless, it was able to infer this infor-mation when needed. However, practitioners should not rely solely on this implicit knowledge, providing explicit context remains best practice. In situations where the model must infer missing details, the risk of hallucination increases. Another key strength of the agent-based approach is format com-patibility. Oftentimes, data comes in different formats and units, and making different inputs/outputs compatible is tedious. By standard-izing how datasets, models, and retrieval outputs are ingested and produced, ASTER simplifies comparisons between different analy-ses and results. For example, comparisons between different retrieval models are highly non-trivial, as they often differ in implementation choices, statistical methods, evaluation metrics, or stopping criteria (Barstow et al. 2020; Mugnai et al. 2024). ASTER is also modular by design. Individual capabilities are in-dependent tools, allowing new functionality to be added without requiring modification of the overall system architecture. This makes ASTER adaptable to evolving scientific needs, such as new instru-ments, updated chemical models, or alternative retrieval techniques. Beyond orchestration, ASTER functions as a research assistant. The agent actively checks intermediate results, validates inputs, and verifies assumptions when possible. When errors occur, the agent attempts to diagnose issues, suggest corrective actions, and retry failed steps. In addition, the agent can highlight unexpected or atyp-ical behavior in results, prompting further inspection by the user. Routine and repetitive tasks, such as parameter explorations, reso-lution changes, or repeated retrievals, can be automated, allowing researchers to focus on interpretation rather than execution. Another important aspect of ASTER is its accessibility. By lower-ing the technical barrier to entry, this toolkit makes advanced analy-ses such as atmospheric retrievals more approachable for early-career researchers and non-specialists. Finally, ASTER represents a first step toward more capable sci-entific agents. The framework demonstrates how agent-based sys-tems can support rigorous scientific analysis. As tools, models, and datasets continue to grow in complexity, agent-based systems may play an increasingly important role in managing workflows, enforcing best practices, and enabling more efficient and reproducible research. We strongly encourage the exoplanet community to extend this li-brary of tools and implement new capabilities within the ASTER framework. 
+
+ACKNOWLEDGMENTS 
+
+The work of EP, AR and KTM is supported in part by the Shelby Endowment for Distinguished Faculty at the University of Alabama. The authors thank Tony Menzo for insightful discussions on agents and the development of ASTER. LP acknowledges support from the scholarship co-financed by the Ministerial Decree no. 118 of 2nd March 2023,760 based on the NRRP - funded by the Euro-pean Union - NextGenerationEU - Mission 4 Component 1 – CUP C96E23000340001. 
+
+REFERENCES               
+
+> Agúndez, M., Venot, O., Iro, N., Selsis, F., Hersant, F., Hébrard, E., & Dobri-jevic, M., 2012. The impact of atmospheric circulation on the chemistry of the hot Jupiter HD 209458b, A&A ,548 , A73. Agúndez, M., Martínez, J. I., de Andres, P. L., Cernicharo, J., & Martín-Gago, J. A., 2020. Chemical equilibrium in agb atmospheres: successes, failures, and prospects for small molecules, clusters, and condensates,
+> A&A ,637 , A59. Akeson, R. L., Chen, X., Ciardi, D., Crane, M., Good, J., Harbut, M., Jackson, E., Kane, S. R., Laity, A. C., Leifer, S., Lynn, M., McElroy, D. L., Papin, M., Plavchan, P., Ramírez, S. V., Rey, R., von Braun, K., Wittman, M., Abajian, M., Ali, B., Beichman, C., Beekley, A., Berriman, G. B., Berukoff, S., Bryden, G., Chan, B., Groom, S., Lau, C., Payne, A. N., Regelson, M., Saucedo, M., Schmitz, M., Stauffer, J., Wyatt, P., & Zhang, A., 2013. The NASA Exoplanet Archive: Data and Tools for Exoplanet Research, PASP ,125 (930), 989. Al-Refaie, A. F., Changeat, Q., Waldmann, I. P., & Tinetti, G., 2021. Tau-rex 3: A fast, dynamic, and extendable framework for retrievals, The Astrophysical Journal ,917 (1), 37. Alderson, L., Wakeford, H. R., Alam, M. K., Batalha, N. E., Lothringer, J. D., Adams Redai, J., Barat, S., Brande, J., Damiano, M., Daylan, T., Espinoza, N., Flagg, L., Goyal, J. M., Grant, D., Hu, R., Inglis, J., Lee, E. K. H., Mikal-Evans, T., Ramos-Rosado, L., Roy, P.-A., Wallack, N. L., Batalha, N. M., Bean, J. L., Benneke, B., Berta-Thompson, Z. K., Carter, A. L., Changeat, Q., Colón, K. D., Crossfield, I. J. M., Désert, J.-M., Foreman-Mackey, D., Gibson, N. P., Kreidberg, L., Line, M. R., López-Morales, M., Molaverdikhani, K., Moran, S. E., Morello, G., Moses, J. I., Mukherjee, S., Schlawin, E., Sing, D. K., Stevenson, K. B., Taylor, J., Aggarwal, K., Ahrer, E.-M., Allen, N. H., Barstow, J. K., Bell, T. J., Blecic, J., Casewell, S. L., Chubb, K. L., Crouzet, N., Cubillos, P. E., Decin, L., Feinstein, A. D., Fortney, J. J., Harrington, J., Heng, K., Iro, N., Kempton, E. M.-R., Kirk, J., Knutson, H. A., Krick, J., Leconte, J., Lendl, M., MacDonald, R. J., Mancini, L., Mansfield, M., May, E. M., Mayne, N. J., Miguel, Y., Nikolov, N. K., Ohno, K., Palle, E., Parmentier, V., Petit dit de la Roche, D. J. M., Piaulet, C., Powell, D., Rackham, B. V., Redfield, S., Rogers, L. K., Rustamkulov, Z., Tan, X., Tremblin, P., Tsai, S.-M., Turner, J. D., de Val-Borro, M., Venot, O., Welbanks, L., Wheatley, P. J., & Zhang, X., 2023. Early Release Science of the exoplanet WASP-39b with JWST NIRSpec G395H, Nature ,614 (7949), 664–669. Allard, N. F., Spiegelman, F., & Kielkopf, J. F., 2016. K–h2 line shapes for the spectra of cool brown dwarfs, A&A ,589 , A21. RASTI 000 , 1– ?? (0000)
+
+# ASTER - Agentic Science Toolkit for Exoplanet Research 15 
+
+Allard, N. F., Spiegelman, F., Leininger, T., & Molliere, P., 2019. New study of the line profiles of sodium perturbed by h2, A&A , 628 , A120. Ardévol Martínez, F., Min, M., Kamp, I., & Palmer, P. I., 2022. Convolutional neural networks as an alternative to Bayesian retrievals for interpreting exoplanet transmission spectra, A&A , 662 , A108. Aubin, M., Cuesta-Lazaro, C., Tregidga, E., Viaña, J., Garraffo, C., Gordon, I. E., López-Morales, M., Hargreaves, R. J., Makhnev, V. Y., Drake, J. J., Finkbeiner, D. P., & Cargile, P., 2023. Simulation-based Infer-ence for Exoplanet Atmospheric Retrieval: Insights from winning the Ariel Data Challenge 2023 using Normalizing Flows, arXiv e-prints , p. arXiv:2309.09337. Azzam, A. A. A., Tennyson, J., Yurchenko, S. N., & Naumenko, O. V., 2016. Exomol molecular line lists – xvi. the rotation–vibration spectrum of hot h2s, Monthly Notices of the Royal Astronomical Society , 460 (4), 4063– 4074. Barber, R. J., Strange, J. K., Hill, C., Polyansky, O. L., Mellau, G. C., Yurchenko, S. N., & Tennyson, J., 2013. Exomol line lists – iii. an improved hot rotation-vibration line list for hcn and hnc, Monthly Notices of the Royal Astronomical Society , 437 (2), 1828–1835. Barstow, J. K. & Heng, K., 2020. Outstanding Challenges of Exoplanet Atmospheric Retrievals, Space Sci. Rev. , 216 (5), 82. Barstow, J. K., Changeat, Q., Garland, R., Line, M. R., Rocchetto, M., & Waldmann, I. P., 2020. A comparison of exoplanet spectroscopic re-trieval tools, Monthly Notices of the Royal Astronomical Society , 493 (4), 4884–4909. Bowesman, C. A., Qu, Q., McKemmish, L. K., Yurchenko, S. N., & Ten-nyson, J., 2024. Exomol line lists – lv: hyperfine-resolved molecular line list for vanadium monoxide (51v16o), Monthly Notices of the Royal Astronomical Society , 529 (2), 1321–1332. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., & Amodei, D., 2020a. Language models are few-shot learners, in 
+
+Advances in Neural Information Processing Systems , vol. 33, pp. 1877– 1901, Curran Associates, Inc. Brown, T. B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D. M., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., & Amodei, D., 2020b. Language models are few-shot learners. Buchner, J., 2014. A statistical test for nested sampling algorithms, Statistics and Computing , 26 (1–2), 383–392. Buchner, J., 2019. Collaborative nested sampling: Big data versus complex physical models, Publications of the Astronomical Society of the Pacific ,
+
+131 (1004), 108005. Buchner, J., 2021. Ultranest – a robust, general purpose bayesian inference engine. Buchner, J., Georgakakis, A., Nandra, K., Hsu, L., Rangel, C., Brightman, M., Merloni, A., Salvato, M., Donley, J., & Kocevski, D., 2014. X-ray spectral modelling of the AGN obscuring region in the CDFS: Bayesian model selection and catalogue, A&A , 564 , A125. Burrows, A. S., 2014. Spectra as windows into exoplanet atmospheres, Pro-ceedings of the National Academy of Science , 111 (35), 12601–12609. Carter, A. L., May, E. M., Espinoza, N., Welbanks, L., Ahrer, E., Alderson, L., Brahm, R., Feinstein, A. D., Grant, D., Line, M., Morello, G., O’Steen, R., Radica, M., Rustamkulov, Z., Stevenson, K. B., Turner, J. D., Alam, M. K., Anderson, D. R., Batalha, N. M., Battley, M. P., Bayliss, D., Bean, J. L., Benneke, B., Berta-Thompson, Z. K., Brande, J., Bryant, E. M., Burleigh, M. R., Coulombe, L., Crossfield, I. J. M., Damiano, M., Désert, J.-M., Flagg, L., Gill, S., Inglis, J., Kirk, J., Knutson, H., Kreidberg, L., López Morales, M., Mansfield, M., Moran, S. E., Murray, C. A., Nixon, M. C., Petit dit de la Roche, D. J. M., Rackham, B. V., Schlawin, E., Sing, D. K., Wakeford, H. R., Wallack, N. L., Wheatley, P. J., Zieba, S., Aggarwal, K., Barstow, J. K., Bell, T. J., Blecic, J., Caceres, C., Crouzet, N., Cubillos, P. E., Daylan, T., de Val-Borro, M., Decin, L., Fortney, J. J., Gibson, N. P., Heng, K., Hu, R., Kempton, E. M.-R., Lagage, P., Lothringer, J. D., Lustig-Yaeger, J., Mancini, L., Mayne, N. J., Mayorga, L. C., Molaverdikhani, K., Nasedkin, E., Ohno, K., Parmentier, V., Powell, D., Redfield, S., Roy, P., Taylor, J., & Zhang, X., 2024. A benchmark JWST near-infrared spectrum for the exoplanet WASP-39 b, Nature Astronomy , 8, 1008–1019. Charbonneau, D., Brown, T. M., Latham, D. W., & Mayor, M., 2000. Detec-tion of Planetary Transits Across a Sun-like Star, ApJ , 529 (1), L45–L48. Christiansen, J. L., McElroy, D. L., Harbut, M., Ciardi, D. R., Crane, M., Good, J., Hardegree-Ullman, K. K., Kesseli, A. Y., Lund, M. B., Lynn, M., Muthiar, A., Nilsson, R., Oluyide, T., Papin, M., Rivera, A., Swain, M., Susemiehl, N. D., Tam, R., van Eyken, J., & Beichman, C., 2025. The nasa exoplanet archive and exoplanet follow-up observing program: Data, tools, and usage. Chubb, K. L., Tennyson, J., & Yurchenko, S. N., 2020. Exomol molecular line lists – xxxvii. spectra of acetylene, Monthly Notices of the Royal Astronomical Society , 493 (2), 1531–1545. Chubb, K. L., Rocchetto, Marco, Yurchenko, Sergei N., Min, Michiel, Wald-mann, Ingo, Barstow, Joanna K., Mollière, Paul, Al-Refaie, Ahmed F., Phillips, Mark W., & Tennyson, Jonathan, 2021. The exomolop database: Cross sections and k-tables for molecules of interest in high-temperature exoplanet atmospheres, A&A , 646 , A21. Coles, P. A., Yurchenko, S. N., & Tennyson, J., 2019. Exomol molecular line lists – xxxv. a rotation-vibration line list for hot ammonia, Monthly Notices of the Royal Astronomical Society , 490 (4), 4638–4647. Edwards, B., Changeat, Q., Tsiaras, A., Yip, K. H., Al-Refaie, A. F., Anisman, L., Bieger, M. F., Gressier, A., Shibata, S., Skaf, N., Bouwman, J., Cho, J. Y.-K., Ikoma, M., Venot, O., Waldmann, I., Lagage, P.-O., & Tinetti, G., 2023. Exploring the ability of hubble space telescope wfc3 g141 to uncover trends in populations of exoplanet atmospheres through a homo-geneous transmission survey of 70 gaseous planets, The Astrophysical Journal Supplement Series , 269 (1), 31. Esparza-Borges, E., López-Morales, M., Redai, J. I. A., Pallé, E., Kirk, J., Casasayas-Barris, N., Batalha, N. E., Rackham, B. V., Bean, J. L., Casewell, S. L., Decin, L., Santos, L. A. D., Muñoz, A. G., Harring-ton, J., Heng, K., Hu, R., Mancini, L., Molaverdikhani, K., Morello, G., Nikolov, N. K., Nixon, M. C., Redfield, S., Stevenson, K. B., Wakeford, H. R., Alam, M. K., Benneke, B., Blecic, J., Crouzet, N., Daylan, T., In-glis, J., Kreidberg, L., dit de la Roche, D. J. M. P., & Turner, J. D., 2023. Detection of carbon monoxide in the atmosphere of wasp-39b applying standard cross-correlation techniques to jwst nirspec g395h data. Esparza-Borges, E., López-Morales, M., Pallé, E., Makhnev, V., Gordon, I., Hargreaves, R., Kirk, J., Cáceres, C., Crossfield, I. J. M., Crouzet, N., Decin, L., Désert, J.-M., Flagg, L., Muñoz, A. G., Harrington, J., Molaverdikhani, K., Morello, G., Nikolov, N., Solmaz, A., Rackham, B. V., & Redfield, S., 2025. Testing the performance of cross-correlation techniques to search for molecular features in jwst nirspec g395h obser-vations of transiting exoplanets. Feroz, F., Hobson, M. P., & Bridges, M., 2009. Multinest: an efficient and ro-bust bayesian inference tool for cosmology and particle physics, Monthly Notices of the Royal Astronomical Society , 398 (4), 1601–1614. Foreman-Mackey, D., 2016. corner.py: Scatterplot matrices in python, Jour-nal of Open Source Software , 1(2), 24. Forestano, R. T., Matchev, K. T., Matcheva, K., & Unlu, E. B., 2023. Search-ing for Novel Chemistry in Exoplanetary Atmospheres Using Machine Learning for Anomaly Detection, ApJ , 958 (2), 106. Forestano, R. T., Matchev, K. T., Matcheva, K., & Unlu, E. B., 2025. Su-pervised Machine Learning Methods with Uncertainty Quantification for Exoplanet Atmospheric Retrievals from Transmission Spectroscopy, 
+
+arXiv e-prints , p. arXiv:2508.04982. Grant, D., Lothringer, J. D., Wakeford, H. R., Alam, M. K., Alderson, L., Bean, J. L., Benneke, B., Désert, J.-M., Daylan, T., Flagg, L., Hu, R., Inglis, J., Kirk, J., Kreidberg, L., López-Morales, M., Mancini, L., Mikal-Evans, T., Molaverdikhani, K., Palle, E., Rackham, B. V., Redfield, S., Stevenson, K. B., Valenti, J. A., Wallack, N. L., Aggarwal, K., Ahrer, E.-M., Crossfield, I. J. M., Crouzet, N., Iro, N., Nikolov, N. K., & Wheatley, P. J., 2023. Detection of carbon monoxide’s 4.6 micron fundamental band structure in wasp-39b’s atmosphere with jwst nirspec g395h, The 
+
+RASTI 000 , 1– ?? (0000) 16 E. Panek et al. 
+
+Astrophysical Journal Letters , 949 (1), L15. Hubinger, E., Denison, C., Mu, J., Lambert, M., Tong, M., MacDiarmid, M., Lanham, T., Ziegler, D. M., Maxwell, T., Cheng, N., Jermyn, A., Askell, A., Radhakrishnan, A., Anil, C., Duvenaud, D., Ganguli, D., Barez, F., Clark, J., Ndousse, K., Sachan, K., Sellitto, M., Sharma, M., DasSarma, N., Grosse, R., Kravec, S., Bai, Y., Witten, Z., Favaro, M., Brauner, J., Karnofsky, H., Christiano, P., Bowman, S. R., Graham, L., Kaplan, J., Mindermann, S., Greenblatt, R., Shlegeris, B., Schiefer, N., & Perez, E., 2024. Sleeper agents: Training deceptive llms that persist through safety training. JWST Transiting Exoplanet Community Early Release Science Team, Ahrer, E.-M., Alderson, L., Batalha, N. M., Batalha, N. E., Bean, J. L., Beatty, T. G., Bell, T. J., Benneke, B., Berta-Thompson, Z. K., Carter, A. L., Crossfield, I. J. M., Espinoza, N., Feinstein, A. D., Fortney, J. J., Gibson, N. P., Goyal, J. M., Kempton, E. M.-R., Kirk, J., Kreidberg, L., López-Morales, M., Line, M. R., Lothringer, J. D., Moran, S. E., Mukherjee, S., Ohno, K., Parmentier, V., Piaulet, C., Rustamkulov, Z., Schlawin, E., Sing, D. K., Stevenson, K. B., Wakeford, H. R., Allen, N. H., Birkmann, S. M., Brande, J., Crouzet, N., Cubillos, P. E., Damiano, M., Désert, J.-M., Gao, P., Harrington, J., Hu, R., Kendrew, S., Knutson, H. A., Lagage, P.-O., Leconte, J., Lendl, M., MacDonald, R. J., May, E. M., Miguel, Y., Molaverdikhani, K., Moses, J. I., Murray, C. A., Nehring, M., Nikolov, N. K., Petit dit de la Roche, D. J. M., Radica, M., Roy, P.-A., Stassun, K. G., Taylor, J., Waalkes, W. C., Wachiraphan, P., Welbanks, L., Wheatley, P. J., Aggarwal, K., Alam, M. K., Banerjee, A., Barstow, J. K., Blecic, J., Casewell, S. L., Changeat, Q., Chubb, K. L., Colón, K. D., Coulombe, L.-P., Daylan, T., de Val-Borro, M., Decin, L., Dos Santos, L. A., Flagg, L., France, K., Fu, G., García Muñoz, A., Gizis, J. E., Glidden, A., Grant, D., Heng, K., Henning, T., Hong, Y.-C., Inglis, J., Iro, N., Kataria, T., Komacek, T. D., Krick, J. E., Lee, E. K. H., Lewis, N. K., Lillo-Box, J., Lustig-Yaeger, J., Mancini, L., Mandell, A. M., Mansfield, M., Marley, M. S., Mikal-Evans, T., Morello, G., Nixon, M. C., Ortiz Ceballos, K., Piette, A. A. A., Powell, D., Rackham, B. V., Ramos-Rosado, L., Rauscher, E., Redfield, S., Rogers, L. K., Roman, M. T., Roudier, G. M., Scarsdale, N., Shkolnik, E. L., Southworth, J., Spake, J. J., Steinrueck, M. E., Tan, X., Teske, J. K., Tremblin, P., Tsai, S.-M., Tucker, G. S., Turner, J. D., Valenti, J. A., Venot, O., Waldmann, I. P., Wallack, N. L., Zhang, X., & Zieba, S., 2023. Identification of carbon dioxide in an exoplanet atmosphere, Nature , 614 (7949), 649–652. Knipfer, M., Roman, A., Matchev, K. T., Matcheva, K., & Gleyzer, S., 2026. Ai agents for variational quantum circuit design. Li, G., Gordon, I. E., Rothman, L. S., Tan, Y., Hu, S.-M., Kassi, S., Cam-pargue, A., & Medvedev, E. S., 2015. Rovibrational line lists for nine isotopologues of the co molecule in the x1+ ground electronic state, The Astrophysical Journal Supplement Series , 216 (1), 15. Lueber, A., Karchev, K., Fisher, C., Heim, M., Trotta, R., & Heng, K., 2025. Near-instantaneous Atmospheric Retrievals and Model Comparison with FASTER, ApJ , 984 (1), L32. MacDonald, R. J. & Batalha, N. E., 2023. A Catalog of Exoplanet Atmo-spheric Retrieval Codes, Research Notes of the American Astronomical Society , 7(3), 54. Márquez-Neila, P., Fisher, C., Sznitman, R., & Heng, K., 2018. Supervised machine learning for analysing spectra of exoplanetary atmospheres, Na-ture Astronomy , 2, 719–724. McKemmish, L. K., Masseron, T., Hoeijmakers, H. J., Pérez-Mesa, V., Grimm, S. L., Yurchenko, S. N., & Tennyson, J., 2019. Exomol molecular line lists – xxxiii. the spectrum of titanium oxide, Monthly Notices of the Royal Astronomical Society , 488 (2), 2836–2854. McKemmish, L. K., Bowesman, C. A., Kefala, K., Perri, A. N., Syme, A.-M., Yurchenko, S. N., & Tennyson, J., 2024. A hybrid approach to generating diatomic line lists for high resolution studies of exoplanets and other hot astronomical objects: updates to exomol mgo, tio, and vo line lists, RAS Techniques and Instruments , 3(1), 565–583. Menzo, T., Roman, A., Gleyzer, S., Matchev, K., Fleming, G. T., Höche, S., Mrenna, S., & Shyamsundar, P., 2025. Heptapod: Orchestrating high energy physics workflows towards autonomous agency. Mugnai, L. V., Swain, M. R., Estrela, R., & Roudier, G. M., 2024. Com-paring transit spectroscopy pipelines at the catalogue level: evidence for systematic differences, Monthly Notices of the Royal Astronomical Soci-ety , 531 (1), 35–51. Mukherjee, P., Parkinson, D., & Liddle, A. R., 2006. A Nested Sampling Algorithm for Cosmological Model Selection, ApJ , 638 (2), L51–L54. Nixon, M. C. & Madhusudhan, N., 2020. Assessment of supervised machine learning for atmospheric retrieval of exoplanets, MNRAS , 496 (1), 269– 281. OpenAI, :, Hurst, A., Lerer, A., Goucher, A. P., Perelman, A., Ramesh, A., Clark, A., Ostrow, A., Welihinda, A., Hayes, A., Radford, A., Mądry, A., Baker-Whitcomb, A., Beutel, A., Borzunov, A., Carney, A., Chow, A., Kirillov, A., Nichol, A., Paino, A., Renzin, A., Passos, A. T., Kirillov, A., Christakis, A., Conneau, A., Kamali, A., Jabri, A., Moyer, A., Tam, A., Crookes, A., Tootoochian, A., Tootoonchian, A., Kumar, A., Vallone, A., Karpathy, A., Braunstein, A., Cann, A., Codispoti, A., Galu, A., Kondrich, A., Tulloch, A., Mishchenko, A., Baek, A., Jiang, A., Pelisse, A., Woodford, A., Gosalia, A., Dhar, A., Pantuliano, A., Nayak, A., Oliver, A., Zoph, B., Ghorbani, B., Leimberger, B., Rossen, B., Sokolowsky, B., Wang, B., Zweig, B., Hoover, B., Samic, B., McGrew, B., Spero, B., Giertler, B., Cheng, B., Lightcap, B., Walkin, B., Quinn, B., Guarraci, B., Hsu, B., Kellogg, B., Eastman, B., Lugaresi, C., Wainwright, C., Bassin, C., Hudson, C., Chu, C., Nelson, C., Li, C., Shern, C. J., Conger, C., Barette, C., Voss, C., Ding, C., Lu, C., Zhang, C., Beaumont, C., Hallacy, C., Koch, C., Gibson, C., Kim, C., Choi, C., McLeavey, C., Hesse, C., Fischer, C., Winter, C., Czarnecki, C., Jarvis, C., Wei, C., Koumouzelis, C., Sherburn, D., Kappler, D., Levin, D., Levy, D., Carr, D., Farhi, D., Mely, D., Robinson, D., Sasaki, D., Jin, D., Valladares, D., Tsipras, D., Li, D., Nguyen, D. P., Findlay, D., Oiwoh, E., Wong, E., Asdar, E., Proehl, E., Yang, E., Antonow, E., Kramer, E., Peterson, E., Sigler, E., Wallace, E., Brevdo, E., Mays, E., Khorasani, F., Such, F. P., Raso, F., Zhang, F., von Lohmann, F., Sulit, F., Goh, G., Oden, G., Salmon, G., Starace, G., Brockman, G., Salman, H., Bao, H., Hu, H., Wong, H., Wang, H., Schmidt, H., Whitney, H., Jun, H., Kirchner, H., de Oliveira Pinto, H. P., Ren, H., Chang, H., Chung, H. W., Kivlichan, I., O’Connell, I., O’Connell, I., Osband, I., Silber, I., Sohl, I., Okuyucu, I., Lan, I., Kostrikov, I., Sutskever, I., Kanitscheider, I., Gulrajani, I., Coxon, J., Menick, J., Pachocki, J., Aung, J., Betker, J., Crooks, J., Lennon, J., Kiros, J., Leike, J., Park, J., Kwon, J., Phang, J., Teplitz, J., Wei, J., Wolfe, J., Chen, J., Harris, J., Varavva, J., Lee, J. G., Shieh, J., Lin, J., Yu, J., Weng, J., Tang, J., Yu, J., Jang, J., Candela, J. Q., Beutler, J., Landers, J., Parish, J., Heidecke, J., Schulman, J., Lachman, J., McKay, J., Uesato, J., Ward, J., Kim, J. W., Huizinga, J., Sitkin, J., Kraaijeveld, J., Gross, J., Kaplan, J., Snyder, J., Achiam, J., Jiao, J., Lee, J., Zhuang, J., Harriman, J., Fricke, K., Hayashi, K., Singhal, K., Shi, K., Karthik, K., Wood, K., Rimbach, K., Hsu, K., Nguyen, K., Gu-Lemberg, K., Button, K., Liu, K., Howe, K., Muthukumar, K., Luther, K., Ahmad, L., Kai, L., Itow, L., Workman, L., Pathak, L., Chen, L., Jing, L., Guy, L., Fedus, L., Zhou, L., Mamitsuka, L., Weng, L., McCallum, L., Held, L., Ouyang, L., Feuvrier, L., Zhang, L., Kondraciuk, L., Kaiser, L., Hewitt, L., Metz, L., Doshi, L., Aflak, M., Simens, M., Boyd, M., Thompson, M., Dukhan, M., Chen, M., Gray, M., Hudnall, M., Zhang, M., Aljubeh, M., Litwin, M., Zeng, M., Johnson, M., Shetty, M., Gupta, M., Shah, M., Yatbaz, M., Yang, M. J., Zhong, M., Glaese, M., Chen, M., Janner, M., Lampe, M., Petrov, M., Wu, M., Wang, M., Fradin, M., Pokrass, M., Castro, M., de Castro, M. O. T., Pavlov, M., Brundage, M., Wang, M., Khan, M., Murati, M., Bavarian, M., Lin, M., Yesildal, M., Soto, N., Gimelshein, N., Cone, N., Staudacher, N., Summers, N., LaFontaine, N., Chowdhury, N., Ryder, N., Stathas, N., Turley, N., Tezak, N., Felix, N., Kudige, N., Keskar, N., Deutsch, N., Bundick, N., Puckett, N., Nachum, O., Okelola, O., Boiko, O., Murk, O., Jaffe, O., Watkins, O., Godement, O., Campbell-Moore, O., Chao, P., McMillan, P., Belov, P., Su, P., Bak, P., Bakkum, P., Deng, P., Dolan, P., Hoeschele, P., Welinder, P., Tillet, P., Pronin, P., Tillet, P., Dhariwal, P., Yuan, Q., Dias, R., Lim, R., Arora, R., Troll, R., Lin, R., Lopes, R. G., Puri, R., Miyara, R., Leike, R., Gaubert, R., Zamani, R., Wang, R., Donnelly, R., Honsby, R., Smith, R., Sahai, R., Ramchandani, R., Huet, R., Carmichael, R., Zellers, R., Chen, R., Chen, R., Nigmatullin, R., Cheu, R., Jain, S., Altman, S., Schoenholz, S., Toizer, S., Miserendino, S., Agarwal, S., Culver, S., Ethersmith, S., Gray, S., Grove, S., Metzger, S., Hermani, S., Jain, S., Zhao, S., Wu, S., Jomoto, S., Wu, S., Shuaiqi, Xia, RASTI 000 , 1– ?? (0000) ASTER - Agentic Science Toolkit for Exoplanet Research 17 
+
+Phene, S., Papay, S., Narayanan, S., Coffey, S., Lee, S., Hall, S., Balaji, S., Broda, T., Stramer, T., Xu, T., Gogineni, T., Christianson, T., Sanders, T., Patwardhan, T., Cunninghman, T., Degry, T., Dimson, T., Raoux, T., Shadwell, T., Zheng, T., Underwood, T., Markov, T., Sherbakov, T., Rubin, T., Stasi, T., Kaftan, T., Heywood, T., Peterson, T., Walters, T., Eloundou, T., Qi, V., Moeller, V., Monaco, V., Kuo, V., Fomenko, V., Chang, W., Zheng, W., Zhou, W., Manassra, W., Sheu, W., Zaremba, W., Patil, Y., Qian, Y., Kim, Y., Cheng, Y., Zhang, Y., He, Y., Zhang, Y., Jin, Y., Dai, Y., & Malkov, Y., 2024. Gpt-4o system card. Plaat, A., Van Duijn, M., Van Stein, N., Preuss, M., Van der Putten, P., & Batenburg, K. J., 2025. Agentic large language models, a survey, Journal of Artificial Intelligence Research , 84 .Polyansky, O. L., Kyuberis, A. A., Zobov, N. F., Tennyson, J., Yurchenko, S. N., & Lodi, L., 2018. Exomol molecular line lists xxx: a complete high-accuracy line list for water, Monthly Notices of the Royal Astronomical Society , 480 (2), 2597–2608. Roman, A. & Roman, J., 2026. Orchestral ai: A framework for agent orches-tration. Roman, A., Panek, E., Forestano, R. T., Unlu, E. B., Matcheva, K., & Matchev, K. T., 2026. Hunting for “Oddballs” with Machine Learning: Detect-ing Anomalous Exoplanets Using a Deep-Learned Low-Dimensional Representation of Transit Spectra with Autoencoders, arXiv e-prints ,p. arXiv:2601.02324. Roy-Perez, J., Pérez-Hoyos, S., Barrado-Izagirre, N., & Chen-Chen, H., 2025. The role of cloud particle properties in the wasp-39b transmission spec-trum based on jwst/nirspec observations, Astronomy & Astrophysics , 694 ,A249. Roy-Perez, J., Pérez-Hoyos, S., Barrado-Izagirre, N., & Chen-Chen, H., 2026. The effect of jwst/nirspec data reduction on the retrieval of wasp-39b atmospheric properties. Rustamkulov, Z., Sing, D. K., Mukherjee, S., May, E. M., Kirk, J., Schlawin, E., Line, M. R., Piaulet, C., Carter, A. L., Batalha, N. E., Goyal, J. M., López-Morales, M., Lothringer, J. D., MacDonald, R. J., Moran, S. E., Stevenson, K. B., Wakeford, H. R., Espinoza, N., Bean, J. L., Batalha, N. M., Benneke, B., Berta-Thompson, Z. K., Crossfield, I. J. M., Gao, P., Kreidberg, L., Powell, D. K., Cubillos, P. E., Gibson, N. P., Leconte, J., Molaverdikhani, K., Nikolov, N. K., Parmentier, V., Roy, P., Taylor, J., Turner, J. D., Wheatley, P. J., Aggarwal, K., Ahrer, E., Alam, M. K., Alderson, L., Allen, N. H., Banerjee, A., Barat, S., Barrado, D., Barstow, J. K., Bell, T. J., Blecic, J., Brande, J., Casewell, S., Changeat, Q., Chubb, K. L., Crouzet, N., Daylan, T., Decin, L., Désert, J., Mikal-Evans, T., Feinstein, A. D., Flagg, L., Fortney, J. J., Harrington, J., Heng, K., Hong, Y., Hu, R., Iro, N., Kataria, T., Kempton, E. M.-R., Krick, J., Lendl, M., Lillo-Box, J., Louca, A., Lustig-Yaeger, J., Mancini, L., Mansfield, M., Mayne, N. J., Miguel, Y., Morello, G., Ohno, K., Palle, E., Petit dit de la Roche, D. J. M., Rackham, B. V., Radica, M., Ramos-Rosado, L., Redfield, S., Rogers, L. K., Shkolnik, E. L., Southworth, J., Teske, J., Tremblin, P., Tucker, G. S., Venot, O., Waalkes, W. C., Welbanks, L., Zhang, X., & Zieba, S., 2023. Early Release Science of the exoplanet WASP-39b with JWST NIRSpec PRISM, Nature , 614 (7949), 659–663. Schick, T., Dwivedi-Yu, J., Dessì, R., Raileanu, R., Lomeli, M., Zettlemoyer, L., Cancedda, N., & Scialom, T., 2023. Toolformer: Language models can teach themselves to use tools. Seager, S. & Sasselov, D. D., 2000. Theoretical Transmission Spectra during Extrasolar Giant Planet Transits, ApJ , 537 (2), 916–921. Shaw, J. R., Bridges, M., & Hobson, M. P., 2007. Efficient bayesian inference for multimodal problems in cosmology, Monthly Notices of the Royal Astronomical Society , 378 (4), 1365–1370. Sing, D. K., Fortney, J. J., Nikolov, N., Wakeford, H. R., Kataria, T., Evans, T. M., Aigrain, S., Ballester, G. E., Burrows, A. S., Deming, D., Désert, J.-M., Gibson, N. P., Henry, G. W., Huitson, C. M., Knutson, H. A., Etangs, A. L. d., Pont, F., Showman, A. P., Vidal-Madjar, A., Williamson, M. H., & Wilson, P. A., 2015. A continuum from clear to cloudy hot-jupiter exoplanets without primordial water depletion, Nature , 529 (7584), 59–62. Skilling, J., 2004. Nested Sampling, in Bayesian Inference and Maximum Entropy Methods in Science and Engineering: 24th International Work-shop on Bayesian Inference and Maximum Entropy Methods in Science and Engineering , vol. 735 of American Institute of Physics Conference Series , pp. 395–405, AIP. Soboczenski, F., Himes, M. D., O’Beirne, M. D., Zorzan, S., Gunes Baydin, A., Cobb, A. D., Gal, Y., Angerhausen, D., Mascaro, M., Arney, G. N., & Domagal-Goldman, S. D., 2018. Bayesian Deep Learning for Exoplanet Atmospheric Retrieval, arXiv e-prints , p. arXiv:1811.03390. Tsiaras, A., Waldmann, I. P., Zingales, T., Rocchetto, M., Morello, G., Dami-ano, M., Karpouzas, K., Tinetti, G., McKemmish, L. K., Tennyson, J., & Yurchenko, S. N., 2018. A Population Study of Gaseous Exoplanets, AJ ,
+
+155 (4), 156. Unlu, E. B., Forestano, R. T., Matchev, K. T., & Matcheva, K., 2023. Re-producing Bayesian Posterior Distributions for Exoplanet Atmospheric Parameter Retrievals with a Machine Learning Surrogate Model, arXiv e-prints , p. arXiv:2310.10521. Waldmann, I. P., Tinetti, G., Rocchetto, M., Barton, E. J., Yurchenko, S. N., & Tennyson, J., 2015. Tau-rex i: A next generation retrieval code for exoplanetary atmospheres, The Astrophysical Journal , 802 (2), 107. Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T., Cao, Y., & Narasimhan, K., 2023a. Tree of thoughts: Deliberate problem solving with large language models, in Advances in Neural Information Processing Systems , vol. 36, pp. 11809–11822, Curran Associates, Inc. Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K. R., & Cao, Y., 2023b. React: Synergizing reasoning and acting in language models, in 
+
+The Eleventh International Conference on Learning Representations .Yip, K. H., Changeat, Q., Nikolaou, N., Morvan, M., Edwards, B., Waldmann, I. P., & Tinetti, G., 2021. Peeking inside the black box: Interpreting deep-learning models for exoplanet atmospheric retrievals, The Astronomical Journal , 162 (5), 195. Yip, K. H., Changeat, Q., Al-Refaie, A., & Waldmann, I., 2022. To Sample or Not To Sample: Retrieving Exoplanetary Spectra with Variational Inference and Normalising Flows, arXiv e-prints , p. arXiv:2205.07037. Yurchenko, S. N., Owens, A., Kefala, K., & Tennyson, J., 2024. Exomol line lists – lvii. high accuracy ro-vibrational line list for methane (ch4), 
+
+Monthly Notices of the Royal Astronomical Society , 528 (2), 3719–3729. Yurchenko, S. N., Barnfield, M. G., Bowesman, C. A., Brady, R. P., Guest, E. R., Kefala, K., Ni, Q.-H., Perri, A. N., Smola, O. A., Solokov, A., Tao, C., & Tennyson, J., 2025. Exomol line lists – lxiii. exomol line lists for 12 isotopologues of co2, Monthly Notices of the Royal Astronomical Society , 545 (3), staf2135. Zhang, Y., Khan, S. A., Mahmud, A., Yang, H., Lavin, A., Levin, M., Frey, J., Dunnmon, J., Evans, J., Bundy, A., Dzeroski, S., Tegner, J., & Zenil, H., 2025. Exploring the role of large language models in the scientific method: from hypothesis to discovery, npj Artificial Intelligence , 1(1), 14. Zingales, T. & Waldmann, I. P., 2018. Exogan: Retrieving exoplanetary atmospheres using deep convolutional generative adversarial networks, 
+
+The Astronomical Journal , 156 (6), 268. RASTI 000 , 1– ?? (0000)
