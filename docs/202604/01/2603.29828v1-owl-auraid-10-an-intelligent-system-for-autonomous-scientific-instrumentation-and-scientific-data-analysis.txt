@@ -1,0 +1,350 @@
+Title: Owl-AuraID 1.0: An Intelligent System for Autonomous Scientific Instrumentation and Scientific Data Analysis
+
+URL Source: https://arxiv.org/pdf/2603.29828v1
+
+Published Time: Wed, 01 Apr 2026 01:22:57 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Owl ·AuraID 1.0: An Intelligent System for Autonomous Scientific Instrumentation and Scientific Data Analysis 
+
+Han Deng 1,2 †, Anqi Zou 1,3 †, Hanling Zhang 1,2 †, Ben Fei 2* , Chengyu Zhang 1,Haobo Wang 1,3 , Xinru Guo 1,3 , Zhenyu Li 1,3 , Xuzhu Wang 1,3 , Peng Yang 4,Fujian Zhang 4, Weiyu Guo 5, Xiaohong Shao 4, Zhaoyang Liu 5,Shixiang Tang 2, Zhihui Wang 1,3* , Wanli Ouyang 1,2* 
+
+> 1*
+
+Shenzhen Loop Area Institute, Shenzhen, China. 
+
+> 2
+
+The Chinese University of Hong Kong, Hong Kong. 
+
+> 3
+
+Dalian University of Technology, Dalian, China. 
+
+> 4
+
+Suzhou Laboratory, Suzhou, China. 
+
+> 5
+
+The Hong Kong University of Science and Technology, Hong Kong. *Corresponding author(s). E-mail(s): benfei@cuhk.edu.hk; zhwang@dlut.edu.cn; wlouyang@ie.cuhk.edu.hk; Contributing authors: dh025@ie.cuhk.edu.hk; bigben@mail.dlut.edu.cn; zh025 @ie.cuhk.edu.hk; guoweiyu96@gmail.com; shaoxh@szlab.ac.cn; zyliumy@gmail.com; shixiangtang@cuhk.edu.hk; 
+
+> †
+
+These authors contributed equally to this work. 
+
+Abstract 
+
+Scientific discovery increasingly depends on high-throughput experiments and complex characterization instruments, yet the practical automation of scientific characterization remains limited by proprietary graphical user interfaces (GUIs) that lack programmable APIs. Existing API- or command-line-based automation methods often fail to capture the visual feedback, software state, and tacit heuristics required in real characterization workflows, while many self-driving laboratory systems rely on pre-integrated devices or fixed software stacks that are difficult to generalize across heterogeneous equipment. Here, we present Owl-AuraID (Aura AI for Identification), a software–hardware collaborative embodied agent system for autonomous scientific instrumentation and scientific data analysis. Owl-AuraID adopts a GUI-native computer-use paradigm that allows agents to operate instrument control software through the same interfaces used by human experts, and organizes reusable capability through a skill-centric framework. In this framework, Type-1 skills encode expert-demonstrated GUI operational procedures for instrument control, and Type-2 skills encapsulate analytical scripts for post-acquisition data interpretation. Together, these skills connect physical sample handling, instrument software operation, and scientific analysis into an end-to-end characterization workflow. We report broad laboratory coverage across ten categories of precision scientific instruments and representative workflows spanning multimodal spectral analysis, multiscale microscopic imaging, elemental mapping, tomographic reconstruction, and crystallographic structure analysis, together with additional analytical support for modalities such as Fourier-transform infrared spectroscopy (FTIR), Nuclear Magnetic Resonance Spectroscopy (NMR), Atomic Force Microscopy (AFM), and Thermogravimetric Analysis (TGA). Overall, Owl-AuraID provides a practical and extensible foundation for autonomous scientific characterization in heterogeneous real-world laboratories and illustrates a path toward continually evolving laboratory intelligence through reusable operational and analytical skills. Code: https://github.com/OpenOwlab/AuraID. 
+
+1
+
+> arXiv:2603.29828v1 [cs.AI] 31 Mar 2026
+
+# 1 Introduction 
+
+Recent advances in AI for Science (AI4Science) have dramatically expanded our ability to generate scientific hypotheses and explore vast candidate spaces in biology, chemistry, and materials science. Breakthroughs such as AlphaFold [1], AlphaFold 3 [2], and large-scale materials discovery exemplified by GNoME [3] have demonstrated that machine intelligence can capture complex physical and biological constraints at unprecedented scale. Yet the experimental side of scientific discovery has not progressed at the same pace. In practice, the validation of computational hypotheses still depends on labor-intensive laboratory workflows, creating a widening gap between rapid in silico discovery and slow wet-lab verification. A major bottleneck in this gap lies in scientific characterization. High-precision characterization is essential for connecting experimental outcomes to material structures, chemical states, and functional properties, but it remains one of the least standardized stages of laboratory automation [4]. Compared with robotic synthesis and reaction optimization [5, 6], characterization is substantially harder to automate in real laboratories because it depends on heterogeneous instruments, vendor-specific software, and expert-driven interpretation. In many practical settings, critical operational knowledge is not exposed through programmable interfaces, but instead embedded in graphical control software, undocumented interaction procedures, and the tacit heuristics of experienced operators. As a result, high-precision characterization remains one of the most difficult barriers to practical laboratory autonomy. This challenge is not merely a hardware integration problem, but also a software interaction problem. Existing autonomous laboratory systems have achieved impressive progress in robotic synthesis, reaction optimization, and closed-loop experimentation [4], including integrated materials platforms [7–9], mobile laboratory agents [10], and workflow orchestration stacks [11, 12]. However, most current approaches still rely on pre-integrated device APIs, custom middleware, or tightly engineered hardware-software stacks, a pattern also reflected in programmatic scientific agents [13, 14]. Such designs are effective in purpose-built automation settings, but are considerably harder to deploy in real-world laboratories populated by heterogeneous, vendor-specific, and often closed-source instruments that lack programmable interfaces. For characterization in particular, many key decisions are made through visual interaction with spectra, microscopy images, parameter panels, and real-time instrument feedback. These properties make GUI-native interaction a more natural foundation than API-only abstraction for practical characterization automation. In this work, we argue that scientific instruments should be regarded as specialized embodied AI agents, for which scientific software serves as the first-class operating environment. Rather than assuming that laboratory intelligence must be built exclusively on top of pre-defined APIs—or that proprietary interfaces can always be wrapped into command-line tool schemas [15, 16]—we advocate a GUI-native paradigm in which agents perceive and manipulate the same interfaces used by human experts, consistent with progress in computer-use agents for real desktop and mobile software [17– 21]. To realize this paradigm in practice, we introduce Owl-AuraID (Aura AI for Identification), a software-hardware collaborative embodied system built around a scientific agent runtime and a reusable skill-centric capability framework. Owl-AuraID adapts the agent-runtime paradigm of modern coding agents to scientific characterization, providing a conversation-first interface for non-programmer scientific users while retaining workspace access, command execution, and autonomous tool use under the hood. Its core capability is organized around reusable scientific skills: Type-1 skills ,which encode expert GUI operational procedures for proprietary instrument software, and Type-2 skills , which encapsulate analytical scripts for transforming raw characterization outputs into scientific results. By treating skills as the primary unit of accumulated capability, Owl-AuraID turns one-off successful interactions into reusable, extensible procedures that can be invoked, refined, and composed across tasks, thereby supporting continual capability accumulation over time. Built on this foundation, Owl-AuraID connects physical sample handling with robots, GUI-based instrument control, and scientific data interpretation into an end-to-end characterization workflow. The system supports a broad range of precision characterization scenarios, spanning multimodal spectral analysis, multi-scale microscopic imaging, elemental mapping, crystallographic structure analysis, and related data-processing tasks. In this way, Owl-AuraID is not merely a GUI automation system for scientific software, but a skill-centric scientific agent platform that links embodied execution and digital analysis in a unified and extensible loop. In summary, this work makes four main contributions: 2• We formulate autonomous scientific characterization in real laboratories as a GUI-based computer-use problem, identifying the lack of open APIs and the prevalence of heterogeneous vendor software as a central obstacle to practical laboratory autonomy. 
+
+• We present Owl-AuraID, a software-hardware collaborative scientific agent system that adapts the agent-runtime paradigm to characterization workflows and enables end-to-end operation across heterogeneous scientific instruments without requiring pre-defined tool interfaces. 
+
+• We propose a reusable skill-centric framework in which Type-1 GUI operational skills and Type-2 analytical script skills serve as the primary units of capability accumulation, allowing expert procedures and heuristics to be encoded, reused, and composed across tasks. 
+
+• We demonstrate a unified characterization-analysis loop that connects embodied manipulation, instrument software operation, and scientific data interpretation across diverse characterization scenarios, supporting continual capability expansion in autonomous laboratory systems. Spectral Analysis 
+
+Multiscale Microscopy Analysis 
+
+Quantitative  Report of Properties 
+
+UV -vis  PL 
+
+SEM  Micro -CT 
+
+Secured directory 
+
+Intelligent Characterization Platform 
+
+Closed Loop from Physical Observation to Digital Interpretation | Enhancing Efficiency and Quality                                                          
+
+> 元素 (El em ent ) 线型 (Lin e Type ) 质量百分 比 (Weigh t
+> %)
+> 原子百分 比 (A to mic
+> %) 误差 (Unc ert . % ) 化学式 (Fo rm ul a)
+> 氧(Oxygen ) O K 43 .15 61 .42 ±1.1 2 𝑂 2
+> −
+> 硅(Sil icon) Si K 18 .98 15 .39 ±0.4 5 𝑆𝑖 𝑂 2
+> 铝(Alu minu m) Al K 9.7 2 8.2 1 ±0.3 2 𝐴 𝑙 2𝑂 3
+> 铁(Iro n) Fe K 14 .85 6.0 5 ±0.5 8 𝐹 𝑒𝑂 /𝐹 𝑒 2𝑂 3
+> 镁(Ma gnesiu m) Mg K 6.1 2 5.7 4 ±0.2 8 𝑀𝑔 𝑂
+> 钙(Calc ium) Ca K 5.1 5 2.9 2 ±0.1 9 𝐶𝑎 𝑂
+> 钛(Tita nium ) Ti K 2.0 3 0.9 6 ±0.1 1 𝑇𝑖 𝑂 2
+> 总计 (To tal ) 10 0.00%
+
+User command 
+
+Scientific Embodied Multi -Agent System 
+
+## Owl·AuraID 1.0 
+
+Intelligent Analysis 
+
+AI -Driven Control Hub 
+
+Fig. 1 Overview of the Owl-AuraID 1.0 architecture for autonomous scientific characterization. User command is translated and executed by an embodied multi-agent system managing a suite of precision characterization instruments (UV-vis, PL, SEM, Micro-CT). The platform achieves scientific data acquisition and autonomous multi-modal analytics (multiscale imaging, spectral analysis, and properties quantification), establishing an efficient loop for rapid characterization-analysis cycles. 
+
+# 2 Related Work 
+
+2.1 AI for Scientific Discovery and Self-Driving Laboratories 
+
+AI4Science as fundamentally reshaped discovery across biology, chemistry, and materials science. Landmark systems, notably AlphaFold [1, 2], have demonstrated the capacity of deep learning to resolve complex biomolecular structures and interactions with unprecedented fidelity. Similarly, in materials science, large-scale deep learning and active-learning frameworks like GNoME [3] have dramatically expanded the known space of stable materials. However, these computational leaps expose a widening gap: while the generation of scientific hypotheses has accelerated exponentially, the physical tasks of synthesis, characterization, and validation remain a bottleneck. To bridge this gap, the scientific community is increasingly pivoting toward self-driving laboratories 
+
+(SDLs)—closed-loop systems that integrate automated experimentation with computational decision-making. Recent syntheses position SDLs as the infrastructural cornerstone of next-generation discovery, unifying robotics, workflow orchestration, and machine learning into cohesive, high-throughput architectures [4]. In chemistry, these autonomous platforms have already accelerated reaction screening and iterative hypothesis testing by coupling robotic execution with model-based 3Table 1 Comparison of representative systems related to laboratory automation and characterization-oriented workflows.                                                        
+
+> Category Method Characterization-Oriented Workflow Capabilities Load Instrument SW Control AnalysisReturn Evolve AI-assisted experimentation InternSpect [22] N/A N/A Yes N/A No LabOS / LabClaw [23, 24] N/A N/A Yes N/A Yes Automated laboratory Venus series [25] Yes Robotic GUI actuation Yes Yes No Mobile Robotic Chemist [10] Yes Robotic GUI actuation Yes Yes No LG Chemistry Autonomous Lab [26] Yes Robotic GUI actuation N/A Yes No A-Lab [7] Yes Robotic GUI actuation N/A Yes No Chemspeed [27] Yes Robotic GUI actuation N/A Yes No LUMI-lab [28] Yes Robotic GUI actuation Yes Yes No Uni-Lab-OS [12] Yes Tool/API Yes Yes No Fully intelligent laboratory Owl-AuraID (ours) Yes GUI-native agent aYes Yes Yes baSupports arbitrary scientific characterization software without predefined tool interfaces.
+> b“Evolve” denotes whether the system can accumulate reusable operational or analytical capabilities across tasks.
+
+planning [5]. Parallel advances in materials science, exemplified by A-Lab [7] and integrated synthesis systems [8, 9], demonstrate that the tight convergence of robotic preparation, characterization, and active learning can drastically speed up the materials discovery cycle. Going beyond fixed workcells, the mobile robotic chemist [10] demonstrated that autonomous agents can navigate conventional laboratories to execute complex experimental campaigns. Subsequent advancements in mobile process chemistry [6] have further generalized this paradigm across broader, process-oriented tasks. At the architectural layer, frameworks such as AlabOS [11] and UniLabOS [12] underscore the necessity of AI-native operating systems to orchestrate heterogeneous devices, analytical modules, and optimization loops. More recently, XR-assisted and multimodal “co-scientist” systems—notably LabOS [23] and STELLA [29]—have pushed this frontier toward highly interactive and adaptive laboratory intelligence. Despite these advances, most current SDL systems rely on a degree of pre-engineered integration—such as standardized device APIs, bespoke middleware, or automation-centric laboratory redesigns. While feasible in purpose-built environments, these assumptions falter in real-world characterization laboratories. Here, instruments remain highly heterogeneous, vendor software is predominantly closed-source, and operational control frequently depends on manual visual interaction with legacy interfaces. Unlike synthesis or liquid-handling workflows, characterization is characterized by a lack of software standardization and a heavy reliance on proprietary, human-centric control programs. Consequently, characterization persists as one of the most fragmented and challenging bottlenecks in achieving true laboratory autonomy. 
+
+2.2 LLM Agents for Scientific Experimentation 
+
+Another emerging direction explores the use of large language models (LLMs) as scientific agents for experiment planning, tool invocation, and knowledge integration. Systems such as Coscientist [13] demonstrated that LLMs can assist with experimental design and execution when connected to programmable laboratory endpoints and documented automation interfaces. ChemCrow [14] further showed that tool-augmented language agents can solve chemistry tasks by orchestrating external models, software tools, and domain knowledge resources. AI Scientist [30] introduces a transformative framework capable of managing the entire scientific discovery process—from initial hypothesis generation and code-based experimentation to automated manuscript preparation and peer review. More broadly, recent studies on tool-using scientific agents have investigated when and how external tools improve chemistry reasoning and problem solving [31]. 4These works illustrate the growing promise of LLMs as scientific reasoning engines and workflow coordinators. However, most existing approaches are built around environments in which relevant tools are already programmatically accessible through APIs, scripts, databases, or explicitly defined tool schemas. They are therefore better suited to scientific reasoning over available tools than to autonomous operation of closed, GUI-centric scientific software. This distinction is especially important for characterization settings, where key operations frequently must be carried out through proprietary graphical interfaces rather than open programmatic endpoints. 
+
+2.3 GUI Agents for Real-World Software Operation 
+
+In parallel, GUI agents, also known as Computer-Use Agents (CUAs), have made rapid progress as a general framework for operating software directly through visual interfaces. Benchmarks such as OSWorld [17] and AndroidWorld [18] has provided realistic environments for evaluating agents in open-ended desktop and mobile tasks, helping drive progress in visual grounding, action planning, and long-horizon software interaction. Representative open models include UI-TARS [32] and Kimi K2.5 [19], while closed models such as Claude Sonnet 4.6 [20], GPT-5.4 [21], and Seed-1.8 [33] have demonstrated strong performance in GUI grounding and computer-use tasks. In particular, recent results on OSWorld-Verified suggest that state-of-the-art GUI agents are approaching or surpassing human-level performance in some software operation benchmarks. These developments indicate that GUI-native interaction is becoming a viable foundation for real-world software automation. However, most current GUI-agent evaluations focus on general-purpose desktop or mobile applications, such as productivity tools, websites, and consumer operating environments. Scientific instrumentation differs in several important respects: interfaces are often vendor-specific and weakly standardized; workflows are strongly stateful and long-horizon; visual cues must be interpreted in relation to measurement quality and experiment status; and mistakes may waste samples, time, or instrument resources. More importantly, scientific instrument control is rarely an isolated software task, but is tightly coupled to physical experiment execution and downstream scientific interpretation. As a result, the direct application of general-purpose GUI agents to characterization laboratories remains relatively underexplored. 
+
+2.4 Why GUI-Native Interaction Matters for Scientific Characterization 
+
+An alternative line of work seeks to convert existing software into command-line or structured tool interfaces for LLMs. Systems such as CLI-Anything [15] and OpenCLI [16] have shown that web and desktop applications can sometimes be wrapped into LLM-friendly CLI schemas, enabling programmatic interaction without direct GUI operation. This strategy is attractive when software is open, interface boundaries are stable, and the interaction logic can be cleanly abstracted into tool calls. In such settings, API- or CLI-first interaction may indeed be preferable for reliability and efficiency. For scientific characterization software, however, these assumptions often do not hold. First, many instrument control packages are proprietary and closed-source, with no publicly documented APIs, making reliable CLI conversion technically difficult and sometimes legally ambiguous. Second, building and maintaining such wrappers requires substantial software engineering effort, which is rarely available in ordinary laboratory settings. Third, characterization is intrinsically visual: operators make decisions based on live images, spectral previews, parameter panels, reconstruction interfaces, and real-time feedback displayed in the GUI. A pure CLI abstraction cannot fully preserve this visual analytical context or the tacit decision-making process associated with it. For these reasons, GUI-native interaction is not merely a fallback for missing APIs, but a natural operating paradigm for heterogeneous scientific instrumentation in real laboratories. Our work builds on recent progress in autonomous laboratories, LLM-based scientific agents, and GUI automation, while addressing a gap not fully covered by prior systems: enabling AI agents to directly operate real-world scientific characterization software and to connect physical execution, instrument software control, and scientific data analysis within a unified workflow. Overall, prior work leaves three gaps insufficiently addressed for real-world scientific characterization: (1) most autonomous laboratory systems rely on pre-integrated APIs or fixed automation stacks; (2) most LLM scientific agents assume that relevant tools are already programmatically accessible; and (3) most GUI agents are evaluated in general-purpose software environments rather than proprietary, safety-sensitive scientific instrumentation. Our work addresses these gaps through a GUI-native scientific agent framework that integrates embodied execution, 5instrument software operation, and scientific data analysis across heterogeneous characterization workflows. 
+
+# 3 Method 
+
+3.1 Design Motivation 
+
+Scientific characterization workflows present a distinctive systems challenge for AI agents. On the one hand, many tasks are inherently agentic : they require multi-step planning, tool use, intermediate inspection, and iterative correction rather than single-turn question answering. On the other hand, the operational environment of characterization is highly heterogeneous. A practical system must bridge scriptable data analysis, proprietary GUI-based instrument software, and non-programmer human users within the same workflow. This setting exposes a gap in existing agent paradigms. Pure conversational assistants lack the ability to act over files, commands, and software environments. In contrast, coding agents such as Claude Code- or CodeX-style systems provide strong command-line and workspace execution abilities, but their default interaction model is centered around code manipulation in developer-oriented environments. Such a purely CLI-centric paradigm is poorly aligned with scientific instrument scenarios, where critical steps often take place inside closed, GUI-driven software stacks and where end users are experimental researchers rather than professional programmers. AuraID is designed to address this gap. Built on top of InnoClaw [34], it extends the agent-runtime paradigm beyond software engineering and adapts it to scientific characterization. Our central design principle is that a useful laboratory agent should not be framed as a monolithic model application, but as a skill-centric agent platform : a system that can reason over tasks, act over both workspace and GUI environments, and accumulate reusable procedural knowledge from expert interaction. Accordingly, the method is organized around three components: 1. An agent runtime platform tailored to scientific users and mixed execution environments; 2. A skill system that serves as the primary unit of accumulated capability; 
+
+3.2 AuraID as a Scientific Agent Runtime 
+
+3.2.1 From Coding Agent to Scientific Agent 
+
+AuraID is developed as a secondary system on top of InnoClaw [34]. At the architectural level, it inherits the essential properties of modern agentic coding systems: workspace access, command execution, model-driven planning, and an autonomous agent loop that iteratively acts until task completion. This agent-runtime structure is crucial because scientific workflows are rarely solvable in a single model response. Even simple requests such as analyzing a spectrum, reproducing a reconstruction pipeline, or exporting instrument results typically require multiple rounds of file inspection, tool invocation, parameter adjustment, and result verification. However, directly applying a coding-agent paradigm to laboratory environments is insufficient. Systems such as Claude Code or CodeX are highly effective in developer workflows because they assume a command-line-native workspace and users who are comfortable inspecting, editing, and debugging code artifacts. Scientific characterization differs in two important respects. First, many critical operations are not exposed through scripts or open APIs, but through proprietary software interfaces operated primarily via GUI. In such settings, a purely CLI-based agent cannot directly reach important parts of the workflow. Second, the target users of AuraID are often instrument operators, materials researchers, and characterization scientists, whose goals are experimental and analytical rather than code-centric. Requiring such users to manually modify source code would introduce unnecessary cognitive and operational burden. For this reason, AuraID retains the underlying execution power of coding agents, while redesigning the interaction layer for scientific use. 
+
+3.2.2 Conversation-First Interaction over a Tool-Using Core 
+
+AuraID provides the following runtime capabilities: 
+
+• Workspace access , including reading, creating, and modifying files within an experiment-specific project space; 6• Command-line execution , enabling invocation of scientific scripts, local tools, package environments, and auxiliary utilities; 
+
+• Multi-model compatibility , allowing different large-model APIs to be connected according to performance, cost, privacy, or deployment constraints; 
+
+• Autonomous agent loop , enabling the system to decompose a user request into multi-step reasoning and action sequences. Unlike developer-facing coding agents, however, AuraID intentionally deemphasizes direct code editing as the primary user interface. Instead, it adopts a conversation-first interaction model. Users express objectives, constraints, and desired changes in natural language, while the agent performs the corresponding code synthesis, file modification, parameter revision, or tool execution in the background. This design reflects the reality that experimental researchers are typically goal-oriented rather than code-oriented . Their intent is to define analytical logic, software operation targets, or workflow constraints, not to participate in a manual edit-run-debug cycle. By placing natural-language interaction above a code-capable execution core, AuraID preserves flexibility while lowering the barrier for non-programmer users. 
+
+3.2.3 Extensibility through Importable Skills 
+
+A further requirement in characterization environments is heterogeneity. Different laboratories use different instruments, software stacks, analysis conventions, and reporting requirements. No closed set of built-in capabilities can adequately cover such diversity. AuraID therefore supports importing reusable skills from external repositories such as GitHub and ClawHub. This design makes the platform incrementally extensible. Laboratories can assemble a customized capability set by adding analysis routines, GUI operating procedures, or workflow templates relevant to their own equipment and protocols. More importantly, this repository-based mechanism enables a transition from one-off success to reusable capability: once a useful behavior has been validated, it can be packaged as a skill and reused across future tasks rather than rediscovered from scratch. 
+
+3.3 Skill-Centric Capability Accumulation 
+
+3.3.1 Why Skills Are Needed 
+
+The practical bottleneck in scientific software automation is not merely action generation, but the acquisition, representation, and reuse of domain-specific procedural knowledge. This is especially evident in GUI-based instrument software. Modern GUI agents and computer-use agents can in principle interact with arbitrary software interfaces. However, in our setting, we observed that their zero-shot performance on previously unseen scientific instrument software is often unreliable and far from deployment-ready. This limitation should not be understood simply as a failure of the underlying model. Human operators also require training before they can competently use complex characterization software. In real laboratories, novices learn through manuals, expert demonstration, supervised repetition, and gradual internalization of tacit heuristics. Instrument software often involves irregular UI design, weakly standardized interaction patterns, implicit state transitions, and domain-specific decision points. Under these conditions, expecting robust zero-shot operation is unrealistic. A central question, then, is how the agent should store what it learns . A straightforward idea is model fine-tuning. We do not adopt this as the primary adaptation mechanism because it is poorly matched to the deployment rhythm of laboratory environments. Fine-tuning GUI behavior typically requires large collections of trajectory data, specialized compute resources, hyperparameter tuning, and repeated retraining whenever new software or procedures must be incorporated. In contrast, scientific labs need a mechanism for rapidly onboarding new instruments, new procedures, and local operational variations with low latency and modest engineering effort. Another possible strategy is to inject manuals, instructions, or external knowledge bases directly into prompts. While such contextual augmentation is useful for reference, we found it insufficient for executing long-horizon scientific procedures. Many instrument workflows span dozens of actions and contain a few difficult transitions that dominate failure. Purely textual guidance does not reliably solve problems of long-horizon drift, weak grounding between textual instructions and GUI state, or adaptive decision-making at critical steps. 7These observations motivate our choice of skill as the primary unit of accumulated capability. Inspired by skill-oriented agent frameworks in coding agents and by recent work showing that GUI agents can also benefit from structured skills, we treat a skill as a reusable, parameterizable, and composable unit of procedural knowledge. In this formulation, the system does not primarily grow through repeated model retraining, but through the accumulation and refinement of skills. A transient successful behavior becomes persistent system capability only after it is abstracted into an explicit skill artifact. 
+
+3.3.2 Two Types of Skills 
+
+According to their construction pathway and execution substrate, AuraID organizes skills into two categories: Type-1 GUI operational skills and Type-2 analytical script skills . This taxonomy reflects two distinct but complementary forms of expertise in scientific characterization. Type-1 skills target instrument software operation . Their knowledge source is expert demonstration over GUI interfaces, and their execution substrate is a computer-use agent loop interacting directly with software screens and controls. In implementation, they are instantiated as CUA-based GUI skills. Type-2 skills target post-acquisition data interpretation . Their knowledge source is expert analytical intent expressed through natural language, and their execution substrate is a scriptable computational environment. In implementation, they are instantiated as conversationally constructed script skills. Together, these two skill types cover the two major loci of capability required in characterization: operational control over proprietary software and digital scientific analysis. 
+
+Type-1 Skills: GUI Operational Skills. 
+
+Type-1 skills are the mechanism through which AuraID addresses the software interaction barrier posed by proprietary scientific instrument systems. These skills are intended for GUI-based instrument software and are constructed through collaboration between human experts and the AuraID agent. Rather than assuming the existence of APIs, AuraID learns to operate instruments through the same interface layer used by human operators. For complex procedures such as CT image reconstruction, EBSD grain-boundary identification setup, or SEM/EDS operating sequences, human experts first demonstrate the standard workflow inside the instrument software. During this process, AuraID records the interaction trajectory, including mouse actions, keyboard inputs, and the associated visual changes on the screen. The demonstrated procedure is then abstracted into a structured and parameterizable skill. A key design requirement is that such skills must not be reduced to static coordinate replay. Instead, they are represented as reusable execution flows with explicit parameters, state checks, and conditional branches. For example, an SEM imaging skill may expose accelerating voltage, working distance, and magnification as configurable parameters, while preserving the underlying procedure for menu navigation, focus adjustment, scan initiation, and result export. This allows one operational logic to be instantiated across different samples and imaging needs. More importantly, Type-1 skills can also encode tacit expert heuristics. In real instrument operation, important decisions are often made based on subtle cues that are difficult to formalize in APIs or manuals. During EDS acquisition, for instance, an experienced operator may prolong collection time when the live preview suggests insufficient signal-to-noise ratio, or terminate early once spectral quality becomes acceptable. Such behaviors can be represented inside the skill as conditional triggers, adaptive stopping criteria, or branching decisions tied to observed GUI state. As a result, Type-1 skills become not merely executable procedures, but compact carriers of operational expertise. 
+
+Type-2 Skills: Analytical Script Skills. 
+
+Type-2 skills are designed for the digital analysis stage following physical characterization. In real scientific practice, laboratories often adopt different preferences for processing the same modality of data, such as UV-vis, FTIR, Raman, XRD, or electrochemical measurements. As a result, fixed commercial pipelines are often too rigid to satisfy the flexibility required in research-oriented analysis. AuraID addresses this problem through a conversational script-generation paradigm, allowing researchers to specify analytical logic in natural language and iteratively refine it through dialogue with the agent. In a typical interaction, the user describes the intended procedure at an operational level, such as loading a CSV file, finding a peak in a target interval, performing baseline correction, applying Gaussian fitting, and exporting a figure and summary table. Guided by these instructions, the AuraID 8UV -Vis Absorption Spectroscopy  
+
+> Micro -Computed Tomography (Micro -CT)
+> Photoluminescence (PL) Emission
+> Scanning Electron Microscope (SEM)
+> Energy Dispersive Spectrometer (EDS) Fig. 2 The platform integrates fluorescence emission spectroscopy with UV-Vis absorption spectroscopy, SEM, EDS, and Micro-CT for multi-modal characterization.
+
+agent uses code generation together with domain-relevant scientific libraries such as NumPy, SciPy, pandas, matplotlib, or RDKit to synthesize executable analysis scripts. The scripts can be run immediately on experimental data, allowing the user to inspect intermediate results and visualizations and to iteratively refine the procedure. Once validated, the script is abstracted into a standardized skill artifact with explicit input-output definitions, metadata, dependency specifications, and execution requirements. In this way, an ad hoc analytical interaction is converted into a reusable computational capability. Future tasks can invoke the same analysis logic directly rather than regenerating it from scratch. The significance of Type-2 skills lies in their ability to bridge scientific expertise and executable analysis. Researchers do not need to manually program each routine, yet the resulting procedures remain transparent, customizable, and reusable. This is particularly valuable in characterization contexts where analysis standards differ across laboratories and evolve with research questions. 
+
+3.3.3 Functional Relationship Between the Two Skill Types 
+
+The two skill types are complementary rather than isolated. In a typical characterization workflow, a Type-1 skill may operate instrument software to configure acquisition parameters, launch measurement, reconstruct results, and export data. The exported data can then be passed to a Type-2 skill for peak fitting, quantitative analysis, feature extraction, or report generation. The analytical outcome may further inform the next round of operational decisions, producing a closed-loop workflow that links physical experimentation, software interaction, and digital interpretation. This complementarity is central to the practical value of AuraID. Type-1 skills address the absence of open interfaces in real-world instrument ecosystems, while Type-2 skills address variability and customization in scientific analysis. Their combination forms the reusable knowledge substrate on which AuraID’s intelligent behavior depends. 
+
+# 4 Intelligent Driving of Scientific Instruments 
+
+AuraID has been developed toward intelligent automation across a broad range of scientific characterization instruments, covering five categories of precision equipment (Fig. 2). This section presents several representative scenarios to illustrate how embodied manipulation, GUI-based software operation, and analytical skill execution are integrated into end-to-end characterization workflows. 9AuraID -Driven Ultraviolet -Visible Absorption Spectrum   
+
+> AuraID Command Interface Drive the Scientific Embodied Robot Relevant Skill Import
+
+… …   
+
+> Spectral Acquisition Report Generation
+> AuraID -Driven Photoluminescence Emission Spectrum
+> AuraID Command Interface Measurement Parameter Setting Relevant Skill Import
+
+… … 
+
+> Spectral Acquisition Report Generation
+> (a)
+> (b)
+
+Fig. 3 AuraID workflow for spectral characterization of UV-vis and PL. 
+
+4.1 Intelligent Spectral Characterization 
+
+Spectral characterization is one of the most common and foundational procedures in chemistry and materials science. AuraID supports a closed-loop workflow for multimodal spectral analysis, including sample handling, instrument operation, and automated interpretation of acquired spectra. 
+
+UV-Vis Absorption Spectroscopy (UV-vis) and Photoluminescence (PL) Emission 
+
+UV-vis and PL spectroscopy provide essential information about the electronic band structures and optical transition behaviors of functional materials. For UV-vis and PL measurements (Fig. 3), AuraID initiates with the embodied agent executing high-precision sample handling and exchange. Utilizing multi-modal perception, the agent ensures sub-millimeter alignment of cuvettes or solid substrates within the sample chamber, maintaining rigorous physical consistency across experimental batches. Once the physical setup is secured, the system deploys CUA-driven operational skills to interface directly with the instrument’s native graphical software. These agents mimic human cognitive patterns to navigate complex UI hierarchies, autonomously configuring essential acquisition parameters. By interpreting real-time visual feedback from the software, the CUA-based skills can proactively handle operational exceptions and dynamically optimize measurement settings to ensure the acquisition of optimal characterization results. 
+
+4.2 Intelligent Microscopic Imaging Characterization 
+
+Microscopic imaging presents a unique challenge for laboratory autonomy, as achieving high-fidelity results traditionally necessitates continuous, expert-level adjustments based on real-time visual feedback. AuraID transcends static automation by enabling adaptive, closed-loop control across complex imaging modalities, including Scanning Electron Microscopy (SEM), Energy-Dispersive Spectroscopy (EDS), and Micro-Computed Tomography (Micro-CT). 
+
+Scanning Electron Microscopy 
+
+Scanning electron microscopy provides high-resolution topographic and compositional information essential for characterizing material surfaces and microstructures. For these experiments, as shown in Fig. 4a, AuraID manages a complete loop from sample loading to high-fidelity imaging. The process begins with the embodied agent using a robotic arm to place samples into the vacuum chamber with precision. Once the chamber is sealed, the system uses CUA-driven skills to operate the control software, autonomously initiating vacuum sequences and performing sample localization. During imaging, AuraID uses real-time visual feedback to adjust critical parameters such as accelerating voltage, magnification, and focus. This closed-loop approach mimics the adjustments of an expert operator to ensure optimal contrast and resolution, preparing the system for subsequent quantitative analysis. 
+
+Energy-Dispersive Spectroscopy 
+
+Energy-dispersive spectroscopy provides qualitative and quantitative identification of elemental compositions and their spatial distributions within a sample. As an integrated accessory to the SEM, EDS enables AuraID to perform in-situ chemical analysis following morphological imaging 10 AuraID Command Interface Measurement Parameter Setting Relevant Skill Import Electron Beam Confirmation        
+
+> Report Generation
+> Fiber Bundling and Calibration
+> Detector Switch Switch the Magnification. Scale Adaptive Adjustment Sample Positioning
+> Adjust the Contrast Single Sample Selection Focusing
+> Focusing
+> Image Acquisition
+
+AuraID Driven Energy Dispersive Spectroscopy Control        
+
+> SEM Parameter Setting Detector Control and Mapping Setting EDS Scan Analysis Generation
+> AuraID -Driven CT Equipment Imaging
+> AuraID Command Interface Measurement Parameter Setting Import Relevant Skill
+
+… …           
+
+> Select Address Coarse Sample Positioning
+> EXP Parameter Setting Fine Sample Positioning Clarity Adjustment Report Generation Result Collection
+
+… …
+
+> (a)
+> (b)
+> (c)
+> AuraID -Driven Automatic SEM Image Acquisition
+
+Fig. 4 AuraID workflow for microscopic imaging characterization of SEM, Micro-CT, and EDS. 
+
+(Fig. 4b). The system operates the control software to identify target regions of interest (ROIs) and configure excitation parameters, such as accelerating voltage and process time, for optimal X-ray signal collection. 
+
+Micro-Computed Tomography 
+
+Micro-computed tomography visualizes and quantifies the three-dimensional internal structures and density distributions of physical samples. For these measurements (Fig. 4c), AuraID interfaces with the instrument’s control system to ensure stable sample positioning throughout the multi-angle projection process. Based on the experimental objective, the agent autonomously configures scanning parameters, including spatial resolution and acquisition duration, to optimize the signal-to-noise ratio. The system manages the entire data pipeline, from raw projection collection to the execution of tomographic reconstruction software. This integrated workflow enables the automated derivation of detailed internal morphology and volumetric information, effectively creating a digital twin of the sample’s interior. Taken together, these applications demonstrate that AuraID extends beyond isolated software automation or device-specific scripting. Instead, it establishes a unified, skill-based framework that seamlessly integrates physical manipulation, GUI-native interaction, and scientific data acquisition across heterogeneous characterization instruments. This versatile architecture enables the system to adapt to diverse experimental requirements, transforming heterogeneous instrumentation into a unified, autonomous characterization ecosystem. 11 AuraID -Driven Automatic Identification of Infrared Spectral Characteristic Functional Groups       
+
+> AuraID Command Interface Spectrum Processing Raw Spectrum Upload Report Generation
+> AuraID Command Interface Relevant Skill Import Thermogravimetric Curve
+> Analysis
+> Report Generation
+> TGA DSC Thermogravimetric Curve and Phase Transition Analysis
+> Raw Data Upload
+> (e)
+
+… …               
+
+> NMR Chemical Shift Assignment
+> AuraID Command Interface Relevant Skill Import NMR Spectrum Analysis Report Generation Raw Data Upload
+> Raw Spectrum Upload AuraID Command Interface Spectrum Processing Report Generation
+> AuraID -Driven Baseline Correction (a)
+> (c)
+> (d)
+> AuraID Command Interface Raw Spectrum Upload Spectrum Processing Report Generation
+> AuraID -Driven Characteristic Peak Identification
+> (b)
+
+… …Fig. 5 AuraID workflow for spectral analysis. 
+
+# 5 Intelligent Analysis of Scientific Data 
+
+Beyond intelligent driving of scientific instruments, AuraID further demonstrates its capacity for the intelligent analysis of scientific data. The system autonomously executes advanced data interpretation tasks. 
+
+5.1 Spectral Analysis 
+
+Baseline Correction 
+
+For raw UV-vis data, AuraID intelligently identifies and eliminates background noise originating from instrumental fluctuations and stray light scattering. This automated baseline correction (Fig. 5a) is critical for removing non-linear offsets, ensuring that extracted peak attributes accurately represent the intrinsic electronic properties of the sample. Furthermore, this analytical framework can be extended to validate additional spectroscopic data, such as X-ray Diffraction (XRD) and Raman spectroscopy, in future studies. 
+
+Peak Identification 
+
+Based on the baseline-corrected spectra, AuraID intelligently identifies the specific positions and intensities of absorption peaks (Fig. 5b). By automatically extracting these key peak parameters, the system eliminates the labor-intensive process of manual inspection and comparative analysis. This functionality is easily extendable to peak identification across other spectroscopic modalities. 
+
+Functional Group Assignment in Fourier Transform Infrared (FTIR) Spectroscopy 
+
+Fourier transform infrared spectroscopy is a tool for identifying molecular structures and chemical bonds by probing the vibrational modes of functional groups. AuraID processes raw FTIR spectral data by autonomously cross-referencing expansive infrared databases to achieve precision matching of characteristic absorption bands (Fig. 5c). This capability enables the rapid identification and 12 AuraID -Driven Scanning Electron Microscopy Image Pore Analysis                 
+
+> AuraID Command Interface Image Processing SEM Image Report Generation
+> AuraID -Driven EDS Quantitative Analysis
+> AuraID Command Interface Relevant Skill Import
+> ……
+> Qualitative Analysis Quantitative Analysis Raw Spectrum Upload
+> AuraID -Driven AFM Surface Roughness and Height Profile Extraction
+> AuraID Command Interface Relevant Skill Import
+> ……
+> Surface Extraction Report Generation Raw Spectrum Upload
+> AuraID Command Interface Relevant Skill Import
+> ……
+> Grain Boundary Identification Report Generation
+> EBSD Grain Boundary Identification
+> Image Upload
+> (a)
+> (b)
+> (c)
+> (d)
+
+Fig. 6 AuraID workflow for microscopic imaging analysis. 
+
+output of key functional group compositions within complex molecular frameworks. The challenge of FTIR interpretation often arises from the overlapping of vibrational modes and the influence of hydrogen bonding, which can shift absorption frequencies. By digitizing expert recognition logic, AuraID effectively deciphers these spectral fingerprints, transforming raw vibrational signals into definitive structural information with expert-level accuracy. 
+
+Nuclear Magnetic Resonance (NMR) Spectrum Interpretation 
+
+Nuclear magnetic resonance spectroscopy provides high-resolution insights into the local magnetic environments of atomic nuclei, serving as a primary tool for definitive molecular structure elucidation. For raw NMR data, AuraID autonomously executes essential signal processing sequences, including phase correction, baseline calibration, and peak area integration (Fig. 5d). By integrating with chemical shift databases, the system identifies resonance frequencies and determines the relative stoichiometry of protons or other nuclei. By automating these intricate adjustments, AuraID ensures a high-fidelity transition from raw electromagnetic induction signals to precise structural assignments, significantly reducing the manual effort required for complex spectra. 
+
+Thermal Analysis with Thermogravimetric analysis (TGA) 
+
+Thermogravimetric analysis is a fundamental technique for assessing the thermal stability and compositional shifts of materials by monitoring mass change as a function of temperature. AuraID autonomously identifies critical weight-loss steps and thermal reaction peaks within the raw thermometric curves (Fig. 5e). By applying automated tangential and integration methods, the system precisely calculates essential thermodynamic parameters, including decomposition temperatures ( Td)and reaction enthalpies (∆ H). By digitizing these analytical workflows, AuraID transforms complex raw thermal profiles into definitive kinetic and thermodynamic insights with high consistency. 
+
+5.2 Microscopic Imaging Analysis 
+
+SEM Analysis 
+
+Quantitative analysis of scanning electron microscopy images is essential for correlating material morphology, such as porosity and particle distribution, with macroscopic performance. AuraID autonomously detects and delineates pore contours within high-resolution SEM micrographs (Fig. 6a). 13 By executing high-throughput batch-processing, the system performs large-scale quantification and generates objective statistical distributions of structural parameters. The primary challenge of manual interpretation lies in the labor-intensive nature of manual quantification, which is often confounded by low throughput and subjective bias arising from variations in image contrast and feature overlapping. AuraID turns expert manual inspection into automated algorithms, making it easy to get consistent measurement results from visual data. Looking forward, the extension of this framework to in-situ SEM analysis will enable the real-time monitoring of dynamic material evolution, such as structural deformation or phase transformation, under external stimuli. 
+
+EDS Analysis 
+
+Energy-dispersive spectroscopy provides essential quantification of elemental compositions and their spatial distributions within a sample. By integrating the scanning results, the system autonomously identifies elemental species and resolves spectral interference from overlapping peaks (Fig. 6b). AuraID then calculates the weight and atomic percentages for each element and exports standardized compositional analysis reports. By automating these analytical procedures, AuraID transforms raw X-ray counts into precise chemical information, ensuring high consistency and efficiency in multi-element characterization. 
+
+Atomic Force Microscopy (AFM) Analysis 
+
+Atomic Force Microscopy is a high-resolution imaging technique used to characterize the three-dimensional surface topography and physical properties of materials at the nanoscale. By processing raw AFM scanning data, AuraID autonomously calculates surface roughness parameters, such as arithmetic average ( Ra ) and root mean square ( Rq ) (Fig. 6c). The system precisely extracts height profile curves from designated regions of interest to quantify microscopic surface features and fluctuations. The manual analysis of AFM data is often complicated by the need for meticulous image leveling and tip-convolution corrections to ensure accurate vertical resolution. By automating these analytical steps, AuraID converts raw topographic maps into standardized morphological metrics, ensuring high consistency in thin-film and surface characterization. 
+
+Electron Backscatter Diffraction (EBSD) Analysis 
+
+Electron backscatter diffraction is a scanning electron microscopy technique used to characterize the crystallographic orientation and microstructural evolution of crystalline materials. By processing raw EBSD data, AuraID autonomously generates inverse pole figure (IPF) maps and identifies various types of grain boundaries (Fig. 6d). The system precisely extracts statistical distributions of grain sizes and misorientation angles to quantify the underlying microstructural architecture. This automation addresses the primary bottlenecks in manual EBSD interpretation, specifically the meticulous indexing of diffraction patterns and the robust segmentation of fine-grained structures amidst background noise. 
+
+# 6 Discussion 
+
+In this work, we show that autonomous scientific characterization in heterogeneous real-world laboratories can be formulated as a GUI-native computer-use problem, rather than only as an API- or CLI-mediated automation task. By combining a conversation-first agent runtime with reusable Type-1 GUI operational skills and Type-2 analytical script skills, AuraID connects physical sample handling, proprietary instrument software operation, workspace computation, and scientific data interpretation within a unified characterization workflow. These results suggest that scientific software itself can serve as a practical operating environment for laboratory intelligence, particularly in settings where vendor-specific interfaces, closed-source control stacks, and visually grounded decision-making remain central to routine practice. AuraID owns a distinct position within the landscape of autonomous research by extending laboratory intelligence into the underexplored domain of GUI-centric scientific characterization. While conventional self-driving laboratories often rely on pre-engineered APIs and fixed automation stacks—limiting their scope to standardized synthesis or liquid-handling—AuraID’s GUI-native paradigm bypasses the requirement for stable programmatic endpoints. By directly navigating the proprietary interfaces and closed-source control stacks inherent to modern instrumentation, this framework enables the rapid unification of diverse modalities into a single, cohesive analytical 14 continuum. This multi-instrument integration allows for the simultaneous interrogation of structural, elemental, and functional properties. Ultimately, by capturing the multi-dimensional descriptors required for complex materials challenges, AuraID transforms heterogeneous characterization workflows from isolated manual tasks into a holistic, automated engine for scientific discovery. Beyond automation, AuraID serves as a critical engine for high-quality scientific data acquisition. The “reusable skill” architecture ensures that experimental procedures are executed with expert-level precision. This consistency is important because, by systematically converting manual laboratory procedures into structured, machine-readable datasets, we provide the essential high-quality scientific data for the next generation of Scientific Foundation Models. As these models evolve, the high-fidelity data generated through GUI-native agents will allow AI to not only execute experiments but to develop a deeper, cross-domain understanding of experimental physics and chemistry. While AuraID demonstrates robust coverage across diverse modalities, several frontiers remain. The current reliance on expert demonstration for skill acquisition suggests a need for self-supervised skill induction, where agents learn to navigate new software via curiosity-driven exploration or by “reading” technical manuals. Furthermore, while we have bridged the software gap, the physical handling of sensitive samples across instruments still requires sophisticated robotic coordination. Looking forward, the convergence of GUI-native autonomy and multi-modal characterization points toward a continually evolving laboratory intelligence. By capturing and digitizing the tacit knowledge of human experts, we are building a persistent, composable capability that transcends individual experiments. As we integrate more instruments and refine the quality of the resulting data, these agents will eventually move from being mere operators to becoming autonomous co-scientists, capable of closing the loop between hypothesis generation and complex physical validation. This trajectory offers a practical and scalable path toward the fully autonomous, AI-driven laboratories of the future. 
+
+# References 
+
+[1] Jumper, J., Evans, R., Pritzel, A., Green, T., Figurnov, M., Ronneberger, O., Tunyasuvunakool, K., Bates, R., Zidek, A., Potapenko, A., Bridgland, A., Meyer, C., Kohl, S.A.A., Ballard, A.J., Cowie, A., Romera-Paredes, B., Nikolov, S., Jain, R., Adler, J., Back, T., Petersen, S., Reiman, D., Clancy, E., Zielinski, M., Steinegger, M., Pacholska, M., Berghammer, T., Bodenstein, S., Silver, D., Vinyals, O., Senior, A.W., Kavukcuoglu, K., Kohli, P., Hassabis, D.: Highly accurate protein structure prediction with alphafold. Nature 596 (7873), 583–589 (2021) https://doi.org/ 10.1038/s41586-021-03819-2 [2] Abramson, J., Adler, J., Dunger, J., Evans, R., Green, T., Pritzel, A., Ronneberger, O., Willmore, L., Ballard, A.J., Bambrick, J.: Accurate structure prediction of biomolecular interactions with alphafold 3. Nature 630 (8016), 493–500 (2024) https://doi.org/10.1038/s41586-024-07487-w [3] Merchant, A., Batzner, S., Schoenholz, S.S., Aykol, M., Cheon, G., Cubuk, E.D.: Scaling deep learning for materials discovery. Nature 624 , 80–85 (2023) https://doi.org/10.1038/ s41586-023-06735-9 [4] Tobias, A.V., Wahab, A.: Autonomous ‘self-driving’ laboratories: a review of technology and policy implications. R. Soc. Open Sci. 12 (7), 250646 (2025) https://doi.org/10.1098/rsos.250646 [5] Chen, J., Xu, Q.: Artificial intelligence-driven autonomous laboratory for accelerating chemical discovery. Chem. Synth. 5, 76 (2025) https://doi.org/10.20517/cs.2025.66 [6] Brass, E.J., Veeramani, S., Zhou, Z., Fakhruldeen, H., Manzano, J.S., Clowes, R., Akpinar, I., Ward, M.R., Ward, J.W., Cooper, A.I.: A mobile robotic process chemist. Digit. Discov. 5(3), 1363–1371 (2026) https://doi.org/10.1039/D5DD00563A [7] Szymanski, N.J., Rendy, B., Fei, Y., Kumar, R.E., He, T., Milsted, D., McDermott, M.J., Gallant, M., Cubuk, E.D., Merchant, A., Kim, H., Jain, A., Bartel, C.J., Persson, K., Zeng, Y., Ceder, G.: An autonomous laboratory for the accelerated synthesis of novel materials. Nature 624 (7990), 86–91 (2023) https://doi.org/10.1038/s41586-023-06734-w [8] Lawrence Berkeley National Laboratory: Meet the Autonomous Lab of the Future. Berkeley Lab News Center. News article on the A-Lab autonomous synthesis facility at LBNL. (2023). https://newscenter.lbl.gov/2023/04/17/meet-the-autonomous-lab-of-the-future/ 15 [9] Ceder, G.: Gerbrand Ceder: AI in action — Autonomous laboratories for materials synthesis. YouTube video, University of California, Berkeley. Seminar recording associated with the Bakar Institute for Digital Materials for the Planet (UC Berkeley) seminar series. (2026). https://youtu. be/gTZgbAgQkqc [10] Burger, B., Maffettone, P.M., Gusev, V.V., Aitchison, C.M., Bai, Y., Wang, X., Li, X., Alston, B.M., Li, B., Clowes, R., Rankin, N., Harris, B., Sprick, R.S., Cooper, A.I.: A mobile robotic chemist. Nature 583 (7815), 237–241 (2020) https://doi.org/10.1038/s41586-020-2442-2 [11] Fei, Y., Rendy, B., Kumar, R., Dartsi, O., Sahasrabuddhe, H.P., McDermott, M.J., Wang, Z., Szymanski, N.J., Walters, L.N., Milsted, D., Zeng, Y., Jain, A., Ceder, G.: AlabOS: A python-based reconfigurable workflow management framework for autonomous laboratories. Digit. Discov. 3(11), 2275–2288 (2024) https://doi.org/10.1039/D4DD00129J . Preprint: arXiv:2405.13930. [12] Gao, J., Chang, J., Que, H., Xiong, Y., Zhang, S., Qi, X., Liu, Z., Wang, J.-J., Ding, Q., Li, X., Pan, Z., Xie, Q., Yan, Z., Yan, J., Zhang, L.: UniLabOS: An AI-native operating system for autonomous laboratories. arXiv preprint arXiv:2512.21766 (2025) 2512.21766 [13] Boiko, D.A., MacKnight, R., Kline, B., Gomes, G.: Autonomous chemical research with large language models. Nature 624 , 570–578 (2023) https://doi.org/10.1038/s41586-023-06792-0 [14] Bran, A.M., Cox, S., Schilter, O., Baldassari, C., White, A.D., Schwaller, P.: Augmenting large language models with chemistry tools. Nat. Mach. Intell. 6, 525–535 (2024) https://doi.org/10. 1038/s42256-024-00832-8 [15] HKUDS: CLI-Anything: Making ALL Software Agent-Native. GitHub repository. Software project (not a traditional article). License and citation: see repository README.md . (2025). https://github.com/HKUDS/CLI-Anything [16] jackwener: OpenCLI: Make Any Website & Tool Your CLI. GitHub repository; npm package 
+
+@jackwener/opencli . Software project (not a traditional article). (2025). https://github.com/ jackwener/opencli [17] Xie, T., Zhang, D., Chen, J., Li, X., Zhao, S., Cao, R., Hua, T.J., Cheng, Z., Shin, D., Lei, F., Liu, Y., Xu, Y., Zhou, S., Savarese, S., Xiong, C., Zhong, V., Yu, T.: Osworld: Benchmarking multimodal agents for open-ended tasks in real computer environments. arXiv preprint arXiv:2404.07972 (2024) 2404.07972 [18] Rawles, C., Clinckemaillie, S., Chang, Y., Waltz, J., Lau, G., Fair, M., Li, A., Bishop, W., Li, W., Campbell-Ajala, F., Toyama, D., Berry, R., Tyamagundlu, D., Lillicrap, T., Riva, O.: AndroidWorld: A dynamic benchmarking environment for autonomous agents. arXiv preprint arXiv:2405.14573 (2024) https://doi.org/10.48550/arXiv.2405.14573 2405.14573 [19] Team, K., Bai, T., Bai, Y., Bao, Y., Cai, S., Cao, Y., Charles, Y., Che, H., Chen, C., Chen, G., et al. : Kimi K2.5: Visual agentic intelligence. arXiv preprint arXiv:2602.02276 (2026) https: //doi.org/10.48550/arXiv.2602.02276 2602.02276 [20] Anthropic: Claude Sonnet 4.6. Research / product documentation. Official Anthropic page for Sonnet 4.6 capabilities and availability. (2026). https://www.anthropic.com/research/ claude-sonnet-4-6 [21] OpenAI: Introducing GPT-5.4. Company announcement. Official OpenAI announcement for GPT-5.4 (including computer-use and benchmark discussion). (2026). https://openai.com/index/ introducing-gpt-5-4/ [22] Shanghai Artificial Intelligence Laboratory: InternSpect. Project homepage. Cited as arepresentative scientific data analysis platform. (2026). https://internspect.intern-ai.org.cn/ home [23] Cong, L., Smerkous, D., Wang, X., Yin, D., Zhang, Z., Jin, R., Wang, Y., Gerasimiuk, M., Dinesh, R.K., Smerkous, A., Shi, L., Zheng, J., Lam, I., Wu, X., Liu, S., Li, P., Zhu, Y., Zhao, N., Parakh, M., Serrao, S., Mohammad, I.A., Chen, C.-Y., Xie, X., Chen, T., Weinstein, D., Barbone, G., Caglar, B., Sunwoo, J.B., Li, F., Deng, J., Wu, J.C., Wu, S., Wang, M.: LabOS: The AI-XR co-scientist that sees and works with humans. bioRxiv (2025) https://doi.org/10.1101/2025.10.16. 679418 16 [24] Wu, Y.C., Jian, J., Zhao, Z.: LabClaw: Operating layer for LabOS (Stanford-Princeton AI Co-Scientists). GitHub repository. MIT licensed. (2026). https://github.com/wu-yc/LabClaw [25] Newtonoptic Research Institute: Venus Fully Automatic High-Throughput Cell Counter (Venus series). Product page. Representative Venus series instrument page by Newtonoptic. (2026). https: //www.newtonoptic.com/products details/2.html [26] LG Chem: Autonomous Smart Lab (robot automation laboratory) at LG Chem Analytical Research Center. Press release. Official LG press release announcing LG Chem’s Autonomous Smart Lab (robot automation laboratory). (2025). https://www.lg.co.kr/media/release/29390 [27] Chemspeed Technologies AG: Chemspeed: Automation and Digitalization of R&D and QC Labs. Company homepage. Cited as a representative commercial lab automation platform provider. (2026). https://www.chemspeed.com/ [28] Cui, H., Xu, Y., Pang, K., Li, G., Gong, F., Wang, B., Li, B.: LUMI-lab: a foundation model-driven autonomous platform enabling discovery of new ionizable lipid designs for mrna delivery. bioRxiv (2025) https://doi.org/10.1101/2025.02.14.638383 [29] Jin, R., Xu, M., Meng, F., Wan, G., Cai, Q., Jiang, Y., Han, J., Chen, Y., Lu, W., Wang, M., Lan, Z., Jiang, Y., Liu, J., Wang, D., Cong, L., Zhang, Z.: STELLA: Towards a biomedical world model with self-evolving multimodal agents. bioRxiv (2025) https://doi.org/10.1101/2025.07.01.662467 [30] Lu, C., Lu, C., Lange, R.T., Yamada, Y., Hu, S., Foerster, J., Ha, D., Clune, J.: Towards end-to-end automation of ai research. Nature 651 (8107), 914–919 (2026) [31] Yu, B., Baker, F.N., Chen, Z., Herb, G., Gou, B., Adu-Ampratwum, D., Ning, X., Sun, H.: Tooling or not tooling? the impact of tools on language agents for chemistry problem solving. In: Findings of the Association for Computational Linguistics: NAACL 2025, pp. 7620– 7640 (2025). https://doi.org/10.18653/v1/2025.findings-naacl.424 . Preprint: arXiv:2411.07228. 
+
+https://aclanthology.org/2025.findings-naacl.424/ 
+
+[32] Qin, Y., Ye, Y., Fang, J., Wang, H., Liang, S., Tian, S., Zhang, J., Li, J., Li, Y., Huang, S., Zhong, W., Li, K., Yang, J., Miao, Y., Lin, W., Liu, L., Jiang, X., Ma, Q., Li, J., Xiao, X., Cai, K., Li, C., Zheng, Y., Jin, C., Li, C., Zhou, X., Wang, M., Chen, H., Li, Z., Yang, H., Liu, H., Lin, F., Peng, T., Liu, X., Shi, G.: UI-TARS: Pioneering automated GUI interaction with native agents. arXiv preprint arXiv:2501.12326 (2025) https://doi.org/10.48550/arXiv.2501.12326 2501.12326 [33] ByteDance Seed Team: Official Release of Seed 1.8: A Generalized Agentic Model. Official blog post. See also repository ByteDance-Seed/Seed-1.8 on GitHub for model card and artifacts. (2025). https://seed.bytedance.com/en/blog/ official-release-of-seed1-8-a-generalized-agentic-model [34] SpectrAI Initiative: InnoClaw: A self-hostable AI research workspace for grounded chat, paper study, scientific skills, and research execution. GitHub repository. Apache-2.0 licensed; project documentation at SpectrAI-Initiative.github.io/InnoClaw/. (2026). https://github.com/ SpectrAI-Initiative/InnoClaw 17
