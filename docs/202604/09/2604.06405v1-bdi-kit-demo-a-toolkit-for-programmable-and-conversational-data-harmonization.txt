@@ -1,0 +1,178 @@
+Title: BDI-Kit Demo: A Toolkit for Programmable and Conversational Data Harmonization
+
+URL Source: https://arxiv.org/pdf/2604.06405v1
+
+Published Time: Thu, 09 Apr 2026 00:10:39 GMT
+
+Number of Pages: 4
+
+Markdown Content:
+# BDI-Kit Demo: A Toolkit for Programmable and Conversational Data Harmonization 
+
+## Roque Lopez 
+
+New York University New York, NY, USA rlopez@nyu.edu 
+
+## Yurong Liu 
+
+New York University New York, NY, USA yurong.liu@nyu.edu 
+
+## Christos Koutras 
+
+New York University New York, NY, USA christos.koutras@nyu.edu 
+
+## Juliana Freire 
+
+New York University New York, NY, USA juliana.freire@nyu.edu 
+
+Abstract 
+
+Data harmonization remains a major bottleneck for integrative anal-ysis due to heterogeneity in schemas, value representations, and domain-specific conventions. BDI-Kit provides an extensible toolkit for schema and value matching. It exposes two complementary in-terfaces tailored to different user needs: a Python API enabling developers to construct harmonization pipelines programmatically, and an AI-assisted chat interface allowing domain experts to harmo-nize data through natural language dialogue. This demonstration showcases how users interact with BDI-Kit to iteratively explore, validate, and refine schema and value matches through a combina-tion of automated matching, AI-assisted reasoning, and user-driven refinement. We present two scenarios: (i) using the Python API to programmatically compose primitives, examine intermediate outputs, and reuse transformations; and (ii) conversing with the AI assistant in natural language to access BDI-Kit’s capabilities and iteratively refine outputs based on the assistant’s suggestions. 
+
+CCS Concepts 
+
+• Information systems → Information integration .
+
+Keywords 
+
+Data Harmonization, Schema Matching, Value Matching, AI Agents 
+
+ACM Reference Format: 
+
+Roque Lopez, Yurong Liu, Christos Koutras, and Juliana Freire. 2026. BDI-Kit Demo: A Toolkit for Programmable and Conversational Data Harmoniza-tion. In Companion of the International Conference on Management of Data (SIGMOD Companion ’26), May 31–June 5, 2026, Bengaluru, India. ACM, New York, NY, USA, 4 pages. https://doi.org/10.1145/3788853.3801608 
+
+1 Introduction 
+
+Integrating datasets is essential for large-scale analysis, yet re-mains challenging due to heterogeneity in schemas and value for-mats [ 8 ]. Despite decades of research in schema and value match-ing [ 1 , 3, 6, 10 ], most harmonization processes still require signif-icant manual effort, domain expertise, and iterative refinement. These challenges become even more pronounced in biomedical in-tegration scenarios, where datasets differ substantially in structure and semantics. For example, in a recent proteogenomic analysis, Li et al . [7] aggregated data from ten diverse cancer studies to map them onto the National Cancer Institute’s standardized Genomic  
+
+> This work is licensed under a Creative Commons Attribution 4.0 International License.
+> SIGMOD Companion ’26, Bengaluru, India.
+> ©2026 Copyright held by the owner/author(s). ACM ISBN 979-8-4007-2450-3/2026/05 https://doi.org/10.1145/3788853.3801608
+
+Data Commons (GDC) model 1. This integration proved challenging due to heterogeneity across the 700+ attributes of the target model, requiring both schema alignment and diverse transformation oper-ations, ranging from textual modifications to complex numerical conversions. Currently, no single automated solution is capable of resolving this wide spectrum of heterogeneity [8]. BDI-Kit is an open-source system 2 designed to support data har-monization as an interactive, human-in-the-loop process. Rather than aiming for fully automated integration, BDI-Kit provides a diverse set of matching primitives that generate candidate matches, allowing users to inspect and refine results. The system explicitly treats harmonization as an exploratory workflow in which auto-mated methods and human judgment are tightly coupled. Our prior work [ 9] presents the design and algorithms of BDI-Kit as a general-purpose toolkit for data harmonization. In contrast, this paper focuses on demonstrating how users interact with the system in practice. The goal of the demonstration is to show how harmonization workflows progress step by step, how users reason about intermediate results, and how human feedback influences the final outcome. To this end, we present BDI-Kit through two complementary in-teraction scenarios (see the demo video 2). The first one shows how data scientists can use the Python API to harmonize two tables by composing schema and value matching primitives and iteratively refining the results. The second scenario highlights how domain experts can perform table-to-model harmonization using a con-versational interface, where an AI agent orchestrates primitives in response to natural-language requests. 
+
+2 BDI-Kit Overview 
+
+BDI-Kit is an open-source interactive library for data harmonization that can be installed via PyPI ( pip install bdi-kit ). It integrates schema and value matching techniques with explicit support for human-in-the-loop refinement. The system is designed around the observation that harmonization is rarely a fully automated process: users must inspect intermediate results, resolve ambiguities, and iteratively refine matches before producing an integrated dataset. BDI-Kit exposes a set of composable harmonization primitives. These primitives operate on tabular data and can be orchestrated programmatically or invoked indirectly through an AI-assisted conversational interface. The system is extensible, allowing contrib-utors to integrate new matching algorithms, additional data models, and target schemas. The output of the harmonization process is a harmonized dataset with a harmonization specification that makes   
+
+> 1https://portal.gdc.cancer.gov/
+> 2https://github.com/VIDA-NYU/bdi-kit
+> arXiv:2604.06405v1 [cs.AI] 7 Apr 2026 SIGMOD Companion ’26, May 31–June 5, 2026, Bengaluru, India. Roque Lopez, Yurong Liu, Christos Koutras, and Juliana Freire Harmonia
+> Source Datasets
+> BDI-Kit
+> Target Dataset/Data Model
+> Contributor
+> Value
+> Matching
+> Matching
+> Assessment
+> Schema
+> Matching
+> New Data
+> Models
+> New
+> Primitives
+> MCP Server
+> Primitives
+> Data Scientist
+> AI Assistant …
+> Domain Expert
+> Output
+> Dataset
+> Harmonization
+> Specification
+> BDIViz
+
+Figure 1: Users harmonize source data to target tables or data models via schema and value matching primitives, through a Python API or AI-assisted interfaces, producing a harmo-nized dataset and reusable specification. 
+
+transformations explicit and supports reuse across datasets. Figure 1 illustrates the system architecture and interaction flow. 
+
+2.1 Data Model and Inputs 
+
+BDI-Kit operates on datasets represented as pandas DataFrames. A harmonization task is defined by: (i) a source dataset, provided as a DataFrame; (ii) a target, which can be either another DataFrame or a predefined data model. Target data models are represented internally through a light-weight abstraction that exposes attribute names, permissible values, and metadata. This abstraction allows BDI-Kit to support heteroge-neous standards without imposing a fixed schema representation. In this work, data model refers to domain-specific schemas (e.g., GDC), not abstract database models such as relational or graph. 
+
+2.2 Harmonization Primitives 
+
+The system provides three categories of primitives that form the building blocks of harmonization workflows. 
+
+Schema Matching. BDI-Kit integrates 12 schema matching prim-itives that identify candidate matches between attributes of the source and target datasets, including traditional methods, algorith-mic solutions, and LLM-based approaches. Each invocation pro-duces candidate matches with similarity scores, enabling users to inspect alternatives and reason about ambiguous cases. 
+
+Value Matching. Value matching primitives operate on pairs of matched attributes and identify equivalent values. BDI-Kit supports 5 value matching strategies, including textual similarity, embedding-based similarity, and numeric transformations. The output is a set of candidate value matches that can be inspected and refined. 
+
+Matching Assessment. These primitives evaluate and explain matches generated by the algorithms. These explanations clarify why a match was made and whether it is valid or questionable. This enables users to identify errors and improve the matching process. All primitives are designed to be composable: the output of one primitive can be passed as input to another, enabling flexible and incremental workflows. Users can compose primitives freely and apply them to any attribute or value; BDI-Kit does not automatically select functions by type, leaving these decisions to the user. Also, BDI-Kit handles moderate-size datasets efficiently, though very large datasets may require optimized or parallelized primitives. 
+
+2.3 Harmonization Specification 
+
+BDI-Kit represents the outcome of a harmonization process through a harmonization specification, a declarative artifact that explicitly defines how a source dataset is transformed into a target schema or data model. Currently, BDI-Kit focuses on one-to-one attribute cor-respondences rather than full schema mappings (e.g., GaV or LaV). The specification captures the final set of attribute correspondences, the value-level transformations applied to align representations, and any user-provided refinements that override or complement automated matches. The harmonization specification also serves as a reusable repre-sentation of integration knowledge. Once created, it can be applied to other datasets that share the same or a similar source schema, eliminating the need to repeat matching and refinement steps. This is particularly useful in recurring harmonization tasks, where the same transformations must be applied across multiple datasets. 
+
+2.4 Extensibility and Interoperability 
+
+BDI-Kit is designed to be extensible at both the data model and algo-rithmic levels. New target data models can be incorporated by pro-viding lightweight schema definitions and metadata, enabling the system to support additional standards and domain-specific repre-sentations without modifying core components. This design allows BDI-Kit to evolve alongside emerging data models and integration requirements. The system also supports extensibility through plug-gable harmonization primitives. Developers can add new schema matching or value matching methods, enabling experimentation with alternative methods. BDI-Kit also exposes its functionality through the Model Context Protocol (MCP), allowing external AI agents to interact with the system in a model-agnostic manner. Through MCP, BDI-Kit can be orchestrated by different AI assistants, enabling harmonization workflows to be embedded into broader AI-driven data management pipelines while preserving user control and system transparency. 
+
+2.5 Interaction Modalities 
+
+BDI-Kit supports two complementary interaction modalities that expose the same underlying system functionality. 
+
+Python API. The Python API enables data scientists to embed harmonization workflows into data processing pipelines. Users can programmatically invoke primitives, inspect intermediate results, review proposed match pairs before applying transformations, and introduce custom refinements. This interface emphasizes repro-ducibility and integration with existing analytical workflows. 
+
+AI-Assisted Conversational Interface. For users with limited programming experience, BDI-Kit can be accessed through an AI-assisted interface built on MCP. In this mode, an AI agent interprets BDI-Kit Demo: A Toolkit for Programmable and Conversational Data Harmonization SIGMOD Companion ’26, May 31–June 5, 2026, Bengaluru, India. A B
+
+Figure 2: Results of calling match_schema() and match_values() functions via the Python API. 
+
+natural-language requests, selects appropriate primitives, and exe-cutes them on behalf of the user. Importantly, the agent does not replace BDI-Kit’s logic; instead, it acts as an orchestration and expla-nation layer. To ensure safe and reliable harmonization, the system enforces guardrails: all automated suggestions report similarity scores, provenance flows show decision rationale, and users retain final control to accept, modify, or reject matches. Users can also challenge, add constraints, or revise suggestions at any step. 
+
+3 Demonstration Scenarios 3.1 Scenario 1: Python API Harmonization 
+
+This scenario demonstrates how BDI-Kit supports interactive and reproducible table-to-table harmonization between two endome-trial tumor-related datasets (from [ 5] to [ 4]) through its Python API. The workflow enables researchers to iteratively perform schema and value matching with human-in-the-loop refinement, while producing reusable harmonization specifications. 
+
+Dataset Preparation. To demonstrate both harmonization and reuse, we partition the source dataset into two subsets: (i) a base subset, used to construct the harmonization specification, and (ii) a held-out subset, used to simulate a new incoming dataset. The target remains unchanged. 
+
+Schema Matching. The researcher invokes match_schema() ,whose outputs are shown in Figure 2A. The results illustrate that BDI-Kit captures a variety of semantic relationships, including syn-onym matches such as Gender → Sex , and closely related clinical concepts such as Histologic_Grade_FIGO → Histologic_grade . The ranked correspondences and similarity scores allow the researcher to quickly assess match quality and identify potential ambigui-ties. Since the proposed schema matches are largely correct, the workflow proceeds to value-level alignment. 
+
+Value Matching. After confirming the schema matches, the re-searcher invokes the match_values() function to align the values of each matched attribute pair. Figure 2B shows some results of this step. For example, within the match Histologic_Grade_FIGO →
+
+Histologic_grade , the source value FIGO grade 2 is correctly matched to the target value G2 Moderately differentiated .
+
+Human-in-the-Loop Correction. The demonstration also high-lights the role of expert validation in data harmonization. For the attribute pair FIGO_stage → Pathologic_staging_primary_tumor_pt ,the automatically proposed value match IA → pT1a[IA] is identified as incorrect. Using the editable interface, the researcher corrects this match by leveraging consistency across the other correctly matched values, updating the target value: IA → pT1a (FIGO IA) . This inter-action illustrates how BDI-Kit combines automated matching with efficient manual refinement when ambiguities arise. 
+
+Harmonization Specification Generation and Reuse. The sys-tem produces a harmonization specification that captures both schema-level and value-level correspondences in a declarative JSON format. A snippet of this specification is shown below. Each en-try explicitly defines how source attributes and their values are transformed to conform to the target schema. As a final step, the specification is applied to the held-out subset. Without recomput-ing matches, BDI-Kit reuses the learned mappings to transform the data into the target representation.                               
+
+> {" source_attribute ": " Histologic_Grade_FIGO ", " target_attribute ": " Histologic_grade ", " mapper ": {" FIGO grade 1": "G1 Well differentiated ", " FIGO grade 2": "G2 Moderately differentiated ", " FIGO grade 3": "G3 Poorly differentiated "}}, {" source_attribute ": " FIGO_stage ", " target_attribute ": " Pathologic_staging_primary_tumor_pt ", " mapper ": {" IA ": " pT 1a ( FIGO IA )", " IIIA ": " pT 3a ( FIGO IIIA )", " II ": " pT 2 ( FIGO II )"}}
+
+3.2 Scenario 2: AI-Assisted Harmonization 
+
+This demonstration presents a conversational, AI-assisted interface for harmonizing a tabular pancreatic cancer dataset against a data model (from [ 2] to GDC ). Through natural-language interaction, the AI agent guides the user across schema matching, validation, and value matching, combining automated recommendations with human review to support efficient and transparent harmonization. 
+
+AI-Assisted Match Review. After invoking schema harmoniza-tion, the conversational agent presents the discovered matches in a structured table, clearly indicating whether each match was ac-cepted as-is or automatically corrected (see Figure 3A). Matches SIGMOD Companion ’26, May 31–June 5, 2026, Bengaluru, India. Roque Lopez, Yurong Liu, Christos Koutras, and Juliana Freire B
+
+> C
+> A
+> D
+
+Figure 3: BDI-Kit accessed through an AI agent orchestrating schema and value matching. 
+
+identified as reliable, such as tumor_focality or sex are marked as 
+
+OK , while those adjusted by the agent are labeled AI-corrected (e.g. 
+
+pathologic_staging_regional_lymph_nodes_pn ), along with a concise reason. This allowed the user to quickly review the harmonization results and understand where the agent intervened. The interface then provides actionable next steps, such as accepting the matches or proceeding with value matching. 
+
+Provenance-Aware Explanations. When the user requests clari-fication for a corrected match, the agent provides a compact prove-nance flow that summarizes the decision process. The explana-tion is presented as a vertical flow showing the initial match, do-main inspection (via preview_domain() ), alternative ranking (via 
+
+rank_schema_matches() ), and the final selected attribute. This provenance graph is followed by a brief explanation of why the final match was chosen, helping the user understand the AI’s rea-soning behind the corrections (Figure 3B). 
+
+Interactive Constraint-Based Matching. To illustrate interac-tive what-if scenarios, the user performed value matching for the attribute pair cause_of_death → cause_of_death . The AI agent first generated initial matches with short semantic justifications (Figure 3C). The user then introduced a constraint specifying that values re-lated to null should only map to Unknown . The agent then identified the affected entries, and updated the results accordingly, changing 
+
+na from Not Reported to Unknown , while leaving the remaining matches unchanged (Figure 3D). This experiment demonstrates how user-defined constraints can dynamically refine harmoniza-tion results and make the integration process more interactive and transparent. 
+
+Acknowledgments 
+
+This work was supported in part by DARPA ASKEM (HR0011262087), ARPA-H BDF, and NSF (OAC-2411221). The views, opinions, and findings expressed are those of the authors and should not be inter-preted as representing the views or policies of these agencies. 
+
+References 
+
+[1] Michael J. Cafarella, Alon Halevy, and Nodira Khoussainova. 2009. Data Integra-tion for the Relational Web. Proceedings of the VLDB Endowment (PVLDB) 2, 1 (2009), 1090–1101. [2] Liwei Cao, Chen Huang, Daniel Cui Zhou, Yingwei Hu, Mamie Lih, Sara Savage, Karsten Krug, David Clark, et al . 2021. Proteogenomic Characterization of Pancreatic Ductal Adenocarcinoma. Cell 184, 19 (2021), 5031–5052. [3] AnHai Doan, Alon Halevy, and Zachary Ives. 2012. Principles of Data Integration 
+
+(1st ed.). Morgan Kaufmann Publishers Inc. [4] Yongchao Dou, Lizabeth Katsnelson, Marina Gritsenko, Yingwei Hu, Boris Reva, Runyu Hong, Yi-Ting Wang, et al . 2023. Proteogenomic Insights Suggest Drug-gable Pathways in Endometrial Carcinoma. Cancer Cell 41, 9 (2023), 1586–1605. [5] Yongchao Dou, Emily Kawaler, Daniel Cui Zhou, Marina Gritsenko, Chen Huang, Lili Blumenberg, Alla Karpova, Vladislav Petyuk, et al . 2020. Proteogenomic Characterization of Endometrial Carcinoma. Cell 180, 4 (2020), 729–748. [6] Christos Koutras, George Siachamis, Andra Ionescu, Kyriakos Psarakis, Jerry Brons, Marios Fragkoulis, Christoph Lofi, Angela Bonifati, and Asterios Katsi-fodimos. 2021. Valentine: Evaluating Matching Techniques for Dataset Discovery. In Proceedings of International Conference on Data Engineering (ICDE) . 468–479. [7] Yize Li, Yongchao Dou, Felipe Da Veiga Leprevost, Yifat Geffen, Anna Calinawan, François Aguet, Yo Akiyama, et al . 2023. Proteogenomic Data and Resources for Pan-cancer Analysis. Cancer Cell 41, 8 (2023), 1397–1406. [8] Yurong Liu, Eduardo H. M. Pena, Aécio Santos, Eden Wu, and Juliana Freire. 2025. Magneto: Combining Small and Large Language Models for Schema Matching. 
+
+Proceedings of the VLDB Endowment (PVLDB) 18, 8 (2025), 2681–2694. [9] Roque Lopez, Aécio Santos, Christos Koutras, and Juliana Freire. 2026. BDI-Kit: An AI-Powered Toolkit for Biomedical Data Harmonization. Patterns 7 (2026). [10] Renée Miller. 2018. Open Data Integration. Proceedings of the VLDB Endowment (PVLDB) 11, 12 (2018), 2130–2139.
