@@ -1,0 +1,722 @@
+Title: Tool Retrieval Bridge: Aligning Vague Instructions with Retriever Preferences via Bridge Model
+
+URL Source: https://arxiv.org/pdf/2604.07816v1
+
+Published Time: Fri, 10 Apr 2026 00:34:44 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Tool Retrieval Bridge: Aligning Vague Instructions with Retriever Preferences via Bridge Model 
+
+Kunfeng Chen a,b, ∗, Luyao Zhuang a,b, ∗, Fei Liao a, ∗∗ , Juhua Liu a,b, ∗∗ , Jian Wang c, Bo Du a,b 
+
+> aDepartment of Gastroenterology, Renmin Hospital, Wuhan University, Wuhan, China.
+> bSchool of Computer Science, Wuhan University, Wuhan, China.
+> cState Grid Corporation, China.
+
+Abstract 
+
+Tool learning has emerged as a promising paradigm for large language models (LLMs) to address real-world challenges. Due to the extensive and irregularly updated number of tools, tool retrieval for selecting the desired tool subset is essential. However, current tool retrieval methods are usually based on academic benchmarks containing overly detailed instructions ( e.g. , specific API names and parameters), while real-world instructions are more vague. Such a discrepancy would hinder the tool retrieval in real-world applications. In this paper, we first construct a new benchmark, VGToolBench , to simulate human vague instructions. Based on this, we conduct a series of preliminary analyses and find that vague instructions indeed damage the performance of tool retrieval. To this end, we propose a simple-yet-effective Tool Retrieval Bridge (TRB ) approach to boost the performance of tool retrieval for vague instructions. The principle of TRB is to introduce a bridge model to rewrite the vague instructions into more specific ones and alleviate the gap between vague instructions and retriever preferences. We conduct extensive experiments under multiple commonly used retrieval settings, and the results show that TRB effectively mitigates the ambiguity of vague instructions while delivering consistent and substantial improvements across all baseline retrievers. For example, with the help of TRB , BM25 achieves a relative improvement of up to 111.51%, i.e. , increasing the average NDCG score from 9.73 to 19.59. The source code and models are publicly available at https://github.com/kfchenhn/ TRB .
+
+Keywords: Tool Retrieval, Vague Instructions, Benchmark Construction, Bridge Model 
+
+1. Introduction 
+
+While large language models (LLMs) (Achiam et al., 2023; Touvron et al., 2023; Bai et al., 2023) have achieved great suc-cess in the NLP community, they still fall short in terms of complex computations and providing the latest information, due to their reliance on fixed and parametric knowledge (Qu et al., 2025). To this end, tool learning (Lu et al., 2023; Cai et al., 2024; Hsieh et al., 2023; Wang et al., 2024b; Ding et al., 2025; Qin et al., 2024; Shi et al., 2025), aiming to unleash the power of LLMs by integrating with external tools, has attracted enor-mous attention. For instance, by using search engines, LLMs can obtain more accurate and timely information, thus better interacting with the external world. One of the key challenges of tool learning is to determine spe-cific tools for corresponding tasks (Xu et al., 2024). To achieve this goal, there are two lines of research: 1) In-Context Learning (ICL) (Brown et al., 2020; Lu et al., 2023; Gupta and Kembhavi, 2023; Surís et al., 2023), which instructs the LLMs to under-stand the tool descriptions in the context and select the related 
+
+> ∗Kunfeng Chen and Luyao Zhuang contribute equally to this work.
+> ∗∗ Corresponding authors at: Fei Liao, Department of Gastroenterology, Renmin Hospital, Wuhan University, Wuhan, China; Tel: +86-13871099860; E-mail: feiliao@whu.edu.cn. Juhua Liu, School of Computer Science, Wuhan University, Wuhan, China; Tel: +86-18062452253; E-mail: liujuhua@whu.edu.cn.
+
+ToolBench 
+
+VGToolBench                                                                       
+
+> I'm astudent and I'm always looking for discounts
+> on various products and services .Can you suggest
+> some trending coupons and popular coupons for
+> electronics, fashion, and food using the '27 coupons'
+> API ?Additionally, fetch me all the available
+> coupons using the 'coupons' API .
+> I'm astudent who loves finding discounts on
+> different things .Can you suggest some popular
+> coupons for electronics, fashion, and food? Also,
+> could you get me alist of all available coupons?
+> Figure 1: Instruction Comparison between ToolBench (Qin et al., 2023) and our VGToolBench .As seen, ToolBench contains more detailed and specific instructions (highlighted in red), while the instructions of our VGToolBench are vague and more aligned with real-world scenarios.
+
+tools (Gao et al., 2024); 2) Supervised Fine-Tuning (SFT), which incorporates tool learning capabilities into model parameters through fine-tuning (Schick et al., 2023; Wang et al., 2024c; Hao et al., 2023). Since the SFT of LLMs is usually computation-ally expensive and memory-intensive, current works generally focus on ICL-based methods. However, the vast number of tools makes it difficult for LLMs to contain all tools within the limited input length. Thus, tool retrieval, selecting appropriate tools 
+
+> arXiv:2604.07816v1 [cs.CL] 9 Apr 2026
+
+from a large-scale tool set, is essential for tool learning. Recently, to facilitate tool retrieval and usage, a series of tool learning benchmarks have been proposed, such as Tool-Bench (Qin et al., 2023) and APIBench (Peng et al., 2022). While containing large-scale and high-quality tools, these bench-marks usually differ from real-world scenarios (Wu et al., 2024), as illustrated in Figure 1. Specifically, most of them are auto-matically constructed by proprietary LLMs, e.g. , ChatGPT, and tend to be overly detailed and specific. Conversely, instead of specifying the required exact tools or APIs, human users usu-ally describe their goals in broad and outcome-focused terms. That is, users’ queries mainly focus on the final results, e.g. ,“help me organize this data” or “find out why my device is not working”, which are obviously different from the detailed bench-mark queries. Such a style gap might reduce the robustness and effectiveness of tool-learning models in real-world applications. To this end, we first construct a vague tool learning bench-mark, denoted as VGToolBench , to simulate real-world appli-cations. Specifically, we prompt a third-party LLM to auto-matically rewrite the original instructions of ToolBench (Qin et al., 2023) into vague ones. This design follows the observa-tion that real-world user queries tend to focus on goals rather than specific tool names, so the rewritten instructions retain only high-level intents. Based on VGToolBench , we conduct a se-ries of preliminary analyses and reveal that vague instructions indeed significantly damage the performance of tool retrieval, 
+
+i.e. , leading up to 50.39% relative performance drops. In re-sponse, we further propose a simple-yet-effective Tool Retrieval Bridge (namely TRB ) to boost the performance of tool retrieval for vague instructions. The principle of our TRB is to introduce a bridge model for rewriting vague instructions, thus alleviating the gap between vague instructions and retriever preferences. More specifically, the training of the bridge model consists of two-stage processes: ❶ we fine-tune the model to encourage it to rewrite the vague instructions into more specific ones, and ❷ the SFT model is further optimized to align the retriever preference by using the retrieval performance as the reward for reinforce-ment learning (RL). For training the bridge model, we keep the data scale aligned with ToolBench to ensure stable and reliable training. We evaluate TRB on the constructed VGToolBench among four widely-used retrievers, including BM25 (Robertson et al., 2009), TF-IDF (Ramos et al., 2003), AdaEmbeding and ToolRe-triever (Qin et al., 2023). Extensive experimental results show that TRB not only effectively alleviates the negative effect of vague instructions ( i.e. , bringing up to +111.51% relative av-erage performance gains against the vanilla retriever), but also brings consistent and significant improvements across all re-trievers. Moreover, we perform comprehensive and in-depth analyses to investigate the effect of key components in TRB .More encouragingly, the results indicate that the iterative RL strategy can further boost the effectiveness of TRB , and our TRB 
+
+is also beneficial to the subsequent tool usage. To summarize, our contributions are three-fold: (1) We con-struct a new tool learning benchmark, namely VGToolBench , to simulate the vague instructions in real-world scenarios. (2) To alleviate the negative effect of vague instructions, we propose a simple-yet-effective Tool Retrieval Bridge ( TRB ) approach, which employs a bridge model to align the instructions with re-triever preferences. (3) Extensive experiments demonstrate that 
+
+TRB surpasses the vanilla retrievers by a large margin ( i.e. , up to 
+
++111.51% relative average gains), proving its effectiveness. The rest of this paper is organized as follows. In Section 2, we briefly review the related works. In Section 3, we construct 
+
+VGToolBench and conduct preliminary experiments. Section 4 introduces our proposed method in detail. Section 5 reports and analyzes our experimental results. Lastly, we conclude our study in Section 6. 
+
+2. Related Works 
+
+2.1. Tool Learning Benchmarks 
+
+In recent years, the community has built diverse benchmarks to promote research on tool learning, including APIBench (Patil et al., 2024), API-Bank (Li et al., 2023), ToolAplaca (Tang et al., 2023), ToolQA (Zhuang et al., 2023), and ToolBench (Qin et al., 2023), etc . It is noteworthy that constructing reliable evalua-tion benchmarks often shares methodological similarities with dataset design in other NLP areas, such as social-media text classification, abusive-language detection, and feature-selection-based categorization (Omar et al., 2021; Khairy et al., 2021; Omar and Abd El-Hafeez, 2023; El Koshiry et al., 2024; Omar et al., 2020; Farghaly et al., 2020a,b; Mamdouh Farghaly and Abd El-Hafeez, 2023, 2022), where data diversity and annota-tion quality likewise play a crucial role. However, except for ToolBench, most benchmarks generally suffer from limited API quantity and diversity, and their application scenarios are sub-ject to significant limitations. For example, ToolAplaca (Tang et al., 2023) only contains 400 tools, 400 APIs, and 3,938 in-structions, with each instruction involving only one tool. In contrast, ToolBench (Qin et al., 2023) provides a high-quality dataset containing 3,451 tools, including 16,464 real-world APIs collected from RapidAPI Hub. To simulate real-world scenarios, ToolBench prompts ChatGPT to generate nearly 200K qualified (instruction, relevant API) pairs, which are divided into three categories, i.e. , single-tool instructions ( I1 ), intra-category multi-tool instructions ( I2 ), and intra-collection multi-tool instructions (I3 ). However, since the instruction generation of ToolBench primarily relies on the names and descriptions of these APIs, these instructions tend to be too detailed and include specific API information that deviates from human preference. Furthermore, these instructions often contain API information, making it eas-ier for the tool retriever to identify the relevant tools (Qian et al., 2024), which may not reflect the tool retrieval performance in real-world scenarios. To this end, ToolPlanner Wu et al. (2024) selects the intra-category multi-tool subset ( I2 ) of ToolBench as the seed dataset, and generates new multi-granularity user instructions by directly trimming all tool-related information and GPT-4 prompts, thereby constructing a new benchmark MGToolBench. Different from MGToolBench, we build a new benchmark 
+
+VGToolBench , which is more natural and closer to real-world scenarios. Specifically, we use the entire ToolBench as the seed 2Table 1: The prompt template for vague instruction generation 
+
+Given a user instruction and a list of related APIs, your task is to generate a fuzzier version of the user instruction by simplifying or replacing technical terms with synonyms, without changing the user’s core requirements. You can follow these steps: - Analyze the user instruction: identify how many tasks the user has and what the specific needs are. - Compare with the API list: match the user’s tasks with the relevant APIs. Remove any references to specific APIs or redundant technical details. - Simplify technical terms: replace highly specialized or technical terms with more common, everyday language. The goal is to make the instruction sound like something a regular user would say in casual conversation. - Rephrase the instruction: use simpler language or synonyms where appropriate, but ensure the core intent remains unchanged. - Output the result: provide the final fuzzier version of the instruction. Example1: 
+
+Original instruction: I’m organizing a gaming tournament for my company’s employees. Could you provide the statistics and ratings of highly skilled players in popular games like Dota 2 and World of Tanks? Also, recommend some gaming peripherals and accessories for the event. 
+
+Relevant APIs: [tool_name: World of Tanks Stats, api_name: Get Stats], [tool_name: DOTA 2 Steam Web, api_name: Match History], [tool_name: DOTA 2 Steam Web, api_name: Match Details], [tool_name: CheapShark - Game Deals, api_name: List of Deals], [tool_name: CheapShark -Game Deals, api_name: Game Lookup] 
+
+Answer: I’m organizing a company gaming tournament and need player stats for top players in popular games. Can you also recommend some good gaming gear for the event? Example2: 
+
+Original instruction: I want to surprise my family with a personalized playlist. Can you recommend some popular tracks from different genres? Additionally, provide me with the detailed information of a playlist that I want to create. Also, fetch the track URL of a specific song that I want to include in the playlist. 
+
+Relevant APIs: [tool_name: Shazam, api_name: artists/get-summary], [tool_name: Deezer, api_name: Track], [tool_name: Soundcloud, api_name: /playlist/info] 
+
+Answer: I want to make a special playlist for my family. Can you suggest some hit songs from different music styles? Also, give me more info about the playlist I’m putting together. Finally, can you get me the link to a specific track I want to add? Now, please make the fuzzier instruction. 
+
+Original instruction: {instruction} 
+
+Relevant APIs: [{APIs} ]
+
+Answer: 
+
+dataset and prompt GPT-4o to remove tool-related information of instructions. More importantly, VGToolBench is built for tool retrieval, while MGToolBench is used for SFT tool learning. 
+
+2.2. Tool Learning Framework 
+
+Tool learning aims to equip LLMs with external tools to en-hance and expand their capabilities (Ruan et al., 2023; Huang et al., 2024; Wang et al., 2024a). Existing frameworks can be broadly classified into two categories: In-Context Learning-based (ICL-based) frameworks (Brown et al., 2020; Lu et al., 2023; Gupta and Kembhavi, 2023; Gao et al., 2023b; Hsieh et al., 2023; Surís et al., 2023) and Supervised Fine-Tuning-based (SFT-based) frameworks (Schick et al., 2023; Hao et al., 2023; Wang et al., 2024c; Zeng et al., 2024). Specifically, ICL-based frameworks encourage LLMs to use tools with descriptions or documentation (Patil et al., 2024; Qin et al., 2023; Zheng et al., 2024; Yuan et al.), while SFT-based frameworks focus on train-ing LLMs directly on specialized tools datasets to develop tool usage capabilities (Hao et al., 2023; Tang et al., 2023; Gao et al., 2024). In practice, due to the limited input length of LLMs, it is almost impossible to input the names and descriptions of over thousands of tools into LLMs, whether it is ICL- or SFT-based framework. Therefore, it is crucial to equip LLMs with a tool retrieval component to select appropriate tools from a large-scale tool set. Recent works have proposed various methods for tool retrieval, e.g. , using sparse retrieval techniques like BM25 (Patil et al., 2024; Liu et al., 2024) or dense methods (Qin et al., 2023; Kong et al., 2024; Gao et al., 2023a) that rely on sentence em-beddings of the Sentence-BERT transformer model trained on instruction-tool document pair datasets. Despite their effectiveness, in our preliminary experiments in Section 3.3, we observe that these methods still suffer from some limitations, especially when facing vague user instructions. In response to this issue, we propose a new tool retrieval pipeline 
+
+TRB that incorporates a bridge model to boost the retrieval perfor-mance of tool retrievers for vague instructions. Notably, across broader AI applications, similar benefits are obtained from struc-tured external knowledge or auxiliary modules (Shams et al., 2024; Mahmoud et al., 2013; Badawy et al., 2021), echoing the motivation behind equipping LLMs with core components. 
+
+3. Dataset Construction and Preliminary Experiments 
+
+3.1. Task Definition 
+
+The task of tool retrieval aims to select a subset of tools rele-vant to the user’s instruction from a large-scale tool repository. Mathematically, the user’s instruction is represented as q, and the tool repository is denoted by D = {d1, d2, . . . , dM }, where each di represents the description of a specific tool, and M de-notes the total number of tools. For each instruction q, there is 3a ground truth list of relevant tools Ug ⊆ D . The retriever R
+
+computes the relevance score R(q, di) between the instruction and each tool description di, and selects the top-k tools with the highest relevance scores. As a result, we can obtain the final tool subset, denoted as Ukr ⊆ D , which is subsequently used to perform the tool usage process. 
+
+3.2. VGToolBench Construction 
+
+To evaluate the performance of existing tool retrievers for vague user instructions, we adopt ToolBench as the seed dataset and construct a new tool learning benchmark (namely 
+
+VGToolBench ), which can better simulate human vague instruc-tions in real-world scenarios. Inspired by many prior studies (Wu et al., 2024; Zhong et al., 2024), we also attempt to make full use of the LLM’s powerful instruction-following and in-context learning abilities to automatically convert the original instruc-tions into vague ones. Specifically, we design a prompt template to instruct the powerful proprietary LLM, i.e. , GPT-4o, to per-form the instruction rewriting. As shown in the prompt template of Table 1, given the original instructions and their associated tool metadata ( i.e. , API names, parameters, and descriptions) of ToolBench, GPT-4o is forced to remove the detailed and explicit tool information of instruction q, and convert it into a more vague version, denoted as q′. Notably, we additionally use two examples as demonstrations in the prompt to guide the data generation. For each instruction q of ToolBench, we perform the above data processes and obtain the required vague instruction q′.Finally, we can construct the VGToolBench benchmark, de-noted as S, which contains |S| triple training data, i.e. , S =
+
+{(q′ 
+
+> i
+
+, qi, Ugi )}Ni=1.Following ToolBench, VGToolBench is organized into three subsets ( i.e. , I1 , I2 , and I3 ), which correspond to progressively more complex instruction–tool interaction scenarios. Specifi-cally, I1 comprises instructions that require invoking a single tool. I2 includes instructions that involve multiple tools within the same functional category. Additionallly, I3 consists of in-structions that necessitate coordinating multiple tools across different tool collections, thereby posing a more challenging multi-tool reasoning setting. The overall dataset statistics, in-cluding the number of training and test instances for each subset, are summarized in Table 2.  
+
+> Table 2: Statistics of VGToolBench .
+
+Dataset I1 I2 I3 
+
+#Training 86,826 84,425 25,151 
+
+#Test 600 400 100 
+
+3.3. Impact of Vague Instructions on Tool Retrieval Setting . Based on our proposed VGToolBench , we conduct some preliminary experiments to investigate the impact of vague instructions on tool retrieval. Specifically, we select four widely-used tool retrievers and conduct comparative experiments on 
+
+VGToolBench and ToolBench. Notably, the detailed experimen-tal settings can be seen in Section 5.1. ToolRetriever         
+
+> ToolRetriever
+> BM25
+> BM25
+> AdaEmbedding
+> AdaEmbedding
+> TF -IDF
+> TF -IDF
+> VGToolBench
+> ToolBench
+> Retrieval Performance
+> -45.03
+> I1
+> -16.79
+> -31.27
+> -20.68
+> -50.39
+> I2
+> -21.62
+> -37.41
+> -30.72
+> -43.53
+> I3
+> -12.13
+> -50.87
+> -21.22
+> Figure 2: Retrieval Performance comparison of VGToolBench v.s. ToolBench.
+> The x-axis denotes the different types of sub-sets in VGToolBench and Tool-Bench, and the y-axis denotes the tool retrieval performance, evaluated by the average of NDCG@5 and NDCG@10, where the evaluation details can be found in Section 5.1. The numerical results represent the relative decrease compared to the results on Toolbench. We can observe that the performance declines significantly, e.g. , the performance drops on BM25 is up to 50.39 % .
+
+Results . The comparative results are shown in Figure 2 and Table 4. From these results, we empirically observe that: 
+
+1) It is more challenging for all retrievers to capture the semantic connection between user vague instructions and tool descriptions. As seen, all retrievers perform worse on 
+
+VGToolBench than TooBench. Although ToolRetriever (Qin et al., 2023) fine-tuned on ToolBench performs best on the orig-inal ToolBench benchmark, it still falls short in dealing with vague instructions, e.g. , leading up to -30.72% relative perfor-mance drops on I2 subset of VGToolBench .
+
+2) Simpler retrievers struggle more with vague instruc-tions. The performance of sparse retrievers drops more signifi-cantly than dense retrievers, e.g. , BM25 drops by -50.39% on 
+
+I2 and TF-IDF drops by -50.87% on I3 . One of the possible rea-sons is that sparse retrievers depend more on the overlap between the instruction and tool description. Thus, in our VGToolBench ,without the detailed tool description in instructions, the sparse retrievers often fail in obtaining the relevant tools. In fact, the user’s instructions in real-world scenarios are often complex, ambiguous, and dynamic. It contrasts with the detailed preferences of tool retrievers, which typically perform better when provided with more specific instructions that include terms directly related to tool information. Therefore, the question arises: How can we improve performance when handling vague instructions? 
+
+4. Aligning Vague Instructions with Retriever Preferences 
+
+Motivation . Based on the above observations, we recognize that the key to improving the retrieval performance of vague instructions is to bridge the gap between user habits and retriever preferences. Motivated by this, we propose the Tool Retrieval Bridge method, denoted as TRB , which effectively boosts the retriever’s performance via rewriting vague instructions into more detailed ones, thereby alleviating the gap. The overview of TRB is illustrated in Figure 3. 4Retriever 
+
+(a) TRB Pipeline 
+
+(b) Training Scheme 
+
+Score List 
+
+User Instruction  Enhanced Instruction 
+
+Bridge Model 
+
+Relevant Tools 
+
+VGToolBench 
+
+ToolBench 
+
+Bridge Model 
+
+Candidate 
+
+Instructions 
+
+Retriever 
+
+Negative Instruction 
+
+Positive Instruction 
+
+> Contrastive Instruction Pairs
+> SFT Data Tuples
+
+① Supervised Fine -tuning 
+
+② Reinforcement Learning Figure 3: Overview of our proposed TRB . (a) The pipeline of TRB , where the core is to introduces a bridge model to enhance the instruction into a more specific version. (b) The training scheme of the bridge model, which consists of a two-stage process: ❶ Supervised Fine-tuning , ❷ Reinforcement Learning . We first construct paired input–output instances by aligning data correspondences between VGToolBench and ToolBench, and train an initial model through supervised fine-tuning. Building on this initial model, we further apply reinforcement learning to align its preference by using the retrieval performance as reward signal. 
+
+Algorithm 1: Training scheme of bridge model in TRB .
+
+Input: S = {(q′, q, Ug)(i)}|S| 
+
+> i=1
+
+: the warm-up SFT dataset, Ugi : the ground truth tools for both q′ 
+
+> i
+
+and qi, N: the number of data sampling, β:hyperparameter in DPO, πθ: the initial bridge model. 
+
+Output: Final bridge model πθ
+
+// Supervised Fine-tuning 
+
+Optimize θ with warm-up SFT training objective: LSFT = −E(q′ 
+
+> i,qi)∼S
+
+hP Ti 
+
+> t=1
+
+log πθ(qit |qi<t , q′ 
+
+> i
+
+)i
+
+// RL Optimization 
+
+πref = πθ
+
+for q′ 
+
+> i
+
+∈ S do 
+
+Get N candidate instructions ˆqi j ∼ πθ(q′ 
+
+> i
+
+),
+
+for j ∈ { 1, 2, . . . , N} do for k ∈ { 5, 10 } do 
+
+Retrieve the top-k most relevant tools: Ukri j = Top-k {R( ˆ qi j , dm)}Mm=1
+
+,Calculate the relevance score: S core i j = NDCG (U5    
+
+> ri j ,Ugi)+NDCG (U10
+> ri j ,Ugi)2
+
+Sort N candidate instructions based on S core i j and get the positive-negative pair: ˆq+ 
+
+> i
+
+≻ ˆq− 
+
+> i
+
+| q′
+
+> i
+
+Construct the contrastive dataset: Sd po = {(q′ 
+
+> i
+
+, ˆq+ 
+
+> i
+
+, ˆq− 
+
+> i
+
+)}|S dpo | 
+
+> i=1
+
+.
+
+Optimize θ with the DPO training objective: LDPO = −E(q′     
+
+> i,ˆq+
+> i,ˆq−
+> i)∼S dpo
+
+
+
+log σ
+
+
+
+β log πθ ( ˆ q+     
+
+> i|q′
+> i)
+> πref ( ˆ q−
+> i|q′
+> i)
+
+− β log πθ ( ˆ q+    
+
+> i|q′
+> i)
+> πref ( ˆ q−
+> i|q′
+> i)
+
+ 
+
+return πθ
+
+The Pipeline of TRB . The enhancement process of TRB , illus-trated in Figure 3 (a), takes the user instruction q′ 
+
+> i
+
+∈ S as input and rewrites it into an detailed one ˆqi via our proposed bridge model. Then, a relevant set of tools, i.e. , Ukri , is retrieved based on the detailed instruction ˆqi. In short, this process aims to clarify user intent and restructure the vague instructions into more specific ones. By doing so, the bridge model can alleviate the gap between the vague instructions and tool retrievers, thus resulting in better performance. 
+
+Training Scheme of Bridge Model . As aforementioned, the core of our TRB is the bridge model that aims to enhance the vague instructions. In this part, we introduce the training scheme of this bridge model in details. As shown in Figure 3(b), the training scheme mainly contains two techniques: ❶ Supervised Fine-Tuning (SFT), which aims to warm up the bridge model by using the the original instruction in ToolBench as the ground-truth; ❷ Reinforcement Learning (RL), which aims to further reinforce the bridge model by leveraging the feedback from the retriever. The overall training scheme is presented in Algo-5rithm 1. 
+
+❶ Supervised Fine-Tuning. First, given the training data of VGToolBench S = {(q′ 
+
+> i
+
+, qi, Ugi )}Ni=1, we encourage the bridge model to learn how to rewrite the vague instruction q′ 
+
+> i
+
+into a more informative one. Here, we simply use the original instruction qi
+
+as the ground-truth, and train the bridge model using a standard log-likelihood objective function: 
+
+LSFT = −E(q′ 
+
+> i,qi)∼S
+
+
+
+> Ti
+
+X
+
+> t=1
+
+log πθ(qit |qi<t , q′ 
+
+> i
+
+)
+
+ . (1) where πθ denotes the parameters of bridge model, Ti is the token length of instruction qi, LSFT is the loss function of SFT training. This warm-up SFT training allows the bridge model to learn how to follow the prompt and enhance the instructions, thus building the foundation for subsequent RL optimization. 
+
+❷ Reinforcement Learning. Reinforcement learning is a training paradigm that can be effectively employed for prefer-ence optimization and has been widely adopted across a variety of applications (Zhang et al., 2024; Stojanovic, 2023). While SFT could effectively train the bridge model, it lacks feedback regarding retrieval performance. Depending entirely on SFT does not result in optimal performance, as proven by our empiri-cal results in Table 5. Thus, to better align the bridge model with retriever preferences, we further perform the RL optimization on the warm-up SFT model. Specifically, we adopt the widely-used Direct Preference Optimization (DPO) (Rafailov et al., 2023) algorithm for continued training. Notably, we also attempt to use the other online RL algorithms, e.g. , PPO (Schulman et al., 2017) and GRPO (Shao et al., 2024). Considering the intolerable training latency of these methods, we finally use the DPO for a better trade-off between training efficiency and performance 1.The key of DPO is to construct the pairwise training data. Thus, in the following content, we first introduce the pairwise data construction process, and then present the training details. 
+
+Pairwise Data Construction. During the sampling phase, for each vague instruction q′ 
+
+> i
+
+, we use the SFT model πθ (initialized from the warm-up model) to generate N candidate enhanced instructions: 
+
+ˆqi j ∼ πθ(q′ 
+
+> i
+
+), (2) where ˆqi j denotes the j-th enhanced instruction for i-th training data, and j ∈ { 1, 2, . . . , N}. For each candidate instruction ˆqi j ,the retriever R computes the similarity between the instruction and each tool in the tool repository, retrieving the top-k most relevant tools: 
+
+Ukri j = Top-k {R( ˆ qi j , dm)}Mm=1
+
+ . (3) Each candidate instruction is then scored using the NDCG (Järvelin and Kekäläinen, 2002) metric to quantita-tively measure the alignment between the predicted Ukri j and the ground-truth tools Ugi , i.e. , NDCG( Ukri j , Ugi ). The final score for each instruction is the average NDCG score computed 
+
+> 1The analysis of different RL algorithms can be found in Section 5.3.
+
+for k ∈ { 5, 10 }:
+
+S core i j = NDCG (U5 
+
+> ri j
+
+, Ugi ) + NDCG (U10  
+
+> ri j
+
+, Ugi )2 , (4) where S core i j is the relevance score for Ukri j and can reflect the effectiveness of the bridge model, as a large score refers to better performance. Next, we select the contrastive instruction pair ( ˆq+ 
+
+> i
+
+, ˆq− 
+
+> i
+
+) with the highest and lowest scores from the candidate instructions. Note that we only retain instruction pairs with differing rewards. Finally, we obtain the contrastive instruction dataset Sd po as follows: 
+
+Sd po = {(q′ 
+
+> i
+
+, ˆq+ 
+
+> i
+
+, ˆq− 
+
+> i
+
+)}|S dpo | 
+
+> i=1
+
+. (5) 
+
+Training. During this phase, we compute the contrastive loss with the contrastive instruction dataset to assist the bridge model in learning from high-score instructions:                            
+
+> LDPO =−E(q′
+> i,ˆq+
+> i,ˆq−
+> i)∼S d po
+> "
+> log σβlog πθ( ˆ q+
+> i|q′
+> i)
+> πref ( ˆ q−
+> i|q′
+> i)−βlog πθ( ˆ q+
+> i|q′
+> i)
+> πref ( ˆ q−
+> i|q′
+> i)
+> !#
+> ,
+
+(6) where πref is the reference model, which is initialized from the SFT model and kept fixed during the training. σ is the Sigmoid 
+
+function, and β is the hyperparameter. This optimization ob-jective aims to increase the likelihood of the instructions with better retrieval performance ˆq+ 
+
+> i
+
+and decrease the likelihood of instruction with poorer retrieval performance ˆq− 
+
+> i
+
+.
+
+5. Experiments 
+
+5.1. Setup Datasets . In addition to the preliminary experimental results in Section 3.3, we provide a more comprehensive validation and analysis in this section. To verify the effectiveness of our TRB ,we conduct extensive experiments on both ToolBench (Qin et al., 2023) and our proposed VGToolBench . Specifically, ToolBench consists of 16,464 APIs spanning various categories. Based on these APIs, it provides nearly 200k high-quality (instruction, relevant API) pairs as a dataset for tool learning, which is further divided into three subsets: single-tool instructions ( I1 ), intra-category multi-tool instructions ( I2 ), and inter-category multi-tool instructions ( I3 ). VGToolBench is constructed by rewriting the instructions in ToolBench, ensuring a one-to-one correspon-dence between each instruction in ToolBench and its rewritten counterpart in VGToolBench . We use the instructions from both ToolBench and VGToolBench to retrieve relevant tools from the complete tool set and evaluate their retrieval performance. No-tably, our TRB method is applied to enhance the instructions given to the retrievers. 
+
+Evaluation . Following many prior studies (Qin et al., 2023; Zheng et al., 2024), we utilize the popular Normalized Dis-counted Cumulative Gain ( NDCG ) (Järvelin and Kekäläinen, 2002) metric to evaluate the performance of tool retrieval. Specif-ically, we report NDCG@ k scores for k ∈ { 5, 10 }, which mea-sure the ranking performance of retrieved tools by considering the positions of relevant tools within the top-k results. Higher 6Table 3: Training hyperparameters used in TRB .                  
+
+> Hyperparameter Stage 1(SFT) Stage 2 (RL) epoch 33batch_size 16 12 learning_rate 5e-5 2e-5 warmup_ratio 0.0 0.02 optimizer Adam Adam max_sequence_length 1024 1024 GPUs 12Number of candidate samples (N) -4
+
+NDCG@ k scores refer to better retrieval performance. Notably, except specified, the retrieval performance of subsequent experi-ments is calculated by the average of NDCG@5 and NDCG@10. For tool calling task, the performance is reported in terms of accuracy, where only cases with entirely correct tool calling are counted as correct. 
+
+Baselines . We use four representative tool retrieval methods as the baseline retrievers in our main experiments, including 
+
+BM25 (Robertson et al., 2009), TF-IDF (Ramos et al., 2003), 
+
+AdaEmbedding and ToolRetriever (Qin et al., 2023). Specifi-cally, BM25 and TF-IDF are two classical sparse retrieval meth-ods that estimate the relevance between user instructions and tool documentation based on term frequency statistics. AdaEm-bedding and ToolRetriever are two dense retrieval methods that first convert the instructions and tool documentations into se-mantic embeddings and then calculate the cosine similarity be-tween the resulting embeddings. More specifically, AdaEm-bedding uses the OpenAI’s text-embedding-ada-002 as the embedding model 2, while ToolRetriever uses the BERT-based embedding model (Kenton and DM-WC, 2019) fine-tuned on the ToolBench dataset. 
+
+Implementation details . In our TRB , we employ LLaMA-3.2-3B (Grattafiori et al., 2024), an auto-regressive language model built on an optimized Transformer architecture, as the backbone. We then post-train this backbone using the two-stage training scheme proposed in this work. In Stage SFT, the model is super-vised fine-tuned using the training dataset of VGToolBench for 3 epochs. In Stage RL, the SFT model is further trained by the DPO algorithm for 3 epochs using the pairwise instruction data. More specifically, in the pairwise data construction process, we set the number of sampled candidates N to 4. The detailed train-ing hyperparameters for each stage are summarized in Table 3. All experiments are conducted on two NVIDIA A800 GPUs (80GB). For the implementation of the training process, we used the public toolkit LLama-Factory 3 as our code framework. 
+
+5.2. Main Results 
+
+The main results of tool retrieval are presented in Table 4. From these results, we can find that: 
+
+> 2https://platform.openai.com/docs/guides/embeddings/ embedding-models
+> 3https://github.com/hiyouga/LLaMA-Factory
+
+❶ TRB is beneficial to various baseline retrieval methods. 
+
+As seen, TRB consistently enhances performance across all base-line retrieval methods. In particular, the improvement with sparse retrieval is significant. Compared to baseline, we see a relative average increase of 111.51% on I2 when using TRB with BM25, highlighting the significant effectiveness of our approach. For dense retrievers, TRB not only helps the ToolRetriever ( i.e. ,BERT-based retriever trained on ToolBench), but is also ben-eficial to the AdaEmbedding that is based on black-box API. Overall, these results suggest that TRB can enhance the prefer-ence alignment in both lexical and semantic retrieval paradigms, proving its effectiveness and universality. 
+
+❷ TRB brings consistent and significant performance gains among all sub-datasets. It can be found that TRB outperforms the baseline retrievers consistently across various sub-datasets of VGToolBench . Specifically, taking the BM25 as an exam-ple, our TRB brings 87%, 111.51%, 36.47% relative average performance gains against the vanilla retriever for I1 , I2 and 
+
+I3 subsets, respectively. These results indicate that our TRB 
+
+works well for single-tool, intra-category and intra-collection multi-tool instruction scenarios, which demonstrate the robust-ness and generalization capability of TRB across tasks of varying complexity. 
+
+❸ TRB effectively mitigates the discrepancy between vague user instructions and retriever preferences. By comparing the performance of original ToolBench and VGToolBench , we see that TRB framework achieves substantial performance gains in both detailed and vague tool scenarios. This indicates that, regardless of whether tools are present in the training set, the bridge model can generate semantically analogous tool names from vague instructions and transforming input sentences into more specific expressions, thereby achieving better alignment with retriever preferences. Moreover, it is noteworthy that, equiped with our TRB , BM25 can even achieve better retrieval performance on VGToolBench than the original ToolBench. We attribute it to the RL optimization, which can better align the retrieval preference and effectively boost the performance of the bridge model. 
+
+5.3. Ablation Study 
+
+In the main experiment above, we have already compared the performance of our model with and without the TRB module. To provide a more comprehensive analysis, we further conduct additional ablation studies in this section. Specifically, we in-vestigate: 1) the effect of different training stages, and 2) the impact of incorporating different RL algorithms within our TRB 
+
+training processes. 
+
+Effect of SFT and RL Training Stages in TRB . As stated in Section 4, we employ a two-stage training scheme to post-train the bridge model. In this part, we investigate the individual contributions of each component to the overall performance. Since the initial bridge model does not have the instruction-following ability and is hard to perform well by directly training with RL optimization, we compare the full TRB approach with the variant “-w/ SFT-only”, i.e. , only performing the SFT training process. The comparative results are shown in Table 5. As 7Table 4: Experimental results on ToolBench and VGToolBench . “Avg.” means the average performance of NDCG@5 and NDCG@10. " %∆ ↓" represents the relative performance degradation (%) of VGToolBench compared to the original ToolBench, while " %∆ ↑" indicates the relative performance improvement (%) of the four tool retrievers equipped with our proposed TRB on VGToolBench . Red results indicate that the retrievers’ performance on VGToolBench degrades compared to ToolBench, while green results denote that the retrievers equipped with TRB improves its performance on VGToolBench . We observe that TRB consistently outperforms the baselines in both single-tool and multi-tool situations scenarios. 
+
+Methods Datasets I1 I2 I3 NDCG@5 NDCG@10 Avg. NDCG@5 NDCG@10 Avg. NDCG@5 NDCG@10 Avg. BM25 ToolBench 22.73 24.55 23.64 17.55 19.85 18.70 24.73 27.75 26.24 
+
+VGToolBench 12.49 13.50 13.00 8.81 9.73 9.27 13.94 15.70 14.82 %∆ ↓ -45.05 -45.01 -45.03 -49.80 -50.98 -50.39 -43.63 -43.42 -43.53 
+
++TRB VGToolBench 23.32 25.29 24.31 19.06 20.11 19.59 18.54 21.97 20.26 %∆ ↑ 86.71 87.33 87.02 116.35 106.68 111.51 33.00 39.94 36.47 TF-IDF ToolBench 46.12 49.44 47.78 37.93 40.57 39.25 37.54 43.59 40.57 
+
+VGToolBench 31.50 34.19 32.85 23.60 25.54 24.57 17.64 22.35 20.00 %∆ ↓ -31.70 -30.85 -31.27 -37.78 -37.05 -37.41 -53.01 -48.73 -50.87 
+
++TRB VGToolBench 43.23 46.44 44.84 34.56 37.15 35.86 27.79 34.38 31.09 %∆ ↑ 37.24 35.83 36.53 46.44 45.46 45.95 57.54 53.83 55.68 AdaEmbedding ToolBench 54.91 59.32 57.12 36.18 38.93 37.56 45.78 52.45 49.12 
+
+VGToolBench 45.15 49.95 47.55 27.84 31.07 29.46 40.62 45.64 43.13 %∆ ↓ -17.77 -15.80 -16.79 -23.05 -20.19 -21.62 -11.27 -12.98 -12.13 
+
++TRB VGToolBench 52.27 56.53 54.40 32.53 35.90 34.22 45.41 50.30 47.86 %∆ ↑ 15.77 13.17 14.47 16.85 15.55 16.20 11.79 10.21 11.00 ToolRetriever ToolBench 84.16 86.82 85.49 75.37 80.29 77.83 61.77 71.28 66.53 
+
+VGToolBench 65.53 70.13 67.83 51.12 56.80 53.96 48.50 56.34 52.42 %∆ ↓ -22.14 -19.22 -20.68 -32.17 -29.26 -30.72 -21.48 -20.96 -21.22 
+
++TRB VGToolBench 75.91 79.18 77.55 63.10 67.36 65.23 57.70 66.58 62.14 %∆ ↑ 15.84 12.90 14.37 23.44 18.59 21.01 18.97 18.18 18.57    
+
+> Table 5: Impact of SFT and RL training stages of TRB .Notably, taking the BM25 as an example, “BM25” means the vanilla tool retriever that does not incorporate with the bridge model. “-w/ SFT-only” denotes that we only use the SFT training stage, and "-w/ Full" refers to the full training scheme.
+
+Method I1 I2 I3 N@5 N@10 N@5 N@10 N@5 N@10 BM25 12.49 13.50 8.81 9.73 13.94 15.70 -w/ SFT-only 18.18 19.98 14.13 15.43 16.14 18.86 -w/ Full 23.32 25.29 19.06 20.11 18.54 21.97 
+
+TF-IDF 31.50 34.19 23.60 25.54 17.64 22.35 -w/ SFT-only 38.80 42.62 29.82 32.43 25.01 31.38 -w/ Full 43.23 46.44 34.56 37.15 27.79 34.38 
+
+Ada Embedding 45.15 49.95 27.84 31.07 40.62 45.64 -w/ SFT-only 50.39 54.97 31.47 34.80 43.47 48.34 -w/ Full 52.27 56.53 32.53 35.90 45.41 50.30 
+
+ToolRetriever 65.53 70.13 51.12 56.80 48.50 56.34 -w/ SFT only 74.66 78.22 60.82 65.46 56.23 65.07 -w/ Full 75.91 79.18 63.10 67.36 57.70 66.58 
+
+seen, compared to the full TRB , “-w/ SFT-only” consistently performs worse among all settings. That is, removing the RL training indeed leads to sub-optimal performance, indicating the effectiveness of two-stage training scheme. 
+
+Impact of Different RL Algorithms . To align the TRB with retriever preference more effectively, we explore different RL al-gorithms, including DPO (Rafailov et al., 2023), PPO (Schulman et al., 2017), and GRPO (Shao et al., 2024). These algorithms represent distinct paradigms: DPO operates offline using pair-wise preferences, while PPO and GRPO require online reward       
+
+> Table 6: Performance of various RL algorithms on TRB .We report tool retrieval scores with TRB under different RL training strategies. “-w/o RL” denotes training without reinforcement learning (only using the SFT), while “-w/ *” refers to using different RL algorithms to continue training the SFT model.
+
+Method BM25 ToolRetriever N@5 N@10 N@5 N@10 -w/o RL 16.14 18.86 56.23 65.07 -w/ PPO 16.24 19.48 56.87 65.95 -w/ GRPO 15.87 19.00 57.09 65.98 -w/ DPO 18.54 21.97 57.70 66.58 
+
+feedback. For the PPO and GRPO algorithms, we directly use the retrieval performance ( i.e. , NDCG@5) as the reward signal. More specifically, the group size of GRPO is set to 5. To ensure a fair comparison, we adopt the same training hyperparameters (e.g. , epoch, learning rate and batch size) for all RL algorithms. As shown in Table 6, DPO achieves better performance against the other counterparts, while incurring lower computational cost. Notably, PPO and GRPO struggle to achieve desired perfor-mance. We conjecture that the ruled-based reward signals is a little sparse and might hard to reinforce the alignment of bridge model. Nevertheless, we believe that a more carefully-designed reward has the great potential for PPO and GRPO to achieve better performance, which is in our future work. Overall, con-sidering the training budgets, we finally choose use the more efficient DPO algorithm in our TRB .8Table 7: Performance comparison between different model scales of bridge model. We report the results of TRB with BM25 and ToolRetriever under   
+
+> VGToolBench (I3). The efficiency is measured by the time consumption to complete one instruction.
+
+Method Model I3 Efficiency N@5 N@10   
+
+> w/o TRB
+
+- 13.94 15.70 0.09s 
+
+> TRB
+> w/ BM25
+
+Llama-3.2-1B 17.66 21.55 0.43s Llama-3.2-3B 18.54 21.97 0.67s Llama-3.1-8B 18.33 22.37 1.54s   
+
+> w/o TRB
+
+- 48.50 56.34 0.11s 
+
+> TRB
+> w/ ToolRetriever
+
+Llama-3.2-1B 52.95 61.43 0.52s Llama-3.2-3B 57.70 66.58 0.84s Llama-3.1-8B 58.94 67.57 1.79s 18.54 18.89                       
+
+> 20.53 20.36 19.76 19.91 19.39
+> 22.15 21.51
+> 18.51
+> 14.62 14.01
+> 21.97 22.54
+> 23.59 23.75
+> 22.88 22.13
+> 24.4
+> 26.82 26.24
+> 23.79
+> 18.93
+> 17.41
+> 10
+> 12
+> 14
+> 16
+> 18
+> 20
+> 22
+> 24
+> 26
+> 28
+> 12345678910 11 12
+> N@5 N@10
+> Retrieval Performance
+
+Iteration T          
+
+> Figure 4: Effect of the iteration number Tin iterative DPO. We show the retrieval performance (NDCG@5 and NDCG@10) of TRB with BM25 on
+> VGToolBench (I3 ) across different iterations. Both metrics display a noticeable upward trend followed by a subsequent downturn as Tincreases, indicating that moderate iterative refinement improves retrieval quality whereas excessive iterations may hinder performance.
+
+5.4. In-depth Analysis Influence of Bridge Model Size . To assess how the capacity of the bridge model affects the retrieval-bridging mechanism, we conduct experiments across multiple model sizes. We build 
+
+TRB variants using bridge models from 1B to 8B parameters and evaluate them under both BM25 and ToolRetriever settings. As shown in Table 7, all TRB variants yield substantial gains over the corresponding “w/o TRB ” baselines, indicating that the proposed bridging strategy is consistently effective. Moreover, although larger bridge models can lead to higher retrieval accu-racy, e.g. , the 8B model achieves the best N@10 results for both retrievers, they will lead to more training and inference budgets. Specifically, when scaling the bridge model from 1B to 8B, the inference latency rises from 0.43 second to 1.54 second under BM25 and from 0.52 second to 1.79 second under ToolRetriever. Thus, considering both the accuracy improvements and the infer-ence latency, we adopt Llama-3.2-3B as our bridge model, as it achieves a better trade-off between performance and efficiency. 
+
+Effect of Iterative DPO Training . It has been demonstrated that DPO effectively enhances model training by better aligning with retriever preferences in above experimental results. The improvement gained through DPO training largely stems from the quality of preference data. Therefore, obtaining more pow-erful models can generate higher quality preference data, thus facilitating continued DPO training. To explore this, we design an iterative DPO training procedure and investigate the impact of RL iterations T using TRB with BM25. As shown in Figure 5.3, TRB improves retrieval performance during the first eight iterations. However, increasing the iterations beyond this point does not result in further improvement. Instead, the performance starts to stabilize and even decline, which is similar to the results of Song et al. (2024). One of the possible reasons is that iterative training would hinder the diversity of pairwise data, thus leading to the overfitting of bridge model. Notably, considering that iterative DPO would lead to much training latency, we set the 
+
+T = 1 in the main experiments. ToolRetriever HybridRetriever Retriever & Reranker ColBERT Retriever        
+
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> Retrieval Performance 52.42 29.90 60.66 33.80 62.14 36.78 66.49 39.48
+> w/o TRB w/ TRB
+> Figure 5: Retrieval performance with state-of-the-art retrieval methods on
+> VGToolBench (I3). Integrating TRB with the base ToolRetriever surpasses all stronger retrieval methods. Moreover, applying TRB to the hybrid, re-ranking, and ColBERT pipelines yields consistent further improvements.
+
+Generalization of TRB to State-of-the-Art Retrieval Methods .
+
+Beyond classical retrievers used in our experiments, more com-plex paradigms such as hybrid retrieval, re-ranking modules, and ColBERT-style late-interaction architectures are recently incor-porated in modern retrieval systems. To rigorously assess the broad applicability of our TRB , we assess it across these cutting-edge retrieval paradigms. In practice, following the formulation of Lee et al. (2023), a HybridRetriever was constructed by linearly combining the scores from the dense ToolRetriever and a sparse BM25 retriever. For the re-ranking pipeline ( Retriever & ReRanker ), we employ the powerful bge-reranker-v2-m3 4
+
+to re-order the top-20 candidates retrieved by ToolRetriever and subsequently select the updated top-10. We additionally incor-porate ColBERTRetriever , instantiated with ColBERT-v2 (San-thanam et al., 2022), to represent late-interaction retrieval. As 
+
+> 4https://huggingface.co/BAAI/bge-reranker-v2-m3
+
+9Vague Instruction 
+
+> I'm planning a trip to Europe and need to change 1000 USD into Euros. Can
+> you tell me the current exchange rate and how it has changed over the last
+> week? Also, I'd like to see what other exchange rates are available.
+
+Enhanced Instruction        
+
+> I'm planning a vacation to Europe and I need to exchange 1000 USD to
+> EUR using the Currency Exchange API .Evaluate the expression '1000USD -
+> > EUR' get the exchange rate and historical rates. Additionally, retrieve
+> the list of quotes in the Rates By Quotes API.
+
+Retrieved Top -5 Tools                                                                   
+
+> Data, Currency Exchange, listquotes ,List the available quotes
+> in JSON Array this API support .
+> Finance, Currency Conversion and Exchange Rates, Historical
+> Exchange Rates, Retrieve historical exchange rate data .
+> Data, Currency Exchange, exchange, Get Currency Exchange by
+> specifying the quotes of source (from) and destination (to) .
+> Other, Evaluate expression, Evaluate expression, Scans the given
+> expression and returns the result of any calculation found
+> Finance, Currency Conversion and Exchange Rates, Historical
+> Exchange Rates, Retrieve historical exchange rate data .
+
+Retrieved Top -5 Tools                                                         
+
+> Data, Currency Exchange, listquotes ,List the available quotes in
+> JSON Array this API support .
+> Finance, Coinranking ,Get exchange, Find information on a
+> specific exchange listed on coinranking .
+> Data, Scraper's Proxy, Parser GET, Automatically parses html
+> into an easily processable json format .
+> Finance, Currency Conversion and Exchange Rates, Historical
+> Exchange Rates, Retrieve historical exchange rate data .
+> Data, Scraper's Proxy, Tor GET, Send request to the [Tor
+> network](//www .torproject .org/) .
+
+Bridge Model Figure 6: Case study between the vague instruction in VGToolBench and the instruction enhanced via our TRB . In this case, we use the BM25 as the base tool retriever. 
+
+illustrated in Figure 5, with the help of our TRB , the base Tool-Retriever can achieve much better performance and outperform the other individual retrievers. Moreover, we also apply our TRB 
+
+to enhance these cutting-edge retrievers, and the results show that TRB is consistently beneficial to all retrievers. For example, for HybridRetriever , TRB brings +6.88% performance gains. These results demonstrate the effectiveness and generalization of our TRB .
+
+TRB Performance in Real-World Scenarios . Since our 
+
+VGToolBench is a synthetic dataset, some readers may won-der that whether our TRB trained on VGToolBench can work well in real-world scenarios. To verify it, we assess the out-of-distribution (OOD) performance of TRB in a real-world bench-mark, i.e. , the live subset of the Berkeley Function-Calling Leaderboard (BFCL) (Patil et al., 2025). This subset is a human-curated dataset with four configurations ( i.e. , Simple, Multiple, Parallel, and Parallel Multiple), reflecting increasing levels of tool-use complexity. Notably, the BFCL can be also used to evaluate the tool calling performance of models. Thus, in ad-dition to evaluating the tool retrieval performance of TRB , we also adopt the retrieved results to conduct tool calling task and evaluate its accuracy. As shown in Table 8, we employ Tool-Retriever as the base retriever and QWen2.5-7B-Instruct as the tool generator to evaluate both tool retrieval and tool calling per-formance. The results indicate that TRB achieves consistent im-provement across both tasks. On the one hand, for tool retrieval, 
+
+TRB achieves +4.45% average performance gain. Specifically, it leads to +6.18% and +7.94% accuracy gains for Parallel and Parallel Multiple settings, respectively. On the other hand, for tool calling, TRB achieves an overall improvement of +5.71%, demonstrating its consistent advantage across different aspects of tool use. Overall, these results further confirm the generaliza-tion of TRB and indicate that TRB has a great potential to improve the subsequent tool calling processes. 
+
+Table 8: Performance on the real-world BFCL-live benchmark (Patil et al., 2025) . We evaluate TRB on both tool retrieval and calling tasks. It can be seen that TRB also works well in this real-world benchmark. 
+
+Task Method Settings Overall Simple Multiple Parallel Parallel Multiple 
+
+Tool Retrieval   
+
+> w/o TRB
+
+46.68 63.54 29.52 53.57 48.33   
+
+> w/ TRB
+
+46.33 67.56 35.70 61.51 52.78 
+
+∆ -0.35 +4.02 +6.18 +7.94 +4.45 
+
+Tool Calling   
+
+> w/o TRB
+
+51.16 57.64 37.50 50.00 49.08   
+
+> w/ TRB
+
+55.43 59.54 50.00 54.17 54.79 
+
+∆ +4.27 +1.90 +12.50 +4.17 +5.71 
+
+5.5. Cases Study 
+
+To have a close look, we provide a case study to illustrate the instruction enhancement process of TRB in Figure 6 . From this case, we notice that the instruction in VGToolBench is in-deed fuzzy and lacks explicit tool information, which is more aligned with read-world user instruction. Directly using the vague instruction to retrieve the Top-5 tools would be hard to achieve optimal performance, underscoring the importance for enhancing the vague instruction. Conversely, with the help of our TRB , the instruction can become more specific ( e.g., the phrase "1000USD -> EUR"), which helps the retriever identify more suitable tools ( e.g., Data, Currency Exchange). A further advantage of this enhancement is that the relevant tool receives 10 a higher placement in the top-k ranking results, thereby boosting overall retrieval performance. 
+
+6. Conclusion 
+
+In this paper, we focus on the problem of vague instructions in tool retrieval, which is critical yet under-explored. Specifically, we first construct a new tool learning benchmark, VGToolBench ,to simulate the vague instructions in real-world scenarios. Based on this, we conduct a series of preliminary analyses and reveal that vague instructions usually damage the performance of tool retrievers. To tackle this issue, we further propose a simple-yet-effective Tool Retrieval Bridge (TRB ) approach. In short, 
+
+TRB introduces a bridge model to align vague instructions with retriever preferences. Our comprehensive experiments show that 
+
+TRB consistently and significantly outperforms vanilla retrievers, 
+
+i.e. , bringing up to 111.51% relative average gains, underscoring its effectiveness and generalization. 
+
+Limitations and Future Work 
+
+While our framework shows clear improvement, several lim-itations remain. First, our VGToolBench is synthesized by a third-party LLM, which may introduce synthetic biases and fail to fully reflect real-world ambiguity. Future work will explore more representative data sources, including real user queries and human-in-the-loop refinement. In addition, we aim to increase the scale and diversity of the VGToolBench benchmark, incor-porating multilingual or domain-specific variations for wider applicability. Second, incorporating a bridge model into the retrieval pipeline would increase computational cost and may limit scalability in large agent systems. We plan to investigate lighter retrieval architectures and caching strategies to reduce latency. 
+
+Acknowledgment 
+
+This work was financially supported by the State Grid Cor-poration Headquarters Science and Technology Project: Re-search on equipment operation and inspection disposal rea-soning technology based on knowledge-enhanced generative model and intelligent agent and demonstration application (5700-202458333A-2-1-ZX). 
+
+References 
+
+Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F.L., Almeida, D., Altenschmidt, J., Altman, S., Anadkat, S., et al., 2023. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 . Badawy, A., Fisteus, J.A., Mahmoud, T.M., Abd El-Hafeez, T., 2021. Topic extraction and interactive knowledge graphs for learning resources. Sustainability 14, 226. Bai, J., Bai, S., Chu, Y., Cui, Z., Dang, K., Deng, X., Fan, Y., Ge, W., Han, Y., Huang, F., et al., 2023. Qwen technical report. arXiv preprint arXiv:2309.16609 . Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J.D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al., 2020. Language models are few-shot learners, in: Thirty-fourth Conference on Neural Information Processing Systems. Cai, T., Wang, X., Ma, T., Chen, X., Zhou, D., 2024. Large language models as tool makers, in: The Twelfth International Conference on Learning Representations. Ding, H., Tao, S., Pang, L., Wei, Z., Gao, J., Ding, B., Shen, H., Cheng, X., 2025. Toolcoder: A systematic code-empowered tool learning framework for large language models, in: Pro-ceedings of the 63th Annual Meeting of the Association for Computational Linguistics. El Koshiry, A.M., Eliwa, E.H.I., Abd El-Hafeez, T., Khairy, M., 2024. Detecting cyberbullying using deep learning techniques: a pre-trained glove and focal loss technique. PeerJ Computer Science 10, e1961. Farghaly, H.M., Ali, A.A., Abd El-Hafeez, T., 2020a. Build-ing an effective and accurate associative classifier based on support vector machine. Sylwan 164, 39–56. Farghaly, H.M., Ali, A.A., El-Hafeez, T.A., 2020b. Developing an efficient method for automatic threshold detection based on hybrid feature selection approach, in: Computer Science On-line Conference, Springer. pp. 56–72. Gao, L., Ma, X., Lin, J., Callan, J., 2023a. Precise zero-shot dense retrieval without relevance labels, in: Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics, pp. 1762–1777. Gao, L., Madaan, A., Zhou, S., Alon, U., Liu, P., Yang, Y., Callan, J., Neubig, G., 2023b. Pal: Program-aided language models, in: International Conference on Machine Learning, PMLR. pp. 10764–10799. Gao, S., Shi, Z., Zhu, M., Fang, B., Xin, X., Ren, P., Chen, Z., Ma, J., Ren, Z., 2024. Confucius: Iterative tool learning from introspection feedback by easy-to-difficult curriculum, in: Proceedings of the AAAI Conference on Artificial Intelli-gence, pp. 18030–18038. Grattafiori, A., Dubey, A., Jauhri, A., Pandey, A., Kadian, A., Al-Dahle, A., Letman, A., Mathur, A., Schelten, A., Vaughan, A., et al., 2024. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 . Gupta, T., Kembhavi, A., 2023. Visual programming: Composi-tional visual reasoning without training, in: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 14953–14962. 11 Hao, S., Liu, T., Wang, Z., Hu, Z., 2023. Toolkengpt: augment-ing frozen language models with massive tools via tool embed-dings, in: Proceedings of the 37th International Conference on Neural Information Processing Systems, pp. 45870–45894. Hsieh, C.Y., Chen, S.A., Li, C.L., Fujii, Y., Ratner, A., Lee, C.Y., Krishna, R., Pfister, T., 2023. Tool documentation en-ables zero-shot tool-usage with large language models. arXiv preprint arXiv:2308.00675 . Huang, T., Jung, D., Kumar, V., Kachuee, M., Li, X., Xu, P., Chen, M., 2024. Planning and editing what you retrieve for enhanced tool learning, in: Findings of the Association for Computational Linguistics, pp. 975–988. Järvelin, K., Kekäläinen, J., 2002. Cumulated gain-based eval-uation of ir techniques. ACM Transactions on Information Systems (TOIS) 20, 422–446. Kenton, J., DM-WC, B.L., 2019. Pre-training of deep bidirec-tional transformers for language understanding, in: Proceed-ings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL), p. 1. Khairy, M., Mahmoud, T.M., Abd-El-Hafeez, T., 2021. Au-tomatic detection of cyberbullying and abusive language in arabic content on social networks: a survey. Procedia Com-puter Science 189, 156–166. Kong, Y., Ruan, J., Chen, Y., Zhang, B., Bao, T., Shiwei, S., Qing, D., Hu, X., Mao, H., Li, Z., et al., 2024. Tptu-v2: Boost-ing task planning and tool usage of large language model-based agents in real-world industry systems, in: Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: Industry Track, pp. 371–385. Lee, D., Hwang, S.w., Lee, K., Choi, S., Park, S., 2023. On com-plementarity objectives for hybrid retrieval, in: Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pp. 13357–13368. Li, M., Zhao, Y., Yu, B., Song, F., Li, H., Yu, H., Li, Z., Huang, F., Li, Y., 2023. Api-bank: A comprehensive benchmark for tool-augmented llms, in: Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, pp. 3102–3116. Liu, N.F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., Liang, P., 2024. Lost in the middle: How language models use long contexts. Transactions of the Association for Computational Linguistics 12. Lu, P., Peng, B., Cheng, H., Galley, M., Chang, K.W., Wu, Y.N., Zhu, S.C., Gao, J., 2023. Chameleon: Plug-and-play composi-tional reasoning with large language models, in: Proceedings of the 37th International Conference on Neural Information Processing Systems, pp. 43447–43478. Mahmoud, T.M., Abd-El-Hafeez, T., Badawy, A., 2013. Aframework for an e-learning system based on semantic web. International Journal on Computer Science and Engineering 5, 698. Mamdouh Farghaly, H., Abd El-Hafeez, T., 2022. A new feature selection method based on frequent and associated itemsets for text classification. Concurrency and Computation: Prac-tice and Experience 34, e7258. Mamdouh Farghaly, H., Abd El-Hafeez, T., 2023. A high-quality feature selection method based on frequent and corre-lated items for text classification. Soft Computing 27, 11259– 11274. Omar, A., Abd El-Hafeez, T., 2023. Quantum computing and machine learning for arabic language sentiment classification in social media. Scientific Reports 13, 17305. Omar, A., Mahmoud, T.M., Abd-El-Hafeez, T., 2020. Com-parative performance of machine learning and deep learning algorithms for arabic hate speech detection in osns, in: The International Conference on Artificial Intelligence and Com-puter Vision, Springer. pp. 247–257. Omar, A., Mahmoud, T.M., Abd-El-Hafeez, T., Mahfouz, A., 2021. Multi-label arabic text classification in online social networks. Information Systems 100, 101785. Patil, S.G., Mao, H., Yan, F., Ji, C.C.J., Suresh, V., Stoica, I., Gonzalez, J.E., 2025. The berkeley function calling leader-board (BFCL): From tool use to agentic evaluation of large language models, in: Forty-second International Conference on Machine Learning. Patil, S.G., Zhang, T., Wang, X., Gonzalez, J.E., 2024. Go-rilla: Large language model connected with massive apis, in: The Thirty-eighth Annual Conference on Neural Information Processing Systems. Peng, Y., Li, S., Gu, W., Li, Y., Wang, W., Gao, C., Lyu, M.R., 2022. Revisiting, benchmarking and exploring api recom-mendation: How far are we? IEEE Transactions on Software Engineering 49, 1876–1897. Qian, C., He, B., Zhuang, Z., Deng, J., Qin, Y., Cong, X., Zhang, Z., Zhou, J., Lin, Y., Liu, Z., et al., 2024. Tell me more! towards implicit user intention understanding of language model driven agents, in: Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics, pp. 1088–1113. Qin, Y., Hu, S., Lin, Y., Chen, W., Ding, N., Cui, G., Zeng, Z., Zhou, X., Huang, Y., Xiao, C., et al., 2024. Tool learning with foundation models. ACM Computing Surveys 57, 1–40. Qin, Y., Liang, S., Ye, Y., Zhu, K., Yan, L., Lu, Y., Lin, Y., Cong, X., Tang, X., Qian, B., et al., 2023. Toolllm: Facil-itating large language models to master 16000+ real-world apis, in: The Twelfth International Conference on Learning Representations. 12 Qu, C., Dai, S., Wei, X., Cai, H., Wang, S., Yin, D., Xu, J., Wen, J.R., 2025. Tool learning with large language models: A survey. Frontiers of Computer Science 19, 198343. Rafailov, R., Sharma, A., Mitchell, E., Manning, C.D., Ermon, S., Finn, C., 2023. Direct preference optimization: Your language model is secretly a reward model, in: Thirty-seventh Conference on Neural Information Processing Systems. Ramos, J., et al., 2003. Using tf-idf to determine word relevance in document queries, in: Proceedings of the first instructional conference on machine learning, Citeseer. pp. 29–48. Robertson, S., Zaragoza, H., et al., 2009. The probabilistic relevance framework: Bm25 and beyond. Foundations and Trends® in Information Retrieval 3, 333–389. Ruan, J., Chen, Y., Zhang, B., Xu, Z., Bao, T., Mao, H., Li, Z., Zeng, X., Zhao, R., et al., 2023. Tptu: Task planning and tool usage of large language model-based ai agents, in: NeurIPS 2023 Foundation Models for Decision Making Workshop. Santhanam, K., Khattab, O., Saad-Falcon, J., Potts, C., Zaharia, M., 2022. Colbertv2: Effective and efficient retrieval via lightweight late interaction, in: Proceedings of the 2022 Con-ference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, pp. 3715–3734. Schick, T., Dwivedi-Yu, J., Dessi, R., Raileanu, R., Lomeli, M., Hambro, E., Zettlemoyer, L., Cancedda, N., Scialom, T., 2023. Toolformer: Language models can teach themselves to use tools, in: Thirty-seventh Conference on Neural Information Processing Systems. Schulman, J., Wolski, F., Dhariwal, P., Radford, A., Klimov, O., 2017. Proximal policy optimization algorithms. arXiv preprint arXiv:1707.06347 . Shams, M.Y., Hussien, A., Ashraf, H., Nasser, N., Gabr, M., Mohamed, H., Yasser, A., Bhatnagar, R., El-Hafeez, T.A., 2024. Dynamic two-way sign language interpretation, in: International Conference on Intelligent Manufacturing and Energy Sustainability, Springer. pp. 463–476. Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Bi, X., Zhang, H., Zhang, M., Li, Y., Wu, Y., et al., 2024. Deepseekmath: Push-ing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300 . Shi, Z., Gao, S., Yan, L., Feng, Y., Chen, X., Chen, Z., Yin, D., Verberne, S., Ren, Z., 2025. Tool learning in the wild: Empowering language models as automatic tool agents, in: Proceedings of the ACM on Web Conference 2025, pp. 2222– 2237. Song, Y., Yin, D., Yue, X., Huang, J., Li, S., Lin, B.Y., 2024. Trial and error: Exploration-based trajectory optimization of llm agents, in: Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics, pp. 7584–7600. Stojanovic, V., 2023. Fault-tolerant control of a hydraulic servo actuator via adaptive dynamic programming. Mathematical Modelling and Control 3, 181–191. Surís, D., Menon, S., Vondrick, C., 2023. Vipergpt: Visual infer-ence via python execution for reasoning, in: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp. 11888–11898. Tang, Q., Deng, Z., Lin, H., Han, X., Liang, Q., Cao, B., Sun, L., 2023. Toolalpaca: Generalized tool learning for lan-guage models with 3000 simulated cases. arXiv preprint arXiv:2306.05301 . Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M.A., Lacroix, T., Rozière, B., Goyal, N., Hambro, E., Azhar, F., et al., 2023. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 . Wang, B., Fang, H., Eisner, J., Van Durme, B., Su, Y., 2024a. Llms in the imaginarium: Tool learning through simulated trial and error, in: Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pp. 10583–10604. Wang, H., Qin, Y., Lin, Y., Pan, J.Z., Wong, K.F., 2024b. Em-powering large language models: Tool learning for real-world interaction, in: Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Informa-tion Retrieval, pp. 2983–2986. Wang, R., Han, X., Ji, L., Wang, S., Baldwin, T., Li, H., 2024c. Toolgen: Unified tool retrieval and calling via generation. arXiv preprint arXiv:2410.03439 . Wu, Q., Liu, W., Luan, J., Wang, B., 2024. Toolplanner: A tool augmented llm for multi granularity instructions with path planning and feedback, in: Proceedings of the 2024 Confer-ence on Empirical Methods in Natural Language Processing, pp. 18315–18339. Xu, Q., Li, Y., Xia, H., Li, W., 2024. Enhancing tool retrieval with iterative feedback from large language models, in: Find-ings of the Association for Computational Linguistics, pp. 9609–9619. Yuan, S., Song, K., Chen, J., Tan, X., Shen, Y., Ren, K., Li, D., Yang, D., . Easytool: Enhancing llm-based agents with concise tool instruction, in: ICLR 2024 Workshop on Large Language Model (LLM) Agents. Zeng, A., Liu, M., Lu, R., Wang, B., Liu, X., Dong, Y., Tang, J., 2024. Agenttuning: Enabling generalized agent abilities for llms, in: Findings of the Association for Computational Linguistics ACL 2024, pp. 3053–3077. Zhang, Z., Zhang, K., Xie, X., Stojanovic, V., 2024. Adp-based prescribed-time control for nonlinear time-varying delay sys-tems with uncertain parameters. IEEE Transactions on Au-tomation Science and Engineering 22, 3086–3096. 13 Zheng, Y., Li, P., Liu, W., Liu, Y., Luan, J., Wang, B., 2024. Toolrerank: Adaptive and hierarchy-aware reranking for tool retrieval, in: Proceedings of the 2024 Joint International Con-ference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024), pp. 16263–16273. Zhong, Q., Li, H., Zhuang, L., Liu, J., Du, B., 2024. Iterative data generation with large language models for aspect-based sentiment analysis. arXiv preprint arXiv:2407.00341 . Zhuang, Y., Yu, Y., Wang, K., Sun, H., Zhang, C., 2023. Toolqa: a dataset for llm question answering with external tools, in: Proceedings of the 37th International Conference on Neural Information Processing Systems, pp. 50117–50143. 14

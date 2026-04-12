@@ -1,0 +1,638 @@
+Title: Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps
+
+URL Source: https://arxiv.org/pdf/2604.06763v1
+
+Published Time: Thu, 09 Apr 2026 00:47:07 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps 
+
+# Mengqian Xu 
+
+xmengqian@stu.ecnu.edu.cn East China Normal University Shanghai, China 
+
+# Yiheng Xiong 
+
+yihengx98@gmail.com East China Normal University Shanghai, China 
+
+# Le Chang 
+
+10225101547@stu.ecnu.edu.cn East China Normal University Shanghai, China 
+
+# Ting Su 
+
+tsu@sei.ecnu.edu.cn East China Normal University Shanghai, China 
+
+# Chengcheng Wan 
+
+ccwan@sei.ecnu.edu.cn East China Normal University Shanghai, China 
+
+# Weikai Miao 
+
+wkmiao@sei.ecnu.edu.cn East China Normal University Shanghai, China 
+
+## ABSTRACT 
+
+Random GUI testing is a widely-used technique for testing mobile apps. However, its effectiveness is limited by the notorious issue — 
+
+UI exploration tarpits , where the exploration is trapped in local UI regions, thus impeding test coverage and bug discovery. In this experience paper, we introduce LLM-powered random GUI Testing , a novel hybrid testing approach to mitigating UI tarpits during random testing. Our approach monitors UI similarity to identify tarpits and query LLMs to suggest promising events for es-caping the encountered tarpits. We implement our approach on top of two different automated input generation (AIG) tools for mobile apps: (1) HybridMonkey upon Monkey , a state-of-the-practice tool; and (2) HybridDroidbot upon Droidbot , a state-of-the-art tool. We evaluated them on 12 popular, real-world apps. The results show that HybridMonkey and HybridDroidbot outperform all baselines, achieving average coverage improvements of 54.8% and 44.8%, respectively, and detecting the highest number of unique crashes. In total, we found 75 unique bugs, including 34 previously unknown bugs. To date, 26 bugs have been confirmed and fixed. We also applied HybridMonkey on WeChat , a popular industrial app with billions of monthly active users. HybridMonkey achieved higher activity coverage and found more bugs than random testing. 
+
+## 1 INTRODUCTION 
+
+Ensuring the reliability of mobile applications (apps) is critical for user retention. In practice, manual testing is prevalent [ 25 , 32 ], although it is usually small-scale, labor-intensive, and likely to miss bugs. To this end, a number of automated input generation (AIG) techniques, e.g. , random, model-based, and learning-based testing, have been proposed in the past decade [5, 14, 30, 39–41]. Recent studies have shown that random testing is still one of the most effective UI testing techniques, often outperforming other sophisticated testing techniques, in both achieved code coverage and the number of found bugs [ 5, 29 , 43 , 49 , 66 , 80 ]. This advantage stems from its simplicity and efficiency — quickly generating a large number of events and reaching deep app states. Indeed, random testing is still one of the most widely-used testing techniques in the industrial setting [5, 49, 66, 80]. However, random testing is likely to be trapped in UI exploration tarpits [67 ], where it may get stuck in some local UI regions and fail to achieve fruitful exploration. One important reason is that random testing is semantics-oblivious. It is difficult for random testing to interpret the semantics and contexts 63.4      
+
+> 54.14
+> 32.62
+> 44.71
+> 63.54
+> 46.81
+> 28.6
+> 40.01
+> 85.2
+> 38.27
+> 57.47
+> 37.99
+> 36.6
+> 45.86
+> 67.38
+> 55.29
+> 36.46
+> 53.19
+> 71.4
+> 59.99
+> 14.8
+> 61.73
+> 42.53
+> 62.01
+> 0% 20% 40% 60% 80% 100%
+> Wikipedia
+> SimpleAlarm
+> RedReader
+> Owntracks
+> Omni-Notes
+> Newpipe
+> MyExpenses
+> Feeder
+> Chess
+> AntennaPod
+> AnkiDroid
+> AmazeFile
+> Apps
+> Time in UI Tarpits
+
+Figure 1: Proportion of time spent on UI tarpits on 12 real-world Android apps. 
+
+of UI elements on the UI pages, thus leading to narrow exploration. Indeed, our preliminary study reveals that random testing wastes nearly 50% of testing time in UI tarpits (see §2.1, Figure 1). To our knowledge, Vet [ 67 ] and Aurora [24 ] are the only two work that tackles UI exploration tarpits. However, these work have some major limitations. First, Vet simply disables specific UI ac-tions to avoid entering the region of UI tarpits, which likely leads to insufficient testing of the apps under test. Second, although Au-rora aims to overcome the shortcomings of Vet , it is limited to eight heuristic rules for specific UI patterns; thus, it struggles to generalize to unseen scenarios, especially given that the apps are diverse and frequently updated (discussed in §5.2). To tackle this problem, we introduce LLM-powered random GUI testing , a novel hybrid testing approach to mitigating UI tarpits during random testing. Our key idea is to interleave random testing with large language models (LLMs) guided exploration to escape UI tarpits. Specifically, we leverage LLMs to understand and provide guidance to escape the UI tarpits. This hybrid testing approach com-bines the strengths of random testing that achieves deep exploration and thus exhibits different app states , and LLM-guided exploration that escapes UI tarpits and thus enables wide exploration .To achieve our idea, we monitor the transitions of UI pages to detect UI tarpits when performing random testing. Specifically, we use a number of consecutive and visually similar UI pages as an intuitive yet common pattern to detect UI tarpits. Once a UI tarpit is detected, our approach switches from random testing to the LLM-guided exploration. During this stage, our approach invokes an LLM to analyze UI elements and execution history to infer events that are likely to escape the encountered UI tarpit. Once the tarpit has  
+
+> arXiv:2604.06763v1 [cs.SE] 8 Apr 2026 ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao
+
+been successfully escaped, our approach resumes random testing. These two stages are interleaved throughout the testing campaign until the time budget is exhausted. To further enhance efficiency, our approach caches the encountered UI tarpits and selectively reuses the events suggested by LLM in history. We have realized our approach on two different AIG tools: (1) 
+
+HybridMonkey upon official Android Monkey [ 14 ]; and (2) Hy-bridDroidbot upon Droidbot [30 ], a popular academic AIG tool. We evaluated our tools against seven commonly-used and state-of-the-art baselines on 12 popular Android apps from Google Play. Results show that HybridMonkey and HybridDroidbot consis-tently outperform all baselines in code coverage and bug detection. Specifically, we achieve 2X line and activity coverage of Aurora 
+
+which tackles UI tarpits. Compared to the best traditional baseline, our approach improves line, branch, and activity coverage by 17.9%, 21.4%, and 10.1%, respectively. These improvements increase to 27.3%, 39.5%, and 45.6% when compared to the best LLM-based baseline. Under the same testing budget, HybridMonkey detects about 2X more unique crashes than the best baseline, which clearly demonstrates the benefits of our approach. To further assess the bug finding ability of our approach, we applied HybridMonkey to the latest versions of these 12 apps available at the time of our experiment (10 runs of 3-hour testing). In total, HybridMonkey uncovered 75 unique crashes. Among them, 34 are previously unknown bugs. The remaining crashes include 6 regressions and 35 known bugs that were independently found by HybridMonkey . To date, 26 of the newly reported bugs have been confirmed or fixed by the developers, while the others remain under discussion. In our approach, LLM-powered tarpit escaping achieves on average 72.9% success rate. Indeed, we observe that successful escapes typically lead to new code coverage within a short period of time. Extended evaluations on two additional datasets (§6) yield results which are consistent with our primary findings. A cost analysis reveals that our approach is the most cost-effective among the compared LLM-based tools. These findings highlight the practicability of our hybrid testing approach. In summary, this paper has made the following contributions: 
+
+• We propose a novel hybrid testing approach which interleaves random testing with LLM-guided exploration to escape UI explo-ration tarpits and thus improve testing effectiveness. 
+
+• We instantiate our approach as two tools HybridMonkey and 
+
+HybridDroidbot by extending two existing AIG tools, demon-strating the applicability of our approach. 
+
+• We conduct extensive experiments on 12 real-world Android apps against seven state-of-the-art baselines, showing our approach significantly improves code coverage and finds more bugs. 
+
+## 2 OBSERVATION AND ILLUSTRATIVE EXAMPLE 2.1 Prevalence of UI Tarpits 
+
+Despite the simplicity and efficiency of random testing, its effective-ness is often constrained by a pervasive phenomenon: UI tarpits. A UI tarpit occurs when a testing tool is trapped in a loop of visually similar screens that only support a small subset of app functionality. In UI tarpits, a testing tool can only navigate within a narrow por-tion of the app. To assess the prevalence of UI tarpits in real-world Dateline NBC                     
+
+> Proven Podcast
+> The Daily
+> Multi Selected
+> Habits and Hustle
+> Podcast 1
+> Multi Selected
+> Podcast 2
+> Podcast 3
+> Podcast 4
+> (a )(b) (c)
+> Description
+> Subscription
+> Episodes preview
+> Multi Selected
+> Date xxxx
+> Title xxxx
+> Time xxxx
+> Date xxxx
+> Title xxxx
+> Time xxxx
+
+Crash     
+
+> (d)
+> Content
+> Date xxxx
+> The Daily
+> Click
+> Subscription
+> Date xxxx
+> Title xxxx
+> Time xxxx
+
+Figure 2: A real-world bug found by HybridMonkey in Antennapod 
+
+settings, we conducted a preliminary study by applying random testing on 12 real-world Android apps. Each app was tested for three hours, and we report the average results over three indepen-dent runs to ensure reliability. We capture a screenshot after each event and analyze the post-execution screenshot to identify tarpits. In this preliminary study, a UI tarpit is identified when there are more than eight consecutive screenshots with high visual similarity (details in §3.2). We calculate the time wasted in the tarpits based on the timestamps of the captured screenshots. We compute the time elapsed between the first and last events of a tarpit. The results are shown in Figure 1. Most apps spent nearly half of the total testing time in UI tarpits. Notably, the test procedure of 
+
+Chess spent 85.20% of its time trapped in UI tarpits. This demon-strates that the time wasted in these traps is significant. Meanwhile, different tarpits may consume different amounts of time. Simple Alarm encountered the most UI tarpits (182 occurrences), which consumed 54.14% of the testing time. These findings motivate us to proactively recognize and escape UI tarpits during GUI testing. 
+
+## 2.2 An Illustrative Example 
+
+We illustrate the benefits of our hybrid testing approach using a real-world bug 1 from AntennaPod [2], a popular podcast manager app with 1M+ installations on Google Play. Figure 2 shows the sim-plified bug-triggering path identified by our approach. To manifest the bug, a user must first transit from a multi-selection state to a podcast preview page (Figure 2(a)), subscribe to the selected pod-cast (Figure 2(b)), and subsequently navigate back from the detail page (Figure 2(c)). Upon returning, the app crashes unexpectedly (Figure 2(d)). Notably, this bug is triggered only if the "Subscription" action is performed before navigating back. In contrast, returning without subscribing cancels the multi-select state, thus failing to trigger the bug. 
+
+Limitation of random testing. While random testing is efficient at fast and deep exploration, it remains semantics-oblivious and is prone to being trapped in UI tarpits. As discussed earlier, UI tarpits are prevalent in random exploration. Although human users can easily navigate to the next functional page, random testing often struggles and wastes resources exploring the current page. For instance, page (b) in Figure 2 represents a UI tarpit detected by our approach. The actual UI page contains 33 actionable UI widgets: 32 support 2 interaction types, while 1 supports 6 types, yielding a total action space of 𝑆 = 32 × 2 + 1 × 6 = 70 . Among these 70 candidates, only 2 specific actions ( i.e. , clicking the "Sub-scription" or "Back" buttons) allow the app to transition away from the current page. Crucially, only the "Subscription" action leads   
+
+> 1This bug is confirmed and fixed by the developers at https://github.com/AntennaPod/ AntennaPod/issues/7609 Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps ASE 2026, October 12–16, 2026, Munich, Germany LLM Guidance
+> Prompt
+> constructor
+> LLM guidance
+> generator
+> Tarpit
+> Memorizer
+> Probabilistic reuse
+> History
+> Prompt Action
+
+... 
+
+...              
+
+> kconsecutive and similar UI pages
+> Random Testing
+> Layout
+> Event
+> Update
+> Tarpit UI Page
+> No Tarpit Found Tarpit Found
+> Escaping events
+> Dynamic UI Tarpit
+> Detection
+> (1) Tarpit Found
+> (2) No Tarpit Found
+> Random
+> generator
+
+Figure 3: Workflow of Our Approach 
+
+to new functional exploration, whereas the "Back" action merely returns to a previous page. The remaining 68 actions result in the app trapping on the current page. Consequently, the probability of a random event staying on page (b) is 𝑝 = 68 70 ≈ 97 .14% . Following our definition of a UI tarpit ( 𝑘 = 8 consecutive similar UI pages), the probability of random testing becoming trapped in this page is 𝑝 𝑡 = 𝑝 𝑘 = (97 .14% )8 ≈ 79 .30% , indicating being trapped in page (b) is a high-probability event. Indeed, we observe that random testing frequently encounters this tarpit and remains trapped there for steps far exceeding 𝑘 = 8, severely hindering testing efficiency. In contrast, the probability 𝑝 𝑏 of triggering the bug via pure random testing is extremely low. To manifest the bug, random test-ing must generate a specific sequence: a "Subscription" event on page (b) followed by a "Back" event on page (c). Given that page (c) contains 38 UI widgets (one supports 6 interaction types and others support 2 types), its action space size is 80 = 1 ∗ 6 + 37 ∗ 2. Thus, the combined probability is 𝑝 𝑏 = 170 × 180 ≈ 0.18 ‰. Furthermore, the bug-triggering state is fragile: if the random testing selects "Back" on page (b) instead of "Subscription", it not only leaves the page but also cancels the multi-selection state, destroying the necessary precondition for the bug. However, invoking an LLM on page (b) elevates the probability of clicking the "Subscription" button from  
+
+> 170
+
+≈ 1.43% to nearly 100%, as the LLM correctly identifies sub-scription as the core functionality and prioritizes this semantically relevant action. 
+
+Our hybrid testing approach. To this end, we leverage the se-mantic understanding of LLMs to guide exploration when random testing is trapped in a UI tarpit. In fact, the discovery of the bug in Figure 2 was made possible by the joint contribution of random and LLM-guided exploration. When random testing became trapped in page (b), the LLM intervened by suggesting the “Subscribe” action, which not only escaped the tarpit but also satisfied the precondition for the bug. Subsequently, random testing resumed and clicked the “back” button, triggering the crash. However, LLMs often bypass edge cases where many bugs are hidden. In this case, the LLM struggled to reach the multi-select state, which represents a bound-ary functional scenario in AntennaPod and thus is de-prioritized by the LLM. This hybrid strategy combines the deep exploration capabilities of random testing with the semantic reasoning of LLMs, effectively exposing a broader range of latent bugs. 
+
+## 3 LLM-POWERED RANDOM TESTING 3.1 Overall Approach 
+
+Figure 3 illustrates the overall workflow of our approach. Given an app under test (AUT), it initiates a random testing phase that continuously generates and executes random UI events. Concur-rently, a dynamic UI tarpit detector (§3.2) monitors the sequence of executed UI pages to identify potential UI tarpits. Specifically, we classify a sequence of consecutive, visually similar UI pages as a tarpit. Once a tarpit is detected, our approach switches to the LLM-guided exploration phase (§3.3). In this phase, the system captures the current UI page and queries the tarpit memory to determine if the tarpit has been visited previously. If it is a known tarpit, we probabilistically reuse prior successful escaping events. Otherwise, we encode both the UI page(s) and the history of failed actions (if any) to construct a prompt that requests the LLM to suggest events capable of escaping the tarpit. Upon successful escape, the approach resumes random testing. Our approach interleaves these two complementary phases con-tinuously throughout the testing process, as shown in Algorithm 1. In short, random testing drives the main testing loop, switching to LLM-guided exploration only when a UI tarpit is detected. It takes the AUT ( A) as input and iterates to explore deep and diverse GUI states until the time budget is exhausted (Lines 3–15). It first initializes both the tarpit memory 𝑀 and the GUI state sequence 
+
+𝑆 , while capturing and appending the initial state 𝑠 of the app to 
+
+𝑆 (Line 2). In the main testing loop, hasTarpit determines whether the app is trapped in a UI tarpit based on the last 𝑘 consecutive states (where 𝑘 represents the minimum window length required for detection, as detailed in §3.2) (Line 4). If no tarpit is detected, a random event is generated based on the current state 𝑠 and executed on A (Lines 5–6). Subsequently, the new state 𝑠 is captured and appended to 𝑆 (Line 7). If a tarpit is detected, it switches to LLM-guided exploration to generate an escaping event 𝑒 𝑒𝑠𝑐 within a maximum number of re-tries (Lines 9–10). Specifically, genEscapingEvent integrates a prob-abilistic reuse mechanism with LLM-guided generation, employing an occlusion filtering algorithm to ensure the LLM accurately per-ceives the visible UI context. After executing 𝑒 𝑒𝑠𝑐 , it captures the new state 𝑠 and updates 𝑆 to verify if the tarpit has been successfully escaped. If escaped, it reverts to random testing and records the effective escape event 𝑒 𝑒𝑠𝑐 along with its corresponding tarpit state (the preceding state in 𝑆 ) in memory 𝑀 (Lines 13–15), facilitating future escapes if the same tarpit is encountered again. 
+
+## 3.2 Dynamic UI Tarpit Detection 
+
+As discussed in §2, UI tarpits often degrade testing efficiency. In-tuitively, UI tarpit appears as a sequence of consecutive visually similar UI pages. Based on this observation, we design an automatic detector to dynmically identify such tarpits during testing. A UI tarpit can be formally represented as a sequence of 𝑘 con-secutive similar UI states 𝑆 = ⟨𝑠 0, 𝑠 1, · · · , 𝑠 𝑘 ⟩, where each transi-tion 𝑠 𝑖 𝑒 𝑖 
+
+→ 𝑠 𝑖 +1 is triggered by a user event 𝑒 𝑖 , and ∀0 ≤ 𝑖 <ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao 
+
+Algorithm 1: LLM-Powered Random Testing                                                                        
+
+> 1Function Main (A):
+> 2𝑀 ← ∅ ;𝑠 ←getState (A); 𝑆 ← [ 𝑠 ]
+> 3while 𝑛𝑜𝑡 𝑡𝑖𝑚𝑒𝑜𝑢𝑡 do
+> 4if ¬hasTarpit (𝑆, 𝑘 )then
+> 5𝑒 ←genRandomEvent (𝑠 )
+> 6execute (𝑒 )
+> 7𝑠 ←getState (A); 𝑆 ←𝑆 + [ 𝑠 ]
+> 8else
+> // Tarpit Found & Escaping
+> 9for 𝑞 =0to MAX_RETRY do
+> 10 𝑒 𝑒𝑠𝑐 ←genEscapingEvent (𝑠, 𝑀 )
+> 11 execute (𝑒 𝑒𝑠𝑐 )
+> 12 𝑠 ←getState (A); 𝑆 ←𝑆 + [ 𝑠 ]
+> 13 if ¬hasTarpit (𝑆, 𝑘 )then
+> 14 𝑀 ←𝑀 ∪ { ( 𝑆 [ | 𝑆 | − 2], 𝑒 𝑒𝑠𝑐 ) }
+> 15 break
+
+Algorithm 2: UI Tarpit Detection                                                                     
+
+> Const :Sim threshold 𝜃
+> 1Function hasTarpit (𝑆, 𝑘 ):
+> 2𝑁 ← | 𝑆 |
+> 3if 𝑁 <𝑘 then
+> 4return False
+> // Check last 𝑘 states
+> 5for 𝑖 ←𝑁 −𝑘 to 𝑁 −2do
+> 6if ¬isUISimilar (𝑆 [𝑖 ], 𝑆 [𝑖 +1])then
+> 7return False
+> 8return True
+> 9Function isUISimilar (𝑠, 𝑠 ′):
+> 10 ℎ𝑎𝑠ℎ ←PerceptualHash (𝑠 )
+> 11 ℎ𝑎𝑠ℎ ′←PerceptualHash (𝑠 ′)
+> 12 𝑑𝑖𝑠𝑡 ←HammingDistance (ℎ𝑎𝑠ℎ, ℎ𝑎𝑠ℎ ′)
+> 13 𝑠𝑐𝑜𝑟𝑒 ←1.0− ( 𝑑𝑖𝑠𝑡 /len (ℎ𝑎𝑠ℎ ))
+> 14 return 𝑠𝑐𝑜𝑟𝑒 ≥𝜃
+
+𝑘, s.t. 𝑆𝑖𝑚 (𝑠 𝑖 , 𝑠 𝑖 +1) > 𝜃 . 𝑆𝑖𝑚 (·) is similarity score, and 𝜃 is simi-larity threshold. The similarity score is calculated as the perceptual similarity [ 81 ] between consecutive UI pages ( i.e. , UI states) using image hashing [ 9 ], rather than the traditional view tree similarity (discussion in §6.3). The UI tarpit detector continuously monitors the sequence of UI pages to determine whether the testing process has encountered or escaped a tarpit. As summarized in Algorithm 2, it takes a sequence of visited UI states 𝑆 = [𝑠 0, 𝑠 1, · · · ] and a length threshold k as input. It iteratively examines the suffix of the sequence 𝑆 (i.e. the last 𝑘 
+
+states) whether every adjacent pair is visually similar with isUISimi-lar function (Lines 5–8). If any pair within the suffix are determined to be different, a False is immediately returned (Lines 6–7). Other-wise, if all adjacent pairs among the last 𝑘 states are similar, True 
+
+is returned, indicating the existence of a UI tarpit (Line 8). A pair of UI pages is considered similar only if their similarity score exceeds the threshold 𝜃 (Lines 9–14), 
+
+## 3.3 LLM-Powered Tarpit Escaping 
+
+While efficient, random testing struggles to escape UI tarpits that re-quire semantic interpretation. Therefore, we design an LLM-guided exploration that leverages the LLM’s capability to analyze state information and generate provide meaningful guidance actions to escape tarpits. To balance the execution efficiency and exploration effectiveness, it probabilistically reuses the earlier escape action when encounters the same tarpit. Formally, the escape policy de-termines the next event 𝑒 𝑒𝑠𝑐 based on the current state 𝑠 and the memory 𝑀 :
+
+𝑒 𝑒𝑠𝑐 =
+
+(Reuse (𝑀 [𝑠 ] ) , if 𝑠 ∈ 𝑀 ∧ 𝜁 ≤ 𝑝 
+
+LLMGuided (𝑠, 𝐻 𝑙𝑜𝑐𝑎𝑙 ), otherwise (1) 
+
+where 𝜁 ∈ [ 0, 1] is a uniform random variable, 𝑝 is the reuse prob-ability threshold, and 𝐻 𝑙𝑜𝑐𝑎𝑙 denotes the local interaction history within the current escape phase. This phase contains four compo-nents: Prompt Constructor , LLM Guidance Generator , Probabilistic Reuse Generator , and Tarpit Memorizer .
+
+3.3.1 Prompt Constructor. It translates the GUI state into a struc-tured textual representation that is comprehensible to the LLM. Fig-ure 4 illustrates the structure of LLM prompt template, containing role, task, UI information, attempt history, and a question. The UI information is obtained through retrieving raw UI layout via the An-droid Accessibility Service [ 15 ], and linearizing interactive widgets into a list of candidates. Specifically, we identify all enabled widgets and their supported interactions, augmenting descriptions with attributes such as text , resource-id , and content-description .Each widget is assigned a unique ID, enabling the LLM to signify its decision by returning a concise identifier instead of redundant text. To maintain a consistent spatial representation, we sort these widgets in a top-to-bottom and left-to-right order [35]. Sometimes, there are visual occlusion, including floating win-dows and pop-up layers, that prevents UI layout intepretation. For example, a floating menu visually occludes the underlying file list, which may cause LLM-suggested action invalid ( e.g. , clicking a cov-ered list item). Therefore, we implement a spatial occlusion filter prior to prompt construction to make LLM focuses on truly visible context, as detailed in Algorithm 3. It first retrieves all interactive leaf nodes 𝑊 from the current state (Line 2), and iterates through each candidate widget 𝑤 to verify its spatial validity against other widgets (Lines 4–6). It detects occlusion by examining whether the geometric center of 𝑤 falls within the bounding box of any other widget 𝑤 ′ (Line 7). Once overlapped, 𝑤 is flagged as covered and discarded (Lines 8-9) . Ultimately, only the strictly visible widgets 
+
+𝑊 ′ are kept (Lines 10-12), effectively preventing the inclusion of misleading context that could cause invalid interactions. To efficiently utilize the context window, we exclude the global execution trace and strictly limit the history to 𝐻 𝑙𝑜𝑐𝑎𝑙 , which com-prises only the sequence of attempts made within the current tarpit instance, enabling the LLM to focus on relevant causal information. 
+
+3.3.2 LLM Guidance Generator. Based on the constructed prompt with refined UI context, we design the LLM Guidance Generator to query the LLM and translate its high-level semantic decisions into executable system events. To facilitate precise event execution, we maintain an Action Space that maps each interactive widget to its executable operations. The Action Space A represents a discretized set of all executable GUI events on the current state, where each widget-level interaction is assigned a unique identifier to facilitate precise event execution. Each event 𝑒 ∈ A is a localized interac-tion, formally defined as a tuple ⟨𝑖𝑑, 𝑏𝑜𝑢𝑛𝑑𝑠, 𝑡𝑦𝑝𝑒 ⟩, where 𝑖𝑑 is a Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps ASE 2026, October 12–16, 2026, Munich, Germany 
+
+Algorithm 3: Widget Filtering                                                           
+
+> 1Function getValidWidgets( 𝑆 𝑡 ):
+> 2𝑊 ←GetInteractiveLeaves ( 𝑆 𝑡 )
+> 3𝑊 ′← ∅
+> 4for 𝑤 ∈𝑊 do
+> 5𝑖𝑠𝐶𝑜𝑣𝑒𝑟𝑒𝑑 ←False
+> 6for 𝑤 ′∈𝑊 \ { 𝑤 }do
+> 7if 𝑤.𝑐𝑒𝑛𝑡𝑒𝑟 ∈𝑤 ′.𝑏𝑜𝑢𝑛𝑑𝑠 then
+> 8𝑖𝑠𝐶𝑜𝑣𝑒𝑟𝑒𝑑 ←True
+> 9break
+> 10 if ¬𝑖𝑠𝐶𝑜𝑣𝑒𝑟𝑒𝑑 then
+> 11 𝑊 ′←𝑊 ′∪ { 𝑤 }
+> 12 return 𝑊 ′Role : You are an expert in Android app GUI
+> testing. Based on your extensive experience, please
+> guide the testing tool to improve coverage of
+> functional scenarios. Currently, the app is stuck on the
+> com.amaze.filemanager page and is unable to explore
+> other features.
+> Task : Your task is to select the next action based on
+> the current GUI information to help the app escape the
+> UI tarpit.
+> UI Info : The current page has the following UI views and their corresponding
+> actions, with the action IDs shown in parentheses:
+> - a view that can scroll left/right (0)
+> - a " Navigate up " button that can click(1), longclick(2)
+> - a " Search " button that can click(3), longclick(4)
+> - a " Home " button that can click(5), longclick(6)
+> - a " More Options " button that can click(7), longclick(8)
+> - a view with text " /storage/emulated/0 " that can click(9), longclick(10)
+> - a " File " button that can click(11), longclick(12)
+> - a view with text " Alarms " that can click(13), longclick(14)
+> - a " Properties " button that can click(15), longclick(16)
+> - a floating " Add " icon button that can click(17), longclick(18)
+> - a key to go back (19)
+> History : I have already tried the following steps (with action IDs in
+> parentheses), which should not be selected again:
+> - click " Cloud connection " button(6)
+> Question : Which action should be selected next? Return only the action ID.
+
+Figure 4: An illustration of the structured prompt construction. 
+
+unique identifier, 𝑏𝑜𝑢𝑛𝑑𝑠 denotes the coordinate area, and 𝑡𝑦𝑝𝑒 
+
+indicates the interaction type. Upon receiving an LLM response (e.g. , "Action ID: 6"), the generator performs a lookup to retrieve the corresponding metadata from the Action Space. If the app persists in the tarpit after an escaping event, it in-vokes a feedback loop for strategy refinement. In each iteration, the 
+
+Prompt Constructor updates the local history 𝐻 𝑙𝑜𝑐𝑎𝑙 by appending the failed attempt, thereby instructing the LLM learn from the ear-lier mistakes and propose a new escaping event. This interactive process continues until the tarpit is successfully escaped or the retry count reaches thelimit 𝑞 𝑚𝑎𝑥 (default by 10). If all retries fail, the system terminates the LLM session and forces a "Back" operation to revert the app to the pre-tarpit state, resuming standard random exploration to prevent infinite stagnation. 
+
+3.3.3 Tarpit Memorizer. It is a persistent registry for all encoun-tered UI tarpits. Structurally, it maintains a collection of entries, where each entry is formalized as a tuple: <Tarpit ID, UI State, Action List> , where Tarpit ID is a unique identifier, the UI State is the UI page of the tarpit, and the Action List accumulates distinct actions that have successfully escaped this specific tarpit. Upon detection of a tarpit, the memorizer queries the registry to determine whether the current UI state has been previously recorded. This retrieval pro-cess employs the perceptual hashing metric defined in Algorithm 2, but enforces a significantly stricter similarity threshold 𝜃 𝑚𝑒𝑚 = 0.99 .This high threshold is deliberately chosen to ensure that historical actions are only reused on virtually identical states, guaranteeing safety and applicability, while accommodating minimal rendering variations ( e.g. , system clock or battery icon changes). If a record detected( i.e. , a “visited” tarpit), the associated history is forwarded to the probabilistic reuse generator to facilitate immediate escape. Otherwise ( i.e. , a "new" tarpit), the system proceeds to the LLM-guided mode; once the tarpit is successfully escaped, the memorizer will store this effective solution. 
+
+3.3.4 Probabilistic Reuse. While LLM guidance effectively miti-gates UI tarpits, it takes high computational overhead. To balance testing efficiency with state exploration, the probabilistic reuse generator employs a stochastic dispatch strategy. Upon detecting a previously encountered UI tarpit, the generator activates the reuse mode with a high probability ( 𝑝 = 0.8), randomly sampling a candi-date from the set of successful actions recorded for the current tarpit instance. Otherwise, the LLM Guidance Generator is invoked, in an aim to generate potentially new and diverse escaping events. We ground this threshold in the classic exploration-exploitation trade-off : a dominant probability is assigned to exploitation to maximize the utility of cost-intensive LLM guidance, while the remaining (1 − 𝑝 = 0.2) is reserved for exploration to foster the discovery of al-ternative escape paths. This strategy effectively reduces redundant API costs while preserving the diversity of behavior. 
+
+## 4 IMPLEMENTATION 
+
+We realize our idea on two different random testing tools and obtain 
+
+HybridMonkey and HybridDroidbot . Both of them utilize GPT-4o as their underlying LLM. HybridMonkey is built upon Monkey* ,an enhanced version of the official Android Monkey [ 14 ]. Monkey 
+
+is widget-oblivious, injecting events at random coordinates without considering the UI structure. To alleviate this, we leverage Uiau-tomation [16 ] to obtain widgets and their supported events. In practice, such widget-aware exploration has been shown to statis-tically improve code coverage [ 80 ]. HybridDroidbot is based on 
+
+Droidbot-random , an implementation of a random exploration policy within Droidbot [ 30 ], a widely used academic AIG tool. Hy-bridDroidbot utilizes Uiautomator2 [46] for UI manipulation. We adopted the OpenCV library [ 47 ] for image similarity calcu-lation. The similarity threshold 𝜃 is determined empirically through a pilot study conducted on a subset of 4 apps, where we evaluated values in the range [0.90 , 0.99 ] and manually inspected the detected tarpits. We observed that lower values ( e.g. , 𝜃 = 0.91 ) led to over-approximation by merging distinct UI pages and higher values ( e.g. ,
+
+𝜃 = 0.98 ) were overly sensitive, failing to group perceptually iden-tical pages. We therefore set 𝜃 = 0.95 to achieve a balance between trade-off for maintaining detection accuracy. The sequence length threshold 𝑘 is set to 8. 
+
+## 5 EVALUATION 
+
+Our evaluation aims to answer four research questions: 
+
+• RQ1 (Code Coverage): Compared to existing automated testing techniques, how effective is our approach in code coverage? 
+
+• RQ2 (Bug Detection): Compared to existing automated testing techniques, how effective is our approach in detecting bugs? ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao 
+
+Table 1: App subjects used in our experiment (K=1,000, M=1,000,000).                                                                       
+
+> App Name App Feature Stars Downloads LOC APK Size
+> Amaze File Manager 5.3K 1M+ 111,214 11.53MB AnkiDroid Flashcard Learning 8.6K 10M+ 470,803 105.91MB AntennaPod Podcast Manager 6.4K 1M+ 641,889 11.53MB Chess Casual 468 500K+ 59,230 7.65MB Feeder RSS Reader 1.6K 100K+ 152,340 60.82MB MyExpenses Expense Tracking 820 1M+ 223,082 45.09MB NewPipe Video Manager 31.4K 7.6M+ 317,897 11.53MB Omni-Notes Note Manager 2.7K 100K+ 73,100 7.65MB OwnTracks Location Tracking 1.4K 100K+ 122,323 13.63MB RedReader Social Discussion 2K 100K+ 171,039 9.02MB SimpleAlarm Time Manager 510 1M+ 92,145 7.97MB Wikipedia Knowledge Reference 2.4K 50M+ 557,744 77.59MB WeChat Messaging & Social -100M+ -243.52MB
+
+• RQ3 (Escape Effectiveness): How effective is our approach in detecting and escaping UI tarpits? And how much does a successful escape improve code coverage? 
+
+• RQ4 (Ablation Study): How do individual components con-tribute to the overall effectiveness of our hybrid strategy? 
+
+## 5.1 Evaluation Setup and Method 
+
+App Subjects. We create a benchmark of 13 apps, containing (1) eight representative, open-source apps from prior work in auto-mated Android GUI testing [ 41 , 55 , 56 , 70 ]; (2) four sourced from Google Play to enhance functional diversity; and (3) WeChat [58 ], a large-scale commercial app characterized by a highly complex UI. We use open-source apps as our primary subjects for collect-ing precise code coverage data and submiting bug reports. Table 1 summarizes the statistics of these apps. To ensure generalizability, we also evaluate on two additional benchmarks in § 6.1. 
+
+Baseline Selection. To evaluate from multiple perspectives, We use 7 baselines from three groups: traditional AIG tools (Group A), tarpit-specialized tools (Group B), and LLM-based testing tools (Group C). 
+
+• Baseline Group A. We include two widely-used industrial tools: 
+
+Monkey [ 14 ], the Android random testing tool; and Fastbot [ 39 ], a state-of-the-practice reinforcement learning-based tool from ByteDance. To ensure a fair comparison and isolate the impact of our strategy, we also introduce two variants (see §4): Monkey* ,a widget-based adaptation of Monkey; and Droidbot-random ,an extended version of Droidbot configured with a random strategy to serve as widget-level random baselines. 
+
+• Baseline Group B. We compare against Aurora [24 ], a state-of-the-art tool designed to escape UI tarpits via heuristic rules. While Vet [ 67 ] is the first work to define the term UI exploration tarpits , we omit it as it aims to prevent rather than escape tarpits, and Aurora has demonstrated superior performance over Vet. 
+
+• Baseline Group C. We select two representative LLM-based tools: GPTDroid [35 ], which employs a step-by-step LLM decision-making strategy; and LLMDroid [ 61 ], a most recent work that integrates LLMs into existing AIG tools. As GPTDroid does not offer an official replication package, we faithfully reconstructed it with all modules from its open-access repository [59]. 
+
+Environmental Configuration. To mitigate randomness, we executed each tool five times on all apps. Following prior stud-ies [ 54 , 66 ], we set a time budget of 3 hours per run to ensure sufficient exploration depth. All experiments were conducted on a 64-bit Ubuntu 22.04 machine (128-core AMD EPYC 7742 CPU, 
+
+Table 2: Coverage comparison among different baselines.                                                   
+
+> (a) Baselines A
+> Cov(%) D* FMM* Hd Hm Line 32.1 34.0 29.9 36.5 40.3 43.1
+> Branch 21.1 23.5 19.8 24.8 28.0 30.1
+> Method 34.9 36.7 32.8 39.8 43.7 46.8
+> Class 43.6 45.8 41.9 49.0 52.4 55.2
+> Activity 37.3 37.6 36.3 41.5 43.2 45.7
+> (b) Baselines B
+> Cov(%) Hm Hd ALine 43.1 40.3 24.1 Branch 30.1 28.0 15.8 Method 46.8 43.7 25.6 Class 55.2 52.4 35.2 Activity 45.7 43.2 27.8
+> (c) Baselines C
+> Cov(%) Hm Hd LLM GPT Line 43.1 40.3 33.9 16.9 Branch 30.1 28.0 21.6 10.6 Method 46.8 43.7 35.7 19.4 Class 55.2 52.4 46.3 27.4 Activity 45.7 43.2 31.4 21.4 (a) Baselines A (c) Baseline B (e) Baselines C
+> (b) Baselines A (d) Baseline B (f) Baselines C
+
+Figure 5: Average line and branch coverage growth on 12 apps across three baseline groups (3-hour testing). 
+
+256 GB RAM) using the official Android emulator configured as a Google Pixel 4 device (Android 11, 4-core CPU, 4 GB RAM) ex-cept for WeChat . The experiments on WeChat were conducted on a real device (SHARKKLE-A0, Android 11). All baselines followed their original configurations, except that GPTDroid and LLMDroid 
+
+were standardized to use GPT-4o for a fair comparison. 
+
+Evaluation method of RQ1. We collected coverage at four lev-els: Line, Branch, Method, and Class via JaCoCo [ 44 ], a widely used instrumentation tool. We also measure activity coverage by cal-culating the ratio of visited activities to the total set defined in the AndroidManifest .xml file. For WeChat , where source code is unavailable, we use activity coverage as a proxy metric. 
+
+Evaluation method of RQ2. We recorded unique crashes trig-gered during testing, de-duplicated by stack traces from Logcat [13 ,54 ] logs. In addition, we run HybridDroidbot , HybridMonkey ,
+
+Monkey , Fastbot , and Droidbot 10 times for statistical compar-isons. We employed the Wilcoxon rank-sum test [ 69 ] and Vargha and Delaney’s ˆ𝐴 12 [ 60 ] to evaluate statistical significance (signifi-cant when 𝑝 -val < 0.05 ) and effect size (effective when ˆ𝐴 12 > 0.5), respectively. Moreover, we report the uncover new crashes of Hy-bridMonkey across 10 independent runs. 
+
+Evaluation method of RQ3. As we lack ground-truth of UI tarpits, we use following metrics. 
+
+1) Tarpit Detection Precision (TDP). Due to the large volume of inter-action logs, we randomly sampled one execution trace per app (out of five runs) and manually verified all reported tarpits. A detection is considered a True Positive if the UI layout and functional state remain substantially unchanged, as well as without new actionable elements for the preceding 𝑘 = 8 consecutive steps. This verification window aligns with the similarity threshold used in our algorithm. 
+
+2) Escape Success Rate (ESR). Using the same sampled traces, we manually verified whether the LLM-generated actions successfully escaped the tarpits. We report a success for (a) Valid Return (i.e. 
+
+returning to the parent node when exploration is exhausted) and Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps ASE 2026, October 12–16, 2026, Munich, Germany 
+
+> Figure 6: Line coverage over time of 9 tools across 12 apps.
+> Figure 7: Branch coverage over time of 9 tools across 12 apps.
+
+(b) New Path Discovery (i.e. triggering a significant change in page state or interactive elements). 
+
+3) First-Attempt Escape Rate (FAER). We calculate it on 5 runs across 12 apps, by counting escapes achieved solely by the initial LLM query. A success is reported when there is visual discrepancies between pre- and post-action screenshots, which indicate a valid state transition. 
+
+4) Post-Escape Coverage Contribution (PEC). To quantify the impact of escapes on coverage, we analyze the temporal correlation be-tween LLM queries and “coverage inflection points” ( i.e. , instances of new line coverage). Specifically, we calculate the numbers of LLM queries within the 50-second window ( i.e. , five 10-second intervals) immediately preceding each inflection point. We report the average results across five runs. 
+
+Evaluation method of RQ4. RQ4 aims to assess the contribution of each component. We conduct an ablation study comparing the full approach against two variants: (1) w/o Reuse (Probabilistic Reuse disabled), and (2) w/o LLM (LLM guidance disabled). We evaluate these configurations on both HybridMonkey and HybridDroid-bot in terms of code coverage. 
+
+## 5.2 RQ1: Code Coverage 
+
+Baseline Group A. Table 2(a) and Figure 6&7 present the average activity and code coverage results. Our tools consistently outper-form all baselines across all metrics and apps. On average, Hybrid-Droidbot and HybridMonkey achieve 40.3%–43.1% line coverage, surpassing baselines (29.9%–36.5%). In particular, HybridMonkey 
+
+exceeds Monkey by 44.1% and 51.8% in line and branch coverage, as 
+
+Monkey ’s coordinate-based generation often yields invalid events. Compared to widget-based Monkey* , HybridMonkey maintains a 10.1%–21.4% lead across all coverage metrics. Similarly, Hybrid-Droidbot outperforms Droidbot-random by 15.8%–32.4%. These results indicate that our tool effectively broadens the exploration scope, thereby increasing the potential for bug discovery. We pro-vide a detailed analysis in § 5.4 to verify if this improvement stems from the tarpit escape mechanism. Figure 5 (a)&(b) illustrate the line/branch coverage growth for baseline group A. We can see that our tools outperformed Fastbot ,
+
+Monkey and Droidbot-random from around 10 th minute onwards, finally achieving the highest overall coverage at the end of the test-ing budget. Notably, during the first 60 minutes, Monkey* exhibited competitive performance, closely trailing our HybridDroidbot 
+
+and outperforming the other three baselines, yet it consistently re-mained inferior to HybridMonkey . Our tools has narrower regions (standard deviation), indicating better stability. 
+
+Baseline Group B. Table 2(b) shows that Aurora achieves sig-nificantly lower coverage than our approach. Specifically, Hybrid-Monkey ’s line coverage (43.1%) is nearly double that of Aurora 
+
+(24.1%). The growth curves in Figure 5 (c)&(d) further illustrate that Aurora ’s coverage tends to plateau early. The reason is that 
+
+Aurora relies on eight fixed pattern matching, lacking general-ization to diverse UI designs ( e.g. , our motivating example in §2). Unlike Aurora , which resets exploration after three failed heuristic attempts, our approach dynamically adapts to unseen UI states via LLM-driven semantic reasoning. 
+
+Baseline Group C. Table 2(c) shows that HybridMonkey achieves the highest coverage, outperforming LLMDroid by 27.3% (line) and 39.5% (branch). GPTDroid lags significantly (16.9% line cover-age). This gap may stem from the heavy reliance on LLMs in these baselines. First, GPTDroid uses LLMs for every step, while LLM-Droid depends on them for multiple stages, which creates a long dependency chain that is vulnerable to incomplete UI metadata ( e.g. ,missing text or resource IDs). Consequently, perception inaccura-cies can propagate downstream and reduce testing effectiveness. Second, these limitations are likely amplified during our 3-hour ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao (a) Traditional tools    
+
+> (b) Tarpit Specialized tool (c) LLM -based tools
+
+Figure 8: Intersection analysis of crashes across different baseline tools. (Horizontal bars indicate total crashes per tool; vertical bars show the number of crashes in each intersection.) 
+
+experiments compared to their original 1-hour experiments. The cu-mulative latency and context limits may hinder their performance over time. Conversely, our approach invokes LLMs only for tarpits, ensuring sustained growth and stability. Figure 5 (e)&(f) show that our approach maintain a sustained upward trend, whereas LLM-Droid and GPTDroid plateau early, typically within 60 mins. 
+
+Results on WeChat. WeChat is a massive industrial app with 1,988 activities. Given that previous results established our supe-riority over other baselines, here we focus on the enhancement to the random strategy. We compared HybridMonkey directly against Monkey* to verify this improvement in an industrial setting. 
+
+HybridDroidbot was excluded due to infrastructure constraints within WeChat’s internal environment; unlike the host-dependent 
+
+HybridDroidbot , HybridMonkey enables direct, on-device execu-tion. HybridMonkey covered 122 activities on average, surpassing 
+
+Monkey* ’s 116. This confirms our hybrid approach effectively im-proves exploration in complex, real-world scenarios. 
+
+## 5.3 RQ2: Bug Detection 
+
+Baseline Group A. Figure 8 (a) presents the crash analysis via an UpSet plot. The horizontal bars on the left show the total number of unique crashes detected by each tool. HybridMonkey and Hybrid-Droidbot detect the most unique crashes (24 and 23), significantly surpassing Monkey* (15), Fastbot (12), and Monkey (9). Beyond total counts, intersection analysis (vertical bars) reveals whether our approach reveals bugs missed by other techniques. As shown in the first two columns, HybridMonkey and HybridDroidbot 
+
+each detect 9 exclusive crashes, whereas Fastbot and Monkey* 
+
+find only 7 and 3, respectively. This enhanced detection capability stems from our hybrid strategy’s superior exploration efficiency. By ensuring both exploration breadth and depth, our approach finds unique bugs that remain inaccessible to the baselines. 
+
+Baseline Group B. As shown in Figure 8 (b), HybridMonkey and 
+
+HybridDroidbot detected 24 and 23 unique crashes, respectively, while Aurora identified only 2 crashes in total. In terms of exclu-sive detections, HybridMonkey and HybridDroidbot successfully identified 14 and 13 unique crashes that were missed by Aurora. 
+
+Baseline Group C. Figure 8 (c) shows our tools (24 and 23 crashes) significantly outperforming LLMDroid (1 crash), with GPTDroid 
+
+detecting none. We attribute the limited effectiveness of LLMDroid 
+
+to two main factors. First, LLMDroid prioritizes rapid coverage 
+
+Table 3: Statistical comparison.                                                                         
+
+> App Hm vs M* Hm vs F Hd vs D*
+> p-val ˆ𝐴 12 p-val ˆ𝐴 12 p-val ˆ𝐴 12
+> SimpleAlarm N/A N/A N/A N/A N/A N/A AmazeFile 0.52 0.64 ↑0.01* 1.00 ↑0.01* 1.00 ↑
+> AnkiDroid N/A N/A N/A N/A N/A N/A AntennaPod 0.02* 0.96 ↑0.03* 0.90 ↑0.01* 1.00 ↑
+> Chess 0.06 0.86 ↑1.00 0.50 0.03* 0.92 ↑
+> feeder 0.01* 1.00 ↑0.07 0.80 ↑0.42 0.60 ↑
+> MyExpenses 0.18 0.70 ↑N/A N/A 0.18 0.70 ↑
+> Newpipe 0.02* 0.96 ↑0.01* 1.00 ↑0.01* 1.00 ↑
+> OmniNotes 0.02* 0.92 ↑0.01* 1.00 ↑0.02* 0.92 ↑
+> Owntrack 0.01* 1.00 ↑0.03* 0.92 ↑1.00 0.52 ↑
+> RedReader 0.42 0.60 ↑N/A N/A 0.42 0.60 ↑
+> WikiPedia 0.12 0.76 ↑0.42 0.60 ↑0.12 0.76 ↑
+> Note: 𝑝 -val <0.05 (* bold); ˆ𝐴 12 >0.5(↑) favors us. N/A: no crash.
+
+Table 4: FAER.               
+
+> Subject FAER
+> SimpleAlarm 93.4% AmazeFile 83.4% AnkiDroid 73.4% AntennaPod 84.9% Chess 90.0% Feeder 68.4% MyExpenses 89.1% NewPipe 83.7% OmniNotes 67.2% OwnTracks 65.8% RedReader 90.7% WikiPedia 81.9%
+> Overall 82.6%
+
+expansion over deep exploration. When coverage stagnates, it im-mediately shifts its focus to a different state subspace. However, critical crashes are often located deeply behind these stagnation points. Second, LLMDroid utilizes LLM guidance to target uncov-ered functions sequentially. It identifies major functional units and executes them one by one based on priority. This isolated execution interrupts the continuous interaction chain. Consequently, it fails to accumulate the complex states required to trigger deep crashes. 
+
+Statistical significance and effect size. Table 3 reports the 𝑝 -values and ˆ𝐴 12 effect sizes to verify our improvements. We focus our statistical analysis on Monkey* , Fastbot , and Droidbot , as they are the only baselines detecting over 10 cumulative crashes, ensuring sufficient data for meaningful comparison. SimpleAlarm 
+
+and AnkiDroid are excluded due to zero crashes across all tools. For the remaining subjects, HybridMonkey significantly outperforms 
+
+Monkey* and Fastbot on 5 subjects each, while HybridDroidbot 
+
+shows significant improvements over Droidbot on 5 subjects. The 
+
+ˆ𝐴 12 values consistently exceed 0.5, with even non-significant cases often exhibiting large effect sizes (above 0.80). This occasional lack of strict significance likely results from the inherent variance of random testing and bug scarcity in stable apps, which reduces statistical power. Nonetheless, the consistent effect sizes confirm that our strategy effectively improves bug detection. 
+
+Practical utility on real-world apps. Of the 75 unique bugs found by our approach, 34 previously unknown issues were submitted to developers. Among them, 26 have been fixed or confirmed (18 fixed and 8 confirmed), while the rest remain under review. On WeChat ,
+
+HybridMonkey identified 5 unique crashes (vs. 3 by Monkey* ), demonstrating its robustness in detecting failures within complex industrial applications. 
+
+## 5.4 RQ3: Escape Effectiveness 
+
+Tarpit Detection Precision (TDP). Our detection mechanism achieved 97.41% precision (582/598). We further analyzed the 16 false positives and identified two primary causes: 1) Low Contrast in Dark Mode , where the algorithm showed reduced sensitivity to subtle visual changes in dark-themed interfaces; 2) Transient Loading States , where screenshots were captured during content loading (e.g., blank or spinner pages), leading to incorrect similarity judgments due to lack of visual information. 
+
+Escape Success Rate (ESR). On the 582 validated tarpits, our strategy achieved a 72.85% (424/582) success rate. To understand Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps ASE 2026, October 12–16, 2026, Munich, Germany 
+
+Figure 9: LLM query distribution before coverage gain points 
+
+the limitations, we analyzed the 158 failed instances and categorized the root causes into three primary types: 
+
+• Incomplete Accessibility Information (64.56%, 102/158): The majority of failures stem from insufficient UI semantic informa-tion derived from the Layout tree. First, the current layout analy-sis captures structural data but misses image-level details. Second, many Android components contain empty attributes, hindering the LLM’s understanding of the interface. Consequently, this information gap leads to ineffective action generation, such as the LLM suggesting a “long-press” on a text view that actually requires a “click”. 
+
+• Random Strategy Interference (18.99%, 30/158): In these cases, the LLM successfully initiated an escape action (e.g., click-ing “More Options” to open a menu), but the subsequent random exploration failed to interact with the newly revealed controls. This discontinuity prevented the tool from completing the escape sequence, causing the app to revert to the tarpit state. 
+
+• Text Input Constraints (16.46%, 26/158): Failures also occurred when escaping required specific data inputs, particularly in Login or Registration scenarios. While our approach handles single text fields effectively, it struggles with complex multi-field dependen-cies that demand context-aware structured input. Notably, the high proportion of missing accessibility information (≈ 65%) indicates that the primary bottleneck lies in UI metadata availability rather than LLM reasoning (as discussed in § 7). 
+
+First-Attempt Escape Rate (FAER). Table 4 shows our approach achieves an overall FAER of 82.55%. High rates in apps like Alarm 
+
+(93.38%) and RedReader (90.71%) indicate that for most tarpit sce-narios, the LLM is capable of identifying the critical exit interaction (e.g. , "Back" or "Cancel") in a single inference step. This efficiency is crucial for large-scale testing, as it resolves most stagnation issues instantly and minimizes time spent in non-productive states. 
+
+Post-Escape Coverage Contribution (PEC). Figure 9 shows the average number of LLM queries before the line coverage increment of a test run, where the x-axis denotes the time interval before the increment. Most increments occur within 20s of a query, confirming that LLM-guided escaping effectively drives new exploration. A notable exception is Feeder , where coverage gains tend to occur in the 30-40s window after LLM queries. This delay is likely due to asynchronous feed loading and deferred UI rendering, where cover-age improvement requires additional random events or background task completion. Nonetheless, the temporal correlation supports the causal role of LLM guidance in driving exploration forward. 
+
+Table 5: Coverage results w/ and w/o LLM/Reuse Modules.                             
+
+> Tool Variant Line Branch Method Class
+> HybridDroidbot 40.28% 27.96% 43.67% 53.03%
+> w/o Reuse 34.88% 23.31% 34.80% 42.59% w/o LLM 32.07% 21.12% 34.86% 39.63%
+> HybridMonkey 42.27% 29.32% 46.02% 54.41%
+> w/o Reuse 37.72% 25.89% 41.48% 53.22% w/o LLM 36.80% 25.10% 40.62% 52.72%
+
+Table 6: Cov. under different 𝑘 .                  
+
+> Metric / 𝑘 5678910
+> Line (%) 34.42 35.44 36.80 42.27 38.55 37.52 Branch (%) 22.99 23.77 25.10 29.32 25.67 26.10 Method (%) 37.53 38.36 40.62 46.02 42.31 40.79 Class (%) 46.34 47.25 52.72 54.41 53.75 49.59
+
+Table 7: LLM Variants.              
+
+> Metric GPT-4o GPT-3.5-turbo Deepseek-R1
+> Line 42.27 41.69 40.31 Branch 29.32 29.27 27.60 Method 46.02 44.67 43.34 Class 54.41 56.06 55.19
+
+## 5.5 RQ4: Ablation 
+
+Table 5 reports the average code coverage across all apps under different tool variants. The full configuration consistently achieves the highest coverage across all four metrics. Disabling probabilistic reuse and LLM guidance reduces HybridDroidbot ’s line coverage to 34.88% and 32.07%, respectively. This degradation highlights that both LLM-driven reasoning and reuse mechanism are beneficial, and the former is the primary contributor to wide exploration. 
+
+## 6 DISCUSSION 6.1 Extended Evaluation 
+
+We conducted two supplementary experiments to reinforce our find-ings. First, for RQ1 (coverage), we evaluated HybridMonkey and 
+
+HybridDroidbot against LLMDroid [61 ] on its original dataset. Strictly following the baseline’s configuration (1-hour runs, 3 repe-titions and method coverage), HybridMonkey achieved 10.0% av-erage coverage, outperforming both HybridDroidbot (8.3%) and 
+
+LLMDroid (7.2%) 2. Second, for RQ2 (bug detection), we utilized the 
+
+Themis benchmark [ 55 ] (52 reproducible bugs). HybridMonkey 
+
+identified 19 bugs, surpassing Monkey* (15), Fastbot (7), Monkey 
+
+(3), GPTDroid (1), and Aurora (0). LLMDroid was excluded due to instrumentation incompatibilities with legacy build systems. 
+
+## 6.2 Sensitivity and Cost Analysis 
+
+Parameter Sensitivity. We evaluated the tarpit detection threshold 
+
+𝑘 ∈ [ 5, 10 ]. Table 6 shows that average coverage peaks at 𝑘 = 8. Per-formance declines at higher values, likely due to delayed detection, while lower values tend to trigger premature interventions. Thus, we set 𝑘 = 8 as the default, striking a balance between sensitivity and stability. Other image-related parameters follow empirical set-tings; however, adaptive tuning remains a promising direction for further enhancing robustness in diverse testing environments. 
+
+LLM Sensitivity. Table 7 demonstrates HybridDroidbot ’s robust-ness across different LLMs. Although GPT-4o performs best, all variants (including DeepSeek-R1) surpass the baselines. This indi-cates our success derives from the hybrid testing paradigm itself, independent of specific LLM capabilities. 
+
+Cost Analysis. Our approach is highly cost-efficient, averaging $0.19 per round—significantly lower than LLMDroid ($0.43) and 
+
+GPTDroid ($9.21). Unlike GPTDroid ’s continuous querying (1,425 queries avg.), we invoke the LLM only upon detecting tarpits. This  
+
+> 2Detailed data is available at https://github.com/hybd123/HybridDroid ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao
+
+selective invocation eliminates unnecessary token consumption, making our method economically viable for large-scale testing. 
+
+## 6.3 Design Rationales 
+
+Image-Based Similarity. Our approach uses image-based simi-larity instead of layout tree comparison to detect UI tarpits. This choice enhances robustness against the volatility of the view hi-erarchy. Layout-based similarity is sensitive to minor structural changes like dynamic IDs. Defining appropriate abstraction criteria to mitigate such structural volatility remains a significant challenge in the field [3]. In contrast, image-based similarity captures visual semantics and remains stable under UI fluctuations. 
+
+Generality of our work. Our LLM-guided escape mechanism is model-agnostic and is able to, in principle, enhance any automated GUI testing tools. We believe that incorporating our approach into learning-based or model-based testing tools can also yield mean-ingful improvements. Our results on two widely used tools ( i.e. ,
+
+Monkey and Droidbot ) serve as a proof-of-concept for this general applicability. 
+
+## 6.4 Threat Validity and Limitations 
+
+Threats to Validity. A primary external threat to the validity of our work is the representativeness of the app subjects. To mitigate this, our experiments include a diverse set of open-source apps, as well as one widely used industrial app. These apps were chosen based on their popularity and relevance from GitHub and Google Play. Furthermore, we conducted two supplementary experiments on datasets from existing works [ 55 , 61 ] to further ensure the broad applicability and relevance of our findings to real-world scenarios. 
+
+Limitations and Future Work. Our failure analysis (§5.4) reveals that accessibility-related failures (64.56%) stem from incomplete UI metadata. Future work should explore multimodal approaches, such as VLMs, to recover semantics from UI components lacking labels. Refining prompts to handle complex text inputs also remains a promising direction. Regarding scope, our approach specifically targets UI tarpits characterized by repetitive and visually similar pages. It does not currently cover cyclic traps involving distinct UIs, such as logical loops across multiple pages. This focus represents a deliberate trade-off, as our primary goal is to assist random testing in escaping from immediate stagnation within a specific execution path. Consequently, our definition of UI tarpit captures a significant subset rather than the full spectrum of tarpit phenomena. Design-ing a fully general-purpose tarpit detector remains a significant research challenge that we plan to explore in future work. 
+
+## 7 LESSONS LEARNED 
+
+We discuss the lessons learned from our investigation. 
+
+Lesson 1: Random testing is competitive. Recent work favors sophisticated testing strategies, e.g. , learning-based (like Fastbot )and LLM-based testing (like LLMDroid ). But our investigation corroborates that random testing is indeed competitive in prac-tice [ 5 , 29 , 43 , 49 , 66 ]. For example, Monkey* (random testing) achieves 24.8% branch coverage on average, surpassing Fastbot 
+
+(23.5%) and LLMDroid (21.6%) (see §5.2). Our idea of using LLMs to escape tarpits during random testing is thus simple enough yet effective to be adopted in practice. 
+
+Lesson 2: Unleashing the power of randomness is important for bug discovery. LLM is effective at helping random testing escape UI tarpits, but LLM likely suggests happy paths (i.e. , common interaction scenarios) rather than less-traveled paths (i.e. , edge-case scenarios) for UI exploration. Thus, our design ( i.e. , limiting LLM-guided UI exploration to one single step and immediately switching back to random testing when UI tarpits are escaped) aims to unleash the power of randomness for bug discovery. This design maximizes the chance to trigger edge cases. Indeed, HybridMonkey found many more bugs (24) than Monkey* (15) and LLMDroid (1) (§5.3). 
+
+Lesson 3: GUI semantic understanding could be improved by vision-language models (VLMs). Our analysis (§5.4) revealed that 64.56% of escaping failures stem from incomplete or empty text labels of UI widgets when performing GUI semantic understand-ing. The current only text-based UI semantic understanding could be affected by low-quality text labels in practice. Thus, we sug-gest that vision-language models (VLMs) could be used to improve understanding UI semantics via screenshots. 
+
+## 8 RELATED WORK 
+
+UI Exploration Tarpits in App Testing. Several studies [ 8, 11 , 19 ,24 , 34 , 67 , 72 , 79 ] have highlighted the UI tarpit issue in existing automated GUI testing techniques, where testing tools get stuck in some local UI regions and fail to achieve fruitful exploration. However, only Vet [ 67 ] and Aurora [ 24 ] are explicitly designed to address this problem. Vet is the first work to explicitly define UI exploration tarpits and proposes a two-phase approach to miti-gate this problem. Rather than escaping UI tarpits, Vet proposes a prevention-based approach that incurs double execution cost and may inadvertently block exploration beyond disabled states. Au-rora , on the other hand, introduces heuristic rules to escape tarpits, but its approach is limited to eight predefined UI patterns. Other works [ 34 , 79 ] improve coverage by generating valid text inputs that satisfy input constraints. However, they do not target the UI tarpit problem. In contrast, our work focuses on a more generalized approach that dynamically identifies and mitigates UI tarpits. 
+
+LLM-based Android GUI Testing. Much work has been proposed to leverage LLMs to enhance software testing [ 6, 10 , 12 , 17 , 18 ,20 – 23 , 27 , 33 – 38 , 45 , 61 – 64 , 68 , 71 , 73 , 78 , 79 ]. Prior Android GUI testing frameworks employ LLMs to provide direct GUI interaction guidance [ 35 ], task planning throughout the testing workflow [ 20 ,78 ], and context-aware text input generation [ 34 , 36 , 79 ]. The most closely related work is LLMDroid [61 ], which integrates LLMs with AIG tools via coverage guidance. We differ in two key aspects. 1) while LLMDroid aims to reduce the overhead of pure LLM-based app testing, we focus on mitigating the negative impact of UI tarpits on traditional testing to enhance efficiency. 2) LLMDroid uses LLMs to steer exploration toward unvisited pages based on coverage monitoring; in contrast, we monitor UI transitions to identify and escape tarpits via LLMs. Evaluation 5 shows that our approach outperforms LLMDroid in both coverage and bug discovery. 
+
+Traditional Android GUI Testing. Several studies have explored input generation for Android GUI Testing. Random-based solu-tions [ 4 , 5, 14 , 40 , 49 , 52 , 66 , 77 ], focus on high-speed event injection but are semantics-oblivious. Model-based approaches [ 1, 7, 41 , 42 ,53 , 54 , 57 , 65 , 74 , 75 ] struggle with state abstraction and scalability. Improving Random Testing via LLM-powered UI Tarpit Escaping for Mobile Apps ASE 2026, October 12–16, 2026, Munich, Germany 
+
+Learning-based techniques [ 28 , 31 , 39 , 48 , 50 , 76 ] utilize reinforce-ment or deep learning to predict effective actions, but remain limited by unforeseen states or long-sequence dependencies [ 26 , 51 , 55 ]. Despite these advancements, existing methodologies lack specific mechanisms to identify or escape UI tarpits [ 67 ], frequently leading to exploration stagnation and missed bugs. Our work fills this gap by providing a targeted approach to mitigate such issues. 
+
+## 9 CONCLUSION 
+
+UI tarpits hinders the exploration when testing GUI apps. This paper introduces a hybrid testing approach that augments random Android GUI testing with LLM, in an aim to escape tarpits. The evaluation results show that it significantly improves code coverage and bug detection on real-world apps. 
+
+## 10 DATA AVAILABILITY 
+
+We have open-sourced our tools and dataset to facilitate repli-cation and future research at https://doi.org/10.6084/m9.figshare. 31861816. 
+
+## REFERENCES 
+
+[1] Domenico Amalfitano, Anna Rita Fasolino, Porfirio Tramontana, Salvatore De Carmine, and Atif M Memon. 2012. Using GUI ripping for automated test-ing of Android applications. In Proceedings of the 27th IEEE/ACM International Conference on Automated Software Engineering . 258–261. [2] Antennapod Team. 2025. AntennaPod. https://antennapod.org/de/. Retrieved 2025-10-25. [3] Young-Min Baek and Doo-Hwan Bae. 2016. Automated model-based Android GUI testing using multi-level GUI comparison criteria. In Proceedings of the 31st IEEE/ACM International Conference on Automated Software Engineering . 238–249. [4] Farnaz Behrang and Alessandro Orso. 2020. Seven reasons why: an in-depth study of the limitations of random test input generation for Android. In Proceedings of the 35th IEEE/ACM International Conference on Automated Software Engineering .1066–1077. [5] Shauvik Roy Choudhary, Alessandra Gorla, and Alessandro Orso. 2015. Au-tomated test input generation for android: Are we there yet?(e). In 2015 30th IEEE/ACM International Conference on Automated Software Engineering (ASE) .IEEE, 429–440. [6] Chenhui Cui, Tao Li, Junjie Wang, Chunyang Chen, Dave Towey, and Rubing Huang. 2024. Large language models for mobile gui text input generation: An empirical study. arXiv preprint arXiv:2404.08948 (2024). [7] Arilo C Dias Neto, Rajesh Subramanyan, Marlon Vieira, and Guilherme H Travas-sos. 2007. A survey on model-based testing approaches: a systematic review. In Proceedings of the 1st ACM international workshop on Empirical assessment of software engineering languages and technologies: held in conjunction with the 22nd IEEE/ACM International Conference on Automated Software Engineering (ASE) 2007 . 31–36. [8] Zhen Dong, Marcel Böhme, Lucia Cojocaru, and Abhik Roychoudhury. 2020. Time-travel testing of android apps. In Proceedings of the ACM/IEEE 42nd interna-tional conference on software engineering . 481–492. [9] Dr. Neal Krawetz. 2011. Perceptual hash algorithm. https://www.hackerfactor. com/blog/index.php?/archives/432-Looks-Like-It.html. Accessed: 2025-06-23. [10] Sidong Feng and Chunyang Chen. 2024. Prompting is all you need: Automated an-droid bug replay with large language models. In Proceedings of the 46th IEEE/ACM International Conference on Software Engineering . 1–13. [11] Sidong Feng, Mulong Xie, and Chunyang Chen. 2023. Efficiency matters: Speed-ing up automated testing with gui rendering inference. In 2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE) . IEEE, 906–918. [12] Yuhao Gao, Chenbin Zhao, Guosheng Xu, and Pan Xie. 2025. LLM-Powered Automated Testing Framework for Multi-Scenario Mobile Apps Across Platforms. In 2025 4th International Conference on Artificial Intelligence, Internet of Things and Cloud Computing Technology (AIoTC) . IEEE, 753–756. [13] Google. [n. d.]. Android Logcat. Accessed: 2025-06-23. [14] Google. 2023. UI/Application Exerciser Monkey. https://developer.android.com/ studio/test/other-testing-tools/monkey. Accessed: 2025-06-23. [15] Google. 2025. AccessibilityService. https://developer.android.com/reference/ android/accessibilityservice/AccessibilityService. Accessed: 2025-06-23. [16] Google. 2025. UiAutomation. https://developer.android.com/reference/android/ app/UiAutomation. Accessed: 2025-06-23. [17] Qianyu Guo, Xiaofei Xie, Yi Li, Xiaoyu Zhang, Yang Liu, Xiaohong Li, and Chao Shen. 2020. Audee: Automated testing for deep learning frameworks. In Pro-ceedings of the 35th IEEE/ACM international conference on automated software engineering . 486–498. [18] Xinyi Hou, Yanjie Zhao, Yue Liu, Zhou Yang, Kailong Wang, Li Li, Xiapu Luo, David Lo, John Grundy, and Haoyu Wang. 2024. Large language models for software engineering: A systematic literature review. ACM Transactions on Software Engineering and Methodology 33, 8 (2024), 1–79. [19] Han Hu, Han Wang, Ruiqi Dong, Xiao Chen, and Chunyang Chen. 2024. Enhanc-ing GUI exploration coverage of Android apps with deep link-integrated Monkey. 
+
+ACM Transactions on Software Engineering and Methodology 33, 6 (2024), 1–31. [20] Yongxiang Hu, Xuan Wang, Yingchuan Wang, Yu Zhang, Shiyu Guo, Chaoyi Chen, Xin Wang, and Yangfan Zhou. 2024. Auitestagent: Automatic requirements oriented gui function testing. arXiv preprint arXiv:2407.09018 (2024). [21] Yongxiang Hu, Yu Zhang, Xuan Wang, Yingjie Liu, Shiyu Guo, Chaoyi Chen, Xin Wang, and Yangfan Zhou. 2025. KuiTest: Leveraging Knowledge in the Wild as GUI Testing Oracle for Mobile Apps. In 2025 IEEE/ACM 47th International Conference on Software Engineering: Software Engineering in Practice (ICSE-SEIP) .IEEE, 34–45. [22] Zongze Jiang, Ming Wen, Jialun Cao, Xuanhua Shi, and Hai Jin. 2024. Towards understanding the effectiveness of large language models on directed test input generation. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 1408–1420. [23] Bangyan Ju, Jin Yang, Tingting Yu, Tamerlan Abdullayev, Yuanyuan Wu, Ding-bang Wang, and Yu Zhao. 2024. A study of using multimodal llms for non-crash functional bug detection in android apps. In 2024 31st Asia-Pacific Software Engi-neering Conference (APSEC) . IEEE, 61–70. [24] Safwat Ali Khan, Wenyu Wang, Yiran Ren, Bin Zhu, Jiangfan Shi, Alyssa Mc-Gowan, Wing Lam, and Kevin Moran. 2024. AURORA: Navigating UI Tarpits via Automated Neural Screen Understanding. In 2024 IEEE Conference on Software Testing, Verification and Validation (ICST) . IEEE, 221–232. [25] Pavneet Singh Kochhar, Ferdian Thung, Nachiappan Nagappan, Thomas Zim-mermann, and David Lo. 2015. Understanding the test automation culture of app developers. In 2015 IEEE 8th International Conference on Software Testing, Verification and Validation (ICST) . IEEE, 1–10. [26] Pingfan Kong, Li Li, Jun Gao, Kui Liu, Tegawendé F Bissyandé, and Jacques Klein. 2018. Automated testing of android apps: A systematic literature review. IEEE Transactions on Reliability 68, 1 (2018), 45–66. [27] Qichao Kong, Zhengwei Lv, Yiheng Xiong, Jingling Sun, Ting Su, Dingchun Wang, Letao Li, Xu Yang, and Gang Huo. [n. d.]. ProphetAgent: Automatically Synthesizing GUI Tests from Test Cases in Natural Language for Mobile Apps. ([n. d.]). [28] Yuanhong Lan, Yifei Lu, Zhong Li, Minxue Pan, Wenhua Yang, Tian Zhang, and Xuandong Li. 2024. Deeply reinforcing android gui testing with deep reinforce-ment learning. In Proceedings of the 46th IEEE/ACM International Conference on Software Engineering . 1–13. [29] Yuanhong Lan, Yifei Lu, Minxue Pan, and Xuandong Li. 2024. Navigating mobile testing evaluation: A comprehensive statistical analysis of android GUI test-ing metrics. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 944–956. [30] Yuanchun Li, Ziyue Yang, Yao Guo, and Xiangqun Chen. 2017. Droidbot: a lightweight ui-guided test input generator for android. In 2017 IEEE/ACM 39th International Conference on Software Engineering Companion (ICSE-C) . IEEE, 23– 26. [31] Yuanchun Li, Ziyue Yang, Yao Guo, and Xiangqun Chen. 2019. Humanoid: A deep learning-based approach to automated black-box android app testing. In 
+
+2019 34th IEEE/ACM International Conference on Automated Software Engineering (ASE) . IEEE, 1070–1073. [32] Mario Linares-Vásquez, Carlos Bernal-Cárdenas, Kevin Moran, and Denys Poshy-vanyk. 2017. How do developers test android applications?. In 2017 IEEE In-ternational Conference on Software Maintenance and Evolution (ICSME) . IEEE, 613–622. [33] Ruofan Liu, Xiwen Teoh, Yun Lin, Guanjie Chen, Ruofei Ren, Denys Poshyvanyk, and Jin Song Dong. 2025. GUIPilot: A Consistency-Based Mobile GUI Testing Approach for Detecting Application-Specific Bugs. Proceedings of the ACM on Software Engineering 2, ISSTA (2025), 753–776. [34] Zhe Liu, Chunyang Chen, Junjie Wang, Xing Che, Yuekai Huang, Jun Hu, and Qing Wang. 2023. Fill in the blank: Context-aware automated text input genera-tion for mobile gui testing. In 2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE) . IEEE, 1355–1367. [35] Zhe Liu, Chunyang Chen, Junjie Wang, Mengzhuo Chen, Boyu Wu, Xing Che, Dandan Wang, and Qing Wang. 2024. Make llm a testing expert: Bringing human-like interaction to mobile gui testing via functionality-aware decisions. In 
+
+Proceedings of the IEEE/ACM 46th International Conference on Software Engineering .1–13. [36] Zhe Liu, Chunyang Chen, Junjie Wang, Mengzhuo Chen, Boyu Wu, Zhilin Tian, Yuekai Huang, Jun Hu, and Qing Wang. 2024. Testing the limits: Unusual text inputs generation for mobile app crash detection with large language model. In ASE 2026, October 12–16, 2026, Munich, Germany Mengqian Xu, Yiheng Xiong, Le Chang, Ting Su, Chengcheng Wan, and Weikai Miao 
+
+Proceedings of the IEEE/ACM 46th International conference on software engineering .1–12. [37] Zhe Liu, Cheng Li, Chunyang Chen, Junjie Wang, Mengzhuo Chen, Boyu Wu, Yawen Wang, Jun Hu, and Qing Wang. 2025. Seeing is Believing: Vision-driven Non-crash Functional Bug Detection for Mobile Apps. IEEE Transactions on Software Engineering (2025). [38] Stephan Lukasczyk and Gordon Fraser. 2022. Pynguin: Automated unit test gen-eration for python. In Proceedings of the ACM/IEEE 44th International Conference on Software Engineering: Companion Proceedings . 168–172. [39] Zhengwei Lv, Chao Peng, Zhao Zhang, Ting Su, Kai Liu, and Ping Yang. 2022. Fastbot2: Reusable automated model-based gui testing for android enhanced by reinforcement learning. In Proceedings of the 37th IEEE/ACM International Conference on Automated Software Engineering . 1–5. [40] Aravind Machiry, Rohan Tahiliani, and Mayur Naik. 2013. Dynodroid: An input generation system for android apps. In Proceedings of the 2013 9th joint meeting on foundations of software engineering . 224–234. [41] Ke Mao, Mark Harman, and Yue Jia. 2016. Sapienz: Multi-objective automated testing for android applications. In Proceedings of the 25th international symposium on software testing and analysis . 94–105. [42] Nariman Mirzaei, Joshua Garcia, Hamid Bagheri, Alireza Sadeghi, and Sam Malek. 2016. Reducing combinatorics in GUI testing of android applications. In Proceed-ings of the 38th international conference on software engineering . 559–570. [43] Mostafa Mohammed, Haipeng Cai, and Na Meng. 2019. An empirical comparison between monkey testing and human testing (wip paper). In Proceedings of the 20th ACM SIGPLAN/SIGBED International Conference on Languages, Compilers, and Tools for Embedded Systems . 188–192. [44] Mountainminds GmbH & Co. KG and Contributors. 2009. JaCoCo - Java Code Coverage Library. https://www.eclemma.org/jacoco/trunk/index.html. Accessed: 2025-06-23. [45] Pengyu Nie, Rahul Banerjee, Junyi Jessy Li, Raymond J Mooney, and Milos Gligoric. 2023. Learning deep semantics for test completion. In 2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE) . IEEE, 2111–2123. [46] Openatx. 2025. UiAutomator2. https://developer.android.com/reference/android/ app/UiAutomation. Accessed: 2025-06-23. [47] OpenCV team. 2000. OpenCV is the world’s biggest computer vision library. https://developer.android.com/reference/android/app/UiAutomation. Accessed: 2025-06-23. [48] Minxue Pan, An Huang, Guoxin Wang, Tian Zhang, and Xuandong Li. 2020. Reinforcement learning based curiosity-driven testing of android applications. In 
+
+Proceedings of the 29th ACM SIGSOFT international symposium on software testing and analysis . 153–164. [49] Priyam Patel, Gokul Srinivasan, Sydur Rahaman, and Iulian Neamtiu. 2018. On the effectiveness of random testing for Android: or how i learned to stop worrying and love the monkey. In Proceedings of the 13th International Workshop on Automation of Software Test . 34–37. [50] Andrea Romdhana, Alessio Merlo, Mariano Ceccato, and Paolo Tonella. 2022. Deep reinforcement learning for black-box testing of android apps. ACM Trans-actions on Software Engineering and Methodology (TOSEM) 31, 4 (2022), 1–29. [51] Konstantin Rubinov and Luciano Baresi. 2018. What are we missing when testing our android apps? Computer 51, 4 (2018), 60–68. [52] Raimondas Sasnauskas and John Regehr. 2014. Intent fuzzer: crafting intents of death. In Proceedings of the 2014 Joint International Workshop on Dynamic Analysis (WODA) and Software and System Performance Testing, Debugging, and Analytics (PERTEA) . 1–5. [53] Muhammad Shafique and Yvan Labiche. 2010. A systematic review of model based testing tool support. (2010). [54] Ting Su, Guozhu Meng, Yuting Chen, Ke Wu, Weiming Yang, Yao Yao, Geguang Pu, Yang Liu, and Zhendong Su. 2017. Guided, stochastic model-based GUI testing of Android apps. In Proceedings of the 2017 11th joint meeting on foundations of software engineering . 245–256. [55] Ting Su, Jue Wang, and Zhendong Su. 2021. Benchmarking automated gui testing for android against real-world bugs. In Proceedings of the 29th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering . 119–130. [56] Ting Su, Yichen Yan, Jue Wang, Jingling Sun, Yiheng Xiong, Geguang Pu, Ke Wang, and Zhendong Su. 2021. Fully automated functional fuzzing of Android apps for detecting non-crashing logic bugs. Proceedings of the ACM on Programming Languages 5, OOPSLA (2021), 1–31. [57] Tommi Takala, Mika Katara, and Julian Harty. 2011. Experiences of system-level model-based GUI testing of an Android application. In 2011 Fourth IEEE International Conference on Software Testing, Verification and Validation . IEEE, 377–386. [58] WeChat Team. 2025. WeChat. https://www.wechat.com. Retrieved 2025-6-27. [59] testinging6. 2023. GPTDroid. https://github.com/testinging6/GPTDroid. Ac-cessed: 2025-06-23. [60] András Vargha and Harold D Delaney. 2000. A critique and improvement of the CL common language effect size statistics of McGraw and Wong. Journal of Educational and Behavioral Statistics 25, 2 (2000), 101–132. [61] Chenxu Wang, Tianming Liu, Yanjie Zhao, Minghui Yang, and Haoyu Wang. 2025. LLMDroid: Enhancing Automated Mobile App GUI Testing Coverage with Large Language Model Guidance. Proceedings of the ACM on Software Engineering 2, FSE (2025), 1001–1022. [62] Dingbang Wang, Yu Zhao, Sidong Feng, Zhaoxu Zhang, William GJ Halfond, Chunyang Chen, Xiaoxia Sun, Jiangfan Shi, and Tingting Yu. 2024. Feedback-driven automated whole bug report reproduction for android apps. In Proceedings of the 33rd ACM SIGSOFT International Symposium on Software Testing and Anal-ysis . 1048–1060. [63] Fei Wang, Kamakshi Kodur, Michael Micheletti, Shu-Wei Cheng, Yogalakshmi Sadasivam, Yue Hu, and Zening Li. 2024. Large language model driven automated software application testing. (2024). [64] Junjie Wang, Yuchao Huang, Chunyang Chen, Zhe Liu, Song Wang, and Qing Wang. 2024. Software testing with large language models: Survey, landscape, and vision. IEEE Transactions on Software Engineering 50, 4 (2024), 911–936. [65] Jue Wang, Yanyan Jiang, Chang Xu, Chun Cao, Xiaoxing Ma, and Jian Lu. 2020. Combodroid: generating high-quality test inputs for android apps via use case combinations. In Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering . 469–480. [66] Wenyu Wang, Dengfeng Li, Wei Yang, Yurui Cao, Zhenwen Zhang, Yuetang Deng, and Tao Xie. 2018. An empirical study of android test generation tools in industrial cases. In Proceedings of the 33rd ACM/IEEE International Conference on Automated Software Engineering . 738–748. [67] Wenyu Wang, Wei Yang, Tianyin Xu, and Tao Xie. 2021. Vet: identifying and avoiding UI exploration tarpits. In Proceedings of the 29th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering . 83–94. [68] Hao Wen, Yuanchun Li, Guohong Liu, Shanhui Zhao, Tao Yu, Toby Jia-Jun Li, Shiqi Jiang, Yunhao Liu, Yaqin Zhang, and Yunxin Liu. 2024. Autodroid: Llm-powered task automation in android. In Proceedings of the 30th Annual International Con-ference on Mobile Computing and Networking . 543–557. [69] Frank Wilcoxon. 1992. Individual comparisons by ranking methods. In Break-throughs in statistics: Methodology and distribution . Springer, 196–202. [70] Yiheng Xiong, Ting Su, Jue Wang, Jingling Sun, Geguang Pu, and Zhendong Su. 2024. General and Practical Property-based Testing for Android Apps. In 
+
+Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 53–64. [71] Zhiyi Xue, Liangguo Li, Senyue Tian, Xiaohong Chen, Pingping Li, Liangyu Chen, Tingting Jiang, and Min Zhang. 2024. Llm4fin: Fully automating llm-powered test case generation for fintech software acceptance testing. In Proceedings of the 33rd ACM SIGSOFT International Symposium on Software Testing and Analysis .1643–1655. [72] Jiwei Yan, Hao Liu, Linjie Pan, Jun Yan, Jian Zhang, and Bin Liang. 2020. Multiple-entry testing of android applications by constructing activity launching contexts. In Proceedings of the ACM/IEEE 42nd international conference on software engi-neering . 457–468. [73] Lin Yang, Chen Yang, Shutao Gao, Weijing Wang, Bo Wang, Qihao Zhu, Xiao Chu, Jianyi Zhou, Guangtai Liang, Qianxiang Wang, et al . 2024. On the evaluation of large language models in unit test generation. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 1607–1619. [74] Shengqian Yang, Haowei Wu, Hailong Zhang, Yan Wang, Chandrasekar Swami-nathan, Dacong Yan, and Atanas Rountev. 2018. Static window transition graphs for Android. Automated Software Engineering 25, 4 (2018), 833–873. [75] Wei Yang, Mukul R Prasad, and Tao Xie. 2013. A grey-box approach for automated GUI-model generation of mobile applications. In International Conference on Fundamental Approaches to Software Engineering . Springer, 250–265. [76] Husam N Yasin, Siti Hafizah Ab Hamid, and Raja Jamilah Raja Yusof. 2021. Droidbotx: Test case generation tool for android applications using Q-learning. 
+
+Symmetry 13, 2 (2021), 310. [77] Hui Ye, Shaoyin Cheng, Lanbo Zhang, and Fan Jiang. 2013. Droidfuzzer: Fuzzing the android apps with intent-filter tag. In Proceedings of International Conference on Advances in Mobile Computing & Multimedia . 68–74. [78] Juyeon Yoon, Robert Feldt, and Shin Yoo. 2024. Intent-driven mobile gui test-ing with autonomous large language model agents. In 2024 IEEE Conference on Software Testing, Verification and Validation (ICST) . IEEE, 129–139. [79] Juyeon Yoon, Seah Kim, Somin Kim, Sukchul Jung, and Shin Yoo. 2025. Integrating LLM-Based Text Generation with Dynamic Context Retrieval for GUI Testing. In 
+
+2025 IEEE Conference on Software Testing, Verification and Validation (ICST) . IEEE, 394–405. [80] Xia Zeng, Dengfeng Li, Wujie Zheng, Fan Xia, Yuetang Deng, Wing Lam, Wei Yang, and Tao Xie. 2016. Automated test input generation for android: Are we really there yet in an industrial case?. In Proceedings of the 2016 24th ACM SIGSOFT International Symposium on Foundations of Software Engineering . 987–992. [81] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman, and Oliver Wang. 2018. The unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE conference on computer vision and pattern recognition .586–595.
