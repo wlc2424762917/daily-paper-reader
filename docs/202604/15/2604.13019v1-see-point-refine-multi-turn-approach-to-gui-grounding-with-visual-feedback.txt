@@ -1,0 +1,246 @@
+Title: See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback
+
+URL Source: https://arxiv.org/pdf/2604.13019v1
+
+Published Time: Wed, 15 Apr 2026 01:40:10 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Microsoft 2026-04-15 
+
+# See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 
+
+Himangi Mittal 1,2 ∗, Gaurav Mittal 1, Nelson Daniel Troncoso 1, Yu Hu 11Microsoft 2Carnegie Mellon University Computer Use Agents (CUAs) fundamentally rely on graphical user interface (GUI) grounding to translate language instructions into executable screen actions, but editing-level grounding in dense coding interfaces, where sub-pixel accuracy is required to interact with dense IDE elements, remains underexplored. Existing approaches typically rely on single-shot coordinate prediction, which lacks a mechanism for error correction and often fails in high-density interfaces. In this technical report, we conduct an empirical study of pixel-precise cursor localization in coding environments. Instead of a single-step execution, our agent engages in an iterative refinement process, utilizing visual feedback from previous attempts to reach the target element. This closed-loop grounding mechanism allows the agent to self-correct displacement errors and adapt to dynamic UI changes. We evaluate our approach across GPT-5.4, Claude, and Qwen on a suite of complex coding benchmarks, demonstrating that multi-turn refinement significantly outperforms state-of-the-art single-shot models in both click precision and overall task success rate. Our results suggest that iterative visual reasoning is a critical component for the next generation of reliable software engineering agents. Code: https://github.com/microsoft/ precision-cua-bench .
+
+# 1 Introduction 
+
+Computer Use Agents (CUAs) Wang et al. (2025); Agashe et al. (2025) are AI systems that interact with soft-ware interfaces in a human-like manner by perceiving the screen, interpreting natural-language instructions, and executing actions such as clicking, typing, selecting, and navigating across applications. They pave the way towards general-purpose digital task automation, with potential impact across productivity workflows, software operations, web navigation, customer support tooling, and developer assistance. Following rapid progress in large multimodal models and agentic reasoning pipelines, CUA-style interaction has emerged as a fast-growing frontier: both research and product efforts are moving quickly from static benchmarks toward real desktop and browser environments where reliability and precision directly affect utility. A core capability underlying nearly every CUA action is GUI grounding Yang et al. (2025); Zhang et al. (2026); Gou et al. (2024); Wu et al. (2025); Chen et al. (2026); Tang et al. (2025); Liu et al. (2025): mapping a user instruction to the correct spatial target on the screen. Before an agent can execute higher-level behavior, it must first localize where to act. This grounding step is therefore foundational to downstream correctness, because even small localization errors can propagate into failed clicks, incorrect edits, and broken multi-step trajectories. Robust GUI grounding is the bridge between language understanding and executable interface control, making it a fundamental module for practical CUA deployment. Despite strong progress on general GUI benchmarks, current grounding performance is uneven across interaction types. Frontier models are increasingly reliable at targets such as buttons, tabs, icons, and other large clickable elements. However, they remain substantially less reliable on editing-level actions that require fine-grained placement inside text-dense interfaces, such as placing a cursor at a specific character boundary, selecting a precise token, or clicking between adjacent symbols in source code. Relative to button-click tasks, this editing-level regime remains underexplored in both evaluation design and capability analysis. 
+
+> *
+
+This work was done as Himangi Mittal’s project at Microsoft CoreAI.  
+
+> arXiv:2604.13019v1 [cs.CV] 14 Apr 2026 See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 2
+
+The resulting gap can come from a qualitative precision mismatch: many models can identify the right semantic region, yet still miss the exact actionable pixel. This issue is amplified in dense IDE layouts where line numbers, syntax-highlighted tokens, punctuation, and narrow cursor boundaries create visually crowded targets with minimal tolerance for error. In short, current models are often adequate for coarse element localization but weak at pixel-precise cursor grounding, motivating a focused study of this failure mode. This IDE-specific challenge becomes clear in common editing tasks where success depends on exact cursor placement rather than approximate region detection. Consider an instruction such as: rename the function by placing the cursor between the characters “n” and “a” in function . A prediction that lands even a few pixels to the left or right may target a neighboring token, insert text at the wrong boundary, or trigger an unintended edit despite being semantically close. In visually dense code editors, these near-miss errors are frequent and operationally costly, making pixel-precision a first-class requirement rather than a cosmetic detail. One practical observation motivates our setup: human users do not “teleport” to the final cursor location in a single move. Instead, they make small visual corrections, repeatedly adjusting based on immediate feedback from the interface. We take this behavior as an analysis lens for model grounding. Accordingly, this work is framed around the following study question: does explicit visual feedback help current frontier models correct grounding errors? To answer this, we conduct an empirical study with a controlled feedback protocol, designed to isolate how models respond when prior prediction error is made visually explicit. Our evaluation is structured as a controlled comparison between two settings: (i) one-shot grounding, where the model predicts coordinates in a single attempt, and (ii) feedback-guided iterative grounding, where a subsequent attempt is made after showing a red-cross marker at the prior prediction. To ensure comparability, both settings use the same task distribution, the same screenshots and instructions, and the same coordinate-extraction/parsing pipeline for model outputs. This design isolates the effect of feedback from confounding factors such as data mixture, prompt format drift, or metric inconsistencies. The study dataset contains 257 annotated samples collected in a VS Code environment, with coverage across line-level, word-level, and character-level grounding targets (171 character, 48 word, and 38 line instances). This composition intentionally stresses fine-grained editing behavior while preserving a small amount of coarser grounding structure, enabling us to analyze both aggregate trends and difficulty-specific failure modes. Across evaluated models, our findings reveal a consistent but non-uniform pattern: explicit feedback generally improves grounding performance, but gains are strongly model-dependent. GPT-5.4 exhibits the largest correction gains between initial and feedback-guided attempts, Claude tends to achieve lower localization distance when successful, and Qwen shows measurable improvement under feedback yet remains comparatively weaker overall. These trends suggest that feedback is broadly useful as a corrective signal, while the magnitude and form of benefit are governed by model-specific capabilities. In summary, this technical report makes three contributions: • A capability-oriented benchmark focused on editing-level GUI grounding, where pixel-precise cursor placement is required. • A controlled analysis of explicit visual feedback, comparing one-shot and feedback-guided evaluation under matched task and parsing conditions. • Empirical insights into prompt/model behavior, highlighting how correction dynamics vary across frontier models and prompting strategies. 
+
+# 2 Related Work 
+
+Computer-Use Agents. Computer-Use Agents (CUAs) are a specialized class of multimodal systems designed to perceive and interact with digital environments through graphical user interfaces (GUIs) in a manner that mirrors human operation. The architectural paradigm has undergone a fundamental shift from specialized, task-specific models Humphreys et al. (2022); Shi et al. (2017) to general-purpose foundation agents (Deng et al., 2023; Hong et al., 2024; Zhang et al., 2025; He et al., 2024). Task-specific models, while effective in See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 3
+
+narrow domains, often struggle to generalize across different operating systems or complex, non-stationary applications. Foundation agents leverage the pre-trained reasoning and spatial understanding of frontier models Hong et al. (2024) (e.g., GPT-4V and Claude 3.5) to operate in a training-free or few-shot manner. Recent work has explored the different modalities associated with CUAs. Computer-Use Agents primarily perceive their environment through two distinct modalities: structured text and raw visual input. Text-based approaches Deng et al. (2023) rely on underlying metadata such as HTML DOM trees or accessibility APIs to interpret the UI. However, these agents are often brittle when faced with dynamic web content or applications. In contrast, vision-based (screenshot-only) agents Hong et al. (2024) process raw pixel data directly. This helps models like GPT-4V and CogAgent achieve greater robustness across diverse interfaces without requiring access to the underlying source code. However, vision-only models still encounter significant challenges in high-precision coordinate prediction. The “precision gap” in mapping visual intent to exact pixel coordinates—especially in dense environments like IDEs—remains a fundamental bottleneck that our work seeks to address through iterative visual refinement. 
+
+GUI Grounding Recent GUI-grounding research has progressed from coarse element localization toward more general and scalable visual grounding for agentic interaction. Early work such as SeeClick demonstrates that large multimodal models can ground instructions to UI targets across heterogeneous screens Cheng et al. (2024), while newer benchmarks such as ScreenSpot-Pro emphasize higher-resolution and professional-use settings where fine localization becomes more demanding Li et al. (2025). Parallel lines of work focus on improving grounding mechanisms and representations: test-time scaling and search-based strategies improve inference-time correction dynamics Yang et al. (2025), coordinate-free formulations reduce direct dependence on absolute click regression Wu et al. (2025), and tool-augmented or reward-model-based approaches improve training signals for difficult grounding cases Chen et al. (2026); Tang et al. (2025). More recent efforts also explore large-scale trajectory supervision and deliberative multimodal reasoning for broader GUI generalization Zhang et al. (2026); Liu et al. (2025). Despite this progress, editing-level grounding in dense coding interfaces remains comparatively undercharacterized: many systems report strong performance on larger clickable elements, but precise cursor placement between nearby characters is still fragile. Our work complements prior method-driven advances by providing a focused empirical study of this precision regime and analyzing how explicit visual feedback affects correction behavior across frontier models. 
+
+# 3 Methodology 
+
+3.1 Problem Formulation 
+
+We formulate GUI grounding as a multi-turn iterative refinement approach. Given a natural-language instruction I and an initial visual state S1, the goal is to predict the target pixel location C∗ = ( x∗, y∗).Rather than treating grounding as a single-shot prediction, we model it as a T-step refinement process that progressively reduces localization error. To supervise this objective at pixel precision, we next construct a dedicated data collection pipeline that aligns symbolic cursor indices with renderer-space coordinates. 
+
+3.2 Data Collection 
+
+To realize the formulation above, we build a purpose-designed VS Code data pipeline ( vscode-cursor-coords )that generates ground-truth mappings from symbolic cursor states (file , line , col , word , character ) to measured Monaco pixel coordinates. The central systems challenge is process separation: cursor indices are exposed in the extension host, whereas pixel geometry is observable only in the renderer DOM. We bridge this gap with a localhost WebSocket channel ( ws://127.0.0.1:54321 ) connecting a Node.js backend to an injected renderer-side payload script. 
+
+System architecture. The collector has five coordinated components: extension.ts (lifecycle and command entry points), bridge-server.ts (strict request/response transport), collector.ts (character-wise traversal and logging), injector.ts (instrumentation of workbench.html ), and dom-payload.js (DOM-side measure-ment). In operation, the extension starts the bridge, waits for renderer connection, requests window metadata, See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 4     
+
+> Figure 1: Data collection system overview and data flow. The pipeline utilizes a process-separated architecture to bridge the gap between the VS Code extension host and the renderer’s DOM. (A) The Extension Host (Node.js) manages the
+> collector.ts logic, which iterates through file content and issues movement commands. (B) A localhost WebSocket channel (port 54321) facilitates low-latency communication between the host and the Renderer (Chromium). (C) The DOM Payload executes getBoundingClientRect() within a requestAnimationFrame loop to capture precise pixel coordinates, which are then synchronized with the symbolic cursor state. (D) The resulting JSONL Output provides a high-fidelity dataset of per-character records, including screen-absolute coordinates and editor metadata, enabling deterministic GUI grounding and model supervision.
+
+iterates over each cursor stop in the active file, and writes all outputs to JSONL. Figure 1 illustrates this end-to-end architecture and data flow. 
+
+Collection procedure. For each file, the collector first records editor/runtime metadata (font family, font size, line height, window geometry, timestamp), then moves the caret to the document start and captures an initial full-monitor screenshot. It then advances one cursor step at a time using cursorRight , including end-of-line newline stops so that each textual position is represented. At each step, after a short render-settle delay (default 80 ms), the bridge requests getCursorPosition ; the renderer payload locates the Monaco cursor node and measures its bounding box via getBoundingClientRect() inside requestAnimationFrame .The resulting viewport-relative CSS coordinates are converted to screen-absolute coordinates by adding 
+
+window.screenX/screenY . The collector stores both coordinate frames and the local devicePixelRatio so physical-pixel locations can be recovered downstream. 
+
+Recorded schema. Output is JSONL with a single metadata header followed by per-character records. Metadata includes full file content, total character count, editor typography settings, delay configuration, window geometry, and screenshot path. Each record stores: file identifier, zero-based line/column, character token (with \n at EOL), screen coordinates, window-relative coordinates, cursor box width/height, and display scaling. This design supports deterministic replay and re-projection across heterogeneous monitor DPI settings. 
+
+Protocol and robustness details. The bridge enforces one active WebSocket client and one in-flight request at a time, with a 3 s timeout per request. The collector includes explicit fault tolerance: if a cursor-pixel query fails, it logs the event and continues rather than aborting the run. End-of-file detection is implemented by repeated-position monitoring (cursor unchanged for multiple iterations), preventing infinite traversal loops when the caret can no longer advance. The resulting dataset provides high-fidelity supervision for GUI grounding: densely sampled cursor locations aligned with screenshot context and rendering metadata. We See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 5
+
+now describe how the model consumes this supervision through an iterative prediction-and-correction loop. 
+
+3.3 Multi-Turn Iterative Grounding Loop 
+
+Using the collected supervision, our model performs iterative grounding with one initial prediction followed by T − 1 refinement turns. 
+
+Turn 1: Initial Prediction The agent receives the instruction I and the raw screenshot S1. The model πθ
+
+predicts the first coordinate: 
+
+C1 = πθ (I, S1) (1) 
+
+Turn t > 1: Visual Feedback Refinement. For subsequent turns, the agent is provided with the visual feedback of its previous error. We define a visual marking function V(St, Ct−1) that renders a red cross-hair at coordinate Ct−1 on the current screenshot St. The agent then predicts the next coordinate Ct based on the instruction, the marked screenshot, and the numerical value of the previous coordinate: 
+
+Ct = πθ (I, V(St, Ct−1), Ct−1) (2) This design exposes the model to explicit spatial error signals between successive attempts, enabling a form of visual servoing in latent space that progressively sharpens localization. 
+
+3.4 Prompting 
+
+To build a robust multi-turn approach that can leverage information from previous turns, we explore prompting-based strategies along two orthogonal controls: a system prompt variant (global behavioral policy for all turns) and a feedback template variant (turn-conditioned correction cue used after misses). In practice, the system prompt defines how the model should look and reason, while the feedback template defines how 
+
+the model should react to failure signals. 
+
+System prompt family. The script defines seven named system prompt variants: baseline , baseline_cot ,
+
+cursor_aware , step_by_step , minimal , visual_anchor , and custom . All are parameterized by image dimen-sions via {width} and {height} , so each request explicitly states the current pixel frame. Across variants, three constraints are shared: (i) acknowledge red-cross feedback if present, (ii) localize in pixel coordinates, and (iii) end with a bare (x,y) coordinate pair for deterministic parsing. 
+
+Behavioral differences among prompt variants. The variants mainly change the model’s cognitive scaffold-ing and domain prior. baseline is a generic UI-localization instruction with minimal structure. baseline_cot 
+
+adds explicit multi-step reasoning structure (default setting), encouraging deliberate decomposition before final coordinates. cursor_aware introduces task-specific priors for text insertion (character boundaries, be-fore/after token semantics), making it better aligned to cursor-grounding data than generic UI prompts. 
+
+step_by_step also enforces structured reasoning, but with cursor-specialized step order rather than generic chain-of-thought framing. minimal compresses instructions into a terse policy, which reduces prompt overhead but weakens explicit reasoning guidance. visual_anchor emphasizes nearby distinctive charac-ters/symbols as spatial anchors, biasing the model toward local reference-point triangulation. custom is a user-editable placeholder to test alternative policies without changing the rest of the evaluation loop. 
+
+Why these differences matter. The prompt set spans a deliberate spectrum: from low-structure generic prompting ( minimal /baseline ) to high-structure reasoning prompts ( baseline_cot /step_by_step ) and task-specialized priors ( cursor_aware /visual_anchor ). This enables controlled ablations of three factors: reason-ing granularity, domain specialization, and anchor-based spatial strategy. Because parsing uses the final coordinate occurrence, variants can encourage richer intermediate reasoning without breaking extraction, provided they preserve the required terminal (x,y) format. 
+
+Feedback template family. Between turns, the harness selects one of two textual feedback templates: 
+
+baseline or spatial . Both inject prior prediction coordinates via {cross_x} and {cross_y} , and both are paired with an image containing a red cross at that same location. The key distinction is instruction strength: 
+
+baseline simply states the previous answer was incorrect, whereas spatial explicitly asks the model to See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 6
+
+reason about where the cross lies relative to the target and adjust directionally. 
+
+Functional role of feedback in multi-turn correction. In this protocol, feedback is not only textual; it is a synchronized multimodal signal (text + red-cross overlay). The textual template encodes semantic correction intent, while the overlay provides geometric evidence. baseline tests whether the model can self-correct with weak guidance, while spatial tests whether stronger relative-position instructions improve correction efficiency. Since turns stop at first hit, stronger feedback should primarily affect correction rate and turn-to-hit distribution rather than only final any-turn hit rate. 
+
+Subtle implementation details that shape prompting behavior. Two specifics affect interpretation of prompting results. First, the evaluator computes prediction-history strings but does not inject them into subsequent user feedback; therefore, template effects are driven by current-turn wording plus the latest cross marker, not explicit full-history recap. Second, each turn redraws the cross on a clean original screenshot (non-cumulative overlays), so prompts are evaluated under single-error visual context rather than trajectory-accumulation context. 
+
+# 4 Experiments 
+
+4.1 Implementation Details Model Selection : We evaluate our multi-turn, training-free framework across a diverse suite of state-of-the-art closed-source frontier models: OpenAI GPT-5.4, Anthropic Claude [3.5 Sonnet/3 Opus], and Alibaba Qwen-3.5-9B. These models were selected for their advanced spatial reasoning capabilities and their varying architectures, allowing us to test the generalizability of our iterative grounding approach across different model families. 
+
+Data and Environment : The evaluation is performed using our custom-collected dataset of precise cursor positions within VS Code. The dataset contains 257 samples. To ensure consistency across models, all screenshots are normalized to a standard resolution (e.g., 1344 × 1344). 
+
+Visual Feedback Rendering. In each refinement turn t > 1, the visual marking function V(St, Ct−1) renders a semi-transparent red cross-hair (hex: #FF0000 ) centered at the normalized coordinates (xt−1, yt−1). The cross-hair spans 5% of the image width and height to ensure visibility without obscuring the underlying UI features. The numerical coordinates are also appended to the text prompt in the format Last attempt: [x, y] .Our all-turns API harness operates on JSONL samples containing an image path, a natural-language in-struction, and ground-truth bounding boxes in normalized [0, 1000 ] coordinates, which are rescaled to pixel space at runtime via image-specific width/height ratios. At turn 1, the system prompt (parameterized by image dimensions) and user instruction are sent to one of three provider backends (Azure OpenAI GPT, Foundry Claude, or OpenAI-compatible Qwen); responses are parsed using a coordinate regex and the final coordinate pair in the output is treated as the model decision. For turn t > 1, if the previous prediction misses the target region, the harness draws a red cross marker at the predicted pixel location on a clean copy of the original screenshot, appends the prior assistant prediction to the dialogue history, and injects a structured spatial feedback template with the previous (x, y) before re-querying the model. The per-turn loop uses early stopping on first hit, records parse failures and both point-to-box and point-to-center distances, and supports degenerate/point-like targets through a tolerance-based hit rule. Aggregation follows cumulative multi-turn semantics: a correct prediction at turn T is carried forward as correct for turns T+1 . . . N, yielding “accuracy by turn” as success within at most T attempts, while never-correct samples propagate final-turn miss distances for consistent cross-turn reporting; we additionally report any-turn hit rate and correction rate (initial miss corrected in later turns). We run our approach on a single NVIDIA A100. 
+
+4.2 Discussion of Results 
+
+Table 1 highlights two consistent findings. First, iterative refinement is effective across all evaluated models and prompt settings: moving from turn 1 to turn 2 improves both localization accuracy and average distance See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 7
+
+Prompt Model Accuracy Distance (bbox) Distance (Center) Element-wise Accuracy 
+
+Character Word Line 
+
+Turn 1 Baseline Qwen 3.5 9B 3.11% 179.87 195 0% 0% 6.80% 
+
+Claude Opus-4.6 3.50% 34.37 44.7 0.80% 0% 6.80% 
+
+GPT-5.4 21.79% 78.42 82.66 2.40% 12.50% 44.10% 
+
+Baseline CoT Qwen 3.5 9B 1.56% 215.1 239.2 0% 0% 0% 
+
+Claude Opus-4.6 3.11% 31.39 41.07 0.00% 0% 6.80% 
+
+GPT-5.4 21.79% 90.8 95.2 3.90% 0% 50.00% 
+
+Cursor-Aware Qwen 3.5 9B 0.10% 218.52 239.39 0% 0% 0% 
+
+Claude Opus-4.6 4.28% 32.27 48.31 0.8% 0.0% 8.5% 
+
+GPT-5.4 20.62% 80.37 85.63 2.40% 0% 42.40% 
+
+Visual-Anchor Qwen 3.5 9B 1.17% 221.99 241.02 0% 0% 0% 
+
+Claude Opus-4.6 3.50% 30.92 43.79 0.00% 0% 7.60% 
+
+GPT-5.4 24.51% 63.09 67.9 6.30% 12.50% 45.80% 
+
+Turn 2 Baseline Qwen 3.5 9B 3.11% 179.87 195 0% 0% 6.80% 
+
+Claude Opus-4.6 3.89% 30.96 42.06 0.80% 0% 0.00% 
+
+GPT-5.4 21.79% 78.42 82.66 7.10% 50.00% 16.10% 
+
+Baseline CoT Qwen 3.5 9B 2.72% 210.5 235.6 0% 0% 0% 
+
+Claude Opus-4.6 4.67% 29.33 41.24 1.60% 0% 1.70% 
+
+GPT-5.4 37.35% 85.1 87.3 10.20% 43.20% 19.50% 
+
+Cursor-Aware Qwen 3.5 9B 0.39% 207.04 227.42 0% 0% 0% 
+
+Claude Opus-4.6 5.06% 31.33 46.26 0.00% 0% 1.70% 
+
+GPT-5.4 38.13% 57.29 59 7.90% 75% 24.60% 
+
+Visual-Anchor Qwen 3.5 9B 1.17% 220.59 238.76 0% 0% 0% 
+
+Claude Opus-4.6 4.67% 30.15 42.75 0.8% 0.0% 1.7% 
+
+GPT-5.4 34.51% 40.98 42.86 5.50% 37.50% 15.30% 
+
+Table 1: GPT-5.4 performance across four system-prompt variants under the same multi-turn refinement protocol. A consistent trend is that turn 2 improves over turn 1 for every prompt, indicating that iterative visual feedback reliably corrects initial grounding errors. Among prompt styles, Visual Anchor yields the best final localization quality (lowest turn-2 average distance) while Cursor Aware achieves the highest turn-2 accuracy. Overall, the results suggest that prompt design meaningfully affects correction behavior, and combining strong spatial anchoring with iterative feedback is key to improved GUI grounding. See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 8
+
+Model Accuracy Distance (bbox) Distance (Center) Element-wise Accuracy 
+
+Character Word Line 
+
+Qwen 3.5 9B 3.11% 179.87 195 0% 0% 6.80% 
+
+GUI-Actor Wu et al. (2025) 3.50% 112.86 124.1 0% 0% 0.00% 
+
+Claude Opus 4.6 5.06% 31.33 46.26 0.00% 0% 1.70% 
+
+GUI-G2 Tang et al. (2025) 5.80% 195.32 197.28 0.00% 12.5% 11.9% 
+
+GPT-5.4 38.13% 57.29 59 7.90% 75% 24.60% 
+
+Qwen 3.5 9B (Finetuned) 41.63% 24.76 29.59 16.37% 97.37% 87.50%      
+
+> Table 2: Comparison against baseline GUI grounding methods, including GUI-Actor Wu et al. (2025) and GUI-G2 Tang et al. (2025), across matched evaluation settings. While these baselines provide competitive reference points, finetuning
+> Qwen 3.5 9B yields substantially stronger performance (higher accuracy and lower distance), indicating that visual-feedback-aware finetuning is a particularly effective strategy for improving fine-grained GUI grounding.
+
+in nearly every case. This confirms that the red-cross visual feedback and turn-conditioned prompting provide useful correction signals rather than simply adding extra inference steps. From Table 1, GPT-5.4 achieves the strongest overall performance, with the largest gain under refinement (accuracy increasing from 0.2062 to 0.3813 and average distance reducing from 80.37 to 57.29). Claude exhibits much lower distance values (31.25 to 30.92), suggesting more precise spatial placement when it succeeds, but its absolute accuracy remains lower than GPT-5.4. Qwen3.5-9B also benefits from refinement (0.0156 to 0.0272 accuracy; 80.5 to 75.2 distance), though its performance remains comparatively weak, indicating limited correction efficiency in this setup. Table 1 further shows that prompt design strongly affects GPT-5.4 behavior. Cursor Aware yields the highest turn-2 accuracy (0.3813), while Visual Anchor reaches the best turn-2 distance (40.98), indicating better geometric precision. Baseline and Baseline CoT improve after refinement as well, but they are less consistent in jointly optimizing hit rate and distance. Overall, the results suggest that multi-turn correction is a robust mechanism, and that pairing feedback with task-specific spatial priors is critical for maximizing grounding quality. 
+
+# 5 Conclusion 
+
+We introduced a training-free, multi-turn framework for pixel-level GUI cursor grounding that improves localization through iterative visual feedback. Instead of relying on one-shot prediction, the model receives an explicit red-cross marker at its previous estimate and refines coordinates over subsequent turns. To evaluate this setup at high precision, we also built a data-collection pipeline that maps symbolic cursor states to renderer-space pixel coordinates and records metadata for reproducible replay across display settings. Across GPT-5.4, Claude, and Qwen3.5-9B, results show a consistent pattern: second-turn refinement improves both accuracy and distance relative to turn 1. Model-level comparisons indicate that GPT-5.4 achieves the strongest overall correction gains, Claude attains the lowest localization distance, and Qwen3.5-9B benefits from feedback but remains less accurate overall. Prompt ablations further show that prompt design affects correction behavior: Cursor-Aware prompting yields the best final accuracy, while Visual-Anchor prompting yields the best final distance. Overall, our findings suggest that iterative visual correction is a robust and model-agnostic mechanism for GUI grounding, and that combining multi-turn feedback with task-specific spatial prompting is key to stronger localization quality. Future work will expand dataset diversity and explore richer feedback strategies. 
+
+# References 
+
+Saaket Agashe, Kyle Wong, Vincent Tu, Jiachen Yang, Ang Li, and Xin Eric Wang. Agent s2: A compositional generalist-specialist framework for computer use agents. arXiv preprint arXiv:2504.00906 , 2025. Chen Chen, Jiawei Shao, Dakuan Lu, Haoyi Hu, Xiangcheng Liu, Hantao Yao, and Wu Liu. Gui-eyes: Tool-augmented perception for visual grounding in gui agents. arXiv preprint arXiv:2601.09770 , 2026. See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 9
+
+Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Yantao Li, Jianbing Zhang, and Zhiyong Wu. Seeclick: Harnessing gui grounding for advanced visual gui agents, 2024. URL https://arxiv.org/abs/2401.10935 .Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web: Towards a generalist agent for the web. Advances in Neural Information Processing Systems , 36:28091–28114, 2023. Boyu Gou, Ruohan Wang, Boyuan Zheng, Yanan Xie, Cheng Chang, Yiheng Shu, Huan Sun, and Yu Su. Navigating the digital world as humans do: Universal visual grounding for gui agents. arXiv preprint arXiv:2410.05243 , 2024. Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu, Yong Dai, Hongming Zhang, Zhenzhong Lan, and Dong Yu. Webvoyager: Building an end-to-end web agent with large multimodal models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 6864–6890, 2024. Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, et al. Cogagent: A visual language model for gui agents. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 14281–14290, 2024. Peter C Humphreys, David Raposo, Tobias Pohlen, Gregory Thornton, Rachita Chhaparia, Alistair Muldal, Josh Abramson, Petko Georgiev, Adam Santoro, and Timothy Lillicrap. A data-driven approach for learning to control computers. In International Conference on Machine Learning , pages 9466–9482. PMLR, 2022. Kaixin Li, Ziyang Meng, Hongzhan Lin, Ziyang Luo, Yuchen Tian, Jing Ma, Zhiyong Huang, and Tat-Seng Chua. Screenspot-pro: Gui grounding for professional high-resolution computer use, 2025. URL 
+
+https://arxiv.org/abs/2504.07981 .Yuhang Liu, Pengxiang Li, Congkai Xie, Xavier Hu, Xiaotian Han, Shengyu Zhang, Hongxia Yang, and Fei Wu. Infigui-r1: Advancing multimodal gui agents from reactive actors to deliberative reasoners. arXiv preprint arXiv:2504.14239 , 2025. Tianlin Shi, Andrej Karpathy, Linxi Fan, Jonathan Hernandez, and Percy Liang. World of bits: An open-domain platform for web-based agents. In International Conference on Machine Learning , pages 3135–3144. PMLR, 2017. Fei Tang, Zhangxuan Gu, Zhengxi Lu, Xuyang Liu, Shuheng Shen, Changhua Meng, Wen Wang, Wenqi Zhang, Yongliang Shen, Weiming Lu, et al. Gui-g 2: Gaussian reward modeling for gui grounding. arXiv preprint arXiv:2507.15846 , 2025. Xinyuan Wang, Bowen Wang, Dunjie Lu, Junlin Yang, Tianbao Xie, Junli Wang, Jiaqi Deng, Xiaole Guo, Yiheng Xu, Chen Henry Wu, et al. Opencua: Open foundations for computer-use agents. arXiv preprint arXiv:2508.09123 , 2025. Qianhui Wu, Kanzhi Cheng, Rui Yang, Chaoyun Zhang, Jianwei Yang, Huiqiang Jiang, Jian Mu, Baolin Peng, Bo Qiao, Reuben Tan, et al. Gui-actor: Coordinate-free visual grounding for gui agents. arXiv preprint arXiv:2506.03143 , 2025. Yan Yang, Dongxu Li, Yutong Dai, Yuhao Yang, Ziyang Luo, Zirui Zhao, Zhiyuan Hu, Junzhe Huang, Amrita Saha, Zeyuan Chen, et al. Gta1: Gui test-time scaling agent. arXiv preprint arXiv:2507.05791 , 2025. Bofei Zhang, Zirui Shang, Zhi Gao, Wang Zhang, Rui Xie, Xiaojian Ma, Tao Yuan, Xinxiao Wu, Song-Chun Zhu, and Qing Li. Tongui: Internet-scale trajectories from multimodal web tutorials for generalized gui agents. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 40, pages 12367–12375, 2026. Chi Zhang, Zhao Yang, Jiaxuan Liu, Yanda Li, Yucheng Han, Xin Chen, Zebiao Huang, Bin Fu, and Gang Yu. Appagent: Multimodal agents as smartphone users. In Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems , pages 1–20, 2025. See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 10 
+
+# 6 Appendix 
+
+6.1 System Prompt Variants Baseline 
+
+You are an expert UI element locator. Given a GUI image and a user 's element description, provide the coordinates of the specified element as a single (x,y) point. The image resolution is height {height} and width {width}. For elements with area, return the center point. If your previous attempt was incorrect, the image will contain a red cross marking your last predicted coordinate. Use this visual cue to adjust your prediction. You MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Baseline CoT 
+
+You are an expert UI element locator. Given a GUI image and a user 's element description, provide the coordinates of the specified element as a single (x,y) point. The image resolution is height {height} and width {width}. For elements with area, return the center point. Before answering, reason step by step: 1. Describe what you see in the relevant area of the screenshot 2. Identify the specific UI element or text described in the instruction 3. Narrow down the region where the target is located 4. Estimate the precise pixel coordinates of the target If your previous attempt was incorrect, the image will contain a red cross marking your last predicted coordinate. Use this visual cue to adjust your prediction --- explain how the red cross relates to the target before giving your new answer. You MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Cursor Aware 
+
+You are a precision GUI text cursor locator. Given a screenshot and a description of where to place a text cursor, provide the exact pixel coordinates of the cursor insertion point. Key principles: - Text in GUIs uses fonts where each character occupies a specific pixel range - A cursor position "before character X" means the left edge of that character 's bounding box - A cursor position "between X and Y" means the pixel boundary between those two characters - The y-coordinate should be the vertical center of the text line - Coordinates are in pixels with (0,0) at the top-left corner Image resolution: height {height}, width {width}. If your previous attempt was incorrect, the image will contain a red cross marking your last predicted coordinate. Use this visual cue to adjust your prediction. See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 11 
+
+You may reason about the position, but you MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Step by Step 
+
+You are a precision cursor placement specialist. Given a screenshot and an instruction describing where to place a text cursor, determine the exact pixel coordinates. Think through these steps before answering: 1. Identify the text area and locate the specific line mentioned 2. Find the word or character sequence referenced in the instruction 3. Determine the exact character boundary described (e.g., "before the 'o'" means the left edge of 'o')4. Estimate the pixel coordinate at that boundary --- x is the horizontal position, y is the vertical center of the text line Coordinates use (0,0) at top-left. Image resolution: height {height}, width {width}. If your previous attempt was incorrect, the image will contain a red cross marking your last predicted coordinate. Adjust accordingly. You may reason about the position, but you MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Minimal 
+
+Locate the exact pixel position described below in this {width}x{height} screenshot. The target is a text cursor insertion point between specific characters. Coordinates use (0,0) at top-left. If a red cross is visible, it marks a previous incorrect prediction --- adjust your answer. You MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Visual Anchor 
+
+You are a pixel-precise text cursor locator. Given a screenshot and a cursor placement instruction, output the exact (x,y) pixel coordinates. Strategy for accuracy: - First scan vertically to find the correct line - Then scan horizontally to find the referenced text - Character boundaries are the thin vertical gaps between adjacent characters - Use nearby distinctive characters (brackets, operators, capitals) as visual anchors to gauge position - The y-coordinate should be at the vertical midpoint of the text line Coordinates use (0,0) at top-left. Image resolution: height {height}, width {width}. See, Point, Refine: Multi-Turn Approach to GUI Grounding with Visual Feedback 12 
+
+If your previous attempt was incorrect, the image will contain a red cross at your last prediction. Study its position relative to the target and correct. You may reason about the position, but you MUST end your response with the actual numeric coordinate pair on the last line, e.g.: (310,475) Do NOT output the literal text "(x,y)" --- always substitute real pixel values. 
+
+Custom 
+
+PUT YOUR CUSTOM PROMPT HERE. Image resolution: height {height}, width {width}. Output exactly one coordinate pair with real numeric values, e.g.: (310,475) 
+
+6.2 Feedback Templates Baseline Feedback 
+
+Your previous prediction was ({cross_x},{cross_y}), shown as a red cross on the image. This was not correct. Please predict the correct coordinate. 
+
+Spatial Feedback 
+
+Your previous prediction ({cross_x},{cross_y}) is marked with a red cross. Study the red cross position relative to the target described in the original instruction. Adjust your coordinates to point at the exact character boundary specified.
