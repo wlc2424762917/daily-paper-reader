@@ -1,0 +1,1436 @@
+Title: Knowledge Compounding: An Empirical Economic Analysis under the Agentic ROI Framework
+
+URL Source: https://arxiv.org/pdf/2604.11243v1
+
+Published Time: Thu, 16 Apr 2026 00:33:41 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+# Knowledge Compounding: 
+
+# An Empirical Economic Analysis of Self-Evolving Knowledge Wikis 
+
+# under the Agentic ROI Framework 
+
+Shuide Wen¹ · Beier Ku² 
+
+¹ Shenzhen International Graduate School, Tsinghua University, Shenzhen, China 
+
+² Jesus College, University of Oxford, Oxford, United Kingdom 
+
+Corresponding authors: wenshuide@sz.tsinghua.edu.cn · beier.ku@jesus.ox.ac.uk 
+
+April 2026 
+
+1Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+## Abstract 
+
+Building on the  Agentic ROI  framework proposed by Liu et al. (2026), this paper introduces 
+
+knowledge compounding  as a new measurable concept in the empirical economics of LLM agents 
+
+and validates it through a controlled four-query experiment on Qing Claw, an industrial-grade C# 
+
+reimplementation of the OpenClaw multi-agent framework. Our central theoretical claim is that the 
+
+cost term in the original Agentic ROI equation contains an unexamined assumption—that the cost 
+
+of each task is mutually independent. This assumption holds under the traditional retrieval-
+
+augmented generation (RAG) paradigm but breaks down once a persistent, structured knowledge 
+
+layer is introduced. We propose a  dynamic Agentic ROI  model in which cost is treated as a time-
+
+varying function Cost(t) governed by a knowledge-base coverage rate H(t). Empirical results from 
+
+four sequential queries on the same domain yield a cumulative token consumption of 47K under 
+
+the compounding regime versus 305K under a matched RAG baseline—a savings of 84.6%. 
+
+Calibrated 30-day projections indicate cumulative savings of 53.7% under medium topic 
+
+concentration and 81.3% under high concentration, with the gap widening monotonically over 
+
+time. We further identify three microeconomic mechanisms underlying the compounding effect: 
+
+(i) one-time INGEST amortized over N retrievals, (ii) auto-feedback of high-value answers into 
+
+synthesis pages, and (iii) write-back of external search results into entity pages. The theoretical 
+
+contribution of this paper is a recategorization of LLM tokens from  consumables  to  capital goods ,
+
+shifting the economic discussion from static marginal cost analysis to dynamic capital 
+
+accumulation. The engineering contribution is a minimal reproducible implementation in 
+
+approximately 200 lines of C#, which we believe is the first complete industrial-grade reference 
+
+implementation of Karpathy’s (2026) LLM Wiki paradigm. 
+
+Keywords:  Agentic ROI; token economics; knowledge compounding; LLM agents; persistent 
+
+memory; self-evolving knowledge base; Karpathy LLM Wiki 
+
+JEL classification:  C63 (Computational Techniques); D24 (Production); O33 (Technological 
+
+Change); L86 (Information and Internet Services) 
+
+2Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+# 1. Introduction 
+
+## 1.1 Background 
+
+The period from 2025 to early 2026 has witnessed a paradigmatic transition in large language 
+
+model (LLM) agents, from static conversational tools toward autonomous, goal-directed systems. 
+
+In their position paper The Real Barrier to LLM Agent Usability is Agentic ROI, Liu et al. (2026) 
+
+sharply identify what they consider the genuine bottleneck for the large-scale deployment of LLM 
+
+agents: not raw model capability, but the agent’s return on investment in real-world settings. 
+
+Liu et al. formalize this insight through the Agentic ROI equation, which balances information 
+
+gain and time savings against cost. Drawing on a 34-respondent user survey across five application 
+
+domains, they observe a striking pattern: the domains with the highest user demand (e-commerce, 
+
+office work, personal assistance) are precisely the domains where Agentic ROI is lowest, forming 
+
+what they term the  usability gap . They propose a zigzag development trajectory—first scaling up 
+
+to improve information quality, then scaling down to reduce cost—as the path toward bridging this 
+
+gap. 
+
+In parallel, NVIDIA established “token economics” as the dominant industrial narrative of AI 
+
+infrastructure at its 2026 GTC keynote. Jensen Huang explicitly framed tokens as the product of an 
+
+“AI factory,” arguing that throughput per watt and per dollar (TPS/$/W) directly determines the 
+
+revenue capacity of cloud service providers (Pope, 2026). NVIDIA cited MIT findings that frontier 
+
+inference cost has been declining roughly tenfold annually, and the Stanford 2025 AI Index Report 
+
+further documented a 280-fold reduction in GPT-3.5-equivalent inference cost between November 
+
+2022 and October 2024 (Maslej et al., 2025). 
+
+We argue that there exists a theoretical gap between Liu et al.’s Agentic ROI framework and 
+
+NVIDIA’s token economics narrative—one that has not been addressed in any existing study. 
+
+Both frameworks treat cost as an independent, non-cumulative marginal expense that recurs 
+
+with each new interaction.  This implicit assumption is largely defensible under the traditional 
+
+RAG paradigm, but it becomes untenable once a persistent structured knowledge layer is 
+
+introduced, as in recent memory systems such as Mem0 (Chhikara et al., 2025), A-MEM (Xu et al., 
+
+2025), MemMachine (Wang et al., 2026), and Memori (Lee et al., 2026). 
+
+3Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+## 1.2 Research Questions 
+
+This paper addresses three interrelated questions: 
+
+RQ1 (theoretical):  Once a persistent knowledge layer is introduced, can the cost term in the 
+
+Agentic ROI equation still be treated as a time-independent constant? If not, how should it be 
+
+revised? 
+
+RQ2 (empirical):  Within a real, multi-agent industrial-grade system, can the knowledge 
+
+compounding phenomenon be quantitatively observed? If so, what is its economic magnitude? 
+
+RQ3 (mechanistic):  Through what specific microeconomic mechanisms does knowledge 
+
+compounding produce token cost reductions, and can these mechanisms be generalized to other 
+
+agentic systems? 
+
+## 1.3 Contributions 
+
+Theoretical contribution.  We propose knowledge compounding as an extension of the 
+
+Agentic ROI framework, generalizing the cost term from a static variable to a time-varying 
+
+function Cost(t), and introducing the knowledge-base coverage rate H(t) as a key mediating 
+
+variable. This forms what we call the  dynamic Agentic ROI  model. 
+
+Empirical contribution.  Drawing on real run logs from the Qing Claw system, we provide 
+
+what we believe is the first end-to-end quantitative measurement of the knowledge compounding 
+
+phenomenon. In a controlled experiment of four sequential queries, the compounding regime saved 
+
+84.6% of cumulative tokens relative to a matched RAG baseline, with the gap widening over time. 
+
+Engineering contribution.  We deliver a minimal reproducible implementation of 
+
+approximately 200 lines of C# code, requiring no vector database and no external services—only 
+
+plain Markdown files and a structured prompt design—which serves as the first complete 
+
+industrial-grade reference implementation of Karpathy’s (2026) LLM Wiki paradigm. 
+
+# 2. Related Work 
+
+## 2.1 Economic Evaluation of LLM Agents 
+
+Liu et al. (2026) is, to our knowledge, the first study to formally introduce a return-on-
+
+investment framework into the evaluation of LLM agents. Their 34-respondent survey reveals an 
+
+4Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+ordering of agentic ROI across five application domains: Coding > Research > Office Work > E-
+
+commerce > Personal Assistance. The framework’s predictive validity is supported by the strong 
+
+positive correlation (r = 0.95) between Agentic ROI and the user-perceived usability scores within 
+
+each domain. 
+
+However, Liu et al.’s cost estimation employs a simplification: the monthly subscription fee 
+
+divided by the monthly task ceiling. This static estimator entirely ignores the cost dynamics that 
+
+arise when the same user repeatedly queries the same domain. Filling this gap is the central goal of 
+
+the present paper. 
+
+## 2.2 Empirical Studies of Persistent Memory Systems 
+
+Over the past year, empirical work on persistent memory systems has progressed rapidly. 
+
+Chhikara et al. (2025) report that their Mem0 system achieves a 26% relative improvement over 
+
+OpenAI’s built-in memory on the LOCOMO benchmark, with a 91% reduction in p95 latency and 
+
+over 90% reduction in token cost. Xu et al. (2025) propose A-MEM, drawing on Niklas Luhmann’s 
+
+Zettelkasten note-taking method to construct an evolvable agentic memory network through 
+
+dynamic indexing and linking. Wang et al. (2026) introduce MemMachine, which adopts a “raw-
+
+episode + sentence-level index” dual-layer architecture, achieving approximately 80% token 
+
+reduction while preserving factual integrity. Lee et al. (2026) report that Memori achieves 81.95% 
+
+accuracy on the LoCoMo benchmark while consuming an average of just 1,294 tokens per query 
+
+(roughly 5% of the full-context approach). 
+
+The common thread of this work is that  structured retrieval substituting for live reasoning  can 
+
+substantially reduce per-query cost. However, all of these studies focus on a static comparison— 
+
+the per-query cost reduction—rather than on the temporal trajectory of cost evolution. Our paper 
+
+extends the analytical perspective from the snapshot to the time series. 
+
+Xiong et al. (2025) is one of the few empirical studies that takes memory dynamics seriously. 
+
+They find that LLM agents exhibit a clear “experience-following” behavior: the higher the 
+
+similarity between a query input and a retrieved memory record, the more similar the agent’s 
+
+output. This provides a mechanistic foundation for our compounding phenomenon, although their 
+
+research focus is the risk of error propagation rather than the positive value of cost reduction. 
+
+5Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+## 2.3 Multi-Agent Collaboration Architectures 
+
+Anthropic’s Sonnet/Opus subagent pattern (Anthropic, 2026) provides an important 
+
+architectural reference for this study. In their recommended workflow, Opus serves as the high-
+
+level orchestrator responsible for strategic planning and judgment, while Sonnet or Haiku 
+
+subagents handle high-volume execution tasks, achieving a balance between quality and cost. 
+
+Hong et al. (2023, MetaGPT) and Wu et al. (2023, AutoGen) further demonstrate the role-division-
+
+with-shared-memory paradigm in multi-agent frameworks. 
+
+Qing Claw’s “CEO + Expert” architecture is in spirit aligned with Anthropic’s Sonnet/Opus 
+
+pattern, but introduces two important extensions: first, the Knowledge Wiki Expert is designated as 
+
+the  sole writer  to the wiki, ensuring no concurrent contamination; second, a MemoryStore index 
+
+layer enables  cross-session persistence  of the wiki sediments, allowing the CEO to predict at the 
+
+memory_recall stage whether the wiki contains relevant knowledge. 
+
+## 2.4 Karpathy’s LLM Wiki Paradigm 
+
+Andrej Karpathy’s LLM Wiki gist, published in early 2026, proposes a deceptively simple but 
+
+radically subversive idea: instead of performing live retrieval-augmented generation against raw 
+
+documents, an LLM agent should compile raw materials once into a persistent, structured, 
+
+interlinked Markdown wiki, with all subsequent queries directed at the wiki rather than at the 
+
+original sources. The core analogy is: “Obsidian is the IDE, the LLM is the programmer, the wiki is 
+
+the codebase, and you are the architect.” 
+
+The paradigm has inspired a wave of open-source implementations, including Ar9av/obsidian-
+
+wiki, NicholasSpisak/second-brain, kytmanov/obsidian-llm-wiki-local, and lewislulu/llm-wiki-
+
+skill. However, our code review of these projects reveals that they remain personal-grade 
+
+prototypes, lacking the key capabilities required for industrial-grade agentic systems (see Table 3 
+
+in Section 5.4 for a detailed capability comparison). More critically, none of these projects 
+
+implements a mechanism we identify as essential for compounding:  search write-back . The 
+
+empirical work in this paper fills exactly this gap. 
+
+6Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+# 3. Theoretical Framework: From Static to Dynamic Agentic ROI 
+
+## 3.1 Hidden Assumptions in the Original Agentic ROI 
+
+The Agentic ROI formula of Liu et al. (2026) can be rewritten in single-task form as: 
+
+ROIᵢ = (ΔQᵢ × ΔTᵢ) / Cᵢ 
+
+where ΔQᵢ = max(Q_Agent,ᵢ − Q₀,ᵢ , 0), ΔTᵢ = max(T₀,ᵢ − T_Agent,ᵢ , 0), and Cᵢ is the cost of task 
+
+i. This formulation contains three implicit assumptions that have not been examined: 
+
+Assumption A1 (cost independence):  Cᵢ is determined solely by the complexity of the current 
+
+task  i and is independent of the historical task set {1, 2, ..., i−1}. 
+
+Assumption A2 (quality independence):  Q_Agent,ᵢ is determined solely by the current task 
+
+input and model capability, with no influence from prior tasks. 
+
+Assumption A3 (time independence):  T_Agent,ᵢ depends only on the complexity of the 
+
+present interaction, with no benefit from system-level historical experience for that user or 
+
+domain. 
+
+These assumptions broadly hold in the traditional RAG paradigm, where the system has no 
+
+memory: each query re-retrieves raw documents, re-assembles context, and re-generates the 
+
+answer from scratch. However, once a persistent structured knowledge layer is introduced, all three 
+
+assumptions break down. The remainder of this section focuses on revising A1; A2 and A3 follow 
+
+analogously and are left to future work. 
+
+## 3.2 The Dynamic Agentic ROI Model 
+
+We introduce the concept of a  knowledge-base coverage rate  Hᵢ [0, 1], defined as the ∈
+
+proportion of the information required for task  i that can be directly satisfied by the existing 
+
+knowledge base. Hᵢ is a time-varying random variable possessing a Markov property: its current 
+
+value depends on the contributions of historical tasks to the knowledge base. 
+
+The revised cost function is then: 
+
+Cᵢ = (1 − Hᵢ) · C_generate,ᵢ + Hᵢ · C_retrieve,ᵢ + C_writeback,ᵢ 
+
+where C_generate,ᵢ is the cost of answering entirely through live reasoning (the RAG baseline), 
+
+C_retrieve,ᵢ is the cost of reading an existing answer from the structured knowledge base, and 
+
+7Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+C_writeback,ᵢ is the one-time cost of updating the knowledge base on this query (including new 
+
+entity creation, synthesis writing, and search write-back). Since C_retrieve,ᵢ C_generate,ᵢ in our ≪
+
+empirical data (typically by a factor of 10–50), and since C_writeback,ᵢ is one-time and 
+
+amortizable, when Hᵢ grows monotonically with  i, Cᵢ must decrease monotonically with  i—the 
+
+mathematical essence of the knowledge compounding effect. 
+
+## 3.3 Evolution Equation for H(t) 
+
+The evolution of the knowledge-base coverage rate follows the recurrence relation: 
+
+Hᵢ ₁ = Hᵢ + α · (1 − Hᵢ) · pᵢ ₊
+
+where α (0, 1) is the per-task ∈ cultivation rate  of previously uncovered territory (depending on 
+
+the INGEST/write-back quality of the knowledge wiki expert), and pᵢ [0, 1] is the indicator ∈
+
+probability that the i-th task falls outside the historically covered region (depending on the topic 
+
+concentration of the user’s query stream). 
+
+Solving this equation analytically reveals that H(t) takes a concave saturation curve: rapid early 
+
+growth, slow late growth, asymptotically approaching the steady-state coverage of the topic 
+
+distribution. This shape is mathematically isomorphic to the logistic growth curve in ecology and 
+
+the Gompertz diffusion model in economics, hinting that knowledge compounding shares deep 
+
+structural regularities with other natural growth phenomena. Figure 3 (Section 5) visualizes this 
+
+evolution under three topic-concentration scenarios. 
+
+## 3.4 Tokens as Capital Goods: A Theoretical Reclassification 
+
+Within the original Agentic ROI framework, tokens are  consumables —one use depletes them, 
+
+with no residual value and no accumulation. Their economic character resembles electricity, 
+
+gasoline, or raw materials. Within the dynamic Agentic ROI framework, however, tokens display 
+
+the four key properties of  capital goods :
+
+(i) Persistent product.  Every token consumed by a task leaves behind persistent wiki files that 
+
+can be repeatedly read, possessing cross-temporal stock value. 
+
+(ii) Compound returns.  Accumulated wiki files reduce the marginal cost of future tasks— 
+
+today’s investment generates tomorrow’s return—the defining property of capital goods. 
+
+8Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+(iii) Heritability.  Wiki files can be backed up, migrated, shared, and even continue to function 
+
+after the underlying LLM model is upgraded, exhibiting the durability of physical capital. 
+
+(iv) Nonlinear growth curve.  Cumulative cost transforms from the linear growth of the RAG 
+
+mode into the concave growth of the compounding mode—the opposite of the discounting effect 
+
+typical of capital goods, exhibiting what we term  negative discounting : future value exceeds 
+
+current value. 
+
+This reclassification is more than a rhetorical device. It directly determines the fundamental 
+
+paradigm of LLM agent economics:  from minimizing marginal cost to maximizing capital 
+
+accumulation. 
+
+# 4. Experimental Design and Methods 
+
+## 4.1 System: Qing Claw Architecture 
+
+Qing Claw (project codename “Qinglong”, the Azure Dragon, jointly maintained by research 
+
+groups at Tsinghua University and the University of Oxford) is an industrial-grade C# 
+
+reimplementation of the OpenClaw framework, built on .NET and integrated with DevExpress 
+
+v25.2 components. Its core architecture consists of three layers: 
+
+(1) CEO orchestration layer:  responsible for task understanding, expert dispatching, memory 
+
+recall, and strategic decisions, based on the doubao-seed-2-0-pro model. 
+
+(2) Expert collaboration layer:  containing the search expert, coder expert, UI automation 
+
+expert, and the newly introduced  Knowledge Wiki Expert . Each expert holds a dedicated tool set 
+
+and sandboxed permissions. 
+
+(3) Persistence layer:  composed of two layers, MemoryStore (a structured memory backed by 
+
+jsonl) and wiki_vault (a Markdown-based knowledge base). The former serves as a snapshot index, 
+
+while the latter stores complete content. 
+
+Built atop this architecture is a pure static injector named  AgenticWikiExpertEnhancer , which 
+
+uses approximately 200 lines of C# code to implant the full capabilities of the knowledge wiki 
+
+expert. These include: automatic creation of the three-tier vault scaffold (raw / wiki / output); 
+
+injection of seven core prompt rules inspired by Karpathy’s paradigm; integration of the 
+
+9Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+MemoryNotifyTool  for synchronizing wiki sediments to the MemoryStore index; and configuration 
+
+of cron tasks for daily INGEST, daily LINT, and weekly MERGE. 
+
+> Figure 1. Qing Claw three-tier system architecture. The CEO orchestrator routes queries via circuit-breaker rules;
+> the Knowledge Wiki Expert is the sole writer to wiki_vault; search results are written back into entity pages, closing
+> the compounding loop.
+
+## 4.2 Experimental Scenario 
+
+We designed a minimal test scenario centered on “OpenClaw developer relational queries.” 
+
+The raw material is a PDF manual of approximately 65,000 characters titled “Lobster Farming 
+
+Handbook” (a detailed introduction to OpenClaw’s design philosophy, developer background, and 
+
+technical architecture). At time t = 0, the system completes its initial INGEST of this PDF, 
+
+producing 1 source summary, 3 entity pages (OpenClaw, Peter Steinberger, the Lobster Farming 
+
+Handbook), and 5 concept pages (agentic framework, AI-assisted coding, etc.). 
+
+Following INGEST, we simulate a researcher’s sequential querying behavior, issuing four 
+
+interrelated but angularly distinct queries: 
+
+Q1:  “Who developed OpenClaw? What other notable projects has the developer worked on?” 
+
+(Subject identification + relational exploration) 
+
+Q2:  “What other projects has the OpenClaw developer worked on?” (Relational drill-down on 
+
+the same topic) 
+
+Q3:  (After session restart) “Same as Q2” (Cross-session persistence test) 
+
+10 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+Q4:  “What was Peter Steinberger doing before joining OpenAI?” (Time-slice query on a 
+
+brand-new angle) 
+
+Before Q3, we deliberately restarted the Qing Claw program manually to test the cross-session 
+
+reliability of MemoryStore and the wiki files. Q4 was deliberately chosen as a brand-new angle: 
+
+not a simple variant of Q1/Q2, but requiring the system to reorganize known facts along a temporal 
+
+dimension. 
+
+## 4.3 Measurement Indicators 
+
+For each query we recorded the following indicators: 
+
+• Tool call count:  including fs_read, fs_write, web_search, and call_agent_xxx_expert. 
+
+• Token consumption:  the sum of input and output tokens, read directly from the LLM API’s 
+
+usage field. 
+
+• Web search triggered:  binary indicator. 
+
+• Wiki file changes:  measured via git diff for file count and byte size after each query. 
+
+• Answer quality:  scored by a human evaluator on a 0–10 scale (weighted combination of 
+
+completeness and accuracy). 
+
+## 4.4 RAG Baseline Estimation 
+
+To enable a controlled comparison with the traditional RAG paradigm, we estimated the cost of 
+
+running the same four queries through a standard RAG workflow. The pipeline was: (1) chunk and 
+
+embed the original PDF using sentence-transformers/all-MiniLM-L6-v2 (this preprocessing cost is 
+
+excluded from the per-query estimate); (2) retrieve the top-5 chunks per query (each chunk 
+
+approximately 500 tokens); (3) feed retrieved results plus the original query to a GPT-5.4-class 
+
+frontier LLM for answer synthesis; (4) output the answer with no persistent sediment. 
+
+For each RAG query, we estimate token consumption as: input ≈ 65K (approximating the full 
+
+PDF length, since for documents of this size, top-5 chunking accumulates near the original length) 
+
+plus output ≈ 5K, totaling approximately 70K. This estimate is conservative—real industrial RAG 
+
+systems typically incur higher costs due to reranking, query rewriting, and other steps. 
+
+11 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+# 5. Empirical Results 
+
+## 5.1 Per-Query Cost Comparison 
+
+The empirical results from the four queries are summarized in Table 2. The compounding mode 
+
+data are read directly from Qing Claw’s real run logs; the RAG mode data are estimated using the 
+
+baseline method described in Section 4.4. For context, Table 1 reproduces the domain-level 
+
+Agentic ROI ordering from Liu et al. (2026) that motivates our work. 
+
+Domain  Agentic ROI rank  User demand (MAU 
+
+rank) 
+
+Usability gap 
+
+Coding  1 (highest)  5 (lowest)  Aligned (high ROI, niche) 
+
+Scientific Research  2 4 Aligned 
+
+Office Work  3 3 Modest gap 
+
+E-commerce  4 2 Large gap 
+
+Personal Assistance  5 (lowest)  1 (highest)  Largest gap 
+
+Table 1. Agentic ROI rankings across application domains (adapted from Liu et al. 2026, Figure 1). Note the 
+
+inverse correlation between user demand and current Agentic ROI—the basis for the “usability gap.” 
+
+Query  Type  Tools  C tokens 
+
+(K) 
+
+RAG 
+
+(K) 
+
+Web?  Wiki delta  Quality (C / R) 
+
+Q1  Cold start  4 12  70  No  +1 synthesis page  9.0 / 8.5 
+
+Q2  Synthesis hit  1 3 70  No  none (cache hit)  9.0 / 8.5 
+
+Q3  After restart  7 28  95  Yes  +5 facts → entity  9.5 / 9.0 
+
+Q4  New angle  1 4 70  No  none (cache hit)  9.5 / 8.0 
+
+Total  — 13  47  305  1×  +1 syn, +5 facts  —
+
+Table 2. Q1–Q4 controlled-experiment results. Tools = number of tool calls; C tokens = compounding-mode 
+
+tokens; RAG = matched RAG-baseline tokens; Web? = whether external web search was triggered; Quality (C / R) 
+
+= human evaluator score (0–10) for compounding mode / RAG mode. Compounding-mode data are read directly 
+
+from Qing Claw run logs; RAG values are estimated using top-5 chunked retrieval against the 65K-character 
+
+source. 
+
+The cumulative token consumption is  47K under the compounding mode versus 305K 
+
+under the RAG baseline—an 84.6% saving .
+
+Q3 deserves special note. This query, issued after a session restart, triggered the full workflow: 
+
+wiki insufficiency → web search → search write-back to entity page. Its 28K tokens are roughly 
+
+18K for the external search and write-back operations. However, this “expensive” investment was 
+
+not wasted but permanently accumulated into the wiki. The effect is directly visible in Q4: although 
+
+12 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+Q4 asks about a brand-new time slice (“before joining OpenAI”), it required only 1 fs_read call and 
+
+4K tokens to be answered, because the entity page enriched in Q3 already contained the complete 
+
+timeline. 
+
+> Figure 2. Token cost comparison between compounding and RAG modes across Q1–Q4. (a) Per-query consumption
+> shows that the compounding mode is consistently lower except for the cold-start Q1 and the search-write-back Q3.
+> (b) Cumulative trajectory shows a linear increase under RAG and a concave growth under compounding, with a
+> final 84.6% savings at the end of the experiment.
+
+## 5.2 Shape Characteristics of the Compounding Curve 
+
+Plotting the cumulative token consumption of the four queries as a time series (Figure 2b) 
+
+reveals two qualitatively different growth patterns: 
+
+RAG baseline:  cumulative cost grows linearly (each step +70K or +95K), with a slope 
+
+dependent only on the complexity of the individual query and entirely independent of history. 
+
+Compounding mode:  cumulative cost displays a concave growth pattern—Q1 is moderately 
+
+high (12K), Q2 is extremely low (3K, hitting the synthesis page), Q3 introduces an “investment 
+
+spike” (28K), and Q4 falls again (4K). 
+
+This “invest → harvest → reinvest → reharvest” oscillating concave curve is the direct cost-
+
+side manifestation of the H(t) evolution trajectory predicted by the theoretical model in Section 3.3. 
+
+## 5.3 30-Day Cumulative Cost Projection (Calibrated Simulation) 
+
+To verify the magnitude of the compounding effect over longer time horizons, we project 
+
+cumulative cost over 30 days based on the calibrated parameters from the empirical data.  We 
+
+13 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+emphasize that this is a model-based projection, not direct empirical measurement,  and is so 
+
+labeled to maintain analytical transparency. The simulation conditions are: 10 queries per day; 
+
+three topic-concentration scenarios (low p=0.30; medium p=0.60; high p=0.90); H(t) evolves 
+
+according to the equation in Section 3.3 with H₀ = 0.05 and α = 0.18; the RAG baseline is held at a 
+
+constant 70K per query. 
+
+Figure 3. Simulated evolution of knowledge base coverage rate H(t) under three topic-concentration scenarios. All 
+
+curves exhibit concave saturation; higher concentration drives faster early growth and higher steady-state 
+
+coverage. 
+
+Figure 3 shows the H(t) evolution under the three scenarios. As predicted by theory, H(t) 
+
+exhibits concave saturation in all three cases, with higher topic concentrations driving faster early 
+
+growth and higher steady-state coverage. Table 4 reports the cumulative cost in millions of tokens 
+
+at seven time checkpoints, alongside savings relative to the RAG baseline. 
+
+Day  RAG cumulative (M)  p=0.30 cumulative 
+
+(M, savings) 
+
+p=0.60 cumulative 
+
+(M, savings) 
+
+p=0.90 cumulative 
+
+(M, savings) 
+
+1 0.70  0.66 (−6.4%)  0.57 (−18.4%)  0.44 (−36.5%) 
+
+5 3.50  2.88 (−17.7%)  2.02 (−42.3%)  1.15 (−67.0%) 
+
+10  7.00  5.45 (−22.1%)  3.58 (−48.9%)  1.76 (−74.9%) 
+
+15  10.50  7.99 (−23.9%)  5.11 (−51.3%)  2.31 (−78.0%) 
+
+20  14.00  10.53 (−24.8%)  6.65 (−52.5%)  2.85 (−79.6%) 
+
+25  17.50  13.06 (−25.4%)  8.18 (−53.2%)  3.39 (−80.6%) 
+
+30  21.00  15.60 (−25.7%)  9.72 (−53.7%)  3.92 (−81.3%) 
+
+14 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+> Table 4. 30-day cumulative token projection across topic-concentration scenarios. Cumulative cost in millions of
+> tokens; savings as percentage relative to RAG baseline. Calibrated on Q1–Q4 empirical parameters; deterministic
+> seed.
+
+Three observations stand out. First, the savings ratio grows monotonically with time across all 
+
+scenarios— the longer the system runs, the larger the gap . Second, topic concentration is the 
+
+dominant determinant of the magnitude of the compounding effect: at high concentration (p = 0.90, 
+
+e.g., a researcher focused on a single subfield, or customer support for a single product), the Day-
+
+30 savings reach 81.3%; at medium concentration (p = 0.60), they reach 53.7%; at low 
+
+concentration (p = 0.30, e.g., open-domain personal assistance), they fall to 25.7%. Third,  even in 
+
+the worst-case scenario, the compounding mode still substantially outperforms RAG .
+
+> Figure 5. 30-day cumulative token projection across the three topic-concentration scenarios. The slope of the RAG
+> baseline is constant; the compounding mode exhibits a continuously declining slope, with the gap visibly widening
+> over time.
+
+Translating these token savings into dollar terms requires care, since per-token pricing is 
+
+asymmetric between input and output. Using OpenAI’s GPT-5.4 standard rates as of April 2026 
+
+($2.50/M input tokens, $15/M output tokens), and noting that the RAG mode is input-heavy (each 
+
+query feeds back roughly 65K input + 5K output, an input-to-output ratio of ~13:1), while the 
+
+compounding mode is more output-balanced (small fs_read inputs paired with reasoning-heavy 
+
+outputs, a ratio of ~5:1), we can translate the medium-concentration scenario as follows. RAG 
+
+mode: 21M tokens ≈ 19.5M input × $2.50 + 1.5M output × $15 ≈ $71. Compounding mode: 9.72M 
+
+tokens ≈ 8.10M input × $2.50 + 1.62M output × $15 ≈ $44.  The compounding mode therefore 
+
+saves approximately 38% in dollar terms and 53.7% in token terms over 30 days under 
+
+15 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+medium concentration ; under high concentration the gap widens to roughly 71% in dollars and 
+
+81.3% in tokens. The dollar percentage is somewhat smaller than the token percentage because the 
+
+compounding mode has a higher output share, and outputs are 6× more expensive than inputs at 
+
+current rates. We further note that prompt caching—offered by OpenAI at a 50% discount on 
+
+cached input prefixes for GPT-5.4, and by Anthropic at a 90% discount across Claude models 
+
+(Zhang et al. 2026)—can in principle reduce RAG’s cost further by caching the static document 
+
+portion. We deliberately leave caching out of our headline numbers because (i) caching 
+
+effectiveness varies substantially across providers and workloads, and (ii) the compounding mode 
+
+also benefits from stable wiki-page caching. The token-count metric is therefore the most provider-
+
+neutral and reproducible basis for comparison, and we treat it as the primary result throughout this 
+
+paper. For a heavy-use researcher issuing 50–100 queries per day, the compounding savings 
+
+translate to roughly hundreds of dollars in monthly recurring expenditure under medium 
+
+concentration, and several thousand under high concentration. 
+
+## 5.4 Horizontal Comparison with Other LLM Wiki Implementations 
+
+To evaluate Qing Claw’s relative position in the engineering landscape, we conducted a 
+
+comprehensive code audit of all available LLM Wiki projects on GitHub. The audit results are 
+
+presented in Table 3.                                                        
+
+> Capability Ar9av Spisak kytmanov lewislulu Qing
+> Claw
+> INGEST ✓✓✓✓✓
+> QUERY ✓✓✓✓✓
+> Cross-session persistence ✓✓✓✗✓
+> Two-layer cache (index + files) ✗✗✗✗✓
+> Search write-back to wiki ✗✗✗✗✓
+> Multi-agent collaboration ✗✗✗✗✓
+> Sandboxed permissions ✗✗✗✗✓
+> Cron-based auto-scan ✗✗✗✗✓
+> CEO relay + self-reflection ✗✗✗✗✓
+> Fail-safe rollback (no contamination) ✗✗✗✗✓
+
+16 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+Table 3. Capability matrix comparison of LLM Wiki implementations. Qing Claw is the only project supporting all 
+
+10 capabilities. The most critical capability—search write-back to wiki, the soul of the compounding loop—is 
+
+supported only by Qing Claw. 
+
+Qing Claw supports all 10 capability dimensions, while the other projects support at most 3 
+
+each. Most critically,  the search-write-back capability—the soul of the knowledge 
+
+compounding loop—is implemented only in Qing Claw . This comparison establishes Qing 
+
+Claw as the first complete industrial-grade reference implementation of the Karpathy LLM Wiki 
+
+paradigm. 
+
+# 6. Three Micro-Mechanisms of Knowledge Compounding 
+
+The empirical data show what (the compounding effect exists), but to answer why we need to 
+
+analyze the underlying mechanisms. Through careful replay of Qing Claw run logs, we identify 
+
+three core mechanisms that can be measured separately. Before formalizing them, we present a 
+
+single concrete instance of one full compounding cycle as captured live from the Qing Claw 
+
+running interface (Figure 6); this serves both as ground-truth evidence that the system described in 
+
+this paper is a real production-grade artifact and as a visual anchor for the mechanisms developed 
+
+in the subsequent subsections. 
+
+Figure 6. Qing Claw running interface, captured during execution of the query “What are the three layers of 
+
+Karpathy’s LLM Wiki architecture, and how does it differ from traditional RAG?” The four-step workflow 
+
+visualization (top) traces the canonical MEM→THINK→MEM→RESULT cycle, where the second MEM step 
+
+performs memory distillation—writing the answer back into a new synthesis page. The decision panel (middle) 
+
+records the CEO orchestrator’s chain-of-thought, including the key sentence “ 
+
+本次已将该问答沉淀为综合页 [[ 
+
+智
+
+17 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+能体维基与  RAG 
+
+架构对比 ]]” (“This Q&A has been distilled into the synthesis page [[LLM Wiki vs. RAG 
+
+Architecture Comparison]]”)—direct evidence of Mechanism Two from §6.2. The progress panel shows three tool 
+
+calls with millisecond-level timing: memory_recall (9 ms), ceo_reasoning (65,647 ms), and memory_distill (15,322 
+
+ms), totaling 81 s for one complete compounding cycle. The right panel displays the system heartbeat (120-min 
+
+interval), four scheduled cron tasks matching the daily INGEST / daily LINT / weekly MERGE configuration 
+
+described in §4.1, and three concurrent expert agents (C# advanced developer powered by glm-5, Knowledge Wiki 
+
+Expert powered by doubao-seed-2-0-pro-260215, and Xiaohongshu search expert powered by qwen3-max), 
+
+confirming Qing Claw’s identity as a production-grade multi-LLM multi-agent system rather than a research 
+
+prototype. 
+
+## 6.1 Mechanism One: INGEST Once, Hit N Times 
+
+This is the most basic mechanism. The LLM reasoning cost during the INGEST stage 
+
+(approximately 10–15K tokens in our experiment) is a one-time investment, while all subsequent 
+
+QUERIES read directly from the INGEST products. The mathematical expression is: 
+
+C\ _avg(N) = (C_INGEST + N × C_QUERY) / (N + 1) 
+
+As N → ∞,  Cg _avg → C_QUERY, approaching the lower bound of retrieval cost. In our 
+
+empirical data, C_INGEST ≈ 12K and C_QUERY ≈ 3K, so the amortization break-even point is 
+
+approximately 5–6 queries.  In other words, as long as a single source is read more than five 
+
+times, INGEST mode is cheaper than RAG mode —a condition that holds for the vast majority 
+
+of knowledge work scenarios. 
+
+Figure 4. Per-query cost decomposition by compounding mechanism. Q1 is dominated by amortized INGEST and 
+
+synthesis writing; Q2 and Q4 by minimal retrieval; Q3 by external web search and search write-back. The total Q3 
+
+cost includes the future-value-creating write-back component. 
+
+18 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+## 6.2 Mechanism Two: Auto-Feedback of High-Value Q&A 
+
+High-value answers produced during the QUERY stage are automatically judged and written 
+
+by the wiki expert into the synthesis directory. This behavior is not explicitly coded, but inferred by 
+
+the LLM from the “compounding mechanism” paragraph in the prompt. In the Q1 experiment, the 
+
+wiki expert wrote in its reasoning chain: 
+
+> “This is a new synthesis conclusion, so importance level 3 will do.”
+
+It judges, on its own, that the Q&A has long-term value, and decides on its own to write a new 
+
+synthesis page. This mechanism causes compounding to occur recursively: the products of the Nth 
+
+task become the inputs for the N+1th task. Letting β_j denote the contribution of the synthesis page 
+
+produced by the j-th task to future task hit probability, the H(t) evolution equation expands to: 
+
+Hᵢ ₁ = Hᵢ + α(1 − Hᵢ)pᵢ + Σ ≤ᵢ β · [Qᵢ ₁ synth ] 
+
+₊ⱼ ⱼ 𝟙 ₊ ∈ ⱼ
+
+The second summation captures the contribution of “Q&A feedback” to coverage. This is 
+
+mechanism-level evidence that the system’s knowledge accretes in true compound-interest 
+
+fashion. 
+
+## 6.3 Mechanism Three: Auto-Write-Back of Search Results 
+
+This is the mechanism that distinguishes Qing Claw from all other LLM Wiki 
+
+implementations. When the wiki is insufficient to answer the user’s question, the CEO triggers a 
+
+search expert to fetch information from the web—but the search results do not evaporate. Instead, 
+
+the CEO actively passes them back to the wiki expert, which first reads the existing entity page, 
+
+then merges the new facts and overwrites it. 
+
+In Q3, the search expert returned six new facts not previously in the wiki (including “joining 
+
+OpenAI,” a critical career update). The CEO actively invoked the wiki expert to merge these facts 
+
+into Peter Steinberger’s entity page in chronological order. The direct economic consequence 
+
+appeared in Q4: a brand-new query angle was answered with a single fs_read in 4K tokens, with no 
+
+further web search required. 
+
+This mechanism is essential to the shape of the compounding curve. Without it, the wiki is 
+
+unidirectional—accepting only INGEST input, never external information. With it, the wiki is 
+
+bidirectional and respiring : absorbing raw materials, external search results, and Q&A synthesis 
+
+19 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+alike. All three sources of information flow into the same wiki, causing its “temperature” 
+
+(probability of high-frequency access) to rise continuously. 
+
+# 7. Discussion 
+
+## 7.1 Dialogue with the Liu et al. (2026) Agentic ROI Framework 
+
+Our work does not refute Liu et al.’s framework; it extends it. Their core contribution—shifting 
+
+LLM agent evaluation from “capability-centric” to “utility-centric”—is deepened in this study:  we 
+
+move utility evaluation from a static snapshot to a dynamic evolution .
+
+Specifically, Liu et al. observe that Coding and Research are the two domains with the highest 
+
+Agentic ROI, because they have a high baseline human time T₀ and even partial automation 
+
+produces significant value. We add a deeper second reason: Coding and Research are high-ROI 
+
+domains not only because of large T₀, but because their topic concentration is naturally high, so the 
+
+marginal returns from knowledge compounding are largest. A researcher’s reading over the course 
+
+of a month is likely focused on 5–10 core topics; a programmer’s debugging over the course of a 
+
+week is likely centered on the same codebase. Both user types are the largest beneficiaries of 
+
+knowledge compounding. 
+
+Conversely, the low-ROI domains identified by Liu et al. (e-commerce, personal assistance) 
+
+are domains with extremely diffuse topic distributions—e-commerce users buy different SKUs 
+
+each time, personal assistant requests are highly random.  In these domains, the marginal returns 
+
+of knowledge compounding are inherently small, because the wiki can never accumulate 
+
+reusable structure . This provides a brand-new explanatory dimension for the “usability gap” Liu 
+
+et al. identify: the gap arises not only because T_Agent is too high, but because in these domains 
+
+H(t) cannot grow large. 
+
+## 7.2 Dialogue with NVIDIA Token Economics 
+
+NVIDIA’s token economics narrative focuses on token production efficiency—how many 
+
+tokens can be produced per watt and per dollar. This is essentially supply-side optimization. Our 
+
+research focuses on the consumer-side capitalization of tokens—how much persistent value the 
+
+same token can generate. This is demand-side optimization. 
+
+20 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+These two optimization paths are not in conflict; they reinforce each other . NVIDIA’s 
+
+next-generation hardware (Vera Rubin, Blackwell) drives token production cost down 
+
+exponentially; systems like Qing Claw make every token’s value persistent. Combined, the result 
+
+is striking:  tokens become both ever-cheaper and ever-more-valuable . This is the most beautiful 
+
+double dividend in the economics of LLM agents. 
+
+We add a clarification: the “compounding effect” Jensen Huang repeatedly emphasized in his 
+
+GTC 2026 keynote refers to NVIDIA’s own platform-level software-hardware iteration, not user-
+
+level knowledge accumulation.  Our paper extends compounding from the supply side to the 
+
+demand side , transforming it from a marketing slogan into an empirically measurable economic 
+
+phenomenon. 
+
+## 7.3 Dialogue with Anthropic’s Subagent Pattern 
+
+Anthropic’s Sonnet/Opus subagent pattern (Anthropic, 2026) represents an extreme pursuit of 
+
+cost reduction through division of labor: have the strongest (and most expensive) Opus only do 
+
+strategic planning, and delegate execution to the cheaper Sonnet/Haiku. This is a horizontal 
+
+division of labor for cost optimization. 
+
+Qing Claw’s “CEO + Knowledge Expert” architecture is superficially isomorphic to 
+
+Anthropic’s pattern, but at a deeper level it introduces  vertical sediment : the expert’s output is not 
+
+merely a temporary report to the CEO, but a knowledge asset permanently written into the wiki. In 
+
+other words,  Anthropic saves money through division of labor, while Qing Claw saves money 
+
+through division of labor plus sediment .
+
+This comparison reveals an interesting fact: subagent collaboration is not only about reducing 
+
+the cost of a single task, but about ensuring that the collaborative process itself produces persistent 
+
+assets. After Anthropic’s Opus and Sonnet finish a task, the collaboration ends. After Qing Claw’s 
+
+CEO and wiki expert finish a task, the wiki permanently remembers the result. This is a 
+
+fundamental philosophical difference between two paradigms—one is “collaboration as task,” the 
+
+other is “collaboration as construction.” 
+
+## 7.4 Limitations and Future Work 
+
+First , sample size and scenario diversity are limited. Our empirical work is based on a 
+
+controlled experiment of four sequential queries; while it produces a clear compounding curve, this 
+
+21 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+sample is insufficient to support cross-domain universal conclusions. Future work should run at 
+
+least 100 sequential queries in each of several different domains (programming, research, customer 
+
+service, writing) to validate the domain dependence of the compounding effect. 
+
+Second , the H(t) evolution equation in Section 3.3 is based on empirical fitting rather than 
+
+rigorous mathematical derivation. While intuitively reasonable, additional empirical data are 
+
+required to calibrate the parameters α and β if the model is to function as a predictive economic 
+
+tool. 
+
+Third , we did not control for confounders introduced by underlying model upgrades. All 
+
+experiments were run on doubao-seed-2-0-pro; running the same experiments on different base 
+
+models could yield different results. Theoretically, the knowledge compounding mechanism is 
+
+model-agnostic, but empirical verification remains necessary. 
+
+Fourth , the marginal returns boundary of search write-back was not explored. In our 
+
+experiment, search write-back significantly reduced the cost of subsequent similar queries. But if a 
+
+domain has an unbounded number of facts, will the wiki grow without bound? At what point 
+
+should search write-back stop? These questions require further research. 
+
+Future work priorities include: (1) empirical study of “knowledge spillover” effects in shared 
+
+multi-user wikis; (2) the impact of git-based wiki version control on long-term compounding; and 
+
+(3) the standardization of wiki health metrics (link density, orphan rate, temperature heatmaps). 
+
+# 8. Conclusion 
+
+This paper begins from an overlooked theoretical gap—the implicit assumption of cost time-
+
+independence in Liu et al.’s (2026) Agentic ROI framework—and, through empirical analysis of 
+
+the Qing Claw self-evolving knowledge wiki system, proposes and validates knowledge 
+
+compounding as a new measurable concept in the economics of LLM agents. 
+
+Our main findings can be summarized in three points: 
+
+First, theoretically , once a persistent knowledge layer is introduced, the cost term in the 
+
+Agentic ROI formula must be generalized from a static constant to a time-varying function Cost(t), 
+
+whose evolution is dominated by the mediating variable H(t), the knowledge-base coverage rate, 
+
+which exhibits a concave saturation curve. 
+
+22 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+Second, empirically , in a controlled experiment of four sequential queries, the compounding 
+
+mode saved 84.6% of cumulative tokens relative to the RAG baseline, with the gap continuing to 
+
+widen over time. Calibrated 30-day projections show savings of 53.7% under medium topic 
+
+concentration and 81.3% under high concentration. 
+
+Third, mechanistically , knowledge compounding achieves cost reduction through three 
+
+concrete microeconomic mechanisms: (i) fixed-cost amortization of “INGEST once, hit N times”; 
+
+(ii) auto-feedback sediment of high-value Q&A; (iii) write-back absorption of external search 
+
+results. These three mechanisms are independent yet mutually reinforcing, jointly forming a 
+
+“bidirectional respiring” wiki morphology. 
+
+Placed in a broader context, we wish to advance an admittedly bold but data-supported claim: 
+
+the economics of LLM agents is undergoing a Copernican paradigm shift. Over the past two years, 
+
+the entire AI industry has been obsessed with scaling parameters, scaling context windows, scaling 
+
+inference speed—all of these efforts built on an implicit assumption that AI is a temporarily 
+
+summoned advisor, dispersing after each use. Under this assumption, tokens are consumables, and 
+
+reducing token cost can only come from supply-side hardware and algorithmic optimization. 
+
+But Karpathy’s LLM Wiki paradigm—and its industrial-grade implementation in Qing Claw— 
+
+inverts this assumption.  AI is no longer a temporary advisor; it is a continuously running 
+
+librarian . Every day it organizes your materials, maintains your notes, expands your knowledge 
+
+graph. Under this new assumption, tokens are capital goods, and reducing token cost can come 
+
+from demand-side knowledge sediment and compounded accumulation. 
+
+Where Copernicus once said “the Earth is not the center of the universe, the Sun is,” our claim 
+
+is:  the model is not the center of LLM economics; the knowledge asset is . Models will iterate, 
+
+become outdated, and be replaced; but the structured knowledge base accumulated around them 
+
+can grow continuously across multiple model generations and continue to generate value. A wiki 
+
+INGEST-ed by a researcher with GPT-5.4 today can be seamlessly migrated to a future Claude or 
+
+GPT release next year and continue to be used.  The asset of knowledge compounding is model-
+
+agnostic, time-persistent, and user-owned .
+
+Returning to the sharp question Liu et al. (2026) pose— Why are LLM agents least usable in the 
+
+domains where users need them most? —our paper offers an answer:  because in those domains, 
+
+tokens are still being treated as consumables rather than accumulated as capital . When we 
+
+23 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+learn to capitalize tokens and compound knowledge, the usability gap may begin to close. This 
+
+road has only just begun, but Qing Claw’s empirical work proves at least one thing:  the road 
+
+exists, and it does not require waiting for the next generation of hardware—200 lines of code 
+
+can run it today .
+
+Knowledge has, at last, earned interest. 
+
+# References 
+
+Anthropic. 2024. “Introducing the Model Context Protocol.” Anthropic News, November 25. 
+
+https://www.anthropic.com/news/model-context-protocol. 
+
+Anthropic. 2025. “Subagents.” Claude Code Documentation. https://docs.anthropic.com/en/docs/claude-
+
+code/sub-agents. 
+
+Blackman, James. 2026. “Agents, Inference and the New Token Economics — Nvidia Pitches the AI 
+
+Future.” RCR Wireless News, March 18. 
+
+https://www.rcrwireless.com/20260318/ai-infrastructure/agents-inference-token-economics-nvidia-
+
+ai. 
+
+Borro, Luiz C., Luiz A. B. Macarini, Gordon Tindall, Michael Montero, and Adam B. Struck. 2026. 
+
+“Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents.” arXiv preprint 
+
+arXiv:2603.19935. 
+
+Chhikara, Prateek, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Yadav. 2025. “Mem0: 
+
+Building Production-Ready AI Agents with Scalable Long-Term Memory.” arXiv preprint 
+
+arXiv:2504.19413. 
+
+Hong, Sirui, Mingchen Zhuge, Jiaqi Chen, Xiawu Zheng, Yuheng Cheng, Ceyao Zhang, Jinlin Wang, Zili 
+
+Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, Chenyu Ran, Lingfeng Xiao, Chenglin Wu, 
+
+and Jürgen Schmidhuber. 2023. “MetaGPT: Meta Programming for a Multi-Agent Collaborative 
+
+Framework.” arXiv preprint arXiv:2308.00352. 
+
+Huang, Jensen. 2026. “GTC 2026 Keynote.” NVIDIA GPU Technology Conference, San Jose, 
+
+California, March 16. 
+
+Karpathy, Andrej. 2026. “LLM Wiki.” GitHub Gist, April. 
+
+https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f. 
+
+Lewis, Patrick, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, 
+
+Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and Douwe Kiela. 
+
+2020. “Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.” Advances in Neural 
+
+Information Processing Systems 33: 9459–9474. 
+
+Liu, Weiwen, Jiarui Qin, Xu Huang, Xingshan Zeng, Yunjia Xi, Jianghao Lin, Chuhan Wu, Yasheng 
+
+Wang, Lifeng Shang, Ruiming Tang, Defu Lian, Yong Yu, and Weinan Zhang. 2026. “Position: The 
+
+Real Barrier to LLM Agent Usability is Agentic ROI.” arXiv preprint arXiv:2505.17767v2. 
+
+Maslej, Nestor, Loredana Fattorini, Raymond Perrault, Yolanda Gil, Vanessa Parli, Njenga Kariuki, 
+
+Emily Capstick, Anka Reuel, Erik Brynjolfsson, John Etchemendy, Katrina Ligett, Terah Lyons, 
+
+James Manyika, Juan Carlos Niebles, Yoav Shoham, Russell Wald, Toby Walsh, Armin Hamrah, 
+
+Lapo Santarlasci, Julia Betts Lotufo, Alexandra Rome, Andrew Shi, and Sukrut Oak. 2025. 
+
+24 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+“Artificial Intelligence Index Report 2025.” Stanford Institute for Human-Centered Artificial 
+
+Intelligence. 
+
+Packer, Charles, Sarah Wooders, Kevin Lin, Vivian Fang, Shishir G. Patil, Ion Stoica, and Joseph E. 
+
+Gonzalez. 2024. “MemGPT: Towards LLMs as Operating Systems.” arXiv preprint 
+
+arXiv:2310.08560. 
+
+Pollertlam, Natchanon, and Witchayut Kornsuwannawit. 2026. “Beyond the Context Window: A Cost-
+
+Performance Analysis of Fact-Based Memory vs. Long-Context LLMs for Persistent Agents.” arXiv 
+
+preprint arXiv:2603.04814. 
+
+Wang, Shu, Edwin Yu, Oscar Love, Tom Zhang, Tom Wong, Steve Scargall, and Charles Fan. 2026. 
+
+“MemMachine: A Ground-Truth-Preserving Memory System for Personalized AI Agents.” arXiv 
+
+preprint arXiv:2604.04853. 
+
+Wu, Qingyun, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, Xiaoyun Zhang, 
+
+Shaokun Zhang, Jiale Liu, Ahmed Hassan Awadallah, Ryen W. White, Doug Burger, and Chi 
+
+Wang. 2023. “AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation.” 
+
+arXiv preprint arXiv:2308.08155. 
+
+Xiong, Zidi, Yuping Lin, Wenya Xie, Pengfei He, Zirui Liu, Jiliang Tang, Himabindu Lakkaraju, and 
+
+Zhen Xiang. 2025. “How Memory Management Impacts LLM Agents: An Empirical Study of 
+
+Experience-Following Behavior.” arXiv preprint arXiv:2505.16067v2. 
+
+Xu, Wujiang, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan, and Yongfeng Zhang. 2025. “A-MEM: 
+
+Agentic Memory for LLM Agents.” arXiv preprint arXiv:2502.12110. 
+
+25 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+# Appendix A. Core Prompt Rules of the Knowledge Wiki Expert 
+
+The following rules are injected into the system prompt of the Knowledge Wiki Expert via the 
+
+AgenticWikiExpertEnhancer static class. They are presented here in simplified English form; the 
+
+production Chinese version is approximately 850 characters. 
+
+(1) Never rediscover knowledge:  the same question asked a second time must hit an existing 
+
+answer in wiki/synthesis/. 
+
+(2) Never contaminate the raw layer:  raw/ is read-only; all modifications occur under wiki/. 
+
+(3) Never write in isolation:  every new page must add at least one entry to index.md and at 
+
+least one back-link from another page. 
+
+(4) Never output code blocks to users:  your product is wiki files, not chat messages. 
+
+(5) Delta first:  before each INGEST, check the manifest; never reprocess a file already 
+
+recorded. 
+
+(6) Fail safe:  if fs_write fails, retry at most 3 times; never enter a dead loop. 
+
+(7) Sediment must be registered:  after writing a new synthesis page, or creating an 
+
+entity/concept page with importance ≥ 4, immediately call wiki_notify_memory. 
+
+(8) Single-task fs_write budget:  8 writes max per task (1 source + 5 entity/concept + 1 index + 
+
+1 manifest). 
+
+# Appendix B. CEO Critical Circuit-Breaker Rules 
+
+These rules are injected into the CEO orchestrator’s system prompt to ensure it routes wiki-
+
+relevant queries through the Knowledge Wiki Expert rather than reflexively triggering web search. 
+
+[ Wiki-hit-and-stop · Search circuit-breaker rule] When the recalled memory contains 🔴 
+
+keywords such as [wiki sediment], wiki/, or [[xxx]], you must follow this strict order: (i) First 
+
+choice: immediately call call_agent_wiki_expert_expert; (ii) Second choice: only when the wiki 
+
+expert explicitly reports “not in the wiki” may you create a search expert to supplement; (iii) 
+
+Absolutely forbidden: directly searching without first letting the wiki expert check. 
+
+[ Search must be written back to wiki after supplementing it] After querying the wiki via the 🟡 
+
+circuit-breaker rule and then calling a search expert to supplement, you must: (i) First present the 
+
+26 Wen & Ku · Knowledge Compounding under the Agentic ROI Framework 
+
+consolidated search results to the user (UX priority); (ii) Then issue a follow-up call to 
+
+call_agent_wiki_expert_expert, requesting that the new findings be appended to the corresponding 
+
+entity/concept page; (iii) The wiki expert will automatically call wiki_notify_memory after 
+
+completing this update. 
+
+# Appendix C. Reproducibility 
+
+All raw data, simulation scripts, and figure-generation code are available in the supplementary 
+
+materials accompanying this paper: 
+
+• data/q1_q4_raw.csv:  the four-query controlled experiment raw data, including tool call 
+
+counts, token consumption, web-search indicators, and human quality scores. 
+
+• data/30day_projection.csv:  the 30-day projection results across three topic-concentration 
+
+scenarios, with deterministic seed (42). 
+
+• generate_figures.py:  Python (matplotlib 3.10) script reproducing all five figures from the 
+
+raw data. 
+
+• data/save_projection.py:  Python script reproducing the 30-day projection table from the 
+
+calibrated H(t) model. 
+
+The Qing Claw source code (approximately 200 lines for the AgenticWikiExpertEnhancer 
+
+module, plus the surrounding C# multi-agent framework) is maintained by the joint research 
+
+groups at Tsinghua and Oxford and will be made available under an open-source license at the time 
+
+of publication. 
+
+27

@@ -1,0 +1,160 @@
+Title: AutonomyLens: A Self-Evolving Simulation-Based Testing Loop for Autonomous Systems
+
+URL Source: https://arxiv.org/pdf/2604.11672v1
+
+Published Time: Tue, 14 Apr 2026 02:36:29 GMT
+
+Number of Pages: 4
+
+Markdown Content:
+# AutonomyLens: A Self-Evolving Simulation-Based Testing Loop for Autonomous Systems 
+
+## Ankit Agrawal 
+
+Department of Computer Science, Saint Louis University USA ankit.agrawal.1@slu.edu 
+
+## Jithin Garapati 
+
+Department of Computer Science, Saint Louis University USA jithin.garapati@slu.edu 
+
+## Bohan Zhang 
+
+Department of Computer Science, Saint Louis University USA bohan.zhang.1@slu.edu 
+
+Abstract 
+
+Software engineering practices for validating autonomous cyber-physical systems (e.g., Uncrewed Aerial Vehicles) remain frag-mented across scenario design, simulation execution, and telemetry analysis, limiting traceability between requirements, tests, and evidence. This fragmentation reduces reproducibility, slows de-bugging and iteration, and hinders systematic assurance under complex and evolving environmental conditions. We present AutonomyLens, an LLM-driven framework that inte-grates scenario specification, simulation execution, and telemetry analysis into a unified validation workflow. AutonomyLens enables developers to translate high-level validation intent into executable, temporally evolving scenarios, automatically run simulations, and perform context-aware analysis of resulting system behavior. The framework introduces (i) a structured representation for mission-level scenarios, (ii) an automated execution pipeline, (iii) analysis mechanisms that align telemetry with scenario context to produce actionable insights, and (iv) counterfactual scenario generation that closes the loop by refining and synthesizing new test cases from observed failures. We describe the early-stage design of Autono-myLens, discuss key challenges in building integrated validation workflows for autonomous systems, and outline how such an ap-proach can improve traceability, reproducibility, and scalability in autonomy validation. 
+
+CCS Concepts 
+
+• Software and its engineering → Software testing and debug-ging .
+
+Keywords 
+
+Simulation-based testing, Autonomy validation, Large language models 
+
+ACM Reference Format: 
+
+Ankit Agrawal, Jithin Garapati, and Bohan Zhang. 2026. AutonomyLens: A Self-Evolving Simulation-Based Testing Loop for Autonomous Systems. In 
+
+34th ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (FSE Companion ’26), July 05– 09, 2026, Montreal, QC, Canada. ACM, New York, NY, USA, 4 pages. https: //doi.org/10.1145/3803437.3805539  
+
+> This work is licensed under a Creative Commons Attribution 4.0 International License.
+> FSE Companion ’26, Montreal, QC, Canada
+> ©2026 Copyright held by the owner/author(s). ACM ISBN 979-8-4007-2636-1/2026/07 https://doi.org/10.1145/3803437.3805539
+
+1 Introduction 
+
+Software systems controlling autonomous cyber-physical platforms increasingly operate in uncertain physical environments where failures carry safety and societal consequences. Ensuring their re-liability requires extensive testing across diverse environmental conditions and corner cases that are difficult, expensive, or unsafe to reproduce in the physical world. While simulation-based validation has become standard practice across domains [ Zhang et al.(2023) ,Shah et al.(2018) , Dosovitskiy et al.(2017) ], the software engineer-ing workflows connecting system requirements, simulation scenar-ios, simulation logs, and data analytics often remain ad hoc and poorly integrated [Agrawal et al.(2023)]. Model-Based Testing (MBT) [ Utting et al.(2012) ] provides an important foundation for systematic validation by deriving tests from behavioral abstractions and enabling traceability between specifications and execution artifacts [ Utting and Legeard(2010) ,Dalal et al.(1999) , Pretschner et al.(2005) ]. However, autonomy val-idation extends beyond traditional MBT assumptions: autonomous systems interact with evolving environments whose dynamics must themselves be modeled and exercised. For instance, validat-ing an autonomous Uncrewed Aerial Vehicle’s (UAV’s) navigate-to-waypoint or return-to-home logic requires not only modeling discrete mode switches (e.g., takeoff →cruise →approach →land), but also exercising environmental dynamics such as wind gusts, GPS multipath/dropouts, sensor noise, moving obstacles/traffic, and communication delays that directly perturb estimation and control loops. Therefore, system correctness cannot be assessed solely through discrete transitions or pass/fail verdicts, but re-quires reasoning over continuous behaviors, contextual telemetry, and system-environment interactions. Moreover, testing objectives evolve as observations reshape understanding of system behavior under diverse environmental conditions, calling for feedback-driven test evolution rather than static model exploration. This paper presents AutonomyLens , an autonomy validation framework that generalizes principles from MBT toward environment-aware, feedback-driven validation workflows. A key enabler is recent progress in large language models (LLMs), which can re-duce the manual “glue work” of validation by helping translate requirements into structured scenario artifacts, interpret heteroge-neous execution evidence (e.g., logs, traces, configurations), and synthesize candidate follow-up tests and hypotheses. This work is at an early architectural stage; we describe the foundations of this paradigm, identify key research challenges, and outline a research agenda toward scalable and developer-centered autonomy validation ecosystems. Section 2 motivates the need for integrated validation tooling, Section 3 presents the AutonomyLens  
+
+> arXiv:2604.11672v1 [cs.SE] 13 Apr 2026 FSE Companion ’26, July 05–09, 2026, Montreal, QC, Canada Ankit Agrawal, Jithin Garapati, and Bohan Zhang
+
+architecture, and Section 4 discusses open concerns and directions for future work. 
+
+2 AutonomyLens Motivation 
+
+Despite a rich ecosystem of simulators across domains (e.g., robotics, autonomous driving, aerial systems), validation of autonomous sys-tems remains challenging at scale [ Koopman and Wagner(2016) ]. Scenario-based simulation has significantly advanced validation in domains such as autonomous driving, enabling reproducible evaluation of complex interactions among agents (e.g., vehicles, pedestrians). Platforms such as CARLA [ Dosovitskiy et al.(2017) ]and scenario description languages such as OpenSCENARIO [ASAM(2020) ] and Scenic [ Fremont et al.(2019) ] have emerged as de facto standards for structured environments. However, these approaches are largely tailored to systems operating in constrained, rule-governed settings with well-defined semantics (e.g., road networks, traffic rules). In contrast, many autonomous systems operate in open-ended, unstructured, and dynamic environments—such as aerial, maritime, and mixed-domain settings—where operational conditions differ substantially. These systems must contend with challenges includ-ing dynamic environmental disturbances (e.g., wind, currents), de-graded or uncertain sensing (e.g., GNSS-denied environments), in-teractions with heterogeneous agents (e.g., humans, animals, other autonomous systems), and evolving regulatory or mission con-straints. Such factors are difficult to represent using existing sce-nario description languages and are not adequately supported by current simulators. Moreover, widely used simulation platforms often provide only partial support for validation needs. For instance, some platforms emphasize sensor simulation for perception research but lack mech-anisms for modeling temporally evolving environments or for speci-fying structured, mission-level scenarios. Others require significant manual effort to construct environments, provide limited support for high-fidelity environmental dynamics, and do not support sys-tematic scenario execution or the definition of test oracles. As a result, existing tools are insufficient for automated scenario-driven evaluation of autonomy stacks under realistic and evolving mission conditions. We address this gap with AutonomyLens, an LLM-driven framework that enables automated specification, exe-cution, and analysis of temporally evolving, mission-level scenarios, supporting scalable and context-aware validation of autonomous systems. 
+
+3 AutonomyLens Architectural Perspective 
+
+Realizing the vision outlined above requires treating validation not as a sequence of tool invocations but as a structured workflow composed of interacting software artifacts. This artifact-centered design is motivated by our initial interviews with practitioners that automating orchestration and analytics can reduce valida-tion effort by 50% to 80%, which requires intent, execution, and evidence to be reusable, machine-actionable artifacts. Therefore, AutonomyLens organizes validation around three artifact transfor-mations— specification , execution , and interpretation , that preserve traceability to developer intent, as well as reproducibility, while enabling iterative refinement driven by observed behavior. Figure 1 presents the overall architecture: colored components denote the LLM-driven modules and illustrate how they are embedded within, and interact with, the traditional autonomy validation cycle. A cross-cutting element is Domain Knowledge , which supplies plat-form specifications, environmental models, regulatory constraints, and prior validation experience that inform each stage; for example, wind models and GNSS characteristics guide scenario generation, while flight-controller semantics help the analysis layer interpret telemetry. 
+
+3.1 Scenario Specification 
+
+At the foundation of the workflow is the representation of validation scenarios as structured, versionable artifacts rather than informal scripts. AutonomyLens formalizes scenarios as reviewable objects with explicit semantics that can be validated, transformed, and reused across development cycles. Therefore, a scenario captures (i) the system objectives to be exercised (e.g., tracking a person in a dense area), (ii) the relevant environmental context (e.g., terrain and built structures, wind fields, and GNSS availability/quality), (iii) dynamic actors in the environ-ment (e.g., other moving people and their characteristics, other aircraft, and ground vehicles), and (iv) stressors that challenge the autonomy stack (e.g., foliage-induced occlusion, gusts, multipath-induced GNSS degradation, rare events, and boundary conditions). Encoding these elements makes scenario intent explicit, inspectable, and machine-actionable. LLMs can act as an assistive layer in this transformation by help-ing translate requirements and developer intent into structured sce-nario drafts, suggesting parameterizations and coverage-relevant variations, and documenting assumptions in natural language. Im-portantly, LLM output is treated as a proposal subject to validation and review, ensuring that the scenario artifact remains explicit and auditable. 
+
+3.2 Simulation Infrastructure 
+
+Developers validate small Uncrewed Aerial System (sUAS) au-tonomy across simulation tool-chains that differ in world mod-els, physics fidelity, sensor pipelines, and execution semantics [ Koenig and Howard(2004) , Shah et al.(2018) ]. While most simula-tors expose the necessary primitives—APIs to spawn actors, apply wind disturbances, perturb sensors (e.g., GNSS dropouts), and record telemetry—these capabilities are realized through simulator-specific representations and scripting interfaces. Consequently, even when the validation intent is stable, it must be re-encoded manually for each simulator. Therefore, AutonomyLens addresses this gap with an LLM-based compilation and orchestration agent that translates a simulator-agnostic scenario artifact into target-specific executable config-urations and API-level actions. During execution, the agent coordi-nates environment instantiation, actor interactions, and environ-mental perturbations, and it enforces controlled execution (e.g., seeds, schedules) to make outcomes comparable across runs. AutonomyLens: A Self-Evolving Simulation-Based Testing Loop for Autonomous Systems FSE Companion ’26, July 05–09, 2026, Montreal, QC, Canada Scenario Specification 
+
+> LLM Agent
+> Scenario Expressed
+> in verificable artifact such as JSON
+> Scenario Analysis LLM Agent
+> Scenario Execution
+> LLM Agent
+> Control Scenario
+> Evolution
+> Scenario Run-time
+> Monitoring
+> Scenario Trace
+> Core Simulation
+> Platform
+> Input
+> triggers
+
+Simulation Infrastructure   
+
+> System Requirements Developer Testing
+> Objectives Autonomy Stack
+
+System Artifacts 
+
+> Output
+> Control sUAS
+> Simulated
+> Sensor Data
+> Collect Run-time data
+
+Scenario  Analysis 
+
+> Counter Factual Scenario
+> Recommendation
+
+Scenario 
+
+Specification  
+
+> Domain Knowledge
+> Input Input
+> Analysis
+> Strategy
+> Analysis
+> Report
+> Close Feedback Loop
+> Vehicle Controller
+> Logs produce
+
+Sim Data 
+
+> Input
+
+Figure 1: AutonomyLens as a closed-loop validation workflow connecting scenario specification, execution, and analysis through shared artifacts. 
+
+Execution produces standardized traces; the key artifact is the 
+
+Scenario Trace , a structured temporal record that includes time-indexed vehicle telemetry and environment evolution, linking ve-hicle actions and internal state to environmental context to enable reproducible comparison and post-hoc explanation. 
+
+3.3 Analysis-Driven Scenario Refinement 
+
+The final layer of AutonomyLens acts as cross-artifact reasoning 
+
+driven by LLM over (i) the scenario specification, (ii) the compiled execution configuration, and (iii) the resulting scenario traces and system logs. LLMs can act as an assistive analysis agent by summa-rizing salient trace segments, aligning observations with scenario elements and configuration settings, and proposing candidate hy-potheses and follow-up tests. To preserve developer trust, such outputs should be grounded in explicit trace evidence (e.g., cited time windows, events, and signals) and surfaced as actionable sug-gestions rather than opaque verdicts. 
+
+Scenario Traces incorporate both system telemetry and time-indexed environment evolution (e.g., wind, GNSS quality, actor interactions), supporting explanations and follow-up tests that are conditioned on scenario context. As a result, AutonomyLens grounds failures and near-misses in interpretable context and synthesizes follow-up actions (refined scenarios, regression tests, counterfactual variants). Feedback prop-agates upstream to refine scenarios, closing the loop and turning outcomes into reusable validation knowledge over time. 
+
+3.4 Example Workflow: UAV Search-and-Rescue Validation 
+
+As a concrete example, consider a UAV search-and-rescue mission in a forested canyon. A developer specifies the goal of tracking a missing person under varying wind and GNSS conditions. Auton-omyLens represents this intent as a structured scenario artifact, compiles it into simulator-specific execution steps, and produces a Scenario Trace that links telemetry with environment evolution. If the UAV loses the target near dense foliage during simultaneous wind gusts and GNSS degradation, the analysis layer uses trace-grounded evidence to explain the failure and generate counterfac-tual follow-up scenarios, such as stronger gusts, different target paths, or earlier sensing degradation. This example illustrates how AutonomyLens supports traceable, iterative, and closed-loop vali-dation. 
+
+4 Discussion and Open Concerns 
+
+AutonomyLens frames autonomy validation as an artifact-centered, feedback-driven workflow: the goal is not a pass/fail label, but an evolving body of evidence linking scenario intent, execution traces, and developer-facing claims. Drawing on our experience build-ing simulation-based validation tools for sUAS [ Zhang et al.(2023) ,Duvvuru et al.(2025) , Agrawal et al.(2023) ] and on practitioner in-terviews conducted during that work, we identify four open con-cerns that must be addressed before the architecture can be realized at scale. FSE Companion ’26, July 05–09, 2026, Montreal, QC, Canada Ankit Agrawal, Jithin Garapati, and Bohan Zhang 
+
+First , the meaning of a scenario trace should be treated as an engineering contract. Raw logs are rarely self-explanatory: the same telemetry can mean different causes depending on mission phase, controller mode, estimator state, and environment. Trace semantics must therefore bind observations to scenario elements, environmental conditions, and system modes, with schema and provenance that remain interpretable under software evolution. Without this contract, evidence cannot be compared across runs and regressions become hard to attribute. 
+
+Second , analysis generated by LLMs must be evidence-grounded 
+
+and calibrated to earn trust. Employing LLMs in safety-relevant pipelines introduces risks including hallucinated explanations, mis-interpretation of scenario semantics, and overconfident diagnoses that may mislead developers [ Duvvuru et al.(2025) ]. LLMs can re-duce triage effort but may rationalize multi-causal failures. To mit-igate these risks, explanations should anchor to checkable trace evidence (events, time windows, signals), surface alternative hy-potheses when evidence is ambiguous, and state uncertainty ex-plicitly. Suggested follow-up test scenarios should be executable and falsifiable, and all LLM outputs should be treated as proposals subject to developer review rather than authoritative verdicts. 
+
+Third , deciding what to run next in a closed-loop architecture is a resource-allocation problem under finite budgets. Next-test selection should combine environment-centric coverage, utility-aware prioritization that balances discovery vs. isolation, and risk-sensitive stopping criteria for when accumulated evidence supports a requirement claim or hazard argument. Otherwise, test evolution devolves into costly iteration without convergence. 
+
+Finally , evaluation should treat AutonomyLens as a workflow 
+
+rather than a point solution. Beyond generation quality, the key outcomes are reproducibility, time-to-diagnosis, stability of trace semantics under evolution, and the utility of generated follow-up tests. This motivates shared benchmarks pairing scenario intent with expected evidence and diagnostic expectations, alongside lon-gitudinal studies of developer adoption. In that context, AutonomyLens is a missing software engineer-ing layer for practitioners to reduce week-long setup bottlenecks through automated orchestration and analytics around the simula-tors teams already use. 
+
+References 
+
+[Agrawal et al.(2023)] Ankit Agrawal, Bohan Zhang, Yashaswini Shivalingaiah, Michael Vierhauser, and Jane Cleland-Huang. 2023. A requirements-driven plat-form for validating field operations of small uncrewed aerial vehicles. In 2023 IEEE 31st International Requirements Engineering Conference (RE) . IEEE, 29–40. [ASAM(2020)] ASAM. 2020. ASAM OpenSCENARIO . Technical Report. ASAM e. V. https://releases.asam.net/OpenSCENARIO/2.0-concepts/ASAM_ OpenSCENARIO_2-0_Concept_Paper.html [Dalal et al.(1999)] Siddhartha R. Dalal, Ashish Jain, Nachimuthu Karunanithi, J.M. Leaton, Christopher M. Lott, Gardner C. Patton, and Bruce M. Horowitz. 1999. Model-based testing in practice. In Proceedings of the 21st International Conference on Software Engineering . ACM, 285–294. [Dosovitskiy et al.(2017)] Alexey Dosovitskiy, German Ros, Felipe Codevilla, Antonio Lopez, and Vladlen Koltun. 2017. CARLA: An Open Urban Driving Simulator. In 
+
+Proceedings of the 1st Annual Conference on Robot Learning . PMLR, 1–16. [Duvvuru et al.(2025)] Venkata Sai Aswath Duvvuru, Bohan Zhang, Michael Vier-hauser, and Ankit Agrawal. 2025. LLM-Agents Driven Automated Simulation Testing and Analysis of small Uncrewed Aerial Systems. In 2025 IEEE/ACM 47th International Conference on Software Engineering (ICSE) . IEEE, 385–397. [Fremont et al.(2019)] Daniel J Fremont, Tommaso Dreossi, Shromona Ghosh, Xi-angyu Yue, Alberto L Sangiovanni-Vincentelli, and Sanjit A Seshia. 2019. Scenic: a language for scenario specification and scene generation. In Proceedings of the 40th ACM SIGPLAN conference on programming language design and implementa-tion . 63–78. [Koenig and Howard(2004)] Nathan Koenig and Andrew Howard. 2004. Design and use paradigms for gazebo, an open-source multi-robot simulator. In 2004 IEEE/RSJ international conference on intelligent robots and systems (IROS)(IEEE Cat. No. 04CH37566) , Vol. 3. Ieee, 2149–2154. [Koopman and Wagner(2016)] Philip Koopman and Michael Wagner. 2016. Chal-lenges in autonomous vehicle testing and validation. SAE International journal of transportation safety 4, 2016-01-0128 (2016), 15–24. [Pretschner et al.(2005)] Alexander Pretschner, Wolfgang Prenninger, Stefan Wag-ner, Christian Kühnel, Martin Baumgartner, Bernd Sostawa, Rüdiger Zölch, and Thomas Stauner. 2005. One evaluation of model-based testing and its automation. In Proceedings of the 27th International Conference on Software Engineering . ACM, 392–401. [Shah et al.(2018)] Shital Shah, Debadeepta Dey, Chris Lovett, and Ashish Kapoor. 2018. Airsim: High-fidelity visual and physical simulation for autonomous ve-hicles. In Field and Service Robotics: Results of the 11th International Conference .Springer, 621–635. [Utting and Legeard(2010)] Mark Utting and Bruno Legeard. 2010. Practical model-based testing: a tools approach . Elsevier. [Utting et al.(2012)] Mark Utting, Alexander Pretschner, and Bruno Legeard. 2012. A taxonomy of model-based testing approaches. Software testing, verification and reliability 22, 5 (2012), 297–312. [Zhang et al.(2023)] Bohan Zhang, Yashaswini Shivalingaiah, and Ankit Agrawal. 2023. DroneReqValidator: Facilitating High Fidelity Simulation Testing for Un-crewed Aerial Systems Developers. In Proceedings of the 38th IEEE/ACM Interna-tional Conference on Automated Software Engineering . IEEE, 2082–2085.
