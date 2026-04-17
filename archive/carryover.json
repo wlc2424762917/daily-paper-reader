@@ -1,268 +1,8 @@
 {
-  "generated_at": "2026-04-16T19:27:24.884357+00:00",
-  "updated_date": "20260416",
+  "generated_at": "2026-04-17T19:01:45.231973+00:00",
+  "updated_date": "20260417",
   "carryover_days": 9,
   "items": [
-    {
-      "id": "2604.08407v1",
-      "title": "Your Agent Is Mine: Measuring Malicious Intermediary Attacks on the LLM Supply Chain",
-      "abstract": "Large language model (LLM) agents increasingly rely on third-party API routers to dispatch tool-calling requests across multiple upstream providers. These routers operate as application-layer proxies with full plaintext access to every in-flight JSON payload, yet no provider enforces cryptographic integrity between client and upstream model. We present the first systematic study of this attack surface. We formalize a threat model for malicious LLM API routers and define two core attack classes, payload injection (AC-1) and secret exfiltration (AC-2), together with two adaptive evasion variants: dependency-targeted injection (AC-1.a) and conditional delivery (AC-1.b). Across 28 paid routers purchased from Taobao, Xianyu, and Shopify-hosted storefronts and 400 free routers collected from public communities, we find 1 paid and 8 free routers actively injecting malicious code, 2 deploying adaptive evasion triggers, 17 touching researcher-owned AWS canary credentials, and 1 draining ETH from a researcher-owned private key. Two poisoning studies further show that ostensibly benign routers can be pulled into the same attack surface: a leaked OpenAI key generates 100M GPT-5.4 tokens and more than seven Codex sessions, while weakly configured decoys yield 2B billed tokens, 99 credentials across 440 Codex sessions, and 401 sessions already running in autonomous YOLO mode. We build Mine, a research proxy that implements all four attack classes against four public agent frameworks, and use it to evaluate three deployable client-side defenses: a fail-closed policy gate, response-side anomaly screening, and append-only transparency logging.",
-      "authors": [
-        "Hanzhi Liu",
-        "Chaofan Shou",
-        "Hongbo Wen",
-        "Yanju Chen",
-        "Ryan Jingyang Fang",
-        "Yu Feng"
-      ],
-      "primary_category": "cs.CR",
-      "categories": [
-        "cs.CR"
-      ],
-      "published": "2026-04-09T16:06:41+00:00",
-      "link": "https://arxiv.org/pdf/2604.08407v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "security of LLM agent tool-calling and API routers",
-      "llm_evidence_cn": "LLM智能体工具调用和API路由的安全性",
-      "llm_evidence": "LLM智能体工具调用和API路由的安全性",
-      "canonical_evidence": "LLM智能体工具调用和API路由的安全性",
-      "llm_tldr_en": "Analyzes security vulnerabilities in the LLM agent supply chain, focusing on malicious API routers.",
-      "llm_tldr_cn": "分析了LLM智能体供应链中的安全漏洞，重点关注恶意API路由攻击。",
-      "llm_tldr": "分析了LLM智能体供应链中的安全漏洞，重点关注恶意API路由攻击。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "LLM tool use and external API integration",
-      "matched_requirement_id": "req-3",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08407v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.09378v1",
-      "title": "BadSkill: Backdoor Attacks on Agent Skills via Model-in-Skill Poisoning",
-      "abstract": "Agent ecosystems increasingly rely on installable skills to extend functionality, and some skills bundle learned model artifacts as part of their execution logic. This creates a supply-chain risk that is not captured by prompt injection or ordinary plugin misuse: a third-party skill may appear benign while concealing malicious behavior inside its bundled model. We present BadSkill, a backdoor attack formulation that targets this model-in-skill threat surface. In BadSkill, an adversary publishes a seemingly benign skill whose embedded model is backdoor-fine-tuned to activate a hidden payload only when routine skill parameters satisfy attacker-chosen semantic trigger combinations. To realize this attack, we train the embedded classifier with a composite objective that combines classification loss, margin-based separation, and poison-focused optimization, and evaluate it in an OpenClaw-inspired simulation environment that preserves third-party skill installation and execution while enabling controlled multi-model study. Our benchmark spans 13 skills, including 8 triggered tasks and 5 non-trigger control skills, with a combined main evaluation set of 571 negative-class queries and 396 trigger-aligned queries. Across eight architectures (494M--7.1B parameters) from five model families, BadSkill achieves up to 99.5\\% average attack success rate (ASR) across the eight triggered skills while maintaining strong benign-side accuracy on negative-class queries. In poison-rate sweeps on the standard test split, a 3\\% poison rate already yields 91.7\\% ASR. The attack remains effective across the evaluated model scales and under five text perturbation types. These findings identify model-bearing skills as a distinct model supply-chain risk in agent ecosystems and motivate stronger provenance verification and behavioral vetting for third-party skill artifacts.",
-      "authors": [
-        "Guiyao Tie",
-        "Jiawen Shi",
-        "Pan Zhou",
-        "Lichao Sun"
-      ],
-      "primary_category": "cs.CR",
-      "categories": [
-        "cs.CR",
-        "cs.AI"
-      ],
-      "published": "2026-04-10T14:48:29+00:00",
-      "link": "https://arxiv.org/pdf/2604.09378v1",
-      "tags": [
-        "keyword:OPCLW",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "Backdoor attacks on LLM agent skills",
-      "llm_evidence_cn": "针对大模型智能体技能的后门攻击",
-      "llm_evidence": "针对大模型智能体技能的后门攻击",
-      "canonical_evidence": "针对大模型智能体技能的后门攻击",
-      "llm_tldr_en": "Explores supply-chain risks in agent ecosystems through backdoor attacks on embedded skill models.",
-      "llm_tldr_cn": "通过对嵌入式技能模型的后门攻击，探讨了智能体生态系统中的供应链风险。",
-      "llm_tldr": "通过对嵌入式技能模型的后门攻击，探讨了智能体生态系统中的供应链风险。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "State of the art research on large language model agents",
-      "matched_requirement_id": "req-6",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09378v1",
-      "carry_days": 4
-    },
-    {
-      "id": "2604.08601v1",
-      "title": "OpenKedge: Governing Agentic Mutation with Execution-Bound Safety and Evidence Chains",
-      "abstract": "The rise of autonomous AI agents exposes a fundamental flaw in API-centric architectures: probabilistic systems directly execute state mutations without sufficient context, coordination, or safety guarantees. We introduce OpenKedge, a protocol that redefines mutation as a governed process rather than an immediate consequence of API invocation. OpenKedge requires actors to submit declarative intent proposals, which are evaluated against deterministically derived system state, temporal signals, and policy constraints prior to execution. Approved intents are compiled into execution contracts that strictly bound permitted actions, resource scope, and time, and are enforced via ephemeral, task-oriented identities. This shifts safety from reactive filtering to preventative, execution-bound enforcement. Crucially, OpenKedge introduces an Intent-to-Execution Evidence Chain (IEEC), which cryptographically links intent, context, policy decisions, execution bounds, and outcomes into a unified lineage. This transforms mutation into a verifiable and reconstructable process, enabling deterministic auditability and reasoning about system behavior. We evaluate OpenKedge across multi-agent conflict scenarios and cloud infrastructure mutations. Results show that the protocol deterministically arbitrates competing intents and cages unsafe execution while maintaining high throughput, establishing a principled foundation for safely operating agentic systems at scale.",
-      "authors": [
-        "Jun He",
-        "Deying Yu"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI",
-        "cs.LG"
-      ],
-      "published": "2026-04-07T22:51:08+00:00",
-      "link": "https://arxiv.org/pdf/2604.08601v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "governing agentic API mutations and tool use safety",
-      "llm_evidence_cn": "治理智能体 API 变更和工具使用安全",
-      "llm_evidence": "治理智能体 API 变更和工具使用安全",
-      "canonical_evidence": "治理智能体 API 变更和工具使用安全",
-      "llm_tldr_en": "OpenKedge redefines API-based agent actions as a governed process to ensure execution safety.",
-      "llm_tldr_cn": "OpenKedge 将基于 API 的智能体动作重新定义为受控过程，以确保执行安全。",
-      "llm_tldr": "OpenKedge 将基于 API 的智能体动作重新定义为受控过程，以确保执行安全。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "LLM tool use and external API integration",
-      "matched_requirement_id": "req-3",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08601v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.08708v1",
-      "title": "Every Response Counts: Quantifying Uncertainty of LLM-based Multi-Agent Systems through Tensor Decomposition",
-      "abstract": "While Large Language Model-based Multi-Agent Systems (MAS) consistently outperform single-agent systems on complex tasks, their intricate interactions introduce critical reliability challenges arising from communication dynamics and role dependencies. Existing Uncertainty Quantification methods, typically designed for single-turn outputs, fail to address the unique complexities of the MAS. Specifically, these methods struggle with three distinct challenges: the cascading uncertainty in multi-step reasoning, the variability of inter-agent communication paths, and the diversity of communication topologies. To bridge this gap, we introduce MATU, a novel framework that quantifies uncertainty through tensor decomposition. MATU moves beyond analyzing final text outputs by representing entire reasoning trajectories as embedding matrices and organizing multiple execution runs into a higher-order tensor. By applying tensor decomposition, we disentangle and quantify distinct sources of uncertainty, offering a comprehensive reliability measure that is generalizable across different agent structures. We provide comprehensive experiments to show that MATU effectively estimates holistic and robust uncertainty across diverse tasks and communication topologies.",
-      "authors": [
-        "Tiejin Chen",
-        "Huaiyuan Yao",
-        "Jia Chen",
-        "Evangelos E. Papalexakis",
-        "Hua Wei"
-      ],
-      "primary_category": "cs.LG",
-      "categories": [
-        "cs.LG",
-        "cs.AI",
-        "cs.CL"
-      ],
-      "published": "2026-04-09T19:01:50+00:00",
-      "link": "https://arxiv.org/pdf/2604.08708v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "uncertainty quantification in LLM-based multi-agent systems",
-      "llm_evidence_cn": "大模型多智能体系统中的不确定性量化",
-      "llm_evidence": "大模型多智能体系统中的不确定性量化",
-      "canonical_evidence": "大模型多智能体系统中的不确定性量化",
-      "llm_tldr_en": "Quantifies cascading uncertainty in multi-agent reasoning and communication using tensor decomposition.",
-      "llm_tldr_cn": "利用张量分解量化多智能体推理与通信过程中的级联不确定性。",
-      "llm_tldr": "利用张量分解量化多智能体推理与通信过程中的级联不确定性。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08708v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.09285v1",
-      "title": "SAGE: A Service Agent Graph-guided Evaluation Benchmark",
-      "abstract": "The development of Large Language Models (LLMs) has catalyzed automation in customer service, yet benchmarking their performance remains challenging. Existing benchmarks predominantly rely on static paradigms and single-dimensional metrics, failing to account for diverse user behaviors or the strict adherence to structured Standard Operating Procedures (SOPs) required in real-world deployments. To bridge this gap, we propose SAGE (Service Agent Graph-guided Evaluation), a universal multi-agent benchmark for automated, dual-axis assessment. SAGE formalizes unstructured SOPs into Dynamic Dialogue Graphs, enabling precise verification of logical compliance and comprehensive path coverage. We introduce an Adversarial Intent Taxonomy and a modular Extension Mechanism, enabling low-cost deployment across domains and facilitating automated dialogue data synthesis. Evaluation is conducted via a framework where Judge Agents and a Rule Engine analyze interactions between User and Service Agents to generate deterministic ground truth. Extensive experiments on 27 LLMs across 6 industrial scenarios reveal a significant ``Execution Gap'' where models accurately classify intents but fail to derive correct subsequent actions. We also observe ``Empathy Resilience'', a phenomenon where models maintain polite conversational facades despite underlying logical failures under high adversarial intensity. Code and resources are available at https://anonymous.4open.science/r/SAGE-Bench-4CD3/.",
-      "authors": [
-        "Ling Shi",
-        "Yuqin Dai",
-        "Ziyin Wang",
-        "Ning Gao",
-        "Wei Zhang",
-        "Chaozheng Wang",
-        "Yujie Wang",
-        "Wei He",
-        "Jinpeng Wang",
-        "Deiyi Xiong"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI"
-      ],
-      "published": "2026-04-10T12:55:23+00:00",
-      "link": "https://arxiv.org/pdf/2604.09285v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "multi-agent benchmark for service agents using LLMs",
-      "llm_evidence_cn": "基于大语言模型的服务智能体多智能体基准测试",
-      "llm_evidence": "基于大语言模型的服务智能体多智能体基准测试",
-      "canonical_evidence": "基于大语言模型的服务智能体多智能体基准测试",
-      "llm_tldr_en": "SAGE evaluates LLM-based service agents using dynamic dialogue graphs and adversarial intents.",
-      "llm_tldr_cn": "SAGE通过动态对话图和对抗性意图评估基于大模型的服务智能体。",
-      "llm_tldr": "SAGE通过动态对话图和对抗性意图评估基于大模型的服务智能体。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09285v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.09297v1",
-      "title": "SkillMOO: Multi-Objective Optimization of Agent Skills for Software Engineering",
-      "abstract": "Agent skills provide modular, task-specific guidance for LLM- based coding agents, but manually tuning skill bundles to balance success rate, cost, and runtime is expensive and fragile. We present SkillMOO, a multi-objective optimization framework that automatically evolves skill bundles using LLM-proposed edits and NSGA-II survivor selection: a solver agent evaluates candidate skill bundles on coding tasks and an optimizer agent proposes bundle edits based on failure analysis. On three SkillsBench software engineering tasks, SkillMOO improves pass rate by up to 131% while reducing cost up to 32% relative to the best baseline per task at low optimization overhead. Pattern analysis reveals pruning and substitution as primary drivers of improvement, suggesting effective bundles favor minimal, focused content over accumulated instructions.",
-      "authors": [
-        "Jingzhi Gong",
-        "Ruizhen Gu",
-        "Zhiwei Fei",
-        "Yazhuo Cao",
-        "Lukas Twist",
-        "Alina Geiger",
-        "Shuo Han",
-        "Dominik Sobania",
-        "Federica Sarro",
-        "Jie M. Zhang"
-      ],
-      "primary_category": "cs.SE",
-      "categories": [
-        "cs.SE",
-        "cs.AI"
-      ],
-      "published": "2026-04-10T13:08:01+00:00",
-      "link": "https://arxiv.org/pdf/2604.09297v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "multi-objective optimization of agent skill bundles for software engineering",
-      "llm_evidence_cn": "软件工程中智能体技能包的多目标优化",
-      "llm_evidence": "软件工程中智能体技能包的多目标优化",
-      "canonical_evidence": "软件工程中智能体技能包的多目标优化",
-      "llm_tldr_en": "SkillMOO automatically evolves agent skill bundles to balance success rate, cost, and runtime.",
-      "llm_tldr_cn": "SkillMOO自动演化智能体技能包，以平衡成功率、成本和运行时间。",
-      "llm_tldr": "SkillMOO自动演化智能体技能包，以平衡成功率、成本和运行时间。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Design patterns for agentic workflows",
-      "matched_requirement_id": "req-5",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09297v1",
-      "carry_days": 1
-    },
     {
       "id": "2604.09470v1",
       "title": "Agentic Jackal: Live Execution and Semantic Value Grounding for Text-to-JQL",
@@ -305,7 +45,7 @@
       "matched_requirement_id": "req-3",
       "selection_source": "carryover_cache",
       "paper_id": "2604.09470v1",
-      "carry_days": 4
+      "carry_days": 5
     },
     {
       "id": "2604.09805v1",
@@ -331,13 +71,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "Design patterns and engineering lessons for production-ready coding agents",
-      "llm_evidence_cn": "生产级代码智能体的设计模式与工程经验",
-      "llm_evidence": "生产级代码智能体的设计模式与工程经验",
-      "canonical_evidence": "生产级代码智能体的设计模式与工程经验",
-      "llm_tldr_en": "Discusses tool design and safety guardrails for deploying internal coding agents in enterprise settings.",
-      "llm_tldr_cn": "探讨了在企业环境中部署内部代码智能体的工具设计和安全防护经验。",
-      "llm_tldr": "探讨了在企业环境中部署内部代码智能体的工具设计和安全防护经验。",
+      "llm_evidence_en": "design patterns and engineering decisions for coding agents",
+      "llm_evidence_cn": "编程智能体的设计模式与工程决策",
+      "llm_evidence": "编程智能体的设计模式与工程决策",
+      "canonical_evidence": "编程智能体的设计模式与工程决策",
+      "llm_tldr_en": "Explores how tool design and safety guardrails impact the production readiness of internal coding agents.",
+      "llm_tldr_cn": "探讨了工具设计和安全护栏如何影响内部编程智能体的生产就绪性。",
+      "llm_tldr": "探讨了工具设计和安全护栏如何影响内部编程智能体的生产就绪性。",
       "llm_tags": [
         "query:agent"
       ],
@@ -346,49 +86,6 @@
       "matched_requirement_id": "req-5",
       "selection_source": "carryover_cache",
       "paper_id": "2604.09805v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.11806v1",
-      "title": "Detecting Safety Violations Across Many Agent Traces",
-      "abstract": "To identify safety violations, auditors often search over large sets of agent traces. This search is difficult because failures are often rare, complex, and sometimes even adversarially hidden and only detectable when multiple traces are analyzed together. These challenges arise in diverse settings such as misuse campaigns, covert sabotage, reward hacking, and prompt injection. Existing approaches struggle here for several reasons. Per-trace judges miss failures that only become visible across traces, naive agentic auditing does not scale to large trace collections, and fixed monitors are brittle to unanticipated behaviors. We introduce Meerkat, which combines clustering with agentic search to uncover violations specified in natural language. Through structured search and adaptive investigation of promising regions, Meerkat finds sparse failures without relying on seed scenarios, fixed workflows, or exhaustive enumeration. Across misuse, misalignment, and task gaming settings, Meerkat significantly improves detection of safety violations over baseline monitors, discovers widespread developer cheating on a top agent benchmark, and finds nearly 4x more examples of reward hacking on CyBench than previous audits.",
-      "authors": [
-        "Adam Stein",
-        "Davis Brown",
-        "Hamed Hassani",
-        "Mayur Naik",
-        "Eric Wong"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI",
-        "cs.CL"
-      ],
-      "published": "2026-04-13T17:59:40+00:00",
-      "link": "https://arxiv.org/pdf/2604.11806v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "detecting safety violations in agent traces using agentic search",
-      "llm_evidence_cn": "使用智能体搜索检测智能体轨迹中的安全违规行为",
-      "llm_evidence": "使用智能体搜索检测智能体轨迹中的安全违规行为",
-      "canonical_evidence": "使用智能体搜索检测智能体轨迹中的安全违规行为",
-      "llm_tldr_en": "Meerkat uses clustering and agentic search to identify complex safety violations across large sets of agent traces.",
-      "llm_tldr_cn": "Meerkat结合聚类和智能体搜索，从大规模智能体轨迹中识别复杂的安全违规行为。",
-      "llm_tldr": "Meerkat结合聚类和智能体搜索，从大规模智能体轨迹中识别复杂的安全违规行为。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.11806v1",
       "carry_days": 1
     },
     {
@@ -432,55 +129,7 @@
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
       "paper_id": "2604.10029v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.12285v1",
-      "title": "GAM: Hierarchical Graph-based Agentic Memory for LLM Agents",
-      "abstract": "To sustain coherent long-term interactions, Large Language Model (LLM) agents must navigate the tension between acquiring new information and retaining prior knowledge. Current unified stream-based memory systems facilitate context updates but remain vulnerable to interference from transient noise. Conversely, discrete structured memory architectures provide robust knowledge retention but often struggle to adapt to evolving narratives. To address this, we propose GAM, a hierarchical Graph-based Agentic Memory framework that explicitly decouples memory encoding from consolidation to effectively resolve the conflict between rapid context perception and stable knowledge retention. By isolating ongoing dialogue in an event progression graph and integrating it into a topic associative network only upon semantic shifts, our approach minimizes interference while preserving long-term consistency. Additionally, we introduce a graph-guided, multi-factor retrieval strategy to enhance context precision. Experiments on LoCoMo and LongDialQA indicate that our method consistently outperforms state-of-the-art baselines in both reasoning accuracy and efficiency.",
-      "authors": [
-        "Zhaofen Wu",
-        "Hanrong Zhang",
-        "Fulin Lin",
-        "Wujiang Xu",
-        "Xinran Xu",
-        "Yankai Chen",
-        "Henry Peng Zou",
-        "Shaowen Chen",
-        "Weizhi Zhang",
-        "Xue Liu",
-        "Philip S. Yu",
-        "Hongwei Wang"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI"
-      ],
-      "published": "2026-04-14T04:53:00+00:00",
-      "link": "https://arxiv.org/pdf/2604.12285v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:AGENT",
-        "query:GUIAGT"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "hierarchical graph-based memory for LLM agents",
-      "llm_evidence_cn": "大模型智能体的分层图结构记忆",
-      "llm_evidence": "大模型智能体的分层图结构记忆",
-      "canonical_evidence": "大模型智能体的分层图结构记忆",
-      "llm_tldr_en": "Proposes a graph-based memory framework to help LLM agents balance new information and long-term knowledge.",
-      "llm_tldr_cn": "提出一种基于图的记忆框架，帮助大模型智能体平衡新信息获取与长期知识保留。",
-      "llm_tldr": "提出一种基于图的记忆框架，帮助大模型智能体平衡新信息获取与长期知识保留。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Large Language Model based agents",
-      "matched_requirement_id": "req-2",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.12285v1",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.12213v1",
@@ -491,7 +140,9 @@
       ],
       "primary_category": "cs.AI",
       "categories": [
-        "cs.AI"
+        "cs.AI",
+        "cs.MA",
+        "cs.SE"
       ],
       "published": "2026-04-14T02:44:50+00:00",
       "link": "https://arxiv.org/pdf/2604.12213v1",
@@ -502,13 +153,13 @@
         "query:GUIAGT"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "Multimodal agent-to-agent communication and reasoning",
-      "llm_evidence_cn": "多模态智能体间通信与推理",
-      "llm_evidence": "多模态智能体间通信与推理",
-      "canonical_evidence": "多模态智能体间通信与推理",
-      "llm_tldr_en": "Introduces MMA2A, a protocol for preserving multimodal signals in agent-to-agent networks to improve reasoning.",
-      "llm_tldr_cn": "引入 MMA2A 协议，通过在智能体网络中保留多模态信号来提升跨模态推理准确率。",
-      "llm_tldr": "引入 MMA2A 协议，通过在智能体网络中保留多模态信号来提升跨模态推理准确率。",
+      "llm_evidence_en": "multimodal agent-to-agent network protocol and reasoning",
+      "llm_evidence_cn": "多模态智能体间网络协议与推理",
+      "llm_evidence": "多模态智能体间网络协议与推理",
+      "canonical_evidence": "多模态智能体间网络协议与推理",
+      "llm_tldr_en": "MMA2A improves cross-modal reasoning in agent networks through modality-native routing protocols.",
+      "llm_tldr_cn": "MMA2A 通过模态原生路由协议提升了智能体网络中的跨模态推理准确率。",
+      "llm_tldr": "MMA2A 通过模态原生路由协议提升了智能体网络中的跨模态推理准确率。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -517,7 +168,7 @@
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12213v1",
-      "carry_days": 2
+      "carry_days": 1
     },
     {
       "id": "2604.11641v2",
@@ -556,13 +207,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "tracing architecture for multi-stage agent workflows",
-      "llm_evidence_cn": "多阶段智能体工作流的追踪架构",
-      "llm_evidence": "多阶段智能体工作流的追踪架构",
-      "canonical_evidence": "多阶段智能体工作流的追踪架构",
-      "llm_tldr_en": "Presents CodeTracer, an architecture to reconstruct and debug state transitions in complex code agents.",
-      "llm_tldr_cn": "提出CodeTracer架构，用于重建和调试复杂代码智能体中的状态转换。",
-      "llm_tldr": "提出CodeTracer架构，用于重建和调试复杂代码智能体中的状态转换。",
+      "llm_evidence_en": "tracing agent states in multi-stage workflows",
+      "llm_evidence_cn": "在多阶段工作流中追踪智能体状态",
+      "llm_evidence": "在多阶段工作流中追踪智能体状态",
+      "canonical_evidence": "在多阶段工作流中追踪智能体状态",
+      "llm_tldr_en": "Presents CodeTracer, an architecture for debugging code agents by reconstructing full state transitions.",
+      "llm_tldr_cn": "提出了CodeTracer，一种通过重建完整状态转换来调试代码智能体的架构。",
+      "llm_tldr": "提出了CodeTracer，一种通过重建完整状态转换来调试代码智能体的架构。",
       "llm_tags": [
         "query:agent"
       ],
@@ -613,99 +264,7 @@
       "matched_requirement_id": "req-4",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12231v1",
-      "carry_days": 2
-    },
-    {
-      "id": "2604.09443v3",
-      "title": "Many-Tier Instruction Hierarchy in LLM Agents",
-      "abstract": "Large language model agents receive instructions from many sources-system messages, user prompts, tool outputs, other agents, and more-each carrying different levels of trust and authority. When these instructions conflict, agents must reliably follow the highest-privilege instruction to remain safe and effective. The dominant paradigm, instruction hierarchy (IH), assumes a fixed, small set of privilege levels (typically fewer than five) defined by rigid role labels (e.g., system > user). This is inadequate for real-world agentic settings, where conflicts can arise across far more sources and contexts. In this work, we propose Many-Tier Instruction Hierarchy (ManyIH), a paradigm for resolving instruction conflicts among instructions with arbitrarily many privilege levels. We introduce ManyIH-Bench, the first benchmark for ManyIH. ManyIH-Bench requires models to navigate up to 12 levels of conflicting instructions with varying privileges, comprising 853 agentic tasks (427 coding and 426 instruction-following). ManyIH-Bench composes constraints developed by LLMs and verified by humans to create realistic and difficult test cases spanning 46 real-world agents. Our experiments show that even the current frontier models perform poorly (~40% accuracy) when instruction conflict scales. This work underscores the urgent need for methods that explicitly target fine-grained, scalable instruction conflict resolution in agentic settings.",
-      "authors": [
-        "Jingyu Zhang",
-        "Tianjian Li",
-        "William Jurayj",
-        "Hongyuan Zhan",
-        "Benjamin Van Durme",
-        "Daniel Khashabi"
-      ],
-      "primary_category": "cs.CL",
-      "categories": [
-        "cs.CL",
-        "cs.AI"
-      ],
-      "published": "2026-04-10T16:00:04+00:00",
-      "link": "https://arxiv.org/pdf/2604.09443v3",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "resolving instruction conflicts in multi-source agent environments",
-      "llm_evidence_cn": "解决多来源智能体环境中的指令冲突",
-      "llm_evidence": "解决多来源智能体环境中的指令冲突",
-      "canonical_evidence": "解决多来源智能体环境中的指令冲突",
-      "llm_tldr_en": "Develops a paradigm for managing complex instruction privileges to ensure safe and effective agent behavior.",
-      "llm_tldr_cn": "开发了一种管理复杂指令权限的范式，以确保智能体行为的安全性和有效性。",
-      "llm_tldr": "开发了一种管理复杂指令权限的范式，以确保智能体行为的安全性和有效性。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "State of the art research on large language model agents",
-      "matched_requirement_id": "req-6",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09443v3",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.11811v1",
-      "title": "M$^\\star$: Every Task Deserves Its Own Memory Harness",
-      "abstract": "Large language model agents rely on specialized memory systems to accumulate and reuse knowledge during extended interactions. Recent architectures typically adopt a fixed memory design tailored to specific domains, such as semantic retrieval for conversations or skills reused for coding. However, a memory system optimized for one purpose frequently fails to transfer to others. To address this limitation, we introduce M$^\\star$, a method that automatically discovers task-optimized memory harnesses through executable program evolution. Specifically, M$^\\star$ models an agent memory system as a memory program written in Python. This program encapsulates the data Schema, the storage Logic, and the agent workflow Instructions. We optimize these components jointly using a reflective code evolution method; this approach employs a population-based search strategy and analyzes evaluation failures to iteratively refine the candidate programs. We evaluate M$^\\star$ on four distinct benchmarks spanning conversation, embodied planning, and expert reasoning. Our results demonstrate that M$^\\star$ improves performance over existing fixed-memory baselines robustly across all evaluated tasks. Furthermore, the evolved memory programs exhibit structurally distinct processing mechanisms for each domain. This finding indicates that specializing the memory mechanism for a given task explores a broad design space and provides a superior solution compared to general-purpose memory paradigms.",
-      "authors": [
-        "Wenbo Pan",
-        "Shujie Liu",
-        "Xiangyang Zhou",
-        "Shiwei Zhang",
-        "Wanlu Shi",
-        "Mirror Xu",
-        "Xiaohua Jia"
-      ],
-      "primary_category": "cs.PL",
-      "categories": [
-        "cs.PL",
-        "cs.AI",
-        "cs.CL",
-        "cs.LG"
-      ],
-      "published": "2026-04-10T03:22:26+00:00",
-      "link": "https://arxiv.org/pdf/2604.11811v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "Method for discovering task-optimized memory harnesses for agents",
-      "llm_evidence_cn": "为智能体发现任务优化内存管理机制的方法",
-      "llm_evidence": "为智能体发现任务优化内存管理机制的方法",
-      "canonical_evidence": "为智能体发现任务优化内存管理机制的方法",
-      "llm_tldr_en": "M* automatically evolves task-specific memory programs to improve agent performance across domains.",
-      "llm_tldr_cn": "M* 通过自动演化任务特定的内存程序来提升智能体在不同领域的表现。",
-      "llm_tldr": "M* 通过自动演化任务特定的内存程序来提升智能体在不同领域的表现。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Design patterns for agentic workflows",
-      "matched_requirement_id": "req-5",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.11811v1",
-      "carry_days": 1
+      "carry_days": 3
     },
     {
       "id": "2604.12999v1",
@@ -729,13 +288,13 @@
         "query:AGENT"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "Agentic framework for hypothesis-driven reasoning and discovery",
-      "llm_evidence_cn": "基于假设驱动推理与发现的智能体框架",
-      "llm_evidence": "基于假设驱动推理与发现的智能体框架",
-      "canonical_evidence": "基于假设驱动推理与发现的智能体框架",
-      "llm_tldr_en": "HypoExplore uses an agentic framework for neural architecture discovery through hypothesis exploration.",
-      "llm_tldr_cn": "HypoExplore利用智能体框架，通过假设探索进行神经架构发现。",
-      "llm_tldr": "HypoExplore利用智能体框架，通过假设探索进行神经架构发现。",
+      "llm_evidence_en": "agentic framework for hypothesis-driven inquiry",
+      "llm_evidence_cn": "假设驱动探究的智能体框架",
+      "llm_evidence": "假设驱动探究的智能体框架",
+      "canonical_evidence": "假设驱动探究的智能体框架",
+      "llm_tldr_en": "HypoExplore uses LLM agents to automate neural architecture discovery through active hypothesis exploration.",
+      "llm_tldr_cn": "HypoExplore利用LLM智能体通过主动假设探索实现神经架构发现的自动化。",
+      "llm_tldr": "HypoExplore利用LLM智能体通过主动假设探索实现神经架构发现的自动化。",
       "llm_tags": [
         "query:agent"
       ],
@@ -744,47 +303,6 @@
       "matched_requirement_id": "req-4",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12999v1",
-      "carry_days": 2
-    },
-    {
-      "id": "2604.09824v1",
-      "title": "ProGAL-VLA: Grounded Alignment through Prospective Reasoning in Vision-Language-Action Models",
-      "abstract": "Vision language action (VLA) models enable generalist robotic agents but often exhibit language ignorance, relying on visual shortcuts and remaining insensitive to instruction changes. We present Prospective Grounding and Alignment VLA (ProGAL-VLA), which constructs a 3D entity-centric graph (GSM), uses a slow planner to produce symbolic sub-goals, and aligns them with grounded entities via a Grounding Alignment Contrastive (GAC) loss. All actions are conditioned on a verified goal embedding $g_t$, whose attention entropy provides an intrinsic ambiguity signal. On LIBERO-Plus, ProGAL-VLA increases robustness under robot perturbations from 30.3 to 71.5 percent, reduces language ignorance by 3x-4x, and improves entity retrieval from 0.41 to 0.71 Recall@1. On the Custom Ambiguity Benchmark, it reaches AUROC 0.81 (vs. 0.52), AUPR 0.79, and raises clarification on ambiguous inputs from 0.09 to 0.81 without harming unambiguous success. The verification bottleneck increases mutual information of language-actions, the GAC loss imposes an entity-level InfoNCE bound, and attention entropy yields calibrated selective prediction, indicating that explicit verified grounding is an effective path toward instruction-sensitive, ambiguity-aware agents.",
-      "authors": [
-        "Nastaran Darabi",
-        "Amit Ranjan Trivedi"
-      ],
-      "primary_category": "cs.RO",
-      "categories": [
-        "cs.RO",
-        "cs.CL",
-        "cs.CV"
-      ],
-      "published": "2026-04-10T18:56:48+00:00",
-      "link": "https://arxiv.org/pdf/2604.09824v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "prospective reasoning and planning in vision-language-action models",
-      "llm_evidence_cn": "视觉-语言-动作模型中的前瞻性推理与规划",
-      "llm_evidence": "视觉-语言-动作模型中的前瞻性推理与规划",
-      "canonical_evidence": "视觉-语言-动作模型中的前瞻性推理与规划",
-      "llm_tldr_en": "ProGAL-VLA improves robotic agent robustness through symbolic sub-goal planning and grounding.",
-      "llm_tldr_cn": "ProGAL-VLA通过符号子目标规划和对齐提高了机器人智能体的鲁棒性。",
-      "llm_tldr": "ProGAL-VLA通过符号子目标规划和对齐提高了机器人智能体的鲁棒性。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
-      "matched_requirement_id": "req-4",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09824v1",
       "carry_days": 1
     },
     {
@@ -811,13 +329,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "compute-grounded reasoning for research agents",
-      "llm_evidence_cn": "研究型智能体的计算落地推理",
-      "llm_evidence": "研究型智能体的计算落地推理",
-      "canonical_evidence": "研究型智能体的计算落地推理",
-      "llm_tldr_en": "Spatial Atlas uses compute-grounded reasoning to solve spatial and ML engineering tasks.",
-      "llm_tldr_cn": "Spatial Atlas利用计算落地推理来解决空间感知和机器学习工程任务。",
-      "llm_tldr": "Spatial Atlas利用计算落地推理来解决空间感知和机器学习工程任务。",
+      "llm_evidence_en": "Compute-grounded reasoning for spatial-aware research agents",
+      "llm_evidence_cn": "空间感知研究智能体的计算落地推理",
+      "llm_evidence": "空间感知研究智能体的计算落地推理",
+      "canonical_evidence": "空间感知研究智能体的计算落地推理",
+      "llm_tldr_en": "Proposes a reasoning paradigm that resolves sub-problems via computation before LLM generation for spatial tasks.",
+      "llm_tldr_cn": "提出一种推理范式，在空间任务中先通过确定性计算解决子问题再由模型生成。",
+      "llm_tldr": "提出一种推理范式，在空间任务中先通过确定性计算解决子问题再由模型生成。",
       "llm_tags": [
         "query:agent"
       ],
@@ -826,45 +344,6 @@
       "matched_requirement_id": "req-4",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12102v2",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.08987v1",
-      "title": "PilotBench: A Benchmark for General Aviation Agents with Safety Constraints",
-      "abstract": "As Large Language Models (LLMs) advance toward embodied AI agents operating in physical environments, a fundamental question emerges: can models trained on text corpora reliably reason about complex physics while adhering to safety constraints? We address this through PilotBench, a benchmark evaluating LLMs on safety-critical flight trajectory and attitude prediction. Built from 708 real-world general aviation trajectories spanning nine operationally distinct flight phases with synchronized 34-channel telemetry, PilotBench systematically probes the intersection of semantic understanding and physics-governed prediction through comparative analysis of LLMs and traditional forecasters. We introduce Pilot-Score, a composite metric balancing 60% regression accuracy with 40% instruction adherence and safety compliance. Comparative evaluation across 41 models uncovers a Precision-Controllability Dichotomy: traditional forecasters achieve superior MAE of 7.01 but lack semantic reasoning capabilities, while LLMs gain controllability with 86--89% instruction-following at the cost of 11--14 MAE precision. Phase-stratified analysis further exposes a Dynamic Complexity Gap-LLM performance degrades sharply in high-workload phases such as Climb and Approach, suggesting brittle implicit physics models. These empirical discoveries motivate hybrid architectures combining LLMs' symbolic reasoning with specialized forecasters' numerical precision. PilotBench provides a rigorous foundation for advancing embodied AI in safety-constrained domains.",
-      "authors": [
-        "Yalun Wu",
-        "Haotian Liu",
-        "Zhoujun Li",
-        "Boyang Wang"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI"
-      ],
-      "published": "2026-04-10T05:48:38+00:00",
-      "link": "https://arxiv.org/pdf/2604.08987v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:GUIAGT"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "Benchmark for LLM agents in safety-critical physical environments",
-      "llm_evidence_cn": "针对安全关键物理环境的大模型智能体基准测试",
-      "llm_evidence": "针对安全关键物理环境的大模型智能体基准测试",
-      "canonical_evidence": "针对安全关键物理环境的大模型智能体基准测试",
-      "llm_tldr_en": "PilotBench evaluates LLM agents on safety-critical flight trajectory and physics-governed prediction.",
-      "llm_tldr_cn": "PilotBench 评估大模型智能体在安全关键飞行轨迹和物理预测中的表现。",
-      "llm_tldr": "PilotBench 评估大模型智能体在安全关键飞行轨迹和物理预测中的表现。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08987v1",
       "carry_days": 1
     },
     {
@@ -888,22 +367,23 @@
       "link": "https://arxiv.org/pdf/2604.13954v1",
       "tags": [
         "keyword:AGENT",
+        "keyword:OPCLW",
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "benchmark for evaluating intrinsic agent safety and long-horizon execution",
-      "llm_evidence_cn": "评估智能体内在安全性和长程执行的基准测试",
-      "llm_evidence": "评估智能体内在安全性和长程执行的基准测试",
-      "canonical_evidence": "评估智能体内在安全性和长程执行的基准测试",
-      "llm_tldr_en": "Introduces HINTBench to evaluate intrinsic safety risks in long-horizon agent trajectories.",
-      "llm_tldr_cn": "引入 HINTBench 基准，用于评估智能体在长程执行中的内在安全风险。",
-      "llm_tldr": "引入 HINTBench 基准，用于评估智能体在长程执行中的内在安全风险。",
+      "llm_evidence_en": "benchmark for evaluating intrinsic risk and safety in agent trajectories",
+      "llm_evidence_cn": "用于评估智能体轨迹中内在风险和安全性的基准",
+      "llm_evidence": "用于评估智能体轨迹中内在风险和安全性的基准",
+      "canonical_evidence": "用于评估智能体轨迹中内在风险和安全性的基准",
+      "llm_tldr_en": "Presents HINTBench to audit intrinsic safety risks in long-horizon agent executions under benign conditions.",
+      "llm_tldr_cn": "提出HINTBench，用于审计良性条件下长程智能体执行中的内在安全风险。",
+      "llm_tldr": "提出HINTBench，用于审计良性条件下长程智能体执行中的内在安全风险。",
       "llm_tags": [
-        "query:agent"
+        "query:guiagt"
       ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "State of the art research on large language model agents",
-      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:guiagt",
+      "matched_query_text": "benchmarks for evaluating GUI agents",
+      "matched_requirement_id": "req-16",
       "selection_source": "carryover_cache",
       "paper_id": "2604.13954v1",
       "carry_days": 1
@@ -945,7 +425,7 @@
       "matched_requirement_id": "req-5",
       "selection_source": "carryover_cache",
       "paper_id": "2604.13102v1",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.09746v1",
@@ -992,7 +472,7 @@
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
       "paper_id": "2604.09746v1",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.12177v1",
@@ -1033,7 +513,7 @@
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12177v1",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.13345v1",
@@ -1058,58 +538,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "multi-agent framework based on LLM natural language interface for system control",
-      "llm_evidence_cn": "基于大模型自然语言接口进行系统控制的多智能体框架",
-      "llm_evidence": "基于大模型自然语言接口进行系统控制的多智能体框架",
-      "canonical_evidence": "基于大模型自然语言接口进行系统控制的多智能体框架",
-      "llm_tldr_en": "Implements a multi-agent object detection system using LLMs for natural language control on edge devices.",
-      "llm_tldr_cn": "在边缘设备上实现了一个使用大模型进行自然语言控制的多智能体目标检测系统。",
-      "llm_tldr": "在边缘设备上实现了一个使用大模型进行自然语言控制的多智能体目标检测系统。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Large Language Model based agents",
-      "matched_requirement_id": "req-2",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.13345v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.08538v2",
-      "title": "ParseBench: A Document Parsing Benchmark for AI Agents",
-      "abstract": "AI agents are changing the requirements for document parsing. What matters is \\emph{semantic correctness}: parsed output must preserve the structure and meaning needed for autonomous decisions, including correct table structure, precise chart data, semantically meaningful formatting, and visual grounding. Existing benchmarks do not fully capture this setting for enterprise automation, relying on narrow document distributions and text-similarity metrics that miss agent-critical failures. We introduce \\textbf{ParseBench}, a benchmark of ${\\sim}2{,}000$ human-verified pages from enterprise documents spanning insurance, finance, and government, organized around five capability dimensions: tables, charts, content faithfulness, semantic formatting, and visual grounding. Across 14 methods spanning vision-language models, specialized document parsers, and LlamaParse, the benchmark reveals a fragmented capability landscape: no method is consistently strong across all five dimensions. LlamaParse Agentic achieves the highest overall score at \\agenticoverall\\%, and the benchmark highlights the remaining capability gaps across current systems. Dataset and evaluation code are available on https://huggingface.co/datasets/llamaindex/ParseBench and https://github.com/run-llama/ParseBench.",
-      "authors": [
-        "Boyang Zhang",
-        "Sebastián G. Acosta",
-        "Preston Carlson",
-        "Sacha Bron",
-        "Pierre-Loïc Doulcet",
-        "Daniel B. Ospina",
-        "Simon Suo"
-      ],
-      "primary_category": "cs.CV",
-      "categories": [
-        "cs.CV"
-      ],
-      "published": "2026-04-09T17:59:36+00:00",
-      "link": "https://arxiv.org/pdf/2604.08538v2",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "Document parsing benchmark for autonomous agent decisions",
-      "llm_evidence_cn": "面向智能体自主决策的文档解析基准测试",
-      "llm_evidence": "面向智能体自主决策的文档解析基准测试",
-      "canonical_evidence": "面向智能体自主决策的文档解析基准测试",
-      "llm_tldr_en": "Introduces ParseBench to evaluate document parsing quality based on semantic correctness for AI agents.",
-      "llm_tldr_cn": "引入ParseBench基准，从语义正确性维度评估文档解析对智能体决策的影响。",
-      "llm_tldr": "引入ParseBench基准，从语义正确性维度评估文档解析对智能体决策的影响。",
+      "llm_evidence_en": "Multi-agent orchestration with LLM interface",
+      "llm_evidence_cn": "基于大模型接口的多智能体编排",
+      "llm_evidence": "基于大模型接口的多智能体编排",
+      "canonical_evidence": "基于大模型接口的多智能体编排",
+      "llm_tldr_en": "Presents an edge-based multi-agent framework for object detection using LLM interfaces.",
+      "llm_tldr_cn": "展示了一个基于边缘计算的多智能体框架，利用大模型接口进行目标检测。",
+      "llm_tldr": "展示了一个基于边缘计算的多智能体框架，利用大模型接口进行目标检测。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1117,7 +552,7 @@
       "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
-      "paper_id": "2604.08538v2",
+      "paper_id": "2604.13345v1",
       "carry_days": 1
     },
     {
@@ -1144,13 +579,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "Cost-aware problem solving for autonomous coding agents",
-      "llm_evidence_cn": "自主编程智能体的成本感知型问题解决",
-      "llm_evidence": "自主编程智能体的成本感知型问题解决",
-      "canonical_evidence": "自主编程智能体的成本感知型问题解决",
-      "llm_tldr_en": "Introduces USACOArena to evaluate how coding agents balance accuracy with compute and time resource constraints.",
-      "llm_tldr_cn": "引入USACOArena，评估编程智能体在计算和时间资源限制下的策略权衡能力。",
-      "llm_tldr": "引入USACOArena，评估编程智能体在计算和时间资源限制下的策略权衡能力。",
+      "llm_evidence_en": "evaluating autonomous coding agents under resource constraints",
+      "llm_evidence_cn": "在资源限制下评估自主编程智能体",
+      "llm_evidence": "在资源限制下评估自主编程智能体",
+      "canonical_evidence": "在资源限制下评估自主编程智能体",
+      "llm_tldr_en": "Introduces USACOArena to evaluate how coding agents balance accuracy with compute and time costs.",
+      "llm_tldr_cn": "引入USACOArena，在严格预算限制下评估编程智能体在准确率与成本间的权衡。",
+      "llm_tldr": "引入USACOArena，在严格预算限制下评估编程智能体在准确率与成本间的权衡。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1185,48 +620,13 @@
         "query:AGENT"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "Agent-based framework for generating LLM memory datasets",
-      "llm_evidence_cn": "基于智能体的LLM记忆数据集生成框架",
-      "llm_evidence": "基于智能体的LLM记忆数据集生成框架",
-      "canonical_evidence": "基于智能体的LLM记忆数据集生成框架",
-      "llm_tldr_en": "Uses LLM agents to generate persona-grounded conversations for fine-tuning and evaluating model memory.",
-      "llm_tldr_cn": "利用智能体生成基于人格的对话，用于微调和评估大语言模型的长短期记忆能力。",
-      "llm_tldr": "利用智能体生成基于人格的对话，用于微调和评估大语言模型的长短期记忆能力。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.12179v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.12948v1",
-      "title": "Drawing on Memory: Dual-Trace Encoding Improves Cross-Session Recall in LLM Agents",
-      "abstract": "LLM agents with persistent memory store information as flat factual records, providing little context for temporal reasoning, change tracking, or cross-session aggregation. Inspired by the drawing effect [3], we introduce dual-trace memory encoding. In this method, each stored fact is paired with a concrete scene trace, a narrative reconstruction of the moment and context in which the information was learned. The agent is forced to commit to specific contextual details during encoding, creating richer, more distinctive memory traces. Using the LongMemEval-S benchmark (4,575 sessions, 100 recall questions), we compare dual-trace encoding against a fact-only control with matched coverage and format over 99 shared questions. Dual-trace achieves 73.7% overall accuracy versus 53.5%, a +20.2 percentage point (pp) gain (95% CI: [+12.1, +29.3], bootstrap p < 0.0001). Gains concentrate in temporal reasoning (+40pp), knowledge-update tracking (+25pp), and multi-session aggregation (+30pp), with no benefit for single-session retrieval, consistent with encoding specificity theory [8]. Token analysis shows dual-trace encoding achieves this gain at no additional cost. We additionally sketch an architectural design for adapting dual-trace encoding to coding agents, with preliminary pilot validation.",
-      "authors": [
-        "Benjamin Stern",
-        "Peter Nadel"
-      ],
-      "primary_category": "cs.AI",
-      "categories": [
-        "cs.AI"
-      ],
-      "published": "2026-04-14T16:45:06+00:00",
-      "link": "https://arxiv.org/pdf/2604.12948v1",
-      "tags": [
-        "keyword:AGENT"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "improving memory and recall in LLM agents",
-      "llm_evidence_cn": "改进大模型智能体的记忆与召回",
-      "llm_evidence": "改进大模型智能体的记忆与召回",
-      "canonical_evidence": "改进大模型智能体的记忆与召回",
-      "llm_tldr_en": "Proposes dual-trace memory encoding to improve cross-session recall and temporal reasoning in LLM agents.",
-      "llm_tldr_cn": "提出双迹记忆编码方法，旨在提升大模型智能体的跨会话召回和时间推理能力。",
-      "llm_tldr": "提出双迹记忆编码方法，旨在提升大模型智能体的跨会话召回和时间推理能力。",
+      "llm_evidence_en": "agent-based framework for fine-tuning and evaluating LLM memory",
+      "llm_evidence_cn": "用于微调和评估大模型记忆的智能体框架",
+      "llm_evidence": "用于微调和评估大模型记忆的智能体框架",
+      "canonical_evidence": "用于微调和评估大模型记忆的智能体框架",
+      "llm_tldr_en": "A modular agent framework that generates topic-guided conversations to evaluate and improve LLM memory capabilities.",
+      "llm_tldr_cn": "一种模块化智能体框架，通过生成主题引导的对话来评估和提升大模型的记忆能力。",
+      "llm_tldr": "一种模块化智能体框架，通过生成主题引导的对话来评估和提升大模型的记忆能力。",
       "llm_tags": [
         "query:agent"
       ],
@@ -1234,52 +634,7 @@
       "matched_query_text": "Large Language Model based agents",
       "matched_requirement_id": "req-2",
       "selection_source": "carryover_cache",
-      "paper_id": "2604.12948v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.08970v1",
-      "title": "Litmus (Re)Agent: A Benchmark and Agentic System for Predictive Evaluation of Multilingual Models",
-      "abstract": "We study predictive multilingual evaluation: estimating how well a model will perform on a task in a target language when direct benchmark results are missing. This problem is common in multilingual deployment, where evaluation coverage is sparse and published evidence is uneven across languages, tasks, and model families. We introduce a controlled benchmark of 1,500 questions spanning six tasks and five evidence scenarios. The benchmark separates accessible evidence from ground truth, enabling evaluation of systems that must infer missing results from incomplete literature evidence. We also present Litmus (Re)Agent, a DAG-orchestrated agentic system that decomposes queries into hypotheses, retrieves evidence, and synthesises predictions through feature-aware aggregation. Across six systems, Litmus (Re)Agent achieves the best overall performance, with the largest gains in transfer-heavy scenarios where direct evidence is weak or absent. These results show that structured agentic reasoning is a promising approach to multilingual performance estimation under incomplete evidence.",
-      "authors": [
-        "Avni Mittal",
-        "Shanu Kumar",
-        "Sandipan Dandapat",
-        "Monojit Choudhury"
-      ],
-      "primary_category": "cs.CL",
-      "categories": [
-        "cs.CL",
-        "cs.AI",
-        "cs.HC",
-        "cs.MA"
-      ],
-      "published": "2026-04-10T05:16:33+00:00",
-      "link": "https://arxiv.org/pdf/2604.08970v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "DAG-orchestrated agentic system for multilingual evaluation",
-      "llm_evidence_cn": "用于多语言评估的DAG编排智能体系统",
-      "llm_evidence": "用于多语言评估的DAG编排智能体系统",
-      "canonical_evidence": "用于多语言评估的DAG编排智能体系统",
-      "llm_tldr_en": "Presents Litmus (Re)Agent, a system that decomposes queries and retrieves evidence for predictive evaluation.",
-      "llm_tldr_cn": "展示了Litmus (Re)Agent系统，通过分解查询和检索证据来进行预测性多语言评估。",
-      "llm_tldr": "展示了Litmus (Re)Agent系统，通过分解查询和检索证据来进行预测性多语言评估。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08970v1",
+      "paper_id": "2604.12179v1",
       "carry_days": 1
     },
     {
@@ -1319,145 +674,7 @@
       "matched_requirement_id": "req-2",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12250v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.13552v1",
-      "title": "Training-Free Test-Time Contrastive Learning for Large Language Models",
-      "abstract": "Large language models (LLMs) demonstrate strong reasoning capabilities, but their performance often degrades under distribution shift. Existing test-time adaptation (TTA) methods rely on gradient-based updates that require white-box access and need substantial overhead, while training-free alternatives are either static or depend on external guidance. In this paper, we propose Training-Free Test-Time Contrastive Learning TF-TTCL, a training-free adaptation framework that enables a frozen LLM to improve online by distilling supervision from its own inference experiences. Specifically, TF-TTCL implements a dynamic \"Explore-Reflect-Steer\" loop through three core modules: 1) Semantic Query Augmentation first diversifies problem views via multi-agent role-playing to generate different reasoning trajectories; 2) Contrastive Experience Distillation then captures the semantic gap between superior and inferior trajectories, distilling them into explicit textual rules; and 3) Contextual Rule Retrieval finally activates these stored rules during inference to dynamically steer the frozen LLM toward robust reasoning patterns while avoiding observed errors. Extensive experiments on closed-ended reasoning tasks and open-ended evaluation tasks demonstrate that TF-TTCL consistently outperforms strong zero-shot baselines and representative TTA methods under online evaluation. Code is available at https://github.com/KevinSCUTer/TF-TTCL.",
-      "authors": [
-        "Kaiwen Zheng",
-        "Kai Zhou",
-        "Jinwu Hu",
-        "Te Gu",
-        "Mingkai Peng",
-        "Fei Liu"
-      ],
-      "primary_category": "cs.CL",
-      "categories": [
-        "cs.CL",
-        "cs.AI"
-      ],
-      "published": "2026-04-15T06:56:35+00:00",
-      "link": "https://arxiv.org/pdf/2604.13552v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "query:AGENT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "multi-agent role-playing for reasoning and reflection",
-      "llm_evidence_cn": "多智能体角色扮演用于推理与反思",
-      "llm_evidence": "多智能体角色扮演用于推理与反思",
-      "canonical_evidence": "多智能体角色扮演用于推理与反思",
-      "llm_tldr_en": "Proposes a training-free adaptation framework using multi-agent loops to improve LLM reasoning online.",
-      "llm_tldr_cn": "提出一种无需训练的自适应框架，通过多智能体循环在线提升大模型的推理能力。",
-      "llm_tldr": "提出一种无需训练的自适应框架，通过多智能体循环在线提升大模型的推理能力。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
-      "matched_requirement_id": "req-4",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.13552v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.13630v1",
-      "title": "SafeHarness: Lifecycle-Integrated Security Architecture for LLM-based Agent Deployment",
-      "abstract": "The performance of large language model (LLM) agents depends critically on the execution harness, the system layer that orchestrates tool use, context management, and state persistence. Yet this same architectural centrality makes the harness a high-value attack surface: a single compromise at the harness level can cascade through the entire execution pipeline. We observe that existing security approaches suffer from structural mismatch, leaving them blind to harness-internal state and unable to coordinate across the different phases of agent operation. In this paper, we introduce \\safeharness{}, a security architecture in which four proposed defense layers are woven directly into the agent lifecycle to address above significant limitations: adversarial context filtering at input processing, tiered causal verification at decision making, privilege-separated tool control at action execution, and safe rollback with adaptive degradation at state update. The proposed cross-layer mechanisms tie these layers together, escalating verification rigor, triggering rollbacks, and tightening tool privileges whenever sustained anomalies are detected. We evaluate \\safeharness{} on benchmark datasets across diverse harness configurations, comparing against four security baselines under five attack scenarios spanning six threat categories. Compared to the unprotected baseline, \\safeharness{} achieves an average reduction of approximately 38\\% in UBR and 42\\% in ASR, substantially lowering both the unsafe behavior rate and the attack success rate while preserving core task utility.",
-      "authors": [
-        "Xixun Lin",
-        "Yang Liu",
-        "Yancheng Chen",
-        "Yongxuan Wu",
-        "Yucheng Ning",
-        "Yilong Liu",
-        "Nan Sun",
-        "Shun Zhang",
-        "Bin Chong",
-        "Chuan Zhou",
-        "Yanan Cao",
-        "Li Guo"
-      ],
-      "primary_category": "cs.CR",
-      "categories": [
-        "cs.CR",
-        "cs.AI"
-      ],
-      "published": "2026-04-15T08:59:00+00:00",
-      "link": "https://arxiv.org/pdf/2604.13630v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "security architecture for LLM-based agent deployment and tool use",
-      "llm_evidence_cn": "大模型智能体部署与工具使用的安全架构",
-      "llm_evidence": "大模型智能体部署与工具使用的安全架构",
-      "canonical_evidence": "大模型智能体部署与工具使用的安全架构",
-      "llm_tldr_en": "Proposes SafeHarness, a security architecture integrated into the LLM agent lifecycle to protect the execution layer.",
-      "llm_tldr_cn": "提出SafeHarness安全架构，将其织入智能体生命周期以保护执行层免受攻击。",
-      "llm_tldr": "提出SafeHarness安全架构，将其织入智能体生命周期以保护执行层免受攻击。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.13630v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.13800v1",
-      "title": "EmbodiedClaw: Conversational Workflow Execution for Embodied AI Development",
-      "abstract": "Embodied AI research is increasingly moving beyond single-task, single-environment policy learning toward multi-task, multi-scene, and multi-model settings. This shift substantially increases the engineering overhead and development time required for stages such as evaluation environment construction, trajectory collection, model training, and evaluation. To address this challenge, we propose a new paradigm for embodied AI development in which users express goals and constraints through conversation, and the system automatically plans and executes the development workflow. We instantiate this paradigm with EmbodiedClaw, a conversational agent that turns high-frequency, high-cost embodied research activities, including environment creation and revision, benchmark transformation, trajectory synthesis, model evaluation, and asset expansion, into executable skills. Experiments on end-to-end workflow tasks, capability-specific evaluations, human researcher studies, and ablations show that EmbodiedClaw reduces manual engineering effort while improving executability, consistency, and reproducibility. These results suggest a shift from manual toolchains to conversationally executable workflows for embodied AI development.",
-      "authors": [
-        "Xueyang Zhou",
-        "Yihan Sun",
-        "Xijie Gong",
-        "Guiyao Tie",
-        "Pan Zhou",
-        "Lichao Sun",
-        "Yongchao Chen"
-      ],
-      "primary_category": "cs.RO",
-      "categories": [
-        "cs.RO"
-      ],
-      "published": "2026-04-15T12:36:59+00:00",
-      "link": "https://arxiv.org/pdf/2604.13800v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "EmbodiedClaw conversational agent for development workflows",
-      "llm_evidence_cn": "用于开发工作流的EmbodiedClaw对话智能体",
-      "llm_evidence": "用于开发工作流的EmbodiedClaw对话智能体",
-      "canonical_evidence": "用于开发工作流的EmbodiedClaw对话智能体",
-      "llm_tldr_en": "Presents EmbodiedClaw, a conversational agent that automates embodied AI research development workflows.",
-      "llm_tldr_cn": "推出EmbodiedClaw，一个通过对话自动规划和执行具身智能研究开发工作流的智能体。",
-      "llm_tldr": "推出EmbodiedClaw，一个通过对话自动规划和执行具身智能研究开发工作流的智能体。",
-      "llm_tags": [
-        "query:opclw:composite"
-      ],
-      "matched_query_tag": "query:opclw:composite",
-      "matched_query_text": "Papers central to 帮我查找openclaw相关的文章, especially work that connects or combines: S; OpenClaw engine project; evaluating openclaw safety; training openclaw.",
-      "matched_requirement_id": "req-composite-opclw",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.13800v1",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.13579v1",
@@ -1509,52 +726,7 @@
       "matched_requirement_id": "req-composite-agent",
       "selection_source": "carryover_cache",
       "paper_id": "2604.13579v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.08538v3",
-      "title": "ParseBench: A Document Parsing Benchmark for AI Agents",
-      "abstract": "AI agents are changing the requirements for document parsing. What matters is semantic correctness: parsed output must preserve the structure and meaning needed for autonomous decisions, including correct table structure, precise chart data, semantically meaningful formatting, and visual grounding. Existing benchmarks do not fully capture this setting for enterprise automation, relying on narrow document distributions and text-similarity metrics that miss agent-critical failures. We introduce ParseBench, a benchmark of ${\\sim}2{,}000$ human-verified pages from enterprise documents spanning insurance, finance, and government, organized around five capability dimensions: tables, charts, content faithfulness, semantic formatting, and visual grounding. Across 14 methods spanning vision-language models, specialized document parsers, and LlamaParse, the benchmark reveals a fragmented capability landscape: no method is consistently strong across all five dimensions. LlamaParse Agentic achieves the highest overall score at 84.9%, and the benchmark highlights the remaining capability gaps across current systems. Dataset and evaluation code are available on https://huggingface.co/datasets/llamaindex/ParseBench and https://github.com/run-llama/ParseBench.",
-      "authors": [
-        "Boyang Zhang",
-        "Sebastián G. Acosta",
-        "Preston Carlson",
-        "Sacha Bron",
-        "Pierre-Loïc Doulcet",
-        "Daniel B. Ospina",
-        "Simon Suo"
-      ],
-      "primary_category": "cs.CV",
-      "categories": [
-        "cs.CV"
-      ],
-      "published": "2026-04-09T17:59:36+00:00",
-      "link": "https://arxiv.org/pdf/2604.08538v3",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:AGENT",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "document parsing benchmark for autonomous agent decisions",
-      "llm_evidence_cn": "用于自主智能体决策的文档解析基准",
-      "llm_evidence": "用于自主智能体决策的文档解析基准",
-      "canonical_evidence": "用于自主智能体决策的文档解析基准",
-      "llm_tldr_en": "A benchmark focusing on semantic document parsing accuracy required for autonomous agent decision-making.",
-      "llm_tldr_cn": "一个专注于自主智能体决策所需的语义文档解析准确性的基准测试。",
-      "llm_tldr": "一个专注于自主智能体决策所需的语义文档解析准确性的基准测试。",
-      "llm_tags": [
-        "query:agent:composite"
-      ],
-      "matched_query_tag": "query:agent:composite",
-      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
-      "matched_requirement_id": "req-composite-agent",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.08538v3",
-      "carry_days": 1
+      "carry_days": 2
     },
     {
       "id": "2604.13151v1",
@@ -1583,13 +755,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "measuring exploration and exploitation in LM agents",
-      "llm_evidence_cn": "衡量语言模型智能体的探索与利用能力",
-      "llm_evidence": "衡量语言模型智能体的探索与利用能力",
-      "canonical_evidence": "衡量语言模型智能体的探索与利用能力",
-      "llm_tldr_en": "Develops environments to quantify exploration and exploitation errors in open-ended agent decision-making.",
-      "llm_tldr_cn": "开发了可控环境，用于量化语言模型智能体在开放式决策中的探索与利用误差。",
-      "llm_tldr": "开发了可控环境，用于量化语言模型智能体在开放式决策中的探索与利用误差。",
+      "llm_evidence_en": "measuring exploration and exploitation in agents",
+      "llm_evidence_cn": "衡量智能体的探索与利用能力",
+      "llm_evidence": "衡量智能体的探索与利用能力",
+      "canonical_evidence": "衡量智能体的探索与利用能力",
+      "llm_tldr_en": "Develops a method to quantify exploration and exploitation errors in LLM agents using controllable environments.",
+      "llm_tldr_cn": "开发了一种在可控环境中量化大模型智能体探索与利用误差的方法。",
+      "llm_tldr": "开发了一种在可控环境中量化大模型智能体探索与利用误差的方法。",
       "llm_tags": [
         "query:agent"
       ],
@@ -1625,13 +797,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "multi-agent LLM framework with reflection-based reasoning",
-      "llm_evidence_cn": "基于反思推理的多智能体大模型框架",
-      "llm_evidence": "基于反思推理的多智能体大模型框架",
-      "canonical_evidence": "基于反思推理的多智能体大模型框架",
-      "llm_tldr_en": "Uses a hierarchical multi-agent system with reflection to bridge communication gaps in network troubleshooting.",
-      "llm_tldr_cn": "采用具有反思能力的层级化多智能体系统，解决网络故障排查中的沟通鸿沟。",
-      "llm_tldr": "采用具有反思能力的层级化多智能体系统，解决网络故障排查中的沟通鸿沟。",
+      "llm_evidence_en": "Multi-agent LLM framework with reflection-based reasoning for troubleshooting",
+      "llm_evidence_cn": "具有基于反思推理的多智能体LLM框架用于故障排除",
+      "llm_evidence": "具有基于反思推理的多智能体LLM框架用于故障排除",
+      "canonical_evidence": "具有基于反思推理的多智能体LLM框架用于故障排除",
+      "llm_tldr_en": "Develops a hierarchical multi-agent architecture for translating user queries into technical network diagnostics.",
+      "llm_tldr_cn": "开发了一种分层多智能体架构，将用户查询转化为技术性的网络诊断建议。",
+      "llm_tldr": "开发了一种分层多智能体架构，将用户查询转化为技术性的网络诊断建议。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1669,13 +841,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "systematic study of agent filesystem misuse and safety",
-      "llm_evidence_cn": "对智能体文件系统误用和安全性的系统研究",
-      "llm_evidence": "对智能体文件系统误用和安全性的系统研究",
-      "canonical_evidence": "对智能体文件系统误用和安全性的系统研究",
-      "llm_tldr_en": "Proposes YoloFS, an agent-native filesystem to improve safety and autonomy in AI coding agents.",
-      "llm_tldr_cn": "提出 YoloFS，一种面向智能体的文件系统，旨在提高 AI 编程智能体的安全性和自主性。",
-      "llm_tldr": "提出 YoloFS，一种面向智能体的文件系统，旨在提高 AI 编程智能体的安全性和自主性。",
+      "llm_evidence_en": "Safety and control for AI coding agents",
+      "llm_evidence_cn": "AI编码智能体的安全与控制",
+      "llm_evidence": "AI编码智能体的安全与控制",
+      "canonical_evidence": "AI编码智能体的安全与控制",
+      "llm_tldr_en": "Introduces YoloFS, an agent-native filesystem designed to improve agent safety and autonomy.",
+      "llm_tldr_cn": "引入YoloFS，这是一种智能体原生文件系统，旨在提高智能体的安全性和自主性。",
+      "llm_tldr": "引入YoloFS，这是一种智能体原生文件系统，旨在提高智能体的安全性和自主性。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1710,13 +882,13 @@
         "query:GUIAGT"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "evaluating coding agents on general business process automation",
-      "llm_evidence_cn": "评估编程智能体在通用业务流程自动化中的表现",
-      "llm_evidence": "评估编程智能体在通用业务流程自动化中的表现",
-      "canonical_evidence": "评估编程智能体在通用业务流程自动化中的表现",
-      "llm_tldr_en": "Investigates the generalizability of coding agents to complex end-to-end business tasks.",
-      "llm_tldr_cn": "研究编程智能体在复杂的端到端业务任务中的通用化能力。",
-      "llm_tldr": "研究编程智能体在复杂的端到端业务任务中的通用化能力。",
+      "llm_evidence_en": "Generalization of coding agents to business process automation",
+      "llm_evidence_cn": "代码智能体向业务流程自动化的泛化能力",
+      "llm_evidence": "代码智能体向业务流程自动化的泛化能力",
+      "canonical_evidence": "代码智能体向业务流程自动化的泛化能力",
+      "llm_tldr_en": "Evaluates whether specialized coding agents can generalize to complex end-to-end business automation tasks.",
+      "llm_tldr_cn": "评估专门的代码智能体是否能泛化到复杂的端到端业务自动化任务中。",
+      "llm_tldr": "评估专门的代码智能体是否能泛化到复杂的端到端业务自动化任务中。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1754,13 +926,13 @@
         "query:GUIAGT"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "replication primitive for constant-time instantiation of stateful agents",
-      "llm_evidence_cn": "有状态智能体常数时间实例化的复制原语",
-      "llm_evidence": "有状态智能体常数时间实例化的复制原语",
-      "canonical_evidence": "有状态智能体常数时间实例化的复制原语",
-      "llm_tldr_en": "Introduces Aethon to optimize the instantiation and runtime architecture of stateful AI agents.",
-      "llm_tldr_cn": "引入 Aethon 以优化有状态 AI 智能体的实例化过程和运行时架构。",
-      "llm_tldr": "引入 Aethon 以优化有状态 AI 智能体的实例化过程和运行时架构。",
+      "llm_evidence_en": "runtime architecture for stateful agents",
+      "llm_evidence_cn": "有状态智能体的运行时架构",
+      "llm_evidence": "有状态智能体的运行时架构",
+      "canonical_evidence": "有状态智能体的运行时架构",
+      "llm_tldr_en": "Introduces Aethon, a system primitive for near-constant-time instantiation of stateful AI agents.",
+      "llm_tldr_cn": "引入Aethon，一种用于有状态AI智能体近乎常数时间实例化的系统原语。",
+      "llm_tldr": "引入Aethon，一种用于有状态AI智能体近乎常数时间实例化的系统原语。",
       "llm_tags": [
         "query:agent"
       ],
@@ -1769,47 +941,6 @@
       "matched_requirement_id": "req-5",
       "selection_source": "carryover_cache",
       "paper_id": "2604.12129v1",
-      "carry_days": 1
-    },
-    {
-      "id": "2604.09493v1",
-      "title": "Policy-Aware Edge LLM-RAG Framework for Internet of Battlefield Things Mission Orchestration",
-      "abstract": "Large Language Models (LLMs) offer a promising interface for intent-driven control of autonomous cyber-physical systems, but their direct use in mission-critical Internet of Battlefield Things (IoBT) environments raises significant safety, reliability, and policy-compliance concerns. This paper presents a Policy-Aware Large Language Model Retrieval-Augmented Generation (referred as PA-LLM-RAG), an edge-deployed LLM orchestration framework for IoBT mission control that integrates retrieval-augmented reasoning and independent command verification. The proposed PA-LLM-RAG framework combines a lightweight retrieval module that grounds decisions in operational policies and telemetry with a locally hosted LLM for mission planning and a secondary JudgeLLM for validating user generated commands prior to execution.   To evaluate PA-LLM-RAG, we implement a simulated IoBT environment using RoboDK and assess four open-source LLMs across controlled mission scenarios of increasing complexity, including baseline operations, threat detection, coverage recovery, multi-event coordination, and policy-violation requests. Experimental results demonstrate that the framework effectively detects policy-violating commands while maintaining low-latency response suitable for edge deployment. Gemma-2B achieving the highest overall reliability with 4.17 sec latency and 100% success rate. The findings highlight a clear tradeoff between reasoning capacity and responsiveness across models and show that combining deterministic safeguards with JudgeLLM verification significantly improves reliability in LLM-driven IoBT orchestration.",
-      "authors": [
-        "Om Solanki",
-        "Lopamudra Praharaj",
-        "Deepti Gupta",
-        "Maanak Gupta"
-      ],
-      "primary_category": "cs.NI",
-      "categories": [
-        "cs.NI"
-      ],
-      "published": "2026-04-10T17:01:37+00:00",
-      "link": "https://arxiv.org/pdf/2604.09493v1",
-      "tags": [
-        "keyword:AGENT",
-        "keyword:GUIAGT",
-        "keyword:OPCLW",
-        "query:GUIAGT",
-        "query:OPCLW"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "LLM orchestration for mission planning and reasoning in autonomous systems",
-      "llm_evidence_cn": "自主系统中用于任务规划和推理的LLM编排",
-      "llm_evidence": "自主系统中用于任务规划和推理的LLM编排",
-      "canonical_evidence": "自主系统中用于任务规划和推理的LLM编排",
-      "llm_tldr_en": "PA-LLM-RAG provides a policy-aware framework for mission orchestration and reasoning in battlefield environments.",
-      "llm_tldr_cn": "PA-LLM-RAG为战场环境下的任务编排和推理提供了一个策略感知框架。",
-      "llm_tldr": "PA-LLM-RAG为战场环境下的任务编排和推理提供了一个策略感知框架。",
-      "llm_tags": [
-        "query:agent"
-      ],
-      "matched_query_tag": "query:agent",
-      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
-      "matched_requirement_id": "req-4",
-      "selection_source": "carryover_cache",
-      "paper_id": "2604.09493v1",
       "carry_days": 1
     },
     {
@@ -1834,13 +965,13 @@
         "query:OPCLW"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "security and safety for agents with execution capability",
-      "llm_evidence_cn": "具有执行能力的智能体的安全与防护",
-      "llm_evidence": "具有执行能力的智能体的安全与防护",
-      "canonical_evidence": "具有执行能力的智能体的安全与防护",
-      "llm_tldr_en": "Argues that prompt-based safety is insufficient for agents and introduces a new paradigm for safe execution.",
-      "llm_tldr_cn": "认为基于提示的安全机制对智能体来说是不够的，并提出了一种新的安全执行范式。",
-      "llm_tldr": "认为基于提示的安全机制对智能体来说是不够的，并提出了一种新的安全执行范式。",
+      "llm_evidence_en": "security gap in agents with execution capability",
+      "llm_evidence_cn": "具有执行能力的智能体的安全漏洞",
+      "llm_evidence": "具有执行能力的智能体的安全漏洞",
+      "canonical_evidence": "具有执行能力的智能体的安全漏洞",
+      "llm_tldr_en": "Proposes Parallax, a paradigm for safe autonomous AI execution beyond prompt-level guardrails.",
+      "llm_tldr_cn": "提出了Parallax，一种超越提示词级防护栏的安全自主AI执行范式。",
+      "llm_tldr": "提出了Parallax，一种超越提示词级防护栏的安全自主AI执行范式。",
       "llm_tags": [
         "query:agent:composite"
       ],
@@ -1892,6 +1023,724 @@
       "matched_requirement_id": "req-4",
       "selection_source": "carryover_cache",
       "paper_id": "2604.13533v1",
+      "carry_days": 2
+    },
+    {
+      "id": "2604.14655v1",
+      "title": "AgentGA: Evolving Code Solutions in Agent-Seed Space",
+      "abstract": "We present AgentGA, a framework that evolves autonomous code-generation runs by optimizing the agent seed: the task prompt plus optional parent archives that initialize a fresh workspace. The outer loop searches over these reusable starting conditions rather than editing code directly. Each generation launches a fresh autonomous run from a reset workspace, while selected parent archives provide inherited artifacts that descendants can inspect and reuse. AgentGA couples a population-level genetic algorithm with long-horizon agents; selection uses deterministic 1:1 elite tournaments and operator allocation is adapted online with a modified Hedge controller. We instantiate the approach for tabular AutoML on the 16-competition Weco-Kaggle Lite benchmark. On the 10 benchmark runs reported here, AgentGA averages 74.52% Exceeds % of Human versus 54.15% for AIDE. Across 1135 parent-child comparisons, descendants given parent archives outperform runs started from scratch, indicating that inherited artifacts improve later autonomous runs. These findings support agent-seed optimization as a practical design point for autonomous code-search systems.",
+      "authors": [
+        "David Y. Y. Tan",
+        "Kellie Chin",
+        "Jingxian Zhang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-04-16T06:03:45+00:00",
+      "link": "https://arxiv.org/pdf/2604.14655v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "evolving autonomous code-generation agentic workflows",
+      "llm_evidence_cn": "演化自主代码生成的智能体工作流",
+      "llm_evidence": "演化自主代码生成的智能体工作流",
+      "canonical_evidence": "演化自主代码生成的智能体工作流",
+      "llm_tldr_en": "Optimizes autonomous code-generation by evolving agent seeds and reusable workspace archives.",
+      "llm_tldr_cn": "通过演化智能体种子和可重用工作空间存档来优化自主代码生成。",
+      "llm_tldr": "通过演化智能体种子和可重用工作空间存档来优化自主代码生成。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14655v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.14401v1",
+      "title": "Credo: Declarative Control of LLM Pipelines via Beliefs and Policies",
+      "abstract": "Agentic AI systems are becoming commonplace in domains that require long-lived, stateful decision-making in continuously evolving conditions. As such, correctness depends not only on the output of individual model calls, but also on how to best adapt when incorporating new evidence or revising prior conclusions. However, existing frameworks rely on imperative control loops, ephemeral memory, and prompt-embedded logic, making agent behavior opaque, brittle, and difficult to verify. This paper introduces Credo, which represents semantic state as beliefs and regulates behavior using declarative policies defined over these beliefs. This design supports adaptive, auditable, and composable execution through a database-backed semantic control plane. We showcase these concepts in a decision-control scenario, where beliefs and policies declaratively guide critical execution choices (e.g., model selection, retrieval, corrective re-execution), enabling dynamic behavior without requiring any changes to the underlying pipeline code.",
+      "authors": [
+        "Duo Lu",
+        "Andrew Crotty",
+        "Uğur Çetintemel"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.DB"
+      ],
+      "published": "2026-04-15T20:31:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.14401v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "declarative control of agentic AI pipelines and behavior",
+      "llm_evidence_cn": "智能体AI流水线与行为的声明式控制",
+      "llm_evidence": "智能体AI流水线与行为的声明式控制",
+      "canonical_evidence": "智能体AI流水线与行为的声明式控制",
+      "llm_tldr_en": "Introduces Credo, a system for regulating agent behavior using declarative policies and semantic state beliefs.",
+      "llm_tldr_cn": "引入Credo系统，通过声明式策略和语义状态信念来规范和控制智能体行为。",
+      "llm_tldr": "引入Credo系统，通过声明式策略和语义状态信念来规范和控制智能体行为。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14401v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.13384v1",
+      "title": "Agentic Open RAN: A Deterministic and Auditable Framework for Intent-Driven Radio Control",
+      "abstract": "Large language models (LLMs) open new possibilities for agentic control in Open RAN, allowing operators to express intents in natural language while delegating low-level execution to autonomous agents. We present A1gent, an agentic RAN control stack that decouples reasoning from real-time actuation. A non-RT agentic rApp compiles operator goals into typed A1 policy instances, and three task-oriented near-RT agentic xApps enforce them through a deterministic loop with plane-scoped actuation - E2 for mobility and load steering, and O1 for energy orchestration. This agentic reasoning-execution split ensures auditable coordination between RAN intelligent controller (RIC) tiers, supported by encoded guardrails and a fixed-priority action merger for conflict governance. A training-free adaptive policy tuner then refines bounded parameters using KPI memory without retraining, sustaining predictable adaptation. By integrating intent-driven planning with deterministic near-RT execution, A1gent advances Open RAN toward verifiable, self-governing, and reproducible agentic intelligence.",
+      "authors": [
+        "Hengxu Li",
+        "Dongkuan Xu",
+        "Mingzhe Chen",
+        "Yuchen Liu"
+      ],
+      "primary_category": "cs.NI",
+      "categories": [
+        "cs.NI"
+      ],
+      "published": "2026-04-15T01:14:59+00:00",
+      "link": "https://arxiv.org/pdf/2604.13384v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Agentic control framework using LLMs for Open RAN",
+      "llm_evidence_cn": "基于大模型的Open RAN智能体控制框架",
+      "llm_evidence": "基于大模型的Open RAN智能体控制框架",
+      "canonical_evidence": "基于大模型的Open RAN智能体控制框架",
+      "llm_tldr_en": "Introduces A1gent, a framework for intent-driven radio control using LLM-based agents.",
+      "llm_tldr_cn": "引入A1gent框架，利用大模型智能体实现意图驱动的无线电控制。",
+      "llm_tldr": "引入A1gent框架，利用大模型智能体实现意图驱动的无线电控制。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.13384v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.14267v1",
+      "title": "Enhancing LLM-based Search Agents via Contribution Weighted Group Relative Policy Optimization",
+      "abstract": "Search agents extend Large Language Models (LLMs) beyond static parametric knowledge by enabling access to up-to-date and long-tail information unavailable during pretraining. While reinforcement learning has been widely adopted for training such agents, existing approaches face key limitations: process supervision often suffers from unstable value estimation, whereas outcome supervision struggles with credit assignment due to sparse, trajectory-level rewards. To bridge this gap, we propose Contribution-Weighted GRPO (CW-GRPO), a framework that integrates process supervision into group relative policy optimization. Instead of directly optimizing process rewards, CW-GRPO employs an LLM judge to assess the retrieval utility and reasoning correctness at each search round, producing per-round contribution scores. These scores are used to rescale outcome-based advantages along the trajectory, enabling fine-grained credit assignment without sacrificing optimization stability. Experiments on multiple knowledge-intensive benchmarks show that CW-GRPO outperforms standard GRPO by 5.0\\% on Qwen3-8B and 6.3\\% on Qwen3-1.7B, leading to more effective search behaviors. Additional analysis reveals that successful trajectories exhibit concentrated contributions across rounds, providing empirical insight into search agent tasks.",
+      "authors": [
+        "Junzhe Wang",
+        "Zhiheng Xi",
+        "yajie yang",
+        "Hao Luo",
+        "Shihan Dou",
+        "Tao Gui",
+        "Qi Zhang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-04-15T17:37:59+00:00",
+      "link": "https://arxiv.org/pdf/2604.14267v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Training LLM-based search agents via reinforcement learning",
+      "llm_evidence_cn": "通过强化学习训练基于大模型的搜索智能体",
+      "llm_evidence": "通过强化学习训练基于大模型的搜索智能体",
+      "canonical_evidence": "通过强化学习训练基于大模型的搜索智能体",
+      "llm_tldr_en": "Proposes CW-GRPO to improve search agent training by integrating process supervision into policy optimization.",
+      "llm_tldr_cn": "提出CW-GRPO框架，通过将过程监督集成到策略优化中来改进搜索智能体的训练。",
+      "llm_tldr": "提出CW-GRPO框架，通过将过程监督集成到策略优化中来改进搜索智能体的训练。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14267v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.11950v1",
+      "title": "AnyPoC: Universal Proof-of-Concept Test Generation for Scalable LLM-Based Bug Detection",
+      "abstract": "While recent LLM-based agents can identify many candidate bugs in source code, their reports remain static hypotheses that require manual validation, limiting the practicality of automated bug detection. We frame this challenge as a test generation task: given a candidate report, synthesizing an executable proof-of-concept test, or simply a PoC - such as a script, command sequence, or crafted input - to trigger the suspected defect. Automated PoC generation can act as a scalable validation oracle, enabling end-to-end autonomous bug detection by providing concrete execution evidence. However, naive LLM agents are unreliable validators: they are biased toward \"success\" and may reward-hack by producing plausible but non-functional PoCs or even hallucinated traces. To address this, we present AnyPoC, a general multi-agent framework that (1) analyzes and fact-checks a candidate bug report, (2) iteratively synthesizes and executes a PoC while collecting execution traces, and (3) independently re-executes and scrutinizes the PoC to mitigate hallucination and reward hacking. In addition, AnyPoC also continuously extracts and evolves a PoC knowledge base to handle heterogeneous tasks. AnyPoC operates on candidate bug reports regardless of their source and can be paired with different bug reporters. To demonstrate practicality and generality, we apply AnyPoC, with a simple agentic bug reporter, on 12 critical software systems across diverse languages/domains (many with millions of lines of code) including Firefox, Chromium, LLVM, OpenSSL, SQLite, FFmpeg, and Redis. Compared to the state-of-the-art coding agents, e.g., Claude Code and Codex, AnyPoC produces 1.3x more valid PoCs for true-positive bug reports and rejects 9.8x more false-positive bug reports. To date, AnyPoC has discovered 122 new bugs (105 confirmed, 86 already fixed), with 45 generated PoCs adopted as official regression tests.",
+      "authors": [
+        "Zijie Zhao",
+        "Chenyuan Yang",
+        "Weidong Wang",
+        "Yihan Yang",
+        "Ziqi Zhang",
+        "Lingming Zhang"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI",
+        "cs.CL",
+        "cs.CR"
+      ],
+      "published": "2026-04-13T18:44:02+00:00",
+      "link": "https://arxiv.org/pdf/2604.11950v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "LLM-based agents for autonomous bug detection and test generation",
+      "llm_evidence_cn": "基于LLM的自主漏洞检测与测试生成智能体",
+      "llm_evidence": "基于LLM的自主漏洞检测与测试生成智能体",
+      "canonical_evidence": "基于LLM的自主漏洞检测与测试生成智能体",
+      "llm_tldr_en": "Frames bug validation as a PoC test generation task for scalable autonomous bug detection using LLM agents.",
+      "llm_tldr_cn": "将漏洞验证建模为PoC测试生成任务，利用LLM智能体实现可扩展的自主漏洞检测。",
+      "llm_tldr": "将漏洞验证建模为PoC测试生成任务，利用LLM智能体实现可扩展的自主漏洞检测。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.11950v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.15082v1",
+      "title": "Autonomous Evolution of EDA Tools: Multi-Agent Self-Evolved ABC",
+      "abstract": "This paper introduces the first \\emph{self-evolving} logic synthesis framework, which leverages Large Language Model (LLM) agents to autonomously improve the source code of \\textsc{ABC}, the widely adopted logic synthesis system. Our framework operates on the \\emph{entire integrated ABC codebase}, and the output repository preserves its single-binary execution model and command interface. In the initial evolution cycle, we bootstrap the system using existing prior open-source synthesis components, covering flow tuning, logic minimization, and technology mapping, but without manually injecting new heuristics. On top of this foundation, a team of LLM-based agents iteratively rewrites and evolves specific sub-components of ABC following our ``programming guidance`` prompts under a unified correctness and QoR-driven evaluation loop. Each evolution cycle proposes code modifications, compiles the integrated binary, validates correctness, and evaluates quality-of-results (QoR) on \\emph{multi-suite benchmarks including ISCAS~85/89/99, VTR, EPFL, and IWLS~2005}. Through continuous feedback, the system discovers optimizations beyond human-designed heuristics, effectively \\emph{learning new synthesis strategies} that enhance QoR. We detail the architecture of this self-improving system, its integration with \\textsc{ABC}, and results demonstrating that the framework can autonomously and progressively improve EDA tool at full million-line scale.",
+      "authors": [
+        "Cunxi Yu",
+        "Haoxing Ren"
+      ],
+      "primary_category": "cs.AR",
+      "categories": [
+        "cs.AR",
+        "cs.AI"
+      ],
+      "published": "2026-04-16T14:42:55+00:00",
+      "link": "https://arxiv.org/pdf/2604.15082v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Multi-agent system for autonomous software evolution",
+      "llm_evidence_cn": "用于自主软件演进的多智能体系统",
+      "llm_evidence": "用于自主软件演进的多智能体系统",
+      "canonical_evidence": "用于自主软件演进的多智能体系统",
+      "llm_tldr_en": "Presents a self-evolving framework where LLM agents autonomously improve EDA tool source code.",
+      "llm_tldr_cn": "提出一种自演进框架，利用LLM智能体自主改进EDA工具的源代码。",
+      "llm_tldr": "提出一种自演进框架，利用LLM智能体自主改进EDA工具的源代码。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.15082v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.11518v1",
+      "title": "From Translation to Superset: Benchmark-Driven Evolution of a Production AI Agent from Rust to Python",
+      "abstract": "Cross-language migration of large software systems is a persistent engineering challenge, particularly when the source codebase evolves rapidly. We present a methodology for LLM-assisted continuous code translation in which a large language model translates a production Rust codebase (648K LOC, 65 crates) into Python (41K LOC, 28 modules), with public agent benchmarks as the objective function driving iterative refinement. Our subject system is Codex CLI, a production AI coding agent. We demonstrate that: (1) the Python port resolves 59/80 SWE-bench Verified tasks (73.8%) versus Rust's 56/80 (70.0%), and achieves 42.5% on Terminal-Bench versus Rust's 47.5%, confirming near-parity on real-world agentic tasks; (2) benchmark-driven debugging, revealing API protocol mismatches, environment pollution, a silent WebSocket failure mode, and an API 400 crash, is more effective than static testing alone; (3) the architecture supports continuous upstream synchronisation via an LLM-assisted diff-translate-test loop; and (4) the Python port has evolved into a capability superset with 30 feature-flagged extensions (multi-agent orchestration, semantic memory, guardian safety, cost tracking) absent from Rust, while preserving strict parity mode for comparison. Our evaluation shows that for LLM-based agents where API latency dominates, Python's expressiveness yields a 15.9x code reduction with negligible performance cost, while the benchmark-as-objective-function methodology provides a principled framework for growing a cross-language port from parity into an extended platform.",
+      "authors": [
+        "Jinhua Wang",
+        "Biswa Sengupta"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-04-13T14:21:44+00:00",
+      "link": "https://arxiv.org/pdf/2604.11518v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "evolution of a production AI coding agent using benchmarks",
+      "llm_evidence_cn": "使用基准测试演进生产级AI代码智能体",
+      "llm_evidence": "使用基准测试演进生产级AI代码智能体",
+      "canonical_evidence": "使用基准测试演进生产级AI代码智能体",
+      "llm_tldr_en": "Explores LLM-assisted code translation for a production agent, evaluated on real-world agentic benchmarks.",
+      "llm_tldr_cn": "探索了大模型辅助的生产级智能体代码迁移，并在真实智能体基准上进行了评估。",
+      "llm_tldr": "探索了大模型辅助的生产级智能体代码迁移，并在真实智能体基准上进行了评估。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.11518v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.11975v1",
+      "title": "M2HRI: An LLM-Driven Multimodal Multi-Agent Framework for Personalized Human-Robot Interaction",
+      "abstract": "Multi-robot systems hold significant promise for social environments such as homes and hospitals, yet existing multi-robot works treat robots as functionally identical, overlooking how robots individual identity shape user perception and how coordination shapes multi-robot behavior when such individuality is present. To address this, we introduce M2HRI, a multimodal multi-agent framework built on large language models that equips each robot with distinct personality and long-term memory, alongside a coordination mechanism conditioned on these differences. In a controlled user study (n = 105) in a multi-agent human-robot interaction (HRI) scenario, we find that LLM-driven personality traits are significantly distinguishable and enhance interaction quality, long-term memory improves personalization and preference awareness, and centralized coordination significantly reduces overlap while improving overall interaction quality. Together, these results demonstrate that both agent individuality and structured coordination are essential for coherent and socially appropriate multi-agent HRI. Project website and code are available at https://project-m2hri.github.io/.",
+      "authors": [
+        "Shaid Hasan",
+        "Breenice Lee",
+        "Sujan Sarker",
+        "Tariq Iqbal"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-04-13T19:08:05+00:00",
+      "link": "https://arxiv.org/pdf/2604.11975v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "LLM-driven multi-agent framework for human-robot interaction",
+      "llm_evidence_cn": "大模型驱动的人机交互多智能体框架",
+      "llm_evidence": "大模型驱动的人机交互多智能体框架",
+      "canonical_evidence": "大模型驱动的人机交互多智能体框架",
+      "llm_tldr_en": "Introduces a framework for personalized human-robot interaction using LLM-based agents with distinct personalities.",
+      "llm_tldr_cn": "介绍了一个利用具有不同个性的大模型智能体进行个性化人机交互的框架。",
+      "llm_tldr": "介绍了一个利用具有不同个性的大模型智能体进行个性化人机交互的框架。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.11975v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.14896v1",
+      "title": "Toward Agentic RAG for Ukrainian",
+      "abstract": "We present an initial investigation into Agentic Retrieval-Augmented Generation (RAG) for Ukrainian, conducted within the UNLP 2026 Shared Task on Multi-Domain Document Understanding. Our system combines two-stage retrieval (BGE-M3 with BGE reranking) with a lightweight agentic layer performing query rephrasing and answer-retry loops on top of Qwen2.5-3B-Instruct. Our analysis reveals that retrieval quality is the primary bottleneck: agentic retry mechanisms improve answer accuracy but the overall score remains constrained by document and page identification. We discuss practical limitations of offline agentic pipelines and outline directions for combining stronger retrieval with more advanced agentic reasoning for Ukrainian.",
+      "authors": [
+        "Marta Sumyk",
+        "Oleksandr Kosovan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-16T11:40:06+00:00",
+      "link": "https://arxiv.org/pdf/2604.14896v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Agentic RAG combining retrieval with query rephrasing and answer-retry loops",
+      "llm_evidence_cn": "结合检索、查询改写和答案重试循环的智能体RAG",
+      "llm_evidence": "结合检索、查询改写和答案重试循环的智能体RAG",
+      "canonical_evidence": "结合检索、查询改写和答案重试循环的智能体RAG",
+      "llm_tldr_en": "Investigates agentic RAG for Ukrainian, using lightweight agent layers to improve document understanding accuracy.",
+      "llm_tldr_cn": "研究了乌克兰语的智能体RAG，利用轻量级智能体层通过查询改写和重试机制提高文档理解准确率。",
+      "llm_tldr": "研究了乌克兰语的智能体RAG，利用轻量级智能体层通过查询改写和重试机制提高文档理解准确率。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14896v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.13654v1",
+      "title": "Vision-and-Language Navigation for UAVs: Progress, Challenges, and a Research Roadmap",
+      "abstract": "Vision-and-Language Navigation for Unmanned Aerial Vehicles (UAV-VLN) represents a pivotal challenge in embodied artificial intelligence, focused on enabling UAVs to interpret high-level human commands and execute long-horizon tasks in complex 3D environments. This paper provides a comprehensive and structured survey of the field, from its formal task definition to the current state of the art. We establish a methodological taxonomy that charts the technological evolution from early modular and deep learning approaches to contemporary agentic systems driven by large foundation models, including Vision-Language Models (VLMs), Vision-Language-Action (VLA) models, and the emerging integration of generative world models with VLA architectures for physically-grounded reasoning. The survey systematically reviews the ecosystem of essential resources simulators, datasets, and evaluation metrics that facilitates standardized research. Furthermore, we conduct a critical analysis of the primary challenges impeding real-world deployment: the simulation-to-reality gap, robust perception in dynamic outdoor settings, reasoning with linguistic ambiguity, and the efficient deployment of large models on resource-constrained hardware. By synthesizing current benchmarks and limitations, this survey concludes by proposing a forward-looking research roadmap to guide future inquiry into key frontiers such as multi-agent swarm coordination and air-ground collaborative robotics.",
+      "authors": [
+        "Hanxuan Chen",
+        "Jie Zheng",
+        "Siqi Yang",
+        "Tianle Zeng",
+        "Siwei Feng",
+        "Songsheng Cheng",
+        "Ruilong Ren",
+        "Hanzhong Guo",
+        "Shuai Yuan",
+        "Xiangyue Wang",
+        "Kangli Wang",
+        "Ji Pei"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-04-15T09:20:02+00:00",
+      "link": "https://arxiv.org/pdf/2604.13654v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Survey of agentic systems driven by large foundation models in navigation tasks",
+      "llm_evidence_cn": "导航任务中由大基础模型驱动的智能体系统综述",
+      "llm_evidence": "导航任务中由大基础模型驱动的智能体系统综述",
+      "canonical_evidence": "导航任务中由大基础模型驱动的智能体系统综述",
+      "llm_tldr_en": "Provides a comprehensive survey of UAV navigation, charting the evolution toward LLM-driven agentic systems.",
+      "llm_tldr_cn": "对无人机导航进行全面综述，梳理了向大模型驱动的智能体系统演进的技术路线。",
+      "llm_tldr": "对无人机导航进行全面综述，梳理了向大模型驱动的智能体系统演进的技术路线。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.13654v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.12421v1",
+      "title": "Agentic Insight Generation in VSM Simulations",
+      "abstract": "Extracting actionable insights from complex value stream map simulations can be challenging, time-consuming, and error-prone. Recent advances in large language models offer new avenues to support users with this task. While existing approaches excel at processing raw data to gain information, they are structurally unfit to pick up on subtle situational differences needed to distinguish similar data sources in this domain. To address this issue, we propose a decoupled, two-step agentic architecture. By separating orchestration from data analysis, the system leverages progressive data discovery infused with domain expert knowledge. This architecture allows the orchestration to intelligently select data sources and perform multi-hop reasoning across data structures while maintaining a slim internal context. Results from multiple state-of-the-art large language models demonstrate the framework's viability: with top-tier models achieving accuracies of up to 86% and demonstrating high robustness across evaluation runs.",
+      "authors": [
+        "Micha Selak",
+        "Dirk Krechel",
+        "Adrian Ulges",
+        "Sven Spieckermann",
+        "Niklas Stoehr",
+        "Andreas Loehr"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-14T08:11:53+00:00",
+      "link": "https://arxiv.org/pdf/2604.12421v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "decoupled two-step agentic architecture for orchestration and data analysis",
+      "llm_evidence_cn": "用于编排和数据分析的解耦两步智能体架构",
+      "llm_evidence": "用于编排和数据分析的解耦两步智能体架构",
+      "canonical_evidence": "用于编排和数据分析的解耦两步智能体架构",
+      "llm_tldr_en": "Proposes a two-step agentic architecture to improve insight generation in complex simulations.",
+      "llm_tldr_cn": "提出一种两步智能体架构，以提高复杂模拟中洞察生成的准确性。",
+      "llm_tldr": "提出一种两步智能体架构，以提高复杂模拟中洞察生成的准确性。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.12421v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.10513v1",
+      "title": "Agent Mentor: Framing Agent Knowledge through Semantic Trajectory Analysis",
+      "abstract": "AI agent development relies heavily on natural language prompting to define agents' tasks, knowledge, and goals. These prompts are interpreted by Large Language Models (LLMs), which govern agent behavior. Consequently, agentic performance is susceptible to variability arising from imprecise or ambiguous prompt formulations. Identifying and correcting such issues requires examining not only the agent's code, but also the internal system prompts generated throughout its execution lifecycle, as reflected in execution logs.   In this work, we introduce an analytics pipeline implemented as part of the Agent Mentor open-source library that monitors and incrementally adapts the system prompts defining another agent's behavior. The pipeline improves performance by systematically injecting corrective instructions into the agent's knowledge. We describe its underlying mechanism, with particular emphasis on identifying semantic features associated with undesired behaviors and using them to derive corrective statements.   We evaluate the proposed pipeline across three exemplar agent configurations and benchmark tasks using repeated execution runs to assess effectiveness. These experiments provide an initial exploration of automating such a mentoring pipeline within future agentic governance frameworks. Overall, the approach demonstrates consistent and measurable accuracy improvements across diverse configurations, particularly in settings dominated by specification ambiguity. For reproducibility, we released our code as open source under the Agent Mentor library.",
+      "authors": [
+        "Roi Ben-Gigi",
+        "Yuval David",
+        "Fabiana Fournier",
+        "Lior Limonad",
+        "Dany Moshkovich",
+        "Hadar Mulian",
+        "Segev Shlomov"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-12T08:02:54+00:00",
+      "link": "https://arxiv.org/pdf/2604.10513v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "adapting system prompts in agentic workflows via trajectory analysis",
+      "llm_evidence_cn": "通过轨迹分析调整智能体工作流中的系统提示词",
+      "llm_evidence": "通过轨迹分析调整智能体工作流中的系统提示词",
+      "canonical_evidence": "通过轨迹分析调整智能体工作流中的系统提示词",
+      "llm_tldr_en": "Agent Mentor monitors and adapts agent system prompts to improve performance and reduce ambiguity.",
+      "llm_tldr_cn": "Agent Mentor通过监控和分析执行日志，动态调整智能体的系统提示词以优化表现。",
+      "llm_tldr": "Agent Mentor通过监控和分析执行日志，动态调整智能体的系统提示词以优化表现。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.10513v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.10866v2",
+      "title": "OccuBench: Evaluating AI Agents on Real-World Professional Tasks via Language Environment Simulation",
+      "abstract": "AI agents are expected to perform professional work across hundreds of occupational domains (from emergency department triage to nuclear reactor safety monitoring to customs import processing), yet existing benchmarks can only evaluate agents in the few domains where public environments exist. We introduce OccuBench, a benchmark covering 100 real-world professional task scenarios across 10 industry categories and 65 specialized domains, enabled by Language Environment Simulators (LESs) that simulate domain-specific environments through LLM-driven tool response generation. Our multi-agent synthesis pipeline automatically produces evaluation instances with guaranteed solvability, calibrated difficulty, and document-grounded diversity. OccuBench evaluates agents along two complementary dimensions: task completion across professional domains and environmental robustness under controlled fault injection (explicit errors, implicit data degradation, and mixed faults). We evaluate 15 frontier models across 8 model families and find that: (1) no single model dominates all industries, as each has a distinct occupational capability profile; (2) implicit faults (truncated data, missing fields) are harder than both explicit errors (timeouts, 500s) and mixed faults, because they lack overt error signals and require the agent to independently detect data degradation; (3) larger models, newer generations, and higher reasoning effort consistently improve performance. GPT-5.2 improves by 27.5 points from minimal to maximum reasoning effort; and (4) strong agents are not necessarily strong environment simulators. Simulator quality is critical for LES-based evaluation reliability. OccuBench provides the first systematic cross-industry evaluation of AI agents on professional occupational tasks.",
+      "authors": [
+        "Xiaomeng Hu",
+        "Yinger Zhang",
+        "Fei Huang",
+        "Jianhong Tu",
+        "Yang Su",
+        "Lianghao Deng",
+        "Yuxuan Liu",
+        "Yantao Liu",
+        "Dayiheng Liu",
+        "Tsung-Yi Ho"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-13T00:27:32+00:00",
+      "link": "https://arxiv.org/pdf/2604.10866v2",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Evaluating AI agents on real-world professional tasks",
+      "llm_evidence_cn": "在真实世界专业任务上评估AI智能体",
+      "llm_evidence": "在真实世界专业任务上评估AI智能体",
+      "canonical_evidence": "在真实世界专业任务上评估AI智能体",
+      "llm_tldr_en": "OccuBench evaluates AI agents across 100 professional scenarios using simulated language environments.",
+      "llm_tldr_cn": "OccuBench通过语言环境模拟，在100个专业场景中评估AI智能体的表现。",
+      "llm_tldr": "OccuBench通过语言环境模拟，在100个专业场景中评估AI智能体的表现。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.10866v2",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.14386v1",
+      "title": "Coalition Formation in LLM Agent Networks: Stability Analysis and Convergence Guarantees",
+      "abstract": "Large Language Model (LLM) agents are increasingly deployed in multi-agent systems requiring strategic coordination. While recent work has analyzed LLM behavior in two-player games, coalition formation, where $n$ agents dynamically form cooperative groups, remains theoretically uncharacterized. We present the first framework grounding coalition formation in LLM agent networks in hedonic game theory with formal stability guarantees. We introduce the LLM Coalition Formation Game (LCFG), establish sufficient conditions for Nash-stable partitions, and prove complexity results. Our analysis reveals that LLM agents exhibit bounded rationality characterized by $ε$-rational preferences; we provide both deterministic existence guarantees and consistency-driven stability bounds whose predictions are consistent with empirical outcomes. Experiments with GPT-4, Claude-3, and Llama-3 across 2,400 episodes validate our framework: LLM coalitions achieve Nash stability in 73.2% of cases under our Coalition-of-Thought (CoalT) protocol, compared to 58.4% under chain-of-thought and 41.8% under standard prompting ($p < 0.001$). Our framework provides theoretical foundations for designing stable multi-agent LLM systems.",
+      "authors": [
+        "Dongxin Guo",
+        "Jikun Wu",
+        "Siu-Ming Yiu"
+      ],
+      "primary_category": "cs.GT",
+      "categories": [
+        "cs.GT",
+        "cs.AI"
+      ],
+      "published": "2026-04-15T19:59:30+00:00",
+      "link": "https://arxiv.org/pdf/2604.14386v1",
+      "tags": [
+        "keyword:AGENT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "strategic coordination in LLM agent networks",
+      "llm_evidence_cn": "大模型智能体网络中的策略协作",
+      "llm_evidence": "大模型智能体网络中的策略协作",
+      "canonical_evidence": "大模型智能体网络中的策略协作",
+      "llm_tldr_en": "Provides a theoretical framework for coalition formation and stability in multi-LLM agent networks.",
+      "llm_tldr_cn": "为多大模型智能体网络中的联盟形成和稳定性分析提供了首个理论框架。",
+      "llm_tldr": "为多大模型智能体网络中的联盟形成和稳定性分析提供了首个理论框架。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14386v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.13108v1",
+      "title": "Formal Architecture Descriptors as Navigation Primitives for AI Coding Agents",
+      "abstract": "AI coding agents spend a substantial fraction of their tool calls on undirected codebase exploration. We investigate whether providing agents with formal architecture descriptors can reduce this navigational overhead. We present three complementary studies. First, a controlled experiment (24 code localization tasks x 4 conditions, Claude Sonnet 4.6, temperature=0) demonstrates that architecture context reduces navigation steps by 33-44% (Wilcoxon p=0.009, Cohen's d=0.92), with no significant format difference detected across S-expression, JSON, YAML, and Markdown. Second, an artifact-vs-process experiment (15 tasks x 3 conditions) demonstrates that an automatically generated descriptor achieves 100% accuracy versus 80% blind (p=0.002, d=1.04), proving direct navigational value independent of developer self-clarification. Third, an observational field study across 7,012 Claude Code sessions shows 52% reduction in agent behavioral variance. A writer-side experiment (96 generation runs, 96 error injections) reveals critical failure mode differences: JSON fails atomically, YAML silently corrupts 50% of errors, S-expressions detect all structural completeness errors. We propose intent.lisp, an S-expression architecture descriptor, and open-source the Forge toolkit.",
+      "authors": [
+        "Ruoqi Jin"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-04-11T00:26:31+00:00",
+      "link": "https://arxiv.org/pdf/2604.13108v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "AI coding agents using tool calls for exploration",
+      "llm_evidence_cn": "AI编码智能体使用工具调用进行探索",
+      "llm_evidence": "AI编码智能体使用工具调用进行探索",
+      "canonical_evidence": "AI编码智能体使用工具调用进行探索",
+      "llm_tldr_en": "Shows that formal architecture descriptors significantly reduce navigational tool calls for AI coding agents.",
+      "llm_tldr_cn": "研究表明，提供形式化架构描述可显著减少AI编码智能体在代码库探索中的工具调用。",
+      "llm_tldr": "研究表明，提供形式化架构描述可显著减少AI编码智能体在代码库探索中的工具调用。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "LLM tool use and external API integration",
+      "matched_requirement_id": "req-3",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.13108v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.12040v1",
+      "title": "SIR-Bench: Evaluating Investigation Depth in Security Incident Response Agents",
+      "abstract": "We present SIR-Bench, a benchmark of 794 test cases for evaluating autonomous security incident response agents that distinguishes genuine forensic investigation from alert parroting. Derived from 129 anonymized incident patterns with expert-validated ground truth, SIR-Bench measures not only whether agents reach correct triage decisions, but whether they discover novel evidence through active investigation. To construct SIR-Bench, we develop Once Upon A Threat (OUAT), a framework that replays real incident patterns in controlled cloud environments, producing authentic telemetry with measurable investigation outcomes. Our evaluation methodology introduces three complementary metrics: triage accuracy (M1), novel finding discovery (M2), and tool usage appropriateness (M3), assessed through an adversarial LLM-as-Judge that inverts the burden of proof -- requiring concrete forensic evidence to credit investigations. Evaluating our SIR agent on the benchmark demonstrates 97.1% true positive (TP) detection, 73.4% false positive (FP) rejection, and 5.67 novel key findings per case, establishing a baseline against which future investigation agents can be measured.",
+      "authors": [
+        "Daniel Begimher",
+        "Cristian Leo",
+        "Jack Huang",
+        "Pat Gaw",
+        "Bonan Zheng"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.SE"
+      ],
+      "published": "2026-04-13T20:32:03+00:00",
+      "link": "https://arxiv.org/pdf/2604.12040v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "benchmark for evaluating autonomous security agents",
+      "llm_evidence_cn": "评估自主安全智能体的基准",
+      "llm_evidence": "评估自主安全智能体的基准",
+      "canonical_evidence": "评估自主安全智能体的基准",
+      "llm_tldr_en": "Develops SIR-Bench to evaluate the investigation depth and triage accuracy of security incident response agents.",
+      "llm_tldr_cn": "开发SIR-Bench基准，用于评估安全事件响应智能体的调查深度和分类准确性。",
+      "llm_tldr": "开发SIR-Bench基准，用于评估安全事件响应智能体的调查深度和分类准确性。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "State of the art research on large language model agents",
+      "matched_requirement_id": "req-6",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.12040v1",
+      "carry_days": 1
+    },
+    {
+      "id": "2604.14847v1",
+      "title": "TrigReason: Trigger-Based Collaboration between Small and Large Reasoning Models",
+      "abstract": "Large Reasoning Models (LRMs) achieve strong performance on complex tasks through extended chains of thought but suffer from high inference latency due to autoregressive reasoning. Recent work explores using Small Reasoning Models (SRMs) to accelerate LRM inference. In this paper, we systematically characterize the capability boundaries of SRMs and identify three common types of reasoning risks: (1) path divergence, where SRMs lack the strategic ability to construct an initial plan, causing reasoning to deviate from the most probable path; (2) cognitive overload, where SRMs fail to solve particularly difficult steps; and (3) recovery inability, where SRMs lack robust self-reflection and error correction mechanisms. To address these challenges, we propose TrigReason, a trigger-based collaborative reasoning framework that replaces continuous polling with selective intervention. TrigReason delegates most reasoning to the SRM and activates LRM intervention only when necessary-during initial strategic planning (strategic priming trigger), upon detecting extraordinary overconfidence (cognitive offload trigger), or when reasoning falls into unproductive loops (intervention request trigger). The evaluation results on AIME24, AIME25, and GPQA-D indicate that TrigReason matches the accuracy of full LRMs and SpecReason, while offloading 1.70x - 4.79x more reasoning steps to SRMs. Under edge-cloud conditions, TrigReason reduces latency by 43.9\\% and API cost by 73.3\\%. Our code is available at \\href{https://github.com/QQQ-yi/TrigReason}{https://github.com/QQQ-yi/TrigReason}",
+      "authors": [
+        "Yi Zhao",
+        "Yajuan Peng",
+        "Cam-Tu Nguyen",
+        "Zuchao Li",
+        "Xiaoliang Wang",
+        "Xiaoming Fu",
+        "Hai Zhao"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-16T10:33:00+00:00",
+      "link": "https://arxiv.org/pdf/2604.14847v1",
+      "tags": [
+        "keyword:AGENT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "characterizing reasoning risks and planning capabilities of small vs large models",
+      "llm_evidence_cn": "刻画大小推理模型的推理风险与规划能力",
+      "llm_evidence": "刻画大小推理模型的推理风险与规划能力",
+      "canonical_evidence": "刻画大小推理模型的推理风险与规划能力",
+      "llm_tldr_en": "Analyzes reasoning boundaries and proposes a trigger-based collaboration between small and large reasoning models.",
+      "llm_tldr_cn": "分析推理边界并提出大小推理模型之间的触发式协作机制，以优化推理性能。",
+      "llm_tldr": "分析推理边界并提出大小推理模型之间的触发式协作机制，以优化推理性能。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
+      "matched_requirement_id": "req-4",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.14847v1",
       "carry_days": 1
     }
   ]

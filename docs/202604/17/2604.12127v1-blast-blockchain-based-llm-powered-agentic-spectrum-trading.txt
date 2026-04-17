@@ -1,0 +1,565 @@
+Title: BLAST: Blockchain-based LLM-powered Agentic Spectrum Trading
+
+URL Source: https://arxiv.org/pdf/2604.12127v1
+
+Published Time: Wed, 15 Apr 2026 00:22:12 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+> SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 1
+
+# BLAST: Blockchain-based LLM-powered Agentic Spectrum Trading 
+
+Anas Abognah , Student Member, IEEE, and Otman Basir , Member, IEEE 
+
+Abstract —The management of radio frequency spectrum is un-dergoing a paradigm shift from static, centralized command-and-control models to dynamic, market-driven approaches. However, the realization of Dynamic Spectrum Management (DSM) has been hindered by the lack of an automated, trustworthy, and intelligent coordination infrastructure that can operate without a central authority while preserving participant privacy. In this paper, we introduce BLAST (Blockchain-based LLM-powered Agentic Spectrum Trading), a comprehensive framework that integrates Large Language Model (LLM) Agents with a permis-sioned blockchain infrastructure to create a fully autonomous, private, and secure spectrum trading ecosystem. We propose a novel agent architecture that implements the Cognitive Radio cycle through a sequential decision pipeline (perceive, plan, act) enabling agents to reason strategically about economic value and market dynamics. We evaluate the framework through three distinct market mechanisms: Direct Sale, First-Price Sealed-Bid, and Second-Price (Vickrey) Sealed-Bid auctions. Experimental results demonstrate that the Second-Price (Vickrey) auction is the optimal choice for maximizing social welfare and allocative efficiency, capturing up to 71% of the theoretical surplus by incentivizing truthful bidding. We also compare the proposed model against a baseline non-LLM heuristic agentic model and show that utilizing LLM agents yields significant improvements in market competition, reduced wealth and asset concentration, and increased system welfare. Furthermore, we validate the system’s privacy preservation, confirming that sensitive bid values remain isolated in private data collections while only cryptographic hashes are committed to the public ledger. 
+
+Index Terms —Dynamic Spectrum Management, Large Lan-guage Models, LLM Agents, Blockchain, Game Theory, Spectrum Auctions. 
+
+I. I NTRODUCTION 
+
+The management of radio frequency spectrum is currently undergoing a fundamental transformation, moving away from conventional static, centralized command-and-control regimes toward dynamic, market-driven mechanisms [1], [2]. This paradigm shift is driven by the increasing scarcity and under-utilization of spectrum resources, which impose a significant impediment to the growth of wireless networks and users in the forthcoming sixth generation (6G) era and beyond [2]– [4]. The realization of genuinely autonomous DSM requires an intelligent, trustworthy, and decentralized infrastructure that can efficiently coordinate resource allocation [2], [5]. 
+
+A. Abognah and O. Basir are with the Department of Electrical and Computer Engineering, University of Waterloo, Waterloo, ON N2L 3G1, Canada (e-mail: aabognah@uwaterloo.ca; obasir@uwaterloo.ca). This work has been submitted to the IEEE for possible publication. Copyright may be transferred without notice, after which this version may no longer be accessible. 
+
+The initial technological solution proposed to address the artificial scarcity created by static allocation was the Cognitive Radio (CR) [6]. CRs, defined as intelligent devices capable of sensing and adapting to the radio environment, enabled the concept of Dynamic Spectrum Access (DSA) [7]. However, CR alone proved insufficient to provide a fully dynamic ecosystem that could guarantee protection for spectrum own-ers and reliably manage complex multi-user interactions [8]. Consequently, many spectrum regulators pursued a centralized spectrum management model, such as the database-driven systems for TV White Space (TVWS) and Citizen Broadband Radio Service (CBRS) [9], [10]. These centralized approaches were ultimately hindered by several critical drawbacks, failing to deliver the full vision of robust and market-driven DSM [11]: 1) Single Point of Failure and Scalability: A centralized database or broker is susceptible to a single point of failure and lacks the necessary scalability to support the exponential growth of distributed devices in future networks (e.g., IoT and 6G). Furthermore, traditional centralized network management models struggle to meet the requirements of highly dynamic environments. 2) Trust and Transparency Issues: These models require participating entities (Primary and Secondary Users) to entrust sensitive operational data to an untrusted spectrum broker. This arrangement creates severe risks of privacy disclosure, data tampering, and a lack of transparency regarding transaction records, as the reg-ulator must verify the database state without intrinsic user-verifiable mechanisms. 3) Lack of Incentive Compatibility: Centralized systems typically do not intrinsically implement a spectrum trading system, providing no native incentive mechanism for licensed users (PUs) to share their spectrum. The realization of effective DSM, therefore, requires aconcerted shift toward decentralization that distributes trust, control, and decision-making authority while preserving pri-vacy and providing incentive mechanisms. These requirements are addressed through Blockchain technology, which offers an immutable and distributed ledger suitable for securely recording spectrum access rights and transaction history [12]. In addition, the use of Smart Contracts (SCs) enables the autonomous execution of auction protocols, enhancing data verifiability and fairness in bidding platforms and incentivizing spectrum owners to participate in profit maximizing trades. Multiple blockchain platforms have been proposed in the 
+
+This work has been submitted to the IEEE for possible publication.  
+
+> arXiv:2604.12127v1 [cs.NI] 13 Apr 2026 SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 2
+
+literature for various applications and use cases. For enterprise adoption, permissioned architectures such as Hyperledger Fab-ric are favored for their ability to ensure transaction privacy and commercial confidentiality, often utilizing sophisticated mechanisms like private data collections to hide sensitive bid values [13]. Alongside blockchain, the realization of genuinely au-tonomous DSM requires an intelligent, trustworthy, and decen-tralized infrastructure that can efficiently coordinate resource allocation. In recent years much research in DSA leveraged sophisticated Artificial Intelligence (AI) techniques, particu-larly Deep Reinforcement Learning (DRL) and Multi-Agent Reinforcement Learning (MARL), for numerical optimization and low-level control functions such as spectrum sensing and interference avoidance [14]–[18]. However, these conventional AI approaches often lack the high-level, human-like reasoning, strategic interpretation, and policy comprehension essential for participating in complex economic markets [19], [20]. Further-more, most MARL systems proposed in the literature employ centralized optimization methods which are functionally con-strained by network size, frequently generating hallucinatory or incoherent outputs when forced to process large amounts of global state information, thus degrading optimization perfor-mance [21]. Decentralization enhances scalability by allowing agents to focus on local solutions, which reduces response length and improves reasoning capabilities. The imperative for sophisticated decision-making for de-centralized DSM systems coincides with the emergence of Large Language Models (LLMs) and their deployment as autonomous, goal-oriented computational entities, or LLM Agents [20]–[22]. LLM agents, equipped with advanced plan-ning and reasoning capabilities, have shown immense potential in revolutionizing wireless systems, ranging from accelerating complex policy-making and regulatory workflows, such as data extraction and consultation synthesis [23], to enabling end-to-end intelligent resource management and orchestration in next-generation networks [4], [21]. Furthermore, pioneering frameworks have demonstrated the feasibility of integrating LLMs directly into physical layer signal processing tasks like classification, effectively bridging the modality gap between language and radio signals [18], [24]. In this paper, we introduce BLAST (Blockchain-based LLM-powered Agentic Spectrum Trading), a comprehensive frame-work that integrates Large Language Model (LLM) Agents with a permissioned blockchain infrastructure to create a fully autonomous, private, and secure spectrum trading ecosystem. This system is designed to reconcile the advanced strategic intelligence of LLM agents with the structural integrity of a decentralized mechanism. We propose a novel agent architec-ture that implements the foundational Cognitive Radio (CR) cycle through a rigorous sequential decision pipeline. This pipeline, comprising stages such as historical analysis, market hypothesis formation, strategy optimization, and action execu-tion, enables agents to reason strategically and autonomously about economic value and dynamic market conditions. Furthermore, the framework is implemented using aenterprise-grade Hyperledger Fabric network to enforce crit-ical privacy guarantees, ensuring commercial confidentiality through the use of private data collections and a commit-reveal protocol. By leveraging the incentive compatibility of the Second-Price (Vickrey) Sealed-Bid Auction [25], the proposed framework provides a provably truthful mechanism that guarantees the maximization of social welfare regardless of the agents’ inherent bounded rationality. The remainder of this paper is organized as follows: Section II reviews related work. Section III details the BLAST system architecture, including the blockchain and agent layers. Sec-tion IV presents the auction mechanisms and game-theoretic analysis. Section V describes the experimental setup and results. Section VI provides the conclusion and future work. II. R ELATED WORK 
+
+The pervasive under-utilization of the radio frequency spec-trum necessitates the transition from static allocation to DSM and DSA paradigms [1], [2]. Foundational to DSA is the Cog-nitive Radio, an intelligent system that adapts its parameters to optimize utility and relies on spectrum sensing to identify Primary Users [6], [7], [24], [26], [27]. To manage DSA in complex, multi-user environments, Deep and Multi-Agent Reinforcement Learning (DRL/MARL) are frequently used to identify optimal access policies [14]–[18], [28]. However, while effective for numerical optimization, conventional MARL often lacks the high-level reasoning re-quired for complex, market-driven spectrum sharing [19], [20]. Decentralized spectrum management requires a trusted, intermediary-free infrastructure, making blockchain and Smart Contracts (SCs) essential for ensuring transaction integrity and automating trading protocols [2], [5], [12], [20], [29]. Blockchain secures critical resource allocation mechanisms, such as Stackelberg games, by providing immutable trans-action records [3], [30]. For enterprise-grade privacy and high transaction throughput, permissioned frameworks like Hyperledger Fabric are often adopted, allowing for private data collections that protect sensitive bidding strategies [12], [13], [31]. Recently, Large Language Models (LLMs) have introduced intellectual automation to communications. Initially utilized to streamline regulatory tasks via data extraction, Retrieval-Augmented Generation (RAG), and Rules as Code [23], [32], LLMs are now being integrated directly into physi-cal layer processing. Frameworks like RadioLLM [18] and SpectrumFM [24] fuse traditional signal extraction with LLM contextual reasoning to achieve state-of-the-art performance in radio classification and spectrum sensing tasks, moving toward Artificial General Intelligence (AGI)-enhanced wireless systems [4], [33]. Concurrently, the deployment of autonomous LLM Agents capable of planning and reasoning has enabled decentralized multi-agent systems for automated spectrum negotiation [20], [34], [35]. Evaluating these agents requires robust game-theoretic frameworks [19], [36]. However, unlike perfectly rational actors in classical game theory, LLM agents exhibit bounded rationality and frequently deviate from optimal strate-gies like the Nash Equilibrium [34], [35], [37]. To mitigate this, researchers impose game-theoretic workflows and struc-SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 3
+
+tured reasoning onto the agents prior to action selection [34], [38]. Building upon these foundations, our work integrates strate-gic LLM agents with auction-based spectrum trading mecha-nisms [39], [40] to optimize system performance and coun-teract bounded-rationality limitations. Specifically, we imple-ment a Second-Price Sealed-Bid (Vickrey) Auction [25] via a smart contract. This provides a decentralized, provably truthful platform where the dominant strategy is bidding true private valuations, thus ensuring efficient spectrum reallocation, max-imizing social welfare, and fostering autonomous market de-concentration. III. P ROBLEM FORMULATION AND GAME THEORETIC 
+
+ANALYSIS 
+
+To facilitate autonomous spectrum sharing, we model the network interaction as a non-cooperative game among wireless operators. We first formalize the general spectrum sharing problem and then derive the optimal strategies for the specific auction mechanisms implemented in the BLAST framework. 
+
+A. System Model and Preliminaries 
+
+We represent spectrum access rights as unique, time-limited digital assets referred to as spectrum tokens that are traded on a decentralized blockchain. A token τ represents the right to utilize a specific frequency band for a defined duration within a geographic area. We define a token by the tuple: 
+
+τ = {fc, B, ∆t, L} (1) where fc is the center frequency, B is the bandwidth, ∆t is the time-slot duration, and L is the geographic boundary of operation. Spectrum trading occurs on the blockchain during pre-determined timing ticks and the market is governed by a Smart Contract (SC) that acts as a decentralized automated auctioneer. The SC enforces two critical properties:  
+
+> •
+
+Deterministic Execution: The auction logic (e.g., clearing rules and winner determination) is hard-coded into the SC, ensuring that the results are verifiable and free from central authority bias.  
+
+> •
+
+Ownership Integrity: The blockchain provides determin-istic finality, preventing ”double-spending” of spectrum tokens and ensuring that two operators are not assigned the same frequency band simultaneously. 
+
+B. Operator Utility and Valuation 
+
+The cognitive radio network consists of a set of wireless op-erators N = {1, 2, . . . , n }, where each operator is represented by an autonomous agent that is tasks with making spectrum trading decisions on behalf of the operator. Each operator’s agent i ∈ N seeks to acquire a portion of the available spectrum resources to serve their user base. Let Si denote the amount of spectrum (bandwidth) allocated to operator i.The utility of an operator depends on the quality of service (QoS) they can deliver, which is a function of the acquired spectrum and specific channel state information representing spectral efficiency and SINR parameters. We define the valu-ation function vi as the monetary equivalent of this utility. A standard form for this utility, based on Shannon capacity, is given by: 
+
+vi = αi · Si log 2
+
+
+
+1 + Pi · hii 
+
+N0 + I−i
+
+
+
+(2) where αi is a monetization coefficient (revenue per bit), Pi
+
+is transmit power, hii is channel gain, and I−i is interference from other users. The logarithmic term log 2
+
+
+
+1 + Pi·hii 
+
+> N0+I−i
+
+
+
+represents the spectral efficiency (in bits per second per Hertz (bps/Hz ) based on the SINR (Signal-to-Interference-plus-Noise Ratio) which is represented by the term ( Pi·hii  
+
+> N0+I−i
+
+). Incor-porating the SINR information in this formulation captures the physical environment characteristics including the diminishing marginal returns in relation to power investment. Figure 1a illustrates this effect and demonstrates that the operator’s monetization coefficient αi, which is set by economical and business factors, plays far more significant role in determining the overall valuation of the acquired spectrum. Thus the total utility of the operator in relation to the acquired spectrum consists of the valuation of the acquired spectrum vi(Si) minus the cost to acquire said spectrum C(Si)
+
+as determined by the market clearing price. The objective of each rational agent i is to choose a bidding strategy βi that maximizes their net payoff function Πi:
+
+max 
+
+> βi
+
+Πi = vi(Si) − C(Si) (3) Figure 1b illustrates the utility function with selected chan-nel parameters by a certain strategy. Traditional optimization models seek to optimize the physical channel parameters (transmission power, SINR, etc..). However, as we can see from the previous analysis, economical factors such as spec-trum utilization factor, cost of spectrum, and the amount of spectrum acquired play a much more significant role in the utility maximization. In addition, in multi-operator scenarios decisions made by one operator affect other operators and the optimization problem become intractable. 
+
+C. Mechanism Design 
+
+In order to ensure agents act strategically and reach a global optimal solution to the maximization problem, we utilize mechanism design from game theory to construct auction mechanisms that utilize blockchain features such as smart contracts and trusted transaction history. 
+
+1) Second-Price Sealed-Bid (Vickrey) Auction: In this mechanism, the highest bidder wins but pays the second-highest bid. We assert that bidding the true valuation ( bi = vi)is a weakly dominant strategy.  
+
+> •
+
+If the agent’s valuation is higher than the highest competi-tor bid ( vi > b ∗): Bidding vi wins the item and yields a payoff of vi −b∗. Overbidding yields the same outcome as bidding the true valuation; underbidding below b∗ results in losing the item (payoff 0).  
+
+> •
+
+If the agent’s valuation is lower than the highest competi-tor bid ( vi < b ∗): Bidding vi results in a loss. Overbidding SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 4   
+
+> Fig. 1. (a) Normalized Valuation vs SINR (Linear). (b) Utility vs Spectrum
+
+to win forces the agent to pay b∗, resulting in a negative payoff vi − b∗ < 0.Since deviations never increase the payoff and can decrease it, truthful bidding is the dominant strategy. 
+
+2) First-Price Sealed-Bid Auction: In this auction mecha-nism, the winner pays their own bid ( pi = bi). Truthful bidding yields zero surplus ( vi − bi = 0 ), necessitating bid shading where agents bid less than their valuation in an effort to secure a profit. Bayesian-Nash Equilibrium (BNE) is a known solution for this mechanism [25]. 
+
+Bayesian Nash Equilibrium (BNE): Assuming N risk-neutral bidders with independent private valuations drawn from a uniform distribution vi ∼ U [0 , ¯v], the symmetric Bayesian Nash Equilibrium strategy is derived by maximizing expected surplus: 
+
+b(vi) = E[Y1|Y1 < v i] (4) where Y1 is the highest valuation among the N − 1 other bidders. For the uniform distribution, this yields the closed-form strategy: 
+
+b∗(vi) = 
+
+ N − 1
+
+N
+
+
+
+vi (5) This implies that as competition ( N ) increases, bids should approach the true valuation. [25] 
+
+Empirical Probability Maximization: In our dynamic envi-ronment, the distribution of competitor valuations is unknown and might be non-uniform. Therefore, the agent strategy is enhanced by employing an empirical learning based on the bids history on the blockchain. Let H = {w1, w 2, . . . , w M } be the set of recent M winning bids wi observed on the blockchain. The agent constructs an empirical Cumulative Distribution Function (CDF), ˆF (b),representing the probability that a bid b will win: 
+
+ˆF (b) = 1
+
+M
+
+> M
+
+X
+
+> k=1
+
+I(wk < b ) (6) Where I is the identity function. The agent then solves the following optimization problem to determine the bid b∗:
+
+b∗ = arg max 
+
+> 0≤b<v i
+
+
+
+(vi − b) · ˆF (b)
+
+
+
+(7) This formulation allows the agent to dynamically adjust its shade factor based on the aggressiveness of the current market participants by constantly updating its estimate of the winning probability and the corresponding bidding value. 
+
+3) Direct Sale (Price Skimming): In Direct Sale, the seller sets a ”Buy Now” price. To extract maximum surplus, we model this as intertemporal price discrimination (Price Skim-ming). The seller initiates with a high reserve price to capture surplus from willing high-valuation buyers, then dynamically lowers the price if the item remains unsold. The initial reserve price r0 is set as a markup over the seller’s internal valuation 
+
+vs by a markup factor β:
+
+r0 = β × vs (8) If the token fails to sell in previous ticks, the price is lowered to traverse the demand curve, subject to a break-even constraint (price cannot fall below the seller’s valuation). The reserve price at decision step t is: 
+
+rt = max( vs, r t−1 · (1 − δ)) (9) Where δ is the price decay rate. This mechanism effectively segregates the market, capturing high-valuation buyers (ur-gency buyers) early at high prices, while lowering the price in subsequent epochs to capture lower-valuation buyers, thereby approximating perfect price discrimination over time. 
+
+D. System-Level Cooperation and Social Welfare 
+
+While individual agents operate as non-cooperative entities maximizing distinct utility functions, the auction mechanisms function as a coordination layer that enforces system-level cooperation. By aligning individual incentives with resource scarcity, these mechanisms aim to maximize the Global Social Welfare (SW). We define the total social welfare as the aggregate of Buyer Profit (Consumer Surplus) and Seller Profit (Producer Surplus). Let vi be the valuation of the winning agent, p be the clearing price, and vs be the seller’s internal valuation (opportunity cost). 
+
+SW = ( vi − p)
+
+| {z }
+
+> Buyer Profit
+
++ ( p − vs)
+
+| {z }
+
+> Seller Profit
+
+= vi − vs (10) SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 5
+
+Due to Transfer Neutrality , the monetary transfer p cancels out resulting in a SW that is a function of the agents’ valuations. Maximizing the social welfare then becomes equiv-alent to Allocative Efficiency where the goal is ensuring the spectrum is awarded to the agent with the highest intrinsic valuation vi. To quantify the efficiency cost of decentralization, we utilize the Price of Anarchy (PoA). The PoA measures the ratio of the optimal possible welfare ( SW opt ) to the welfare achieved in the worst-case strategic equilibrium ( SW eq ): 
+
+P oA = SW opt 
+
+SW eq 
+
+≥ 1 (11) Where a P oA of 1 indicating optimal equilibrium and less optimal equilibria result in larger values of P oA .
+
+1) Welfare and PoA in Second-Price Auctions: The Second-Price auction is theoretically optimal for cooperation. Since the dominant strategy is truthful bidding ( bi = vi), the mechanism guarantees that the agent with the highest valuation vmax 
+
+always wins.  
+
+> •
+
+Welfare: SW SP = vmax − vs. 
+
+> •
+
+Price of Anarchy: Since the equilibrium outcome is identical to the social optimum, the system exhibits zero efficiency loss. 
+
+P oA SP = vmax − vs
+
+vmax − vs
+
+= 1 (12) This mechanism aligns selfish behavior perfectly with social goals, ensuring no welfare is lost to strategic gaming. 
+
+2) Welfare and PoA in First-Price Auctions: In First-Price auctions, cooperation is fragile. Agents shade their bids ( bi <vi) to secure profit. If agents have asymmetric beliefs or risk profiles, a lower-value agent may outbid a higher-value agent who shaded too aggressively.  
+
+> •
+
+Welfare: SW F P ≤ SW SP . If the optimal agent loses, the realized welfare is based on a sub-optimal valuation vsub . 
+
+> •
+
+Price of Anarchy: The PoA is strictly greater than 1 in asymmetric settings. While the revenue might be higher for the seller, the total system welfare degrades. 
+
+P oA F P = vmax − vs
+
+vsub − vs
+
+> 1 (13) The increase in PoA represents the ”cost” of the agents’ strategic uncertainty and bid shading. 
+
+3) Welfare and PoA in Direct Sale: In Direct Sales, welfare is threatened by Deadweight Loss due to rigid pricing. If the reserve price rt is set such that vs < v i < r t, a mutually beneficial trade is blocked.  
+
+> •
+
+Welfare: SW DS = 0 in the case of a blocked trade, or 
+
+vi − vs for a successful trade.  
+
+> •
+
+Price of Anarchy: The P oA is highly sensitive to the pricing algorithm. In the case of a blocked trade, the P oA 
+
+becomes infinite, signaling total market failure: 
+
+P oA DS (t) ≈ vmax − vs
+
+I(vi ≥ rt) · (vi − vs) → ∞ as SW eq → 0
+
+(14) Dynamic pricing (Price Skimming) attempts to mitigate this inefficiency by lowering the PoA toward the ideal value of 1 over repeated time slots. By dynamically adjusting the reserve price, the mechanism ensures that the system eventually clears the market and avoids the infinite PoA associated with total market failure, though the resulting latency introduces a degree of temporal inefficiency. In this work, we incorporate the above theoretical analysis in an implementation of Blockchain-based LLM-powered Agentic Spectrum Trading system (BLAST) .IV. P ROPOSED SYSTEM ARCHITECTURE 
+
+The proposed BLAST framework (Figure 2) is designed to address the current gaps in decentralized spectrum man-agement by combining LLM Agents reasoning and decision making capabilities with a tokenized spectrum trading market-place on a blockchain platform that guarantees transparency, trust, and incentivizes users to share their spectrum via game-theoretic profit and system welfare maximizing mechanisms. The proposed module comprises from the Blockchain Layer and the Agent Layer.  
+
+> Fig. 2. BLAST System Model
+
+A. The Blockchain Layer 
+
+The blockchain serves as the immutable ”ground truth” for the system, recording spectrum ownership, managing the lifecycle of tokens, and executing auction logic via smart contracts. The blockchain network is comprised of Nodes representing wireless operators participating in the spectrum sharing marketplace in addition to any stakeholders such as governmental regulators and financial institutions financing and monitoring transactions. Hyperledger Fabric [13] was chosen as the technology to implement the blockchain of this model due to it’s privacy-focused features, finality of transac-tion consensus, and identity management which are critical features for a highly regulated applications such spectrum management. 
+
+1) Permissioned Identity (MSP): HLF is a permissioned blockchain where only approved users can access the net-work via a membership Service Provider (MSP) based on Public Key Infrastructure (PKI) and X.509 certificates. This provides the following critical features that cannot be met with anonymized identities on public blockchains such as Ethereum: Accountability: Every node (Primary User, Sec-ondary User, Regulator) is authenticated before joining. Audit SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 6                    
+
+> TABLE I COMPARISON OF HYPERLEDGER FABRIC VS . P UBLIC BLOCKCHAINS FOR SPECTRUM MANAGEMENT
+> Feature Hyperledger Fabric Public Blockchain Impact on Spectrum Management (e.g.Ethereum) Access Permissioned (Known users) Permissionless (Anonymous) HLF prevents unauthorized radio transmission by unvetted actors.
+> Privacy High (Channels/Private Data) Low (Transparent Ledger) HLF protects proprietary bidding strategies and sensitive data.
+> Consensus Pluggable (Raft/BFT) PoW / PoS HLF instant finality, No risk of interference due to double-spending.
+> Cost No Gas Fees Variable Gas Fees HLF enables high-frequency trading without unpredictable costs.
+
+Trail: This creates a legally binding audit trail. If a node causes harmful interference, the regulator can immediately identify the legal entity responsible and revoke their access certificate. 
+
+2) Granular Privacy via Channels: In spectrum auctions, particularly sealed-bid formats, users (operators) must keep bid values and strategies confidential to prevent market ma-nipulation. Channels: HLF allows for the creation of private sub-networks (Channels) between specific participants (e.g., a Regulator and a specific Bidder). Competitors on the same network cannot access transaction data or the smart contract state of that channel. Private Data Collections: This feature enables specific data points, such as sensitive interference measurements or the unrevealed bid information, to be shared only with the regulator or kept private until the auction is closed without being written to the global ledger. 
+
+3) Deterministic Finality: In dynamic spectrum access, immediate and guaranteed access rights are required once a time slot is purchased. No Forking: HLF utilizes deterministic consensus algorithms (typically Raft). Unlike Proof-of-Work (PoW) or Proof-of-Stake (PoS), where blocks can be reorga-nized (forked), HLF blocks are final once written. Interference Prevention: This eliminates the risk of “double-spending” spectrum tokens, ensuring two operators are not accidentally assigned the same frequency band due to a temporary ledger fork. 
+
+4) High Throughput and Low Latency: Cognitive radio networks operate in real-time. The transaction confirmation times of public blockchains are often insufficient for dynamic leasing. HLF employs an Execute-Order-Validate architecture, executing transactions in parallel before ordering them. This supports the high volume of micro-transactions required when AI agents autonomously negotiate spectrum access. 
+
+5) Chaincode Flexibility: Smart contracts in HLF (Chain-code) can be written in general-purpose languages such as Go, Java, or Node.js. This facilitates the integration of complex logic, including: Advanced Auction Logic: Implementing vari-ous auctions types and mechanisms directly in Go provides high flexibility in meeting spectrum sharing needs of the wireless operators. Advanced Calculation: Integrating external libraries and flexible programmatic implementation into the chaincode allows for advanced features to be implemented into the chaincode if needed such as validating as calculate Signal-to-Interference-plus-Noise Ratio ( SINR ) limits before validating a transaction for example. The above features of HLF were utilized in the implemen-tation to addresses the critical requirement of privacy and transparency when implementing sealed-bid auctions via the smart contract chaincode:  
+
+> •
+
+Private Data Collections: We utilize HLF’s implicit private data collections. When an agent submits a bid, the actual bid value is stored only on the peers of the organizations involved (the bidder and potentially the endorsers), not on the public ledger.  
+
+> •
+
+Commit-Reveal Protocol: To ensure integrity while main-taining privacy, we implement a commit-reveal scheme. 1) Commit Phase: The bidder submits a transaction containing a cryptographic hash of their bid (salt + value). This hash is recorded on the public ledger, committing the bidder to the value without revealing it. 2) Reveal Phase: After the auction closes, bidders submit a reveal transaction containing the salt and value. The smart contract verifies that Hash (salt +
+
+value ) matches the committed hash.  
+
+> •
+
+Endorsement Policies: Dynamic endorsement policies ensure that the auction outcome is validated by the necessary stakeholders before being committed to the ledger. 
+
+B. The Agent Layer: LLM-Driven Cognitive Radio 
+
+The LLM agents in BLAST are proposed to provide au-tonomous and strategic intelligence functionalities mimicking human rational thinking and addressing the shortcomings of manual operational. Employing LLM Agents in the spectrum management framework in general opens the door to a wide range of capabilities beyond standard agents relying on nu-merical optimization or RL Agents utilizing trial and error to learn the best strategy. LLM Agents can combine infor-mation from unstructured data such as regulatory documents or market information into their sophisticated reasoning and chain-of-thought where they can predict competitors moves and anticipate market shifts. The LLM Agent implementation in this work is structured to execute a sequential pipeline of specialized sub-agents that help maximize the agent’s reasoning potential and provide decision explainability and game theoretic reasoning as we will see in the next section. Furthermore, the proposed agent pipeline mirrors the Cognitive Cycle (Figure 3) originally proposed by Mitola in the original Cognitive Radio paper [6] thus enforcing our hypothesis of the validity of this approach. The proposed agent performed the following steps via sub-agents: SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 7 
+
+> Fig. 3. Mapping the BLAST Agent Pipeline to the Cognitive Cycle.
+
+1) Analyst Sub-Agent (Perception & Orientation) 
+
+This stage ingests raw blockchain data, including trans-action history and active auctions. It is tasked with quantifying realized profit per win and classifying the market structure (e.g., ”homogeneous” vs. ”heteroge-neous”). The analyst sub-agent calculates win rates and identifies ”demand fading” trends, recording a formal risk assessment before planning begins. 2) Planner Sub-Agent (Decision & Reasoning) 
+
+Acting as the strategic core, this stage utilizes Chain-of-Thought (CoT) reasoning to determines the agent’s intent (Buy, Sell, or Idle) based on the spectrum gap and current balance. Crucially, it implements game-theoretic logic adaptable to the auction mechanism:  
+
+> •
+
+First-Price Auctions: Estimates the empirical prob-ability of winning to calculate a bid that maxi-mizes expected surplus (Symmetric Nash Equilib-rium strategy).  
+
+> •
+
+Second-Price (Vickrey) Auctions: Enforces a domi-nant strategy of bidding near true valuation without bid shading.  
+
+> •
+
+Direct Sale (Buy-Now): Executes price skimming strategies for selling and immediate acquisition for buying if prices are within valuation bounds. 3) Action Executor Sub-Agent (Actuation) 
+
+The final stage translates high-level strategy into specific blockchain tool calls. It validates feasibility by ensuring asset ownership for sellers and sufficient budget for bidders before invoking function tooling wrappers such as start auction , place bid , or buy now . This separation of concerns ensures that the LLM’s reasoning does not hallucinate invalid transactions. The implemented agent contains the core AI Agent compo-nents: 1) Brain: The core of the agent thinking and reasoning capabilities. In this implementation we utilize Google’s Gemini models hosted on google cloud servers via the Google Agent Development Kit. This alleviates the need to maintain or develop dedicated LLM models for this application. 2) Memory: The agent in this model has two types of memory: a) Internal Memory: This memory is shared by the sub-agents and is used to handover information from one state to another in the agent workflow. b) External Memory: Which is the data stored in the blockchain and is accessible to all agents in the system and serves as immutable record of information that is read by each agent at the start of the workflow. 3) Persona: Each agent is given a persona that defines its purpose and main objectives and instructs the agent to perform actions that optimize its utility. 4) Tools: A set of tools that allow the agent to interact with the internal and external memory, handle the workflow transitions, and submit transactions to the blockchain. Figure 4 illustrates the implemented agent details.  
+
+> Fig. 4. Implemented Cognitive Radio Agent
+
+V. I MPLEMENTATION DETAILS AND EXPERIMENTAL 
+
+EVALUATION 
+
+The above proposed model was implemented using Hyper-ledger Fabric v2 [13] and Google Agent Development Kit v1.17 [41] calling Gemini 2.5 Flash model with thinking mode enabled in the planner sub-agent. The implementation focused on simulating the behavior of cognitive radio agents that inter-act with a permissioned blockchain market under two valuation regimes (scenario 1 heterogeneous utilities and Scenario 2 with homogeneous utilities) and three allocation mechanisms (direct-sale listings, first-price auctions, and second-price auc-tions). Using the execution traces produced by the Google ADK sequential agents, we quantify spectrum utilization, real-ized profits, and Shapley-value efficiency to measure fairness. In addition, we measure HHI index and Ginin Coefficient to measure market concentration and inequality. The simulation setup and summary of results are presented next. 
+
+A. Simulation Setup 
+
+We conducted experiments using the following parameters:  
+
+> •
+
+Agents: 4 Cognitive Radio Agents (1 Seller, 3 Buyers).  
+
+> •
+
+Tokens: 25 Spectrum Tokens representing 10MHz blocks in the 3.5GHz band.  
+
+> •
+
+Duration: 100 simulation ticks.  
+
+> •
+
+Scenarios: Two scenarios were tested: SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 8
+
+1) Scenario 1: Heterogeneous Agents where agents have different spectrum utility 2) Scenario 2: Homogeneous Agent where agents have the same spectrum utility 
+
+B. Performance Metrics 
+
+The following metrics were collected during the simulation runs and were used to evaluate the performance of the pro-posed model under different mechanisms. 1) Herfindahl-Hirschman Index (HHI): Is used as a mea-sure of market concentration and is calculated as 
+
+HHI = PNi=1 s2 
+
+> i
+
+, where si represents the market share ownership of each agent (the percentage of tokens owned by agent i over the total number of tokens). 
+
+HHI < 0.15 indicates a competitive market; HHI > 
+
+0.25 indicates high concentration. 2) Gini Coefficient: Measures inequality in profit distribu-tion. The coefficient ranges from 0 to 1, where 0 repre-sents perfect equality (everyone has the same income) and 1 represents maximal inequality (one person has all the income). It is calculated as: 
+
+Gini = 2
+
+n ·
+
+Pnk=1 k b k
+
+Pnk=1 bk
+
+− n + 1 
+
+n =
+
+P
+
+> i
+
+P 
+
+> j
+
+|bi − bj |
+
+2n2¯b .
+
+Where b1 ≤ · · · ≤ bn, are the ordered balances of agents and ¯b is the mean balance. 3) Social Welfare: is defined as the sum of the buyer and seller profits in each trade. To calculate this metric for each cleared trade of token t with capacity ct MHz 
+
+between buyer b and seller s, we track utilities ub and 
+
+us (USD/MHz). Let pt denote the realized sell price chosen by the auction rule (respecting the reserve rt so that pt ≥ rt). Buyer profit: 
+
+πb(t) = max  0, u bct − pt
+
+
+
+In first-price auctions pt equals the winning bid; in second-price auctions pt is the highest losing bid (or the winner’s bid if no competitor remains); in direct sale pt
+
+is the posted reserve/ask price. The valuation term ubct
+
+is the buyer’s willingness to pay for the entire block. Seller profit: 
+
+πs(t) = pt − usct
+
+Here usct is the seller’s opportunity cost for keeping the block (aligned with the seller’s reserve). If pt = rt,then πs(t) = rt − usct captures the margin over the reserve. With the seller and buyer profits calculated, the total (social) surplus is calculated as the sum: 
+
+πb(t) + πs(t) = ( ub − us)ct
+
+4) Fairness : We use Shapley-Values Efficiency to measure how well the implement market mechanism distributes welfare to agents according to their contributions to the coalition. To calculate the coefficient, the seller ( agent-0) and the three buyers are considered as a cooperative game where every permutation of agent arrivals forms a                                
+
+> Auction Trades Avg $/MHz$ Surplus Shapley Eff. Gini HHI Direct Sale 25 7.50 2775 5200 53.4% 0.104 0.347 First-Price 33 11.06 2600 5400 48.1% 0.191 0.290 Second-Price 25 12.80 3050 4700 64.9% 0.205 0.507 TABLE II SCENARIO -WIDE MARKET OUTCOMES FOR SCENARIO 1(H ETEROGENEOUS BUYERS ).
+
+coalition. For each ordering S, we compute the marginal contribution of the arriving agent to the coalition value 
+
+v(S) = 
+
+(0 if seller /∈ S, PNk=1 ck
+
+
+
+· max i∈S ui ow ,
+
+Where ui is agent i’s utility-per-MHz. Averaging the marginal contributions across all permutations yields the Shapley total Φ, i.e., the surplus that a perfectly fair mechanism should distribute. We then compare the cumulative realized buyer + seller surplus from the blockchain logs to Φ to obtain a transaction-efficiency ratio η = surplus /Φ.VI. R ESULTS AND DISCUSSION 
+
+A. Scenario 1 (Heterogeneous Buyers) 
+
+In this scenario agent-0 lists all 25 MHz blocks while buyers hold marginal utilities of 10, 15, and 20 USD/MHz. Balances start symmetric at 5,000 USD and the seller alone owns the inventory. Table II compares realized surplus and fairness across auction types. From the observed behavior in this scenario, we can see that 
+
+Direct Sale cleared 25 trades at an average 7.50 USD/MHz, delivering 2775 USD of surplus (53.4% of the 5200 USD Shapley benchmark). Balances finished with Gini 0.104 and ownership HHI 0.347, while the average residual spectrum gap stayed at 40.0 MHz. In the case of First-Price Auction 
+
+the auction cleared 33 trades at an average 11.06 USD/MHz, delivering 2600 USD of surplus (48.1% of the 5400 USD Shapley benchmark). Balances finished with Gini 0.191 and ownership HHI 0.290, while the average residual spectrum gap stayed at 30.0 MHz. As for Second-Price Auction , the auction cleared 25 trades at an average 12.80 USD/MHz, delivering 3050 USD of surplus (64.9% of the 4700 USD Shapley benchmark). Balances finished with Gini 0.205 and ownership HHI 0.507, while the average residual spectrum gap stayed at 65.0 MHz. Figure 5 shows the market dynamics for scenario 1. 
+
+B. Scenario 2 (Symmetric High-Value Buyers) 
+
+In this scenario agent-0 again sells every token, but now each buyer values spectrum at 20 USD/MHz, producing near-identical bids that stress rationing fairness. Table III compares realized surplus and fairness across auction types. We can see that Direct Sale cleared 25 trades at an average 7.50 USD/MHz, delivering 4050 USD of surplus (75.0% of the 5400 USD Shapley benchmark). Balances finished with Gini 0.108 and ownership HHI 0.347, while the average SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 9                               
+
+> Fig. 5. Market dynamics for scenario 1 showing token ownership movements, HHI Index, and Gini Coefficient Auction Trades Avg $/MHz Surplus Shapley Eff. Gini HHI Direct Sale 25 7.50 4050 5400 75.0% 0.108 0.347 First-Price 25 16.58 3525 4700 75.0% 0.205 0.341 Second-Price 23 20.00 4050 5700 71.1% 0.290 0.296 TABLE III SCENARIO -WIDE MARKET OUTCOMES FOR SCENARIO 2 (S YMMETRIC
+> HIGH -V ALUE BUYERS ).
+
+residual spectrum gap stayed at 30.0 MHz. In the case of 
+
+First-Price Auction the auction cleared 25 trades at an average 16.58 USD/MHz, delivering 3525 USD of surplus (75.0% of the 4700 USD Shapley benchmark). Balances finished with Gini 0.205 and ownership HHI 0.341, while the average residual spectrum gap stayed at 65.0 MHz. Lastly, the Second-Price Auction cleared 23 trades at an average 20.00 USD/MHz, delivering 4050 USD of surplus (71.1% of the 5700 USD Shapley benchmark). Balances finished with Gini 0.290 and ownership HHI 0.296, while the average residual spectrum gap stayed at 15.0 MHz, indicating near-balanced utilization. Figure 6 shows the market dynamics for scenario 2. 
+
+C. Social Welfare and Efficiency 
+
+In scenario 1, the second-price Vickrey auction consis-tently achieved the highest social welfare. Because agents  
+
+> Fig. 6. Market dynamics for scenario 2 showing token ownership movements, HHI Index, and Gini Coefficient
+> Fig. 7. Scenario-1 (Heterogeneous Buyers) Total social welfare highlighting the higher surplus capture of the second-price auction
+
+bid truthfully, tokens were allocated to the agents with the highest valuations ( vi). In the First-Price auction, bid shading occasionally led to inefficient allocations where a risk-averse high-value bidder lost to a risk-seeking lower-value bidder. Figure 7 shows the total social welfare for scenario 1. In scenario 2, due to the equal utility values for each buyer agent, their truthful bidding results in all agents bidding the same values thus eliminating their buying profit in second-price auction as they pay the same amount as their bid. However, even with this outcome, second-price auction still results in the maximum total average profit overall. Results SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 10   
+
+> Fig. 8. Scenario-2 (Homogeneous Buyers) Total social welfare highlighting the higher surplus capture of the second-price auction
+> Fig. 9. Cumulative transaction-efficiency trajectories for Scenario 1, high-lighting the consistently higher surplus capture of the second-price auction.
+
+are summarized in Figure 8. 
+
+D. Fairness and Shapley-Value Efficiency 
+
+For scenario 1, Direct sale clears inventory quickly and keeps wealth concentration low (Gini = 0.10 ), but only captures 53% of the Shapley surplus. First-price auctions under-shoot both fairness and efficiency because aggressive bid shading limits surplus creation even while balances drift toward moderate inequality (Gini = 0 .19 ). The second-price format achieves the highest efficiency ( 65% of the Shapley ideal) by allocating tokens to the highest-value buyers without encouraging shading, albeit at the cost of greater balance dispersion (Gini = 0 .21 ) and a higher ownership HHI as the most liquid buyer amasses spectrum. For scenario 2, again, the equal valuations of the buyers results in a slightly lower efficiency for second-price auctions (only 71% of the shapley ideal compared to 75% for both direct-sale and first-price auctions. Overall, scenario 1 under-delivers relative to its theoretical welfare frontier: direct sale reaches only 53% of the $5.2k benchmark, first-price slips further to 48% of $5.4k, and only the second-price format clears a majority of the available value at 65% of $4.7k, signaling persistent frictions even in the “best” mechanism. Scenario 2 shows a tighter clustering and higher absolute surplus, with both direct sale and first-price clearing 75% of their respective Shapley totals ($5.4k and $4.7k), while second-price trails slightly at 71% of a larger $5.7k opportunity; that consistency suggests the richer demand mix and higher valuations in scenario 2 let each auction  
+
+> Fig. 10. Cumulative transaction-efficiency trajectories for Scenario 2, high-lighting the lower surplus capture of the second-price auction due to homoge-nous market pathology
+
+recover roughly three-quarters of optimal welfare, whereas scenario 1’s buyers chronically leave surplus on the table regardless of pricing rule. 
+
+E. Comparison against Baseline non-LLM Heuristic Agent 
+
+In order to further validate the proposed model, we com-pared the performance of the LLM-Agents against a non-LLM heuristic agent implementation where buying and selling decision are made based on pre-determined formulations. In this non-LLM scenario, each agent i tracks four parameters: valuation per MHz ui, need profile Ni(t), on-hand spectrum 
+
+Ci(t), and balance Bi(t). The values of these parameters dictate which action the agent will take in each round (sel-l/buy/idle). At tick t, the net demand gap is calculated as: 
+
+∆i(t) = max  0, N i(t) − Ci(t),
+
+while surplus capacity is: 
+
+surplus = max(0 , C i(t) − Ni(t)) 
+
+For any token k with capacity κk, the private valuation is 
+
+Vik = ui κk.
+
+For the Direct sale mode , the listing with the largest positive surplus (valuation - asking price) is chosen. If the posted price is at or below the agent’s valuation and within its balance, it issues a buy now call. When selling, a markup of 15% is added to the private valuation Vik . In the First-price auctions case, buyers shade their bids using a standard symmetric-Nash heuristic: ( nb−1
+
+> nb
+
+Vik (where nb is the number of buyer), but never below half of valuation Vik 
+
+and not exceeding their budget. Agents won’t rebid the same token once they have an active offer. Sellers set the reserve price at 1.1Vik to reflect the need to cover the winner’s shaded bid. Finally, in the Second-price (Vickrey) auctions bidders simply bid their full valuation (truthful dominant strategy) and sellers list with a light 5% premium over value since payments clear at the second-highest bid. In every mode, the agent will sell only when its owned capacity exceeds current need , and it lists the first idle token not already on the auction board. We can already see that multiple simplifying decision had to be made to implement this baseline agent that would SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 11 
+
+otherwise have been made by the LLM model making thus highlighting the benefit of using LLM-Agent model over the heuristic approach. Furthermore, we ran a simulation using the heuristic agent and compared the resulting parameters for both scenario 1 and scenario 2 described earlier for the three market mechanisms. We evaluate the performance of Large Language Model (LLM) driven agents against a heuristic baseline across the two scenarios. In the complex environment of Scenario 1, LLM agents demonstrated aggressive market participation, particularly in auction mechanisms, though efficiency gains were mixed.  
+
+> •
+
+Transaction Volume: LLM agents exhibited significantly higher activity in auctions, executing 84 total transactions 
+
+in First-Price and 54 in Second-Price auctions, compared to the baseline’s 25 and 22 , respectively. While some of the LLM transaction are explanatory transactions (result in no sale due to below reserve bidding for example), this indicates a strong propensity for price discovery through repeated trading. Conversely, the baseline executed more Direct Sale transactions (34 vs. 25).  
+
+> •
+
+Efficiency & Welfare: The baseline model achieved higher efficiency in Direct Sale (57.1% vs. 53.4%) and First-Price auctions (56.6% vs. 48.1%). However, the LLM outperformed the baseline in Second-Price auctions ,achieving 64.9% efficiency ($3,050 welfare) versus the baseline’s 55.4% ($2,550). This suggests the LLM’s adaptive strategy is particularly effective in truthful mech-anisms where aggressive bidding carries less risk.  
+
+> •
+
+Market Concentration: The LLM agents produced slightly higher inequality (Gini ≈ 0.16–0.17) and concen-tration (HHI ≈ 0.39–0.53) in auctions compared to the baseline (Gini ≈ 0.13–0.14, HHI ≈ 0.40–0.44), reflecting a ”winner-takes-all” dynamic in competitive settings.                                
+
+> TABLE IV SCENARIO 1 (H ETEROGENEOUS DEMAND ): LLM VS . B ASELINE
+> PERFORMANCE
+> Mechanism Tx Eff (%) Gini Welfare ($)
+> Direct Sale
+> LLM 25 53.4 0.0878 2775 Baseline 34 57.1 0.1183 2800
+> First-Price Auction
+> LLM 84 48.1 0.1640 2600 Baseline 25 56.6 0.1367 2775
+> Second-Price Auction
+> LLM 54 64.9 0.1737 3050
+> Baseline 22 55.4 0.1452 2550
+
+In the uniform environment of Scenario 2, the performance gap narrowed, with the baseline offering greater stability.  
+
+> •
+
+Transaction Volume: Both models achieved identical transaction counts (25) in Direct Sale and First-Price auctions. In Second-Price auctions, the LLM was hyper-active with 103 transactions , again due to price discovery behavior and competitive bidding due to equal valuation, whereas the baseline remained stable at 25.   
+
+> Fig. 11. Scenario 1 (Heterogeneous Agents) LLM Agent vs Baseline non-LLM
+> •
+
+Efficiency & Welfare: Efficiency was at parity ( 75.0% )for Direct Sale and First-Price auctions. In Second-Price auctions, the baseline maintained 75.0% efficiency ($4,275), while the LLM dropped slightly to 71.0% 
+
+($4,050), indicating some suboptimal allocations due to aggressive bidding.  
+
+> •
+
+Market Concentration: Gini and HHI metrics were com-parable across both models, indicating neither approach led to excessive monopolization in a balanced market.                                
+
+> TABLE V SCENARIO 2 (H OMOGENEOUS DEMAND ): LLM VS . B ASELINE
+> PERFORMANCE
+> Mechanism Tx Eff (%) Gini Welfare ($)
+> Direct Sale
+> LLM 25 75.0 0.0919 4050 Baseline 25 75.0 0.1011 3975
+> First-Price Auction
+> LLM 25 75.0 0.1650 3525 Baseline 25 75.0 0.1560 3975
+> Second-Price Auction
+> LLM 103 71.0 0.2489 4050 Baseline 25 75.0 0.2424 4275
+
+In summary, the baseline model proves to be a robust standard for stable environments and simple mechanisms, consistently achieving high efficiency with minimal overhead. The LLM model excels in complex, truthful mechanisms (e.g., Scenario 1, Second-Price), where it can outperform the baseline by dynamically discovering pricing and bidding values. Figures 11 and 12 visualize these results. SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 12 
+
+Fig. 12. Scenario 2 (Homogeneous Agents) LLM Agent vs Baseline non-LLM 
+
+F. Privacy Verification (HLF) 
+
+In our Hyperledger Fabric experiments, it was verified that during the bidding phase, the World State contained solely the bid hashes. The actual bid values were rendered visible exclusively within the private data collections of the participat-ing peers. This confirms that the system rigorously preserves commercial confidentiality, which constitutes a prerequisite for industry adoption. The implemented sealed-bid second-price auction is shown in Figure 13 illustrating the lifecycle of the auction creation, bidding, closing the auction, revealing the bids, and finally ending the auction and transferring spectrum tokens to the winning bidder and transferring the funds to the seller. VII. C ONCLUSION AND FUTURE WORK 
+
+In this paper we presented BLAST, a comprehensive frame-work for decentralized spectrum trading. By integrating LLM agents with a secure blockchain infrastructure, we demon-strated that the autonomous, strategic allocation of spectrum resources is not only feasible but provides a superior al-ternative to traditional optimizer-based methods. Our results indicate that LLM agents can effectively participate in various auctions, driving the market towards efficiency and fairness. The proposed model was demonstrated to outperform a non-LLM game-theoretic heuristic model in key metrics. Fur-thermore, the Hyperledger Fabric implementation rigorously proves that such a system can be deployed with strict privacy guarantees essential for multi-operator environments. Future work will focus on:  
+
+> •
+
+LLM Models Benchmark: The proposed framework can be used to compare the performance of different LLM 
+
+Fig. 13. Transaction Diagram of Second-price (Vickery) Sealed-Bid Auction implementation with Hyperledger Fabric 
+
+models and establish a benchmark for model’s rational reasoning in the context of dynamic spectrum sharing.  
+
+> •
+
+Combinatorial Auctions: Extending the mechanism to allow bidding on bundles of tokens (e.g., frequency + time + location). This work provides a concrete architectural blueprint for autonomous, efficient, and trustworthy spectrum economies in 6G and beyond, where decentralized intelligence, economic incentives, and regulatory constraints must coexist within a unified execution framework. REFERENCES [1] Q. Zhao and A. Swami, “A Survey of Dynamic Spectrum Access: Signal Processing and Networking Perspectives,” in 2007 IEEE International Conference on Acoustics, Speech and Signal Processing - ICASSP ’07 ,vol. 4, 2007, pp. IV–1349–IV–1352. [2] L. Perera, P. Ranaweera, S. Kusaladharma, S. Wang, and M. Liyanage, “A Survey on Blockchain for Dynamic Spectrum Sharing,” IEEE Open Journal of the Communications Society , vol. 5, pp. 1753–1802, 2024. [3] Q. Wang, C. Qian, S. Mia, H. Zhang, H. Zhao, Y. Lu, and H. Zhu, “Blockchain-Enabled Credible Multi-Operator Spectrum Sharing in UAV Communication Systems,” IEEE Transactions on Vehicular Tech-nology , vol. 74, no. 6, pp. 8989–9001, 2025. [4] S. Javaid, N. Khan, A. Alwarafy, and N. Saeed, “AGI and LLM-Driven Spectrum Intelligence in Future Wireless Networks,” IEEE Wireless Communications , pp. 1–10, 2025. [5] S. Zheng, T. Han, Y. Jiang, and X. Ge, “Smart Contract-Based Spec-trum Sharing Transactions for Multi-Operators Wireless Communication Networks,” IEEE Access , vol. 8, pp. 88 547–88 557, 2020. [6] J. Mitola, “Cognitive Radio for Flexible Mobile Multimedia Communi-cations,” in 1999 IEEE International Workshop on Mobile Multimedia Communications (MoMuC’99) , 1999, pp. 3–10. [7] S. Haykin, “Cognitive Radio: Brain-Empowered Wireless Communica-tions,” IEEE Journal on Selected Areas in Communications , vol. 23, no. 2, pp. 201–220, 2005. [8] FCC, “Facilitating Opportunities for Flexible Efficient and Reliable Spectrum Use Employing Cognitive Radio Technologies,” FCC Record Citation: 18 FCC Rcd 26859 (35), Washington, DC: USA, 2003. [Online]. Available: https://www.fcc.gov/document/ facilitating-opportunities-flexible-efficient-and-reliable-spectrum-1 SUBMITTED TO IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. XX, NO. X, MARCH 2026 13 
+
+[9] A. Abognah and O. Basir, “TV White Space Availability in Libya,” in 
+
+Cognitive Radio Oriented Wireless Networks , M. Weichold, M. Hamdi, M. Z. Shakir, M. Abdallah, G. K. Karagiannidis, and M. Ismail, Eds. Cham: Springer International Publishing, 2015, pp. 593–603. [10] M. M. Sohul, M. Yao, T. Yang, and J. H. Reed, “Spectrum Access Sys-tem for the Citizen Broadband Radio Service,” IEEE Communications Magazine , vol. 53, no. 7, pp. 18–25, 2015. [11] Y. Xiao, S. Shi, W. Lou, C. Wang, X. Li, N. Zhang, Y. T. Hou, and J. H. Reed, “Decentralized Spectrum Access System: Vision, Challenges, and a Blockchain Solution,” IEEE Wireless Communications , vol. 29, no. 1, pp. 220–228, 2022. [12] A. Abognah and O. Basir, “Distributed Spectrum Sharing Using Blockchain: A Hyperledger Fabric Implementation,” in 2022 IEEE 1st Global Emerging Technology Blockchain Forum: Blockchain & Beyond (iGETblockchain) , 2022, pp. 1–6. [13] “Hyperledger Fabric Documentation,” https://hyperledger-fabric. readthedocs.io/en/latest/, (Date last accessed 2025-12-04). [Online]. Available: https://hyperledger-fabric.readthedocs.io/en/latest/ [14] H. Jiang, T. Wang, and S. Wang, “Multi-Agent Reinforcement Learning for Dynamic Spectrum Access,” in ICC 2019 - 2019 IEEE International Conference on Communications (ICC) , 2019, pp. 1–6. [15] A. Gao, C. Du, S. X. Ng, and W. Liang, “A Cooperative Spectrum Sensing With Multi-Agent Reinforcement Learning Approach in Cog-nitive Radio Networks,” IEEE Communications Letters , vol. 25, no. 8, pp. 2604–2608, 2021. [16] U. C. Ukpong, O. Idowu-Bismark, E. Adetiba, J. R. Kala, E. Owolabi, O. Oshin, A. Abayomi, and O. E. Dare, “Deep Reinforcement Learning Agents for Dynamic Spectrum Access in Television Whitespace Cognitive Radio Networks,” Scientific African , vol. 27, p. e02523, 2025. [Online]. Available: https: //www.sciencedirect.com/science/article/pii/S2468227624004654 [17] S. Vangaru, D. Rosen, D. Green, R. Rodriguez, M. Wiecek, A. Johnson, A. M. Jones, and W. C. Headley, “A Multi-Agent Reinforcement Learning Testbed for Cognitive Radio Applications,” in 2025 IEEE 22nd Consumer Communications & Networking Conference (CCNC) , 2025, pp. 1–9. [18] S. Chen, Y. Zu, Z. Feng, S. Yang, and M. Li, “RadioLLM: Introducing Large Language Model into Cognitive Radio via Hybrid Prompt and Token Reprogrammings,” arXiv preprint arXiv:2501.17888 , 2025. [19] W. Lee and J. Park, “LLM-Empowered Resource Allocation in Wireless Communications Systems,” IEEE Access , vol. 14, pp. 15 260–15 272, 2026. [20] M. M. Karim, D. H. Van, S. Khan, Q. Qu, and Y. Kholodov, “AI Agents Meet Blockchain: A Survey on Secure and Scalable Collaboration for Multi-Agents,” Future Internet , vol. 17, no. 2, p. 57, 2025. [21] H. Lee, M. Kim, S. Baek, W. Zhou, M. Debbah, and I. Lee, “AI-Driven Decentralized Network Management: Leveraging Multi-Agent Large Language Models for Scalable Optimization,” IEEE Communications Magazine , vol. 63, no. 6, pp. 50–56, 2025. [22] Z. Qu, W. Wang, Z. Yu, B. Sun, Y. Li, and X. Zhang, “LLM Enabled Multi-Agent System for 6G Networks: Framework and Method of Dual-Loop Edge-Terminal Collaboration,” IEEE Communications Magazine ,pp. 1–7, 2026. [23] H. Rutagemwa, A. Ghasemi, and P. Guinand, “Empowering Future Spectrum Management and Regulation With Large Language Models,” 
+
+IEEE Intelligent Systems , vol. 40, no. 4, pp. 46–54, 2025. [24] F. Zhou, C. Liu, H. Zhang, W. Wu, Q. Wu, D. W. K. Ng, T. Q. S. Quek, and C.-B. Chae, “SpectrumFM: A Foundation Model for Intelligent Spectrum Management,” 2025. [Online]. Available: https://arxiv.org/abs/2505.06256 [25] W. Vickrey, “Counterspeculation, Auctions, and Competitive Sealed Tenders,” The Journal of Finance , vol. 16, no. 1, pp. 8–37, 1961. [26] A. Abognah and O. Basir, “Decentralized Spectrum Sensing in Cognitive Radio Networks via Federated Learning and Blockchain,” in 2025 International Libyan Conference for Information and Communications Technologies (ILCICT) , 2025. [27] A. Garhwal, R. Bhatt, and S. Garhwal, “A Survey on Dynamic Spec-trum Access Techniques in Cognitive Radio,” International Journal of Computer Applications , vol. 48, no. 12, pp. 20–25, 2012. [28] D. Rosen, I. Rochez, C. McIrvin, J. Lee, K. D’Alessandro, M. Wiecek, N. Hoang, R. Saffarini, S. Philips, V. Jones, W. Ivey, Z. Harris-Smart, Z. Harris-Smart, Z. Chin, A. Johnson, A. M. Jones, and W. C. Headley, “RFRL Gym: A Reinforcement Learning Testbed for Cognitive Radio Applications,” in 2023 International Conference on Machine Learning and Applications (ICMLA) , 2023, pp. 279–286. [29] D. Cuellar, M. Sallal, and C. Williams, “BSM-6G: Blockchain-Based Dynamic Spectrum Management for 6G Networks: Addressing Inter-operability and Scalability,” IEEE Access , vol. 12, pp. 59 643–59 664, 2024. [30] G. Femenias, M. F. Hinarejos, F. Riera-Palou, J.-L. Ferrer-Gomila, and A. Jaume-Barcel´ o, “A Multi-Leader Multi-Follower Stackelberg Game for Dynamic Spectrum Sharing in a Blockchain Enabled Cell-Free Massive MIMO Scenario,” IEEE Open Journal of the Communications Society , 2025. [31] C. Gorenflo, S. Lee, L. Golab, and S. Keshav, “FastFabric: Scaling Hyperledger Fabric to 20,000 Transactions per Second,” in 2019 IEEE International Conference on Blockchain and Cryptocurrency (ICBC) ,2019, pp. 455–463. [32] H. Zhou, C. Hu, D. Yuan, Y. Yuan, D. Wu, X. Chen, H. Tabassum, and X. Liu, “Large Language Models for Wireless Networks: An Overview from the Prompt Engineering Perspective,” IEEE Wireless Communications , vol. 32, no. 4, pp. 98–106, 2025. [33] H. M. Ali Zeeshan, A. Ahmad, S. Ali Hassan, M. Sohaib Jamal Solaija, and S. Hussain Chauhdary, “LLM-Enhanced Dynamic Spectrum Management for Integrated Non-Terrestrial and Terrestrial Networks: A Multi-Objective Optimization Approach,” Mobile Networks and Applications , Jan 2026. [Online]. Available: https://doi.org/10.1007/ s11036-026-02490-z [34] W. Hua, O. Liu, L. Li, A. Amayuelas, J. Chen, L. Jiang, M. Jin, L. Fan, F. Sun, W. Wang, and Others, “Game-Theoretic LLM Agent Workflow for Negotiation Games,” arXiv preprint arXiv:2411.05990 , 2024. [35] N. Lor` e and B. Heydari, “Strategic behavior of large language models and the role of game structure versus contextual framing,” 
+
+Scientific Reports , vol. 14, no. 1, p. 18490, 2024. [Online]. Available: https://doi.org/10.1038/s41598-024-69032-z [36] J. Jia, Z. Yuan, J. Pan, P. E. McNamara, and D. Chen, “LLM strategic reasoning: Agentic study through behavioral game theory,” in 
+
+The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025. [Online]. Available: https://openreview.net/forum?id= XQrGTggLvT [37] N. Herr, F. Acero, R. Raileanu, M. P´ erez-Ortiz, and Z. Li, “Are Large Language Models Strategic Decision Makers? A Study of Performance and Bias in Two-Player Non-Zero-Sum Games,” vol. abs/2407.04467, 2024. [Online]. Available: https://doi.org/10.48550/arXiv.2407.04467 [38] Z. Li, S. Xu, K. Mei, W. Hua, B. Rama, O. Raheja, H. Wang, H. Zhu, and Y. Zhang, “AutoFlow: Automated Workflow Generation for Large Language Model Agents,” vol. abs/2407.12821, 2024. [Online]. Available: https://doi.org/10.48550/arXiv.2407.12821 [39] E. Hossain, D. Niyato, P. Wang, and Y. Zhang, “Auction-Based Resource Allocation in Cognitive Radio Systems,” in IEEE Communications Magazine , 2012, pp. 109–120. [40] J. Huang, R. A. Berry, and M. L. Honig, “Auction-Based Spectrum Sharing,” ACM/Springer Mobile Networks and Applications Journal (MONET) , vol. 11, no. 3, pp. 405–418, 2006. [41] “Google Agent Development Kit (ADK),” https://docs.cloud. google.com/agent-builder/agent-development-kit/overview, (Date last accessed 2025-12-04). [Online]. Available: https://docs.cloud.google. com/agent-builder/agent-development-kit/overview

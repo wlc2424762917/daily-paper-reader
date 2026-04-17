@@ -1,0 +1,454 @@
+Title: ORBIT: Guided Agentic Orchestration for Autonomous C-to-Rust Transpilation
+
+URL Source: https://arxiv.org/pdf/2604.12048v1
+
+Published Time: Wed, 15 Apr 2026 00:11:56 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# ORBIT: Guided Agentic Orchestration for Autonomous C-to-Rust Transpilation 
+
+# Muhammad Farrukh 
+
+Stony Brook University New York, USA mufarrukh@cs.stonybrook.edu 
+
+# Baris Coskun ∗
+
+Amazon Web Services New York, USA barisco@amazon.com 
+
+# Tapti Palit 
+
+University of California, Davis Davis, USA tpalit@ucdavis.edu 
+
+# Michalis Polychronakis 
+
+Stony Brook University New York, USA mikepo@cs.stonybrook.edu 
+
+## Abstract 
+
+Large-scale migration of legacy C code to Rust offers a promising path toward improving memory safety, but LLM-based C-to-Rust translation remains challenging due to limited context windows and hallucinations. Prior approaches are evaluated primarily on small programs or datasets skewed toward small codebases, providing limited insight into scalability on real-world systems. They also rely on static context construction, which breaks down in the presence of complex cross-module dependencies and often requires manual intervention. Recent coding agents offer a promising alternative through dynamic codebase navigation and context curation. When used out of the box, however, they frequently produce incomplete translations that appear superficially correct. We present ORBIT, an autonomous agentic framework for project-level C-to-Rust translation that combines dynamic context collection with dependency-guided orchestration and iterative ver-ification. ORBIT constructs a dependency-aware translation graph, generates Rust interfaces, maps C functions to Rust counterparts, and coordinates multiple specialized agents. We evaluate ORBIT on 24 programs from CRUST-Bench, with 91.7% of the programs exceeding 1,000 lines of code. ORBIT achieves 100% compilation success and 91.7% test success in both expert-interface and auto-matically generated-interface settings, substantially outperforming C2Rust and CRUST-Bench, while reducing unsafe Rust code blocks to nearly zero. We further evaluate ORBIT on challenging cases from the DARPA TRACTOR benchmark, where it achieves compet-itive performance relative to participating systems. 
+
+## 1 Introduction 
+
+The widespread use of legacy C code continues to expose critical sys-tems to memory safety vulnerabilities. Microsoft has reported that 70% of CVEs originate from memory corruption [ 1], and decades of effort to integrate memory safety mechanisms into C/C++ have failed to achieve broad adoption due to performance and compati-bility constraints. In contrast, Rust is a modern systems language that enforces memory safety at compile time through its owner-ship and borrowing model, with a growing effort to make it secure and mature from industry and academia [ 2– 4]. This has motivated significant interest in migrating critical software systems from C to Rust. Recent initiatives such as DARPA’s TRACTOR program [ 5]
+
+> ∗This work does not relate to Baris Coskun’s position at Amazon.
+
+and the Great Refactor [ 6] reflect a systematic community effort to address this challenge at scale. Automated C-to-Rust transla-tion offers a promising path toward this goal, enabling large-scale modernization without requiring complete manual rewriting. Earlier automated approaches adopted predefined rule-based transpilation techniques [ 7– 11 ] that scale to large codebases with-out incurring model inference costs. However, these methods pro-duce unsafe and unidiomatic Rust code that is difficult to maintain and forfeits the safety guarantees that motivate migration in the first place. Recent work has therefore shifted towards leveraging large language models (LLMs) as the primary translation engine, owing to their ability to generate idiomatic and safe code. Despite their impressive abilities, LLM-based approaches face two principal challenges: (i) semantic correctness , which recent studies address through various verification and repair techniques [ 12 – 16 ]; and (ii) limited context window , which restricts the amount of code that can be translated in a single inference call. A substantial body of work [ 17 – 20 ] has addressed the limitation of context, yet two significant gaps remain. 
+
+Limited evaluation scale. Although recent tools [ 18 , 21 – 23 ]claim to handle larger C programs ( >500 LoC), their evaluation benchmarks consist predominantly of small programs, with only a small fraction exceeding 1,000 LoC. Table 1 provides a comprehen-sive comparison across tools, showing that most prior works oper-ate on datasets with median program sizes well below 1K LoC. Some tools do not report dataset sizes explicitly, therefore we only present those for which we can provide best-effort approximations. We ex-clude LLM-based approaches that refine C2Rust output [ 17 , 24 ], because the resulting translation still contains a large amount of unsafe code blocks compared to approaches that directly start with LLM output, and Tymcrat [ 25 ], which targets large repositories but performs type migration on function subsets rather than complete translation. Such evaluations fail to capture the structural complex-ity and cross-module dependencies of real-world codebases. 
+
+Complex static analysis for program decomposition. To address the context window limitation, several approaches employ static analysis to curate the dependencies of translation units, (e.g., helper functions, type definitions, and macros) and perform incre-mental translation in dependency order. However, Li et al. [ 26 ]report that VERT [ 15 ] and Flourine [ 13 ] required substantial man-ual effort to produce an initial translation on a new dataset. Sim-ilarly, several works [ 18 , 23 , 27 ] require human intervention to 
+
+> arXiv:2604.12048v1 [cs.SE] 13 Apr 2026
+
+resolve complex dependencies or struct types. Beyond that, the use of complex techniques to aid the LLM during translation, such as lifetime dependency tracking, pointer aliasing, and ownership analysis, struggle due to the inherent complexities of static analysis. These limitations reflect a broader challenge: context construc-tion is largely static and predetermined prior to translation, leaving systems unable to adapt when the initially curated context is incom-plete or misaligned with the translation task. Effective C-to-Rust translation therefore requires not only context-aware generation, but also the ability to dynamically acquire, validate, and refine context during execution. Recent advances in coding agents provide a natural abstraction for addressing both gaps. Modern agentic systems such as GitHub Copilot, Codex, and Claude Code have become deeply integrated into the software development lifecycle [ 28 –31 ]. By enabling tool interaction and feedback-driven refinement, agentic systems can dy-namically gather missing context, resolve dependencies, and adapt translation strategies based on intermediate failures. However, in our preliminary experiments we observed that vanilla coding agents used in a single-shot setting frequently produce incomplete transla-tions while misleadingly reporting success—as shown in Section 4.3, the base agent achieves build and test success while covering only 64.4% of functions and 3.0% of test cases. This behavior is particu-larly pronounced in open-source models. Furthermore, even when agents do produce translations, Khatry et al. [ 32 ] report that agents perform a disproportionately large number of codebase navigation steps, suggesting that careful orchestration is required to unlock their potential as autonomous translation systems. In this paper, we present ORBIT , an agentic framework for C-to-Rust translation that addresses these limitations. Unlike prior approaches that rely on complex static analysis for context con-struction, ORBIT employs lightweight call-site analysis for ordering and delegates context curation to the agent itself, allowing the sys-tem to dynamically adapt to intermediate failures. ORBIT supports both expert-provided Rust interfaces and interfaces generated au-tomatically via Agentic Iterative Scaffolding, making it applicable without manual input. We evaluate ORBIT on a benchmark of 24 programs derived from CRUST-Bench [ 32 ], with 91.7% of them exceeding 1,000 LoC (Table 1), using two state-of-the-art agents: Opencode with Qwen3-Coder-480B and Codex with GPT-5.2-Codex. When run with Qwen, which is less capable than GPT-Codex, ORBIT achieves 100% com-pilation success and 91.7% test success on all 24 CRUST-Bench pro-grams in both interface configurations, substantially outperforming C2Rust (62.5% compilation, 20.8% test success) and CRUST-Bench (45.8% compilation, 25.0% test success). On the safety dimension, 
+
+ORBIT reduces the average number of unsafe lines of code to 0.06% and 0.11% under the two interface configurations, compared to 69.6% for C2Rust. We further evaluate ORBIT on the DARPA TRAC-TOR benchmark, achieving a pass rate of ∼70% (9/13) on the hardest programs in the battery, placing it competitively within the range of six performer systems. In summary, our main contributions are as follows: 
+
+Table 1: Comparison of datasets used in prior C-to-Rust trans-lation works.                                        
+
+> Tool Dataset #Prog %>1K Med Mean
+> RustMap [23] Rosetta Code, Bzip2 126 ∼1% ∼80 ∼145 Syzygy [18] Zopfli, URL parser 250% 2700 2700 EvoC2Rust [22] C2R-Bench, Vivo-Bench 25 ∼8% ∼400 ∼600 RustAssure [16] 5 C Libs 520% 405 ∼900 SmartC2Rust [21] GitHub, Prior Studies Data 21 ∼24% 502 ∼1000 VERT [15] TransCoder-IR, Prior Studies 534 0% ∼100 ∼120
+> ORBIT CRUST-Bench 24 91.7% 1,354 1,603
+
+• We present ORBIT , a fully autonomous agentic framework for translating large-scale C projects into functional and memory-safe Rust, requiring no manual intervention in the translation process. 
+
+• We present the first rigorous evaluation of an LLM-based C-to-Rust translation tool on a benchmark where over 90% of the programs exceed 1,000 LoC, demonstrating scalability to real-world codebases. 
+
+• We systematically demonstrate that vanilla coding agents yield incomplete translations that appear correct under standard build and test metrics, exposing a critical gap between superficial correctness and true functional completeness. 
+
+## 2 ORBIT Overview 
+
+In this section, we describe the architectural details of ORBIT . The primary design goal of ORBIT is to leverage the capabilities of coding agents to abstract away the engineering complexities of automated translation, while decomposing the translation task into a structured, multi-stage format. ORBIT consists of four main com-ponents as illustrated in Figure 1: (i) Sorted Dependency Graph Generator , which parses C source code into a dependency graph and produces a topologically sorted ordering at both the module and function levels; (ii) Agentic Iterative Scaffolding , which creates a memory-safe Rust project skeleton corresponding to a given C repository containing translated data types, interfaces, and test suites; (iii) Function Mapper , which takes the sorted C modules and functions alongside Rust interfaces to establish a correspon-dence between them, used subsequently during translation; and (iv) Translation Orchestrator , which coordinates multiple specialized agents and performs deterministic verification on agent-generated outputs. 
+
+## 2.1 Sorted Dependency Graph Generator 
+
+Given a source C repository, ORBIT employs a parser built on Tree-sitter [ 33 ] to generate an Abstract Syntax Tree (AST) for each .c 
+
+and .h file in the codebase. Rather than tracking all source code constructs such as variables, structs, and type definitions, the parser focuses exclusively on two primary entity types: (1) Function Nodes ,encompassing standard function signatures, macro-wrapped names, and static inline functions; and (2) Include Nodes , which capture file-level dependencies. From these entities, ORBIT constructs a dual-layered dependency graph comprising two sub-graphs: (a) an 
+
+Intra-Module Graph , which captures local dependencies between 
+
+> 2Agentic Iterative Scaffolding Dependency Graph C Parser C Source Repository
+
+Translation Orchestrator Function Mapper Implementation Checker Rust Interfaces     
+
+> 012< c_module, c_function > < c_module, c_function > < c_module, c_function > Static Search Mapping Resolved Mapping Agent Translator Agent Compiler Agent Verifier Agent User Provided <C> [Module, Function] <Rust> [Module, Function] Refactor Agent Verified Rust Project Compilable Rust Project
+
+Figure 1: Overview of the ORBIT .
+
+functions within the same source or header file (module); and (b) an Inter-Module Graph , which tracks high-level dependencies between Module Groups , defined as logical groupings of related 
+
+.c and .h files. To ensure that foundational entities are processed before those that depend on them (a requirement for both correct translation order and successful compilation) ORBIT applies Kahn’s algorithm [34] in two stages: 
+
+• Intra-Module Sort: Functions within a single file are ordered such that callees precede their callers wherever the dependency structure permits. 
+
+• Inter-Module Sort: Modules are ordered according to the inter-module dependency graph, ensuring that base libraries and util-ity headers are processed prior to the higher-level logic that depends on them. This two-stage sorting establishes a dependency-aware trans-lation order and lays the groundwork for constructing C-to-Rust function mappings in subsequent stages. Since C projects frequently contain circular dependencies, ORBIT detects such cycles and groups the involved entities into a single translation unit, preserving cor-rectness while maintaining translation progress. 
+
+## 2.2 Agentic Iterative Scaffolding 
+
+This component is responsible for generating a type-checked Rust project skeleton, which serves as a precursor to the main translation loop. Rather than relying on complex static analysis to discover translation units, such as global variables and type definitions, 
+
+ORBIT employs an off-the-shelf coding agent to perform the scaf-folding directly. Recent advancements in coding agents enable them to automatically curate the necessary context based on the task at hand. However, they remain prone to failure when presented with a single large monolithic task. Therefore, ORBIT relies on a multi-stage iterative process to guide the agent through the scaffolding incrementally. Algorithm 1 outlines the key steps in this process: 
+
+Project Skeleton Initialization (Lines 1–3): ORBIT runs cargo new 
+
+and creates Rust modules mirroring each C source file; header files with non-declaration content are preserved with a _h suffix. 
+
+Type Translation (Lines 4–6): C type definitions ( struct , union ,
+
+enum , macros, primitives) are mapped into the corresponding Rust modules. Function Signature Resolution (Lines 7–10): Rust function signatures are generated for each C function, with bodies stubbed as 
+
+unimplemented!() , producing a structurally complete skeleton for downstream mapping. Safety Refactoring (Lines 11–15): Raw pointer signatures and unsafe constructs are iteratively refactored towards safe Rust abstractions. Test Suite Translation (Lines 16–18): The C test suite is translated into Rust #[test] functions and integrated into the cargo test harness. Verification (Lines 19–20): A final 
+
+Verify &Repair pass resolves residual structural errors, yielding a type-checked skeleton R.
+
+## 2.3 Function Mapper 
+
+Establishing a precise correspondence between C functions and their Rust counterparts is non-trivial due to the fundamental id-iomatic differences between the two languages. The Translation Orchestrator requires an exact, unambiguous mapping from every C function to its corresponding Rust stub in the skeleton, as this mapping instructs the translation agent precisely which stub to implement at each step. Without it, the agent has no well-defined target and risks missing function implementations. This challenge is most pronounced when using manually cu-rated Rust skeletons. Figure 2 illustrates an example using both auto-generated and manually curated Rust stubs derived from a C function in the LTRE program from CRUST-Bench [ 32 ]. In the manually curated interface, the C function nfa_get_size (which operates on a struct) is lifted into an associated method Nfa::len ,fundamentally reorganising the function structure. In such cases, string-matching heuristics fail to recover the correct correspon-dence or lead to false positives. As a secondary concern, surface-level naming inconsistencies compound the problem further. For 
+
+> 3
+
+Algorithm 1: Agentic Iterative Scaffolding                                                                                                                      
+
+> Input: C: C repository; A: coding agent; 𝑁 : max repair attempts; 𝐾 : max refactor attempts;
+> 𝑇 𝑜𝑢𝑡 : stage timeout
+> Output: R: compilable Rust skeleton
+> 1: R ← ∅ ;
+> 2: R ← CargoNew ( C ,A, 𝑇 𝑜𝑢𝑡 );
+> 3: R ← Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 4: while Aidentifies 𝑡 ∈ C 𝑡 𝑦𝑝𝑒𝑠 ∧ ¬ TimedOut (𝑇 𝑜𝑢𝑡 )do
+> 5: R ← R ∪ { MapType (𝑡 ) } ;
+> 6: R ← Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 7: while Aidentifies 𝑓 ∈ C 𝑓 𝑛𝑠 ∧ ¬ TimedOut (𝑇 𝑜𝑢𝑡 )do
+> 8: 𝑠𝑖𝑔 𝑓 ←MapSignature (𝑓 );
+> 9: R ← R ∪ { 𝑠𝑖𝑔 𝑓 ⇒unimplemented!() };
+> 10: R ← Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 11: 𝑘 ←0;
+> 12: while ¬IsSafe ( R ) ∧ 𝑘 <𝐾 do
+> 13: R ← Refactor ( R ,A, 𝑇 𝑜𝑢𝑡 );
+> 14: 𝑘 ←𝑘 +1;
+> 15: R ← Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 16: while Aidentifies 𝜏 ∈ C 𝑡𝑒𝑠𝑡𝑠 ∧ ¬ TimedOut (𝑇 𝑜𝑢𝑡 )do
+> 17: R ← R ∪ { #[test] MapTest (𝜏 ) } ;
+> 18: R ← Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 19: R ← Verify &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 );
+> 20: return R;
+> 21: Function Compile &Repair ( R ,A, 𝑁 , 𝑇 𝑜𝑢𝑡 )
+> 22: 𝑘 ←0;
+> 23: while ¬IsCompilable ( R ) ∧ 𝑘 <𝑁 do
+> 24: R ← Repair ( R ,A,GetErrors ( R ) , 𝑇 𝑜𝑢𝑡 );
+> 25: 𝑘 ←𝑘 +1;
+> 26: return R;
+
+instance, in the same program, bitset_get is preserved in the auto-generated interface but is renamed to bitset_test in the manual one. To handle both cases robustly without requiring any configura-tion changes, ORBIT employs a two-tier mapping strategy: a fast, deterministic static search as the primary tier, with a Mapping Agent fallback invoked only when all static matching strategies are exhausted. As illustrated in Figure 2, when the auto-generated skeleton is used, the static search resolves nfa_get_size directly via exact-match lookup. When the manually curated skeleton is used, the same function cannot be resolved statically due to the free-function-to-method transformation, and the Mapping Agent is invoked to reason over the semantic correspondence between 
+
+nfa_get_size and Nfa::len . This design ensures that ORBIT is agnostic to the origin of the Rust skeleton, supporting both auto-generated and manually curated interfaces within a unified pipeline. 
+
+2.3.1 Tier 1: Static Search. For each ( c_module , c_function ) pair drawn from the sorted topology, ORBIT first attempts a grammar-based lookup using ripgrep against the Rust project. The search applies a strict matching hierarchy: it first attempts an exact lit-eral match of the C function name against Rust fn declarations, followed by a normalised match in which both names are lower-cased and stripped of underscores and hyphens prior to comparison. Looser forms of matching such as substring or prefix matching are deliberately excluded to prevent false-positive mappings. 
+
+2.3.2 Tier 2: Mapping Agent Fallback. If static search yields no result, the Mapping Agent is invoked with a structured prompt containing the target C function signature and its source mod-ule, alongside with full access to C and Rust projects. The agent reasons over semantic correspondence, parameter count, param-eter types, and return types to identify structurally transformed 
+
+Figure 2: Two-tier function mapping strategy in ORBIT .
+
+counterparts, returning a structured JSON response identifying the matched rust_module and rust_function . In cases where no Rust equivalent exists, such as C deallocator functions that have no counterpart in Rust due to its built-in ownership and deallocation model, the Mapping Agent assigns null to the fields. Since LLMs are inherently prone to hallucination, every map-ping resolved by the Mapping Agent passes through a validation step before being committed. The validator confirms that both the c_module and rust_module paths actually exist and that the mapped rust_function is present within the specified Rust file via a targeted static search. This prevents hallucinated mappings from propagating into the translation phase. If validation fails, the Map-ping Agent is reinvoked for up to a specified number of attempts. 
+
+## 2.4 Translation Orchestrator 
+
+Since functions are translated incrementally in dependency order, each translation step must be verified before proceeding, partial failures must be recoverable, and the overall process must remain resilient to the non-deterministic behavior of coding agents. The decomposition of translation into distinct, specialized agents is motivated by prior work demonstrating that role-specialized multi-agent systems consistently outperform monolithic single-agent approaches on complex software engineering tasks [ 35 – 37 ]. The Translation Orchestrator addresses these concerns by imposing a structured, iterative execution loop over the function mappings produced by the Function Mapper, treating each (C function, Rust stub) pair as an independent translation unit. For each translation unit, the Translation Agent is invoked to generate the Rust implementation of the target C function. The agent is provided with a translation prompt, an AGENTS.md file, and access to both the C and Rust projects. We observed that coding agents tend to perform actions beyond the scope of the prompt, such as prematurely running tests before the implementation is complete. To mitigate this, we analyzed agent behaviour on a set of sample prompts and introduced explicit constraints into the prompt to suppress such over-eager actions. 
+
+> 4
+
+Once the agent completes the implementation, an Implemen-tation Checker is invoked to verify that the target Rust func-tion has been genuinely implemented. This checker uses static analysis to confirm that the function body contains neither an 
+
+unimplemented!() macro nor TODO comments. The rationale for this explicit verification step stems from an observed failure mode: when used with certain open-source models, agents would simply remove the unimplemented!() macro and replace the function body with TODO comments, satisfying the surface form of the prompt without producing a valid implementation. If the Imple-mentation Checker fails, the Translation Agent is reinvoked for up to a specified number of attempts. Once a function is successfully implemented, the Translation Orchestrator invokes the Compiler Agent to ensure that the Rust project compiles successfully with the new implementation. If com-pilation errors are detected, the Compiler Agent attempts to repair the code iteratively until the project compiles or the maximum number of repair attempts is reached. Upon successful compila-tion, the Translation Orchestrator records the translation unit as completed and advances to the next. After all translation units have been processed, a Refactoring Agent is invoked to eliminate unsafe operations introduced during translation. When this agent returns, the Rust project is passed to the Verifier Agent, which runs the test suite and repairs any failing test cases within the allotted number of attempts. The result is a complete, verified Rust translation of the source C codebase. A key design principle of ORBIT is that all agents operating under the Translation Orchestrator are paired with deterministic verification steps. Rather than accepting an agent’s output at face value, ORBIT independently confirms the result using static analysis or toolchain checks. For instance, after the Compiler Agent reports a successful compilation, the Translation Orchestrator independently runs cargo check to confirm the verdict. This dual-layer approach guards against agent hallucination and ensures that pipeline state reflects ground truth rather than agent self-report. 
+
+## 3 Experimental Setup 
+
+Benchmark. Table 2 summarizes key characteristics of the selected benchmarks, including lines of code (LoC), number of functions (#Func), number of files (#Files), and the number of test cases. Our primary dataset is based on CRUST-Bench [ 32 ], a benchmark of 100 C repositories paired with manually generated Rust interfaces. We extract benchmark statistics directly from the original dataset, applying minor corrections to discrepancies in the reported test case counts. We evaluate ORBIT on a subset of 24 programs, prioritizing repositories larger than 1,000 LoC and including a few smaller programs to preserve diversity across application types. We focus on larger repositories because prior work [ 38 ] has shown that LLM-based translation techniques struggle as program size and structural complexity increase. This design allows us to evaluate ORBIT on more challenging and realistic migration tasks. CRUST-Bench includes a broad range of real-world applications from several domains, including programming language infrastruc-ture, algorithmic libraries, and system utilities. 
+
+Table 2: Benchmark statistics. Projects are sampled from the CRUST-Bench collection of 100 C repositories.                                                                                                           
+
+> Project LoC #Func #Files #Tests
+> CB 213 11 218 S-Conf 719 51 441 VaultSync 1,121 41 20 4mvptree 1,121 27 226 RazzSim 1,145 45 5138 Remimu 1,162 313libpgn 1,162 64 26 476 LTRE 1,212 45 4368 LC-Eval 1,264 70 15 101 jccc 1,310 60 22 23 libpsbt 1,331 60 11 9mdb 1,340 28 452 GNNSC 1,367 65 28 24 impcheck 1,397 105 27 83 cfsm 1,446 413 5worsp 1,494 62 270 libutf 1,525 81 33 87 KComp 1,589 136 12 2fslib 1,958 103 24 11 XOpt 2,113 25 318 RecMgr 2,400 82 16 24 libm17 2,901 45 10 26 tisp 3,562 100 9378 Megalania 3,621 101 41 27
+> Name Abbreviations: CB: CircularBuffer; S-Conf: Simple-Config; RazzSim: razz_simulation; LC-Eval: lambda-calculus-eval; GNNSC: Genetic-neural-network-for-simple-control; KComp: kairoCompiler; RecMgr: recordManager.
+
+Agents and LLMs. To demonstrate the extensibility and adapt-ability of ORBIT , we employ two off-the-shelf coding agents: Open-code [ 39 ] and Codex [ 40 ]. Opencode is an open-source coding agent compatible with over 75 LLM providers, making it a highly versatile choice. We configure it with Qwen3-Coder-480B, an open-source model specialized for coding tasks, accessed via AWS Bedrock. While Codex (from OpenAI) supports both local LLMs and pro-prietary models, our preliminary testing revealed frequent silent failures and tool-calling issues when utilizing non-OpenAI models. We therefore use Codex with the GPT-5.2-Codex model. 
+
+## 4 Experimental Evaluation 
+
+In this section we present the results of our experimental evaluation, focusing on the following main research questions: 
+
+• RQ1: Effectiveness of ORBIT relative to existing approaches in terms of correctness and safety. 
+
+• RQ2: Evaluation using the DARPA TRACTOR dataset. 
+
+• RQ3: Evaluation of individual ORBIT components towards trans-lation success. 
+
+## 4.1 RQ1: Correctness and Safety 
+
+4.1.1 Correctness Evaluation. Table 3 presents the correctness re-sults of ORBIT alongside two baselines on compilation and test success metrics: i) C2Rust [ 7]: a rule-based transpiler developed by Immunant and Galois that converts C code to Rust without LLM assistance; ii) CRUST-Bench [ 32 ]: a multi-step self-repair framework for project-level C-to-Rust translation that employs a repair feed-back loop to automatically correct translation errors. The bottom row of the table reports the overall success rate across all evaluated tools. 
+
+> 5
+
+Table 3: Correctness results on the 24 CRUST-Bench programs. For ORBIT, we distinguish two interface modes: ORBIT Ext uses expert-written Rust interfaces provided by CRUST-Bench, while ORBIT Gen uses interfaces generated automatically by ORBIT .
+
+✓ = success; ✗ = failure; – = not applicable. Abbreviated names: CB = CircularBuffer; S-Conf = Simple-Config; RazzSim = razz_simulation; LC-Eval = lambda-calculus-eval; GNNSC = Genetic-neural-network-for-simple-control; KComp = kairoCom-piler; RecMgr = recordManager. 
+
+C2Rust CRUST-Bench ORBIT Ext ORBIT Gen 
+
+Project LoC Trans. Success Comp. Success Test Success Comp. Success Test Success Comp. Success Test Success Comp. Success Test Success 
+
+CB 213 ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+
+S-Conf 719 ✗ – – ✓ ✗ ✓ ✓ ✓ ✓
+
+VaultSync 1,121 ✓ ✗ – ✗ – ✓ ✓ ✓ ✓
+
+mvptree 1,121 ✓ ✗ – ✓ ✓ ✓ ✓ ✓ ✓
+
+RazzSim 1,145 ✓ ✓ ✗ ✓ ✗ ✓ ✓ ✓ ✓
+
+Remimu 1,162 ✓ ✓ ✓ ✗ – ✓ ✓ ✓ ✓
+
+libpgn 1,162 ✓ ✓ ✗ ✓ ✗ ✓ ✗ ✓ ✓
+
+LTRE 1,212 ✓ ✗ – ✓ ✓ ✓ ✓ ✓ ✗
+
+LC-Eval 1,264 ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+
+jccc 1,310 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+libpsbt 1,331 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+mdb 1,340 ✓ ✗ – ✓ ✓ ✓ ✓ ✓ ✓
+
+GNNSC 1,367 ✓ ✗ – ✗ – ✓ ✓ ✓ ✓
+
+impcheck 1,397 ✗ – – ✗ – ✓ ✗ ✓ ✓
+
+cfsm 1,446 ✓ ✓ ✓ ✓ ✗ ✓ ✓ ✓ ✓
+
+worsp 1,494 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+libutf 1,525 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+KComp 1,589 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+fslib 1,958 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✓
+
+XOpt 2,113 ✓ ✗ – ✓ ✓ ✓ ✓ ✓ ✓
+
+RecMgr 2,400 ✗ – – ✗ – ✓ ✓ ✓ ✓
+
+libm17 2,901 ✓ ✓ ✗ ✓ ✗ ✓ ✓ ✓ ✓
+
+tisp 3,562 ✓ ✓ ✗ ✗ – ✓ ✓ ✓ ✗
+
+Megalania 3,621 ✓ ✓ ✓ ✗ – ✓ ✓ ✓ ✓
+
+Success Rate 21/24 (87.5%) 15/24 (62.5%) 5/24 (20.8%) 11/24 (45.8%) 6/24 (25.0%) 
+
+24/24 (100%) 22/24 (91.7%) 24/24 (100%) 22/24 (91.7%) 
+
+C2Rust. C2Rust successfully transpiles 21 out of 24 programs (87.5%), but its compilation success rate drops sharply to 15/24 (62.5%), revealing that successful transpilation alone does not guar-antee compilable output. Among the three transpilation failures, one originates from a fundamental limitation of its Clang-based frontend: C2Rust cannot process GCC nested functions, a non-standard GCC extension [ 41 ] that permits function definitions to appear inside other function bodies. In recordManager , the func-tion openTable defines two nested helpers ( readIntFromHeader 
+
+and setSchemaAttributes ) directly within its body (Listing 1). Since Clang rejects this GCC extension, C2Rust aborts at the tran-spilation stage rather than producing incorrect output. 
+
+ORBIT resolves this by restructuring the nested functions as a Rust closure captured within the enclosing function’s scope (List-ing 2). The closure read_i32 captures a mutable reference to the byte offset, producing semantically equivalent behaviour while remaining fully safe Rust with no unsafe blocks. This example il-lustrates a broader advantage of agentic translation over rule-based transpilation: the LLM agent is not constrained by the syntactic subset of C accepted by a particular compiler frontend, enabling it to produce idiomatic restructurings. Even among the 15 programs that compile successfully, C2Rust achieves a test success rate of only 5/24 (20.8%), with runtime crashes being the major reason. 
+
+CRUST-Bench. We run the CRUST-Bench pipeline with Qwen3-Coder-480B under the default setting of three self-repair rounds per task and a single-candidate greedy repair strategy, as the authors                                         
+
+> 1// Nested functions defined inside openTable ()
+> 2int readIntFromHeader ( char ** hdr ) {
+> 3int val =*( int *) (* hdr );
+> 4* hdr += sizeof (int );
+> 5return val ;
+> 6}
+> 7void setSchemaAttributes (
+> 8Schema *s , char ** hdr ) {
+> 9s -> numAttr =readIntFromHeader ( hdr );
+> 10 s -> keySize =readIntFromHeader ( hdr );
+> 11 }
+
+Listing 1: GCC nested functions inside openTable 
+
+(recordManager.c ).                                                 
+
+> 1// Closure inside open_table () captures mutable offset
+> 2let mut read_i32 =
+> 3| data : &[ u8 ], off : &mut usize |-> i32 {
+> 4let v=i32 :: from_le_bytes (
+> 5data [* off ..* off +4]
+> 6. try_into () . unwrap ()
+> 7);
+> 8* off += 4;
+> 9v
+> 10 };
+> 11 schema . num_attr =read_i32 ( header , &mut offset );
+> 12 schema . key_size =read_i32 ( header , &mut offset );
+
+Listing 2: ORBIT restructures nested functions as a closure (Rust). 
+
+report that these configurations yield the best results [ 32 ]. CRUST-Bench achieves a compilation success rate of 11/24 (45.8%) and a test success rate of 6/24 (25.0%). The translations frequently contain 
+
+> 6
+
+unimplemented! macro invocations or incomplete fragments—a known limitation also reported by the original authors—that pre-vent successful end-to-end execution. By contrast, ORBIT ’s fine-grained control over the translation process eliminates such failures entirely, achieving 100% compilation success on all 24 programs. 
+
+ORBIT. As described in Section 2, ORBIT supports both manually provided and automatically generated Rust interfaces. To evaluate each capability independently, we run ORBIT in two configurations: 
+
+ORBIT Ext and ORBIT Gen . The former uses expert-written Rust inter-faces provided by CRUST-Bench. The latter employs Codex with GPT-5.2-Codex during the Agentic Iterative Scaffolding phase for interface generation, and it then switches to Opencode with Qwen3-Coder-480B during translation orchestration, balancing translation quality against cost. 1
+
+ORBIT Ext achieves 100% compilation success and a test success rate of 22/24 (91.7%). ORBIT Gen , which generates interfaces automat-ically, matches the compilation success of ORBIT Ext at 24/24 (100%), and achieves an identical test success rate of 22/24 (91.7%), with failures on LTRE and tisp instead. The near-identical performance between the two modes demonstrates that ORBIT ’s automatic inter-face generation is a viable substitute for manually crafted interfaces, removing a significant practical barrier to adoption. Compared to both baselines, ORBIT substantially improves end-to-end correctness. Relative to C2Rust, ORBIT improves compilation success from 58.3% to 100% and test-suite success from 20.8% to 91.7%. Relative to CRUST-Bench, it improves compilation success from 45.8% to 100% and test-suite success from 25.0% to 91.7%. These improvements suggest that the main gains of ORBIT come from its modular and dependency aware agentic approach. 
+
+4.1.2 Memory Safety Evaluation. Table 4 reports the memory safety results across all four tools. We measure safety as the per-centage of unsafe lines of code (%Unsafe) in the translated Rust output, with lower values indicating a safer translation. Unlike prior studies [ 32 , 38 , 44 ] that often perform aggregated memory safety analysis, ORBIT adopts a more granular, multi-dimensional safety taxonomy: number of raw pointer declarations and dereferences, along with total number of unsafe lines of code in relation to the total LoC, which complements the percentage unsafety. A dash (“–”) in the table indicates either that the tool fails the transpilation process, or its translation contains build failures. 
+
+Baselines. C2Rust produces translations that are unsafe through-out, averaging 69.6% of unsafe lines of code across the 15 programs it successfully compiles, ranging from 20.4% ( tisp ) to 97.4% ( Remimu ). This is expected, as C2Rust performs a structural one-to-one map-ping of C constructs to Rust, preserving raw pointer arithmetic ver-batim rather than reasoning about ownership. Since CRUST-Bench translations include manually generated Rust Interfaces, this assists the iterative repair loop to reduce unsafe code blocks substantially, averaging 0.68% across the 11 programs it translates. However, three programs retain non-zero lines of unsafe code even after using safe interfaces: razz_simulation (1%), lambda-calculus-eval (2.5%), and libm17 (4%). Despite the claim that CRUST-Bench provides safe interfaces, we observed some instances of static mut usage    
+
+> 1gpt-5.2-codex is significantly more expensive than qwen: input costs are approxi-mately 3.89 ×higher ($1.75 vs. $0.45 per 1M tokens) and output costs are approximately
+> 7.78 ×higher ($14.00 vs. $1.80 per 1M tokens) [42, 43].
+
+in the source code that limit the LLM’s ability to generate safe code. For example, libm17 contains these global variables in both the original and the translated Rust version. For other programs with unsafe usage, the root cause varies between global variables (intro-duced by the LLM later), raw pointer casting, or unsafe function calls. On the 6 programs successfully compiled by all four tools, C2Rust averages 73.0% of unsafe lines of code, compared to 1.25% for CRUST-Bench, 0.00% for ORBIT Ext , and 0.10% for ORBIT Gen —a reduction of 100% relative to C2Rust for ORBIT Ext , and over 98% relative to CRUST-Bench. 
+
+ORBIT Ext . ORBIT Ext achieves zero lines of unsafe code in 19/24 pro-grams, with an average %Unsafe of just 0.06%. Among the five programs with non-zero unsafe lines of code, the absolute counts are negligible: mvptree , and impcheck contain at most 2 unsafe lines each, while KComp , RecMgr , and XOpt account for the ma-jority with maximum 16 unsafe lines, out of translation outputs exceeding 1,500 LoC. The raw pointer counts reflect the same pic-ture: ORBIT Ext introduces only 35 raw pointer declarations and 5 dereferences across all 24 programs, confirming that the agent con-sistently eliminates the pervasive pointer arithmetic of the original C program and confines any residual unsafe code blocks to isolated locations. 
+
+ORBIT Gen . ORBIT Gen achieves a comparable safety profile, achiev-ing zero lines of unsafe code in 21/24 programs, with an average %Unsafe of 0.11%. ORBIT Gen eliminates unsafe code in two addi-tional programs compared to ORBIT Ext , though the programs that retain residual unsafe lines are different ( RazzSim (9 lines), KComp 
+
+(12 lines), and fslib (45 lines)), suggesting that automatic interface generation influences which pointer patterns the agent restruc-tures rather than increasing overall unsafety. Raw pointer totals remain similarly low at 58 declarations and 6 dereferences. The near-identical profile between the two configurations confirms that automatic interface generation does not compromise safety, making 
+
+ORBIT Gen a practical choice when manually written interfaces are unavailable. 
+
+## 4.2 RQ2: DARPA TRACTOR Dataset 
+
+DARPA launched the TRACTOR program as a major research effort to develop scalable, automated techniques for translating large C codebases into memory-safe Rust [ 5]. As part of the program, a test battery of 150 C programs was publicly released to evaluate the translation tools developed by the participating performers across a range of C features, accompanied by a detailed evaluation report [ 45 ] covering correctness and safety. We evaluate ORBIT on this standard benchmark to understand how it performs compared to the participants’ tools, and where it stands on challenging real-world programs. The TRACTOR report presents aggregated results across per-formers, covering overall failure rates and failure types, rather than fine-grained per-program, per-performer breakdowns. While this is sufficient to identify overall trends, it does not reveal which performer failed a given program or how many test vectors were missed, preventing a complete per-system comparison at the level of individual programs and vectors. We therefore focus on the sub-set of the most failure-prone programs identified in the evaluation. Since the TRACTOR test harness requires translations to be in a 
+
+> 7
+
+Table 4: Safety analysis comparison across translation tools. ptr_d = raw pointer declarations; ptr_* = raw pointer dereferences; uLoC = unsafe lines of code; %Unsafe = unsafe percentage of total LoC; LoC = total lines of code. “–” indicates the project was either not translated or did not compile successfully for that tool. Highlighted rows ( ) denote programs where at least one ORBIT configuration produced non-zero unsafe code.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
+> C2Rust CRUST-Bench ORBIT Ext ORBIT Gen
+> Project ptr_d ptr_* uLoC %Unsafe LoC ptr_d ptr_* uLoC %Unsafe LoC ptr_d ptr_* uLoC %Unsafe LoC ptr_d ptr_* uLoC %Unsafe LoC
+> CB 171 100 530 82.3 644 0000.0 292 0000.0 273 0000.0 259 S-Conf –––––0000.0 791 0000.0 1074 0000.0 1646 VaultSync ––––––––––0000.0 959 0000.0 1484 mvptree –––––0000.0 653 0010.1 1147 0000.0 2153 RazzSim 391 211 1204 67.4 1787 2061.0 607 0000.0 1285 0090.6 1572 Remimu 1108 718 5258 97.4 5399 –––––0000.0 1318 0000.0 1087 libpgn 513 421 2006 75.0 2673 0000.0 1246 0000.0 2902 0000.0 1952 LTRE –––––0000.0 1353 0000.0 2827 0000.0 1107 LC-Eval 1004 350 2235 68.5 3264 0026 2.5 1023 0000.0 1501 0000.0 1671 jccc 1267 266 2131 64.2 3321 –––––0000.0 1662 0000.0 1849 libpsbt 645 328 1920 75.3 2550 –––––0000.0 1535 44 000.0 1578 mdb –––––0000.0 560 0000.0 784 0000.0 1596 GNNSC ––––––––––0000.0 2145 0000.0 2116 impcheck ––––––––––1020.1 2193 0000.0 2839 cfsm 361 105 2203 86.0 2563 0000.0 75 0000.0 195 0000.0 334 worsp 696 879 2398 81.7 2936 –––––0000.0 2032 0000.0 3581 libutf 368 382 2441 82.8 2950 –––––0000.0 1656 1000.0 2073 KComp 952 236 2021 62.1 3253 –––––8140.2 1997 10 012 0.7 1668 fslib 1269 734 4264 71.9 5928 –––––0000.0 3412 3645 1.4 3197 XOpt –––––6000.0 837 20 416 1.0 1591 0000.0 1789 RecMgr ––––––––––2040.2 2450 0000.0 3075 libm17 240 242 1446 58.5 2473 0049 4.0 1239 0000.0 1141 0000.0 1309 tisp 1626 1189 5644 20.4 27741 –––––0000.0 3341 0000.0 6906 Megalania 1362 612 4186 51.2 8181 –––––4000.0 1725 0000.0 2690
+
+Table 5: Performance of ORBIT on the hardest TRACTOR programs. Perf. Pass Rate denotes the number of performers (out of six) that successfully translated each case. ORBIT Result shows case-level outcome, and ORBIT Vec. Pass Rate denotes the percentage of test vectors passed.                                          
+
+> Type Test Case Perf. Pass Rate ORBIT Result ORBIT Vec. Pass Rate
+> Exec 016_switch-arith 3/6 Pass 100% 042_float_union 3/6 Pass 100% 033_bitfield 3/6 Pass 100% 030_int_underflow 2/6 Pass 100% 002_stdin_echo 3/6 Partial 75% Lib read_scalefactors_lib 3/6 Pass 100% 004_loop_lib 2/6 Pass 100% read_side_info_lib 4/6 Pass 100% wcscat_lib 4/6 Pass 100% update_frame_header_lib 4/6 Pass 100% 030_int_underflow_lib 2/6 Fail 0% contrast_ratio_lib 3/6 Partial 62.5% hex2bin_lib 2/6 Fail 0%
+
+specific output format, we extended ORBIT to support this format. From the top-15 hardest cases, we select 13 programs, excluding two long-running cases that require additional configuration changes. The selected set covers both executable and library programs, allow-ing us to evaluate ORBIT under different interface and behavioural constraints. Since TRACTOR does not release test vectors to trans-lation systems, and ORBIT requires seed tests for its iterative repair process, we construct initial test vectors manually to enable trans-lation and ensure a fair comparison. Importantly, all final results are computed using the official TRACTOR-provided test vectors, which remain completely hidden from ORBIT during the translation process. Table 5 summarizes the performance of ORBIT across all selected programs. Overall, ORBIT achieves full correctness (“Pass”) on 9 out of the 13 programs (69.2%), and at least partial correctness on 11 of them (84.6%). When broken down by program type, ORBIT 
+
+attains an 80% success rate on executable programs (4/5) and 62.5% on library programs (5/8). Despite the lack of per-performer results in the TRACTOR report, a comparison at the aggregate level reveals that ORBIT performs competitively with the six performers. The report identifies the av-erage performer pass rate across Battery 01 as 82.2% [ 45 ], with the top performer reaching 98.7% and the lowest reaching 48.0%. On the 13 programs we evaluated, the TRACTOR baseline pass rate (i.e., the fraction of performers that successfully translated each case) ranges from 2/6 to 4/6, confirming these are among the most challenging programs in the battery. Against this backdrop, ORBIT achieves a pass rate of ∼70% (9/13), which falls within the range of performers on the full battery and notably surpasses the lowest-performing system on our selected subset. On the executable programs specifi-cally, ORBIT matches or exceeds the majority of performers: all five executable cases have a performer pass rate of only 2–3 out of 6, yet 
+
+ORBIT passes four of them outright and achieves 75% vector cover-age on the fifth. Among the library programs, ORBIT fully passes five cases, including read_scalefactors_lib and 004_loop_lib ,of which only 2 out of 6 performers translated 004_loop_lib suc-cessfully, and 3 out of 6 translated read_scalefactors_lib . To enable testing, the TRACTOR test harness imposes stricter require-ments on ABI compatibility, state preservation, and FFI boundaries. 
+
+> 8
+
+However, ORBIT is primarily designed and optimized to avoid the use of FFI and to perform translation testing using cargo test . This explains the comparatively lower success rate on library programs relative to executable programs. Among the partial and failing cases, the root cause is of-ten not a failure to model pointer semantics or Rust’s owner-ship system, but rather subtle behavioral differences between C standard library functions and their closest Rust equivalents. In 
+
+contrast_ratio_lib , ORBIT selected f32::powf as the counter-part to C’s pow() , but C implicitly promotes float arguments to 
+
+double before the computation, performing the exponentiation at 64-bit precision before casting back. Rust’s f32::powf operates entirely in single precision, producing slightly different results on boundary-value inputs. Similarly, in 002_stdin_echo , write_all 
+
+is used as the natural counterpart to fputs , yet fputs silently trun-cates the output at the first null byte whereas write_all writes the full byte slice. These failures highlight a remaining gap in LLM knowledge of the precise behavioral contracts of C functions and the subtle ways their Rust counterparts diverge from them—a limitation of current LLM-based approaches that calls for deeper exploration. 
+
+## 4.3 RQ3: Ablation Study 
+
+To evaluate the contribution of the key components of ORBIT in overall translation success, we conduct an ablation study across four settings: i) full , which runs the complete pipeline; ii) base ,which translates the entire project in a single prompt without the dependency graph, Rust interfaces, and translation orchestra-tor; iii) w/o interfaces , which retains the translation orchestra-tor and dependency graph but removes the initial Rust scaffold and function mappings, requiring the agent to construct the Rust project structure from scratch; and iv) w/o mapping , which retains both the dependency graph and Rust interfaces but removes ex-plicit function-level target mappings, leaving the agent to identify Rust counterparts independently. All settings use the same Open-code agent with the Qwen3-Coder-480B model. We perform our evaluation on three benchmarks of varying size and complexity: 
+
+CircularBuffer (213 LoC, 11 functions), LTRE (1,212 LoC, 45 func-tions), and libm17 (2,901 LoC, 45 functions). Beyond build and test success, which can give a false sense of correctness, we introduce two additional metrics: (i) Functional Coverage (%) , defined as the percentage of C functions fully translated into Rust (exclud-ing stubs, unimplemented!() placeholders, and missing functions), and (ii) Test Coverage (%) , defined as the percentage of original C test cases translated into the Rust test suite and executable via 
+
+cargo test . These metrics are intentionally stricter than build and test success alone, as our manual audit revealed multiple cases where a project was built and tested successfully despite missing functionality, shallow test coverage, or translated test harnesses that were never executed. Table 6 reports our results across all above settings. 
+
+4.3.1 Impact of Removing All Components ( Base ). The single-shot base setting reveals the limitations of vanilla coding agents in translating an entire project without structural guidance. On 
+
+CircularBuffer , where the entire codebase fits within a single context window, base achieves full functional coverage, compiles successfully and passes all tests, demonstrating that a single-prompt 
+
+Table 6: Ablation results for Orbit on three benchmarks. Func. Coverage is the percentage of C functions fully im-plemented in Rust. Test Coverage is measured against the original C test logic. Build success denotes passing cargo check ; Test success denotes passing cargo test . (CB = Circu-larBuffer)                                                       
+
+> Prog. Mode Func. Coverage (%) Test Coverage (%) Build Succ. Test Succ.
+> CB base 100.0 0.0 ✓✓
+> w/o interfaces 100.0 90.9 ✓✓
+> w/o mapping 100.0 −− ∗✓✓
+> full 100.0 −− ∗✓✓
+> LTRE base 64.4 3.0 ✓✓
+> w/o interfaces 82.2 12.2 ✓✓
+> w/o mapping 93.3 −− ✓✓
+> full 100.0 −− ✓✗
+> libm17 base 84.1 0.0 ✗✗
+> w/o interfaces 100.0 100.0 ✓✓
+> w/o mapping 100.0 −− ✓✓
+> full 100.0 −− ✓✓
+> ∗Test Coverage is not applicable for w/o mapping and full as the Rust scaffold provides complete test implementations.
+
+approach is viable for small, self-contained programs. However, it produces no translated tests (0.0% test coverage), meaning the test success rests entirely on three shallow unit tests written by the agent rather than a translation of the original C validation suite. As program complexity increases, base degrades substantially. On 
+
+LTRE , functional coverage drops to 64.4%—seven functions are miss-ing outright and six are stubs—while test coverage collapses to 3.0% (12 Rust tests vs. ∼450 C cases), with several of those tests pass-ing only because they exercise incomplete code paths. On libm17 ,
+
+base fails to compile entirely due to syntax errors, including type mismatches, and borrow checker violations, producing no tests. 
+
+4.3.2 Impact of Removing Interfaces ( W/O Interfaces ). Remov-ing the initial Rust scaffold, which in the full ORBIT setting is constructed using Agentic Iterative Scaffolding, while retaining the translation orchestrator that performs incremental transla-tion using the dependency graph, produces mixed results. For 
+
+CircularBuffer and libm17 , the agent successfully constructs the project structure from scratch, achieving 100% functional coverage and passing all tests. For libm17 specifically, this setting produces the most comprehensive test suite of any non-full mode, as the agent autonomously generates C test vectors to cross-verify its Rust implementation. This demonstrates that the agent’s self-directed context curation can compensate for the absence of a predefined scaffold when the project structure is straightforward. However, 
+
+LTRE exposes the limits of this compensation: without a predefined interface structure, the agent leaves four critical functions as stubs or incomplete, including nfa_clone and nfa_uncomplement , re-sulting in 82.2% functional coverage and only 12.2% test coverage. The absence of a scaffold forces the agent to spend significant effort on project initialization and macro visibility issues, leaving less capacity for logic translation. 
+
+4.3.3 Impact of Removing Function Mappings ( W/O Mapping ). 
+
+Providing the dependency graph and Rust interfaces but omit-ting explicit C-to-Rust function mappings consistently improves 
+
+> 9
+
+functional coverage over base and w/o interfaces for complex programs. Although LTRE reaches 93.3% functional coverage in this setting—the highest of any non-full mode—and uniquely im-plements functions absent in both other ablation modes, such as dfa_serialize and dfa_deserialize , ORBIT still skips some functions; when run in full mode with mapping, LTRE reaches up to 100% functional coverage. The predefined interface scaf-fold provides a stable target structure, allowing the agent to fo-cus on logic translation rather than architectural decisions. For 
+
+CircularBuffer and libm17 , the setting achieves full functional and test coverage. The contrasting results between LTRE and libm17 across all ab-lation modes reflect fundamental differences in their structural complexity rather than program size alone. LTRE , despite being smaller (1,212 LoC) in size, is structurally more difficult for trans-lation because its core functionality is organized as a tightly cou-pled automata pipeline. Correct behavior depends on interactions among parsing, NFA construction, DFA compilation, DFA mini-mization, matching, and round-trip operations such as serialization and decompilation. As a result, defects in one stage often invalidate downstream behavior, and local fixes do not necessarily recover global correctness. In contrast, libm17 is larger (2,901 LoC) but more decomposable. Many of its components, such as CRC com-putation, callsign encoding, and several math helpers, have strong local specifications and can be validated independently with direct test vectors. This makes iterative function-level translation more effective despite the larger codebase. 
+
+4.3.4 Full Pipeline. The complete ORBIT pipeline achieves 100% functional and test coverage on all three benchmarks. The one ex-ception is LTRE ’s test success, which fails not due to incomplete translation but due to the C-to-Rust semantic gap. To further under-stand the effectiveness of Function mapping beyond the mentioned metrics, we conducted a small controlled experiment: we directed a single coding agent to translate a single function ( bitset_get )from LTRE in isolation, once with explicit function mapping and once without. With mapping, the agent completed the translation in 3 tool calls (two reads and one write). Without mapping, the agent required 6 tool calls, of which 4 were codebase navigation steps to locate the relevant C and Rust files. While this observation is based on a single function, it illustrates how function mappings eliminate navigation overhead that would otherwise compound across the hundreds of per-function translation steps in a full project. Based on the above results, we conclude that each component of 
+
+ORBIT contributes meaningfully to translation quality. The depen-dency graph enables incremental translation that scales to complex projects. Rust interfaces provide the structural scaffold that keeps the agent focused on logic translation. Removing any single compo-nent degrades either functional or test coverage. The base setting demonstrates that single-shot translation, while sufficient for small programs, is fundamentally inadequate for projects beyond a few hundred lines of code. 
+
+## 5 Threats to Validity 
+
+Like other LLM-based C-to-Rust translation approaches [ 21 , 46 ], 
+
+ORBIT relies on the tests available with the source code to assess semantic equivalence between the source and translated programs. Consequently, test quality determines the upper bound on the equiv-alence that can be established between the C and Rust versions. A natural extension would be to harness the capabilities of cod-ing agents to generate additional test cases that expose divergent behaviors, which we leave as future work. Although ORBIT ’s mod-ular design improves the performance of open-source models and can provide a cost benefit, optimizing the agentic pipeline for cost and token consumption presents a distinct set of challenges or-thogonal to the goals of this work and is therefore not our focus. Additionally, while ORBIT operates with full agent autonomy, we observed instances where the agent oscillated between pursuing safe Rust alternatives and completing functionality, continuing un-til the attempt limit was exhausted. This highlights the need for mechanisms to detect and resolve such agent loops early. Finally, the non-deterministic nature of LLMs poses a threat to validity, as repeated runs may produce different results. To mitigate this, we adopt a strict correctness criterion: a translation is marked as Test Success only if it passes all available test cases. 
+
+## 6 Related Work 
+
+Rule-based C-to-Rust Translation. Early automated C-to-Rust translation relied primarily on rule-based transpilation. C2Rust [ 7 ]is the most widely used tool in this category, applying predefined and custom rewrite rules to produce Rust code. While it scales to large codebases, the output is unidiomatic and saturated with 
+
+unsafe blocks. Emre et al. [ 11 ] systematically characterize the sources of unsafety in C2Rust translations and propose a compiler-feedback-driven technique to refactor a class of raw pointers into safe Rust references. Building on C2Rust, CROWN [ 8 ] lifts raw pointers to Rust references, though its scope is restricted to mutable, non-array pointer types. A parallel line of work targets narrower translation challenges: ConCrat [ 9] focuses on converting lock APIs, while other tools [ 47 , 48 ] address specific data type conversions. Collectively, these approaches demonstrate that rule-based transla-tion can handle isolated syntactic patterns but struggles to produce safe, idiomatic Rust at the whole-program level. 
+
+LLM-based C-to-Rust Translation. Recent advances in large language models (LLMs) have enabled their application across a wide range of domains [ 49 – 57 ], including code generation and program translation. Pan et al. [ 58 ] provide a comprehensive evalu-ation of LLM-based translation across multiple programming lan-guages, including C-to-Rust, and introduce a taxonomy of common translation errors. To improve translation quality, several works augment LLM-based approaches with program analysis for decom-position [ 14 , 17 – 19 , 22 , 59 ] and verification techniques such as formal verification [ 15 ], fuzzing [ 13 ], and symbolic testing [ 16 ]. Despite these advances, these approaches are typically evaluated on relatively small programs (e.g., under 600 LoC), limiting their applicability to realistic codebases. 
+
+Agentic Approaches for Code Translation. In parallel, emerg-ing work explores the use of LLM-powered agents for translation and testing. However, these approaches are either restricted to CLI-based programs [ 44 ], focus primarily on refactoring C2Rust out-puts [ 60 ], are limited to verification of the final translated code [ 61 ], or lack evaluation on diverse datasets [62]. 
+
+> 10
+
+In contrast, our work aims to address these gaps by providing a fully autonomous agentic framework that is not restricted to specific classes of C applications. We exclude multi-threaded and GUI-based programs due to their inherent non-determinism and the additional challenges they introduce for verification. We further evaluate our approach on a rigorous and diverse benchmark. 
+
+## 7 Conclusion 
+
+We presented ORBIT , an agentic framework for autonomous C-to-Rust translation that addresses key limitations of prior work, including evaluation on small benchmarks and reliance on brittle static analysis requiring human intervention. ORBIT decomposes translation into coordinated stages with integrated verification to mitigate agent hallucination. ORBIT achieves 100% compilation success and 91.7% test success, substantially outperforming C2Rust and the CRUST-Bench pipeline in correctness and memory safety. Overall, our results suggest that agentic workflows are a promising direction for applying LLMs to large-scale software modernization. 
+
+## 8 Data Availability Statement 
+
+Our source code and dataset are available at https://anonymous. 4open.science/r/orbit_c_rust_2026. The artifacts will be released publicly upon acceptance of the paper. 
+
+## References 
+
+[1] Gavin Thomas. A proactive approach to more secure code. Microsoft Security Response Center (MSRC) Blog, July 2019. Accessed: 2026-03-25. [2] Aleksandar Zeljic, Shaobo Taneja, and Aaron Tomb. Verify the safety of the Rust standard library. AWS Open Source Blog, July 2022. Accessed: 2026-03-25. [3] Muhammad Hassnain and Caleb Stanford. Counterexamples in safe Rust. In 
+
+Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering Workshops , pages 128–135, 2024. [4] Muhammad Hassnain, Anirudh Basu, Ethan Ng, and Caleb Stanford. Cargo sherlock: An smt-based checker for software trust costs, 2026. [5] Defense Advanced Research Projects Agency (DARPA). TRACTOR: Translating All C to Rust. https://www.darpa.mil/research/programs/translating-all-c-to-rust, 2024. Accessed: 2026-03-20. [6] TRACTOR Program Developers. The great refactor: DARPA TRACTOR docu-mentation and resources. https://www.thegreatrefactor.org/, 2024. Accessed: 2026-03-25. [7] Immunant. C2Rust. https://github.com/immunant/c2rust, 2022. Accessed: [Insert Date Here]. [8] Hanliang Zhang, Cristina David, Yijun Yu, and Meng Wang. Ownership guided C to Rust translation. In International Conference on Computer Aided Verification ,pages 459–482. Springer, 2023. [9] Jaemin Hong and Sukyoung Ryu. Concrat: An automatic C-to-Rust lock API translator for concurrent programs. In 2023 IEEE/ACM 45th International Confer-ence on Software Engineering (ICSE) , pages 716–728. IEEE, 2023. [10] Jaemin Hong and Sukyoung Ryu. To tag, or not to tag: Translating C’s unions to Rust’s tagged unions. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering , pages 40–52, 2024. [11] Mehmet Emre, Ryan Schroeder, Kyle Dewey, and Ben Hardekopf. Translating C to safer Rust. Proc. ACM Program. Lang. , 5(OOPSLA), oct 2021. [12] Zhen Yang, Fang Liu, Zhongxing Yu, Jacky Wai Keung, Jia Li, Shuo Liu, Yifan Hong, Xiaoxue Ma, Zhi Jin, and Ge Li. Exploring and unleashing the power of large language models in automated code translation. Proceedings of the ACM on Software Engineering , 1(FSE):1585–1608, 2024. [13] Hasan Ferit Eniser, Hanliang Zhang, Cristina David, Meng Wang, Maria Chris-takis, Brandon Paulsen, Joey Dodds, and Daniel Kroening. Towards translat-ing real-world code with LLMs: A study of translating to Rust. arXiv preprint arXiv:2405.11514 , 2024. [14] Vikram Nitin, Rahul Krishna, and Baishakhi Ray. Spectra: Enhancing the code translation ability of language models by generating multi-modal specifications. 
+
+arXiv preprint arXiv:2405.18574 , 2024. [15] Aidan ZH Yang, Yoshiki Takashima, Brandon Paulsen, Josiah Dodds, and Daniel Kroening. Vert: Verified equivalent Rust transpilation with large language models as few-shot learners. arXiv preprint arXiv:2404.18852 , 2024. [16] Yubo Bai and Tapti Palit. Rustassure: Differential symbolic testing for llm-transpiled c-to-rust code. arXiv preprint arXiv:2510.07604 , 2025. [17] Vikram Nitin, Rahul Krishna, Luiz Lemos do Valle, and Baishakhi Ray. C2SaferRust: Transforming C projects into safer Rust with neurosymbolic tech-niques. arXiv preprint arXiv:2501.14257 , 2025. [18] Manish Shetty, Naman Jain, Adwait Godbole, Sanjit A Seshia, and Koushik Sen. Syzygy: Dual code-test C to (safe) Rust translation using LLMs and dynamic analysis. arXiv preprint arXiv:2412.14234 , 2024. [19] Momoko Shiraishi and Takahiro Shinagawa. Context-aware code segmenta-tion for C-to-Rust translation using large language models. arXiv preprint arXiv:2409.10506 , 2024. [20] Hanliang Zhang, Cristina David, Meng Wang, Brandon Paulsen, and Daniel Kroening. Scalable, validated code translation of entire projects using large language models. arXiv preprint arXiv:2412.08035 , 2024. [21] Momoko Shiraishi, Yinzhi Cao, and Takahiro Shinagawa. Smartc2rust: Iterative, feedback-driven c-to-rust translation via large language models for safety and equivalence. arXiv preprint arXiv:2409.10506 , 2024. [22] Chaofan Wang, Tingrui Yu, Chen Xie, Jie Wang, Dong Chen, Wenrui Zhang, Yul-ing Shi, Xiaodong Gu, and Beijun Shen. Evoc2rust: A skeleton-guided framework for project-level c-to-rust translation, 2025. [23] Xuemeng Cai, Jiakun Liu, Xiping Huang, Yijun Yu, Haitao Wu, Chunmiao Li, Bo Wang, Imam Nur Bani Yusuf, and Lingxiao Jiang. Rustmap: Towards project-scale c-to-rust migration via program analysis and llm. In International Conference on Engineering of Complex Computer Systems , pages 283–302. Springer, 2025. [24] Yifei Gao, Chengpeng Wang, Pengxiang Huang, Xuwei Liu, Mingwei Zheng, and Xiangyu Zhang. Pr2: Peephole raw pointer rewriting with llms for translating c to safer rust. arXiv preprint arXiv:2505.04852 , 2025. [25] Jaemin Hong and Sukyoung Ryu. Type-migrating c-to-rust translation using a large language model. Empirical Software Engineering , 30(1):3, 2025. [26] Ruishi Li, Bo Wang, Tianyu Li, Prateek Saxena, and Ashish Kundu. Translating C to Rust: Lessons from a user study. arXiv preprint arXiv:2411.14174 , 2024. [27] Qingxiao Xu and Jeff Huang. Optimizing type migration for llm-based c-to-rust translation: A data flow graph approach. In Proceedings of the 14th ACM SIGPLAN International Workshop on the State Of the Art in Program Analysis , page 8–14, New York, NY, USA, 2025. Association for Computing Machinery. [28] Romain Robbes, Théo Matricon, Thomas Degueule, Andre Hora, and Stefano Zacchiroli. Agentic much? adoption of coding agents on github. arXiv preprint arXiv:2601.18341 , 2026. [29] Hao Li, Haoxiang Zhang, and Ahmed E Hassan. The rise of ai teammates in software engineering (se) 3.0: How autonomous coding agents are reshaping software engineering. arXiv preprint arXiv:2507.15003 , 2025. [30] Zeerak Babar, Nafiz Imtiaz Khan, Muhammad Hassnain, and Vladimir Filkov. Open-source llms for technical q&a: Lessons from stackexchange. In Interna-tional Conference on Software Engineering of Emerging Technology , pages 615–626. Springer, 2025. [31] Business Insider Staff. AI coding boom shifts software developers toward man-agement. Business Insider , March 2026. Accessed: 2026-03-25. [32] Anirudh Khatry, Robert Zhang, Jia Pan, Ziteng Wang, Qiaochu Chen, Greg Durrett, and Isil Dillig. Crust-bench: A comprehensive benchmark for c-to-safe-rust transpilation. arXiv preprint arXiv:2504.15254 , 2025. [33] Tree-sitter. https://github.com/tree-sitter/tree-sitter, 2023. Accessed: March 14, 2025. [34] Arthur B Kahn. Topological sorting of large networks. Communications of the ACM , 5(11):558–562, 1962. [35] Sirui Hong, Mingchen Zhuge, Jonathan Chen, et al. MetaGPT: Meta programming for a multi-agent collaborative framework. In International Conference on Learning Representations , 2024. [36] Dong Huang, Qingwen Bu, Jie M. Zhang, Michael Luck, and Heming Cui. Agent-Coder: Multi-agent-based code generation with iterative testing and optimisation. 
+
+arXiv preprint arXiv:2312.13010 , 2023. [37] Chen Qian, Wei Liu, Hongzhang Liu, et al. ChatDev: Communicative agents for software development. In Proceedings of the Annual Meeting of the Association for Computational Linguistics , 2024. [38] Muhammad Farrukh, Smeet Shah, Baris Coskun, and Michalis Polychron-akis. Safetrans: Llm-assisted transpilation from c to rust. arXiv preprint arXiv:2505.10708 , 2025. [39] Anomaly Co. Opencode: The open-source AI coding agent. https://opencode.ai/, 2025. Accessed: 2026-03-23. [40] OpenAI. Codex: An AI coding partner. https://openai.com/codex/, 2021. Accessed: 2026-03-23. [41] Free Software Foundation. GNU C Compiler Extensions: Nested Functions . Free Software Foundation, 2024. Accessed: 2025. [42] OpenAI. Api pricing. https://developers.openai.com/api/docs/pricing, 2026. Accessed: 2026-03-18. [43] Amazon Web Services. Amazon bedrock pricing. https://aws.amazon.com/ bedrock/pricing/, 2026. Accessed: 2026-03-18. [44] Tianyu Li, Ruishi Li, Bo Wang, Brandon Paulsen, Umang Mathur, and Prateek Saxena. Adversarial agent collaboration for c to rust translation. arXiv preprint 
+
+> 11
+
+arXiv:2510.03879 , 2025. [45] DARPA TRACTOR Program. First TRACTOR Evaluation Report. Evaluation report, Defense Advanced Research Projects Agency (DARPA), 2024. Available via the official TRACTOR Program GitHub repository. [46] Tianyang Zhou, Haowen Lin, Somesh Jha, Mihai Christodorescu, Kirill Levchenko, and Varun Chandrasekaran. Llm-driven multi-step translation from c to rust using static analysis. arXiv preprint arXiv:2503.12511 , 2025. [47] Jaemin Hong and Sukyoung Ryu. Don’t write, but return: Replacing output parameters with algebraic data types in C-to-Rust translation. Proceedings of the ACM on Programming Languages , 8(PLDI):716–740, 2024. [48] Jaemin Hong. Improving automatic C-to-Rust translation with static analysis. In 
+
+Proceedings of the 45th IEEE/ACM International Conference on Software Engineering (ICSE) , pages 273–277, 2023. [49] Rasha Ahmad Husein, Hala Aburajouh, and Cagatay Catal. Large language models for code completion: A systematic literature review. Computer Standards & Interfaces , 92:103917, 2025. [50] HanXiang Xu, ShenAo Wang, Ningke Li, Kailong Wang, Yanjie Zhao, Kai Chen, Ting Yu, Yang Liu, and HaoYu Wang. Large language models for cyber security: A systematic literature review. arXiv preprint arXiv:2405.04760 , 2024. [51] Efe Bozkir, Süleyman Özdel, Ka Hei Carrie Lau, Mengdi Wang, Hong Gao, and Enkelejda Kasneci. Embedding large language models into extended reality: Op-portunities and challenges for inclusion, engagement, and privacy. In Proceedings of the 6th ACM Conference on Conversational User Interfaces , pages 1–7, 2024. [52] Yoonsang Kim, Zainab Aamir, Mithilesh Singh, Saeed Boorboor, Klaus Mueller, and Arie E. Kaufman. Explainable XR: Understanding user behaviors of XR environments using LLM-assisted analytics framework. IEEE Transactions on Visualization and Computer Graphics , 2025. [53] Muhammad Talha, Abdullah Mohiuddin, Sehrish Javed, and Ahmed Qureshi. Lowering barriers to cad adoption: A comparative study of augmented reality-based cad (ar-cad) and a traditional cad tool. In International Design Engineering Technical Conferences and Computers and Information in Engineering Conference ,volume 89206, page V02AT02A018. American Society of Mechanical Engineers, 2025. [54] Muhammad Talha, Jingchuan Shi, and Ahmed Qureshi. Extending the cognitive domain of bloom’s taxonomy using machine learning. Research Square (Preprint) ,2026. [55] Ranjan Sapkota, Shaina Raza, Maged Shoman, Achyut Paudel, and Manoj Karkee. Image, text, and speech data augmentation using multimodal LLMs for deep learning: A survey. arXiv preprint arXiv:2501.18648 , 2025. [56] Muhammad Muzammil, Abisheka Pitumpe, Xigao Li, Amir Rahmati, and Nick Nikiforakis. The Poorest Man in Babylon: A Longitudinal Study of Cryptocur-rency Investment Scams. In Proceedings of The Web Conference (WWW) , 2025. [57] Hamed Jelodar, Mohammad Meymani, and Roozbeh Razavi-Far. Large language models (LLMs) for source code analysis: applications, models and datasets. arXiv preprint arXiv:2503.17502 , 2025. [58] Rangeet Pan, Ali Reza Ibrahimzada, Rahul Krishna, Divya Sankar, Lam-bert Pouguem Wassi, Michele Merler, Boris Sobolev, Raju Pavuluri, Saurabh Sinha, and Reyhaneh Jabbarvand. Lost in translation: A study of bugs introduced by large language models while translating code. In Proceedings of the IEEE/ACM 46th International Conference on Software Engineering , pages 1–13, 2024. [59] Ali Reza Ibrahimzada, Kaiyao Ke, Mrigank Pawagi, Muhammad Salman Abid, Rangeet Pan, Saurabh Sinha, and Reyhaneh Jabbarvand. Alphatrans: A neuro-symbolic compositional approach for repository-level code translation and vali-dation. Proceedings of the ACM on Software Engineering , 2(FSE):2454–2476, 2025. [60] HoHyun Sim, Hyeonjoong Cho, Yeonghyeon Go, Zhoulai Fu, Ali Shokri, and Binoy Ravindran. Large language model-powered agent for c to rust code trans-lation, 2025. [61] Ali Reza Ibrahimzada, Brandon Paulsen, Reyhaneh Jabbarvand, Joey Dodds, and Daniel Kroening. Matchfixagent: Language-agnostic autonomous repository-level code translation validation and repair. arXiv preprint arXiv:2509.16187 ,2025. [62] Chen Wang, Yujun Huang, Peng Li, Lina Gong, and Fei Wu. Rustify: Towards repository-level c to safer rust via workflow-guided multi-agent transpiler.
