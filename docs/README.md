@@ -6,130 +6,85 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-17
-- 运行时间：2026-04-17 19:06:33 UTC
+- 最新运行日期：2026-04-18
+- 运行时间：2026-04-18 19:19:44 UTC
 - 运行状态：成功
-- 本次总论文数：36
-- 精读区：23
+- 本次总论文数：21
+- 精读区：8
 - 速读区：13
 
 ### 今日简报（AI）
-今日精选 36 篇前沿论文，深度拆解 Claude Code 的 Agent 设计范式与 GUI 智能体的实时界面重塑技术。
-核心结论指出 AI 正在从“对话框”进化为能直接操控并优化 UI 的系统级助手，同时供应链安全与文档解析基准成为新焦点。
-建议重点关注 Agent 如何深度介入工作流，并提前布局应对 LLM 供应链中的恶意中间人攻击风险。
-- 详情：[/202604/17/README](/202604/17/README)
+今日精选 21 篇前沿论文，深度复盘了企业级编程智能体的构建实战与大模型空间建模的底层逻辑。
+重点推荐 Zup 内部 Agent 的落地教训及 LLM 在迷宫任务中构建空间世界模型的证据。
+建议关注受限预算下的智能体决策优化，并探索多轮对话在复杂表格问答中的应用。
+- 详情：[/202604/18/README](/202604/18/README)
 
 ### 精读区论文标签
-1. [Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems](/202604/17/2604.14228v1-dive-into-claude-code-the-design-space-of-todays-and-future-ai-agent-systems)  
-   标签：评分：10.0/10、query:opclw
-   evidence：Claude Code与OpenClaw架构的对比分析
-2. [Beyond Chat and Clicks: GUI Agents for In-Situ Assistance via Live Interface Transformation](/202604/17/2604.14668v1-beyond-chat-and-clicks-gui-agents-for-in-situ-assistance-via-live-interface-transformation)  
-   标签：评分：10.0/10、query:guiagt
-   evidence：通过浏览器级DOM干预实现原位辅助的GUI智能体
-3. [SGA-MCTS: Decoupling Planning from Execution via Training-Free Atomic Experience Retrieval](/202604/17/2604.14712v1-sga-mcts-decoupling-planning-from-execution-via-training-free-atomic-experience-retrieval)  
-   标签：评分：10.0/10、query:agent
-   evidence：通过MCTS和经验检索实现规划与执行的解耦
-4. [Benchmarks for Trajectory Safety Evaluation and Diagnosis in OpenClaw and Codex: ATBench-Claw and ATBench-CodeX](/202604/17/2604.14858v1-benchmarks-for-trajectory-safety-evaluation-and-diagnosis-in-openclaw-and-codex-atbench-claw-and-atbench-codex)  
-   标签：评分：10.0/10、query:opclw
-   evidence：OpenClaw中的轨迹安全评估与诊断
-5. [SkillDroid: Compile Once, Reuse Forever](/202604/17/2604.14872v1-skilldroid-compile-once-reuse-forever)  
-   标签：评分：10.0/10、query:guiagt
-   evidence：移动端GUI智能体与技能模板
-6. [RaTA-Tool: Retrieval-based Tool Selection with Multimodal Large Language Models](/202604/17/2604.14951v1-rata-tool-retrieval-based-tool-selection-with-multimodal-large-language-models)  
-   标签：评分：10.0/10、query:agent
-   evidence：多模态工具选择与外部API集成
-7. [FedGUI: Benchmarking Federated GUI Agents across Heterogeneous Platforms, Devices, and Operating Systems](/202604/17/2604.14956v1-fedgui-benchmarking-federated-gui-agents-across-heterogeneous-platforms-devices-and-operating-systems)  
-   标签：评分：10.0/10、query:guiagt
-   evidence：跨平台联邦 GUI 智能体评估基准
-8. [OpenMobile: Building Open Mobile Agents with Task and Trajectory Synthesis](/202604/17/2604.15093v1-openmobile-building-open-mobile-agents-with-task-and-trajectory-synthesis)  
-   标签：评分：10.0/10、query:guiagt
-   evidence：用于移动端GUI智能体和轨迹合成的开源框架
-9. [Rethinking Software Engineering for Agentic AI Systems](/202604/17/2604.10599v1-rethinking-software-engineering-for-agentic-ai-systems)  
+1. [Building an Internal Coding Agent at Zup: Lessons and Open Questions](/202604/18/2604.09805v1-building-an-internal-coding-agent-at-zup-lessons-and-open-questions)  
    标签：评分：9.0/10、query:agent
-   evidence：智能体工作流中工程师角色的演变
-10. [Resilient Write: A Six-Layer Durable Write Surface for LLM Coding Agents](/202604/17/2604.10842v2-resilient-write-a-six-layer-durable-write-surface-for-llm-coding-agents)  
+   evidence：内部编码智能体的设计模式，包括工具设计和安全护栏
+2. [Do LLMs Build Spatial World Models? Evidence from Grid-World Maze Tasks](/202604/18/2604.10690v1-do-llms-build-spatial-world-models-evidence-from-grid-world-maze-tasks)  
    标签：评分：9.0/10、query:agent
-   evidence：代码智能体的工具使用协议与文件系统集成
-11. [M$^\star$: Every Task Deserves Its Own Memory Harness](/202604/17/2604.11811v1-mstar-every-task-deserves-its-own-memory-harness)  
+   evidence：评估LLM的空间推理与规划能力
+3. [Do LLMs Know Tool Irrelevance? Demystifying Structural Alignment Bias in Tool Invocations](/202604/18/2604.11322v1-do-llms-know-tool-irrelevance-demystifying-structural-alignment-bias-in-tool-invocations)  
    标签：评分：9.0/10、query:agent
-   evidence：为智能体工作流自动发现任务优化的记忆程序
-12. [ORBIT: Guided Agentic Orchestration for Autonomous C-to-Rust Transpilation](/202604/17/2604.12048v1-orbit-guided-agentic-orchestration-for-autonomous-c-to-rust-transpilation)  
+   evidence：大语言模型工具使用及工具调用中的结构对齐偏差
+4. [Credo: Declarative Control of LLM Pipelines via Beliefs and Policies](/202604/18/2604.14401v1-credo-declarative-control-of-llm-pipelines-via-beliefs-and-policies)  
    标签：评分：9.0/10、query:agent
-   evidence：使用LLM进行自主代码翻译的引导式智能体编排
-13. [BLAST: Blockchain-based LLM-powered Agentic Spectrum Trading](/202604/17/2604.12127v1-blast-blockchain-based-llm-powered-agentic-spectrum-trading)  
+   evidence：通过策略对智能体工作流进行声明式控制
+5. [SWE-TRACE: Optimizing Long-Horizon SWE Agents Through Rubric Process Reward Models and Heuristic Test-Time Scaling](/202604/18/2604.14820v1-swe-trace-optimizing-long-horizon-swe-agents-through-rubric-process-reward-models-and-heuristic-test-time-scaling)  
    标签：评分：9.0/10、query:agent
-   evidence：用于自主频谱交易的大模型智能体
-14. [GAM: Hierarchical Graph-based Agentic Memory for LLM Agents](/202604/17/2604.12285v1-gam-hierarchical-graph-based-agentic-memory-for-llm-agents)  
+   evidence：优化软件工程智能体的长程推理能力
+6. [Does RL Expand the Capability Boundary of LLM Agents? A PASS@(k,T) Analysis](/202604/18/2604.14877v1-does-rl-expand-the-capability-boundary-of-llm-agents-a-passkt-analysis)  
    标签：评分：9.0/10、query:agent
-   evidence：大模型智能体的分层图结构记忆框架
-15. [Drawing on Memory: Dual-Trace Encoding Improves Cross-Session Recall in LLM Agents](/202604/17/2604.12948v1-drawing-on-memory-dual-trace-encoding-improves-cross-session-recall-in-llm-agents)  
-   标签：评分：9.0/10、query:agent
-   evidence：具有持久记忆和时间推理能力的LLM智能体
-16. [SafeHarness: Lifecycle-Integrated Security Architecture for LLM-based Agent Deployment](/202604/17/2604.13630v1-safeharness-lifecycle-integrated-security-architecture-for-llm-based-agent-deployment)  
-   标签：评分：9.0/10、query:agent
-   evidence：大模型智能体部署的安全架构
-17. [EmbodiedClaw: Conversational Workflow Execution for Embodied AI Development](/202604/17/2604.13800v1-embodiedclaw-conversational-workflow-execution-for-embodied-ai-development)  
-   标签：评分：9.0/10、query:opclw
-   evidence：用于开发工作流的EmbodiedClaw对话智能体
-18. [MARCA: A Checklist-Based Benchmark for Multilingual Web Search](/202604/17/2604.14448v1-marca-a-checklist-based-benchmark-for-multilingual-web-search)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：评估多语言环境下网页浏览和智能体工具使用的基准
-19. [El Agente Forjador: Task-Driven Agent Generation for Quantum Simulation](/202604/17/2604.14609v1-el-agente-forjador-task-driven-agent-generation-for-quantum-simulation)  
-   标签：评分：9.0/10、query:agent
-   evidence：科学任务中工具的自主生成与重用
-20. [SAGER: Self-Evolving User Policy Skills for Recommendation Agent](/202604/17/2604.14972v1-sager-self-evolving-user-policy-skills-for-recommendation-agent)  
-   标签：评分：9.0/10、query:agent
-   evidence：推荐智能体的自我演化推理策略
-21. [Autogenesis: A Self-Evolving Agent Protocol](/202604/17/2604.15034v1-autogenesis-a-self-evolving-agent-protocol)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于管理提示、智能体、工具和记忆的自演化智能体协议
-22. [Scepsy: Serving Agentic Workflows Using Aggregate LLM Pipelines](/202604/17/2604.15186v1-scepsy-serving-agentic-workflows-using-aggregate-llm-pipelines)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于调度任意多LLM智能体工作流的服务系统
-23. [MM-WebAgent: A Hierarchical Multimodal Web Agent for Webpage Generation](/202604/17/2604.15309v1-mm-webagent-a-hierarchical-multimodal-web-agent-for-webpage-generation)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：用于网页生成和UI/UX的分层智能体
+   evidence：强化学习扩展了智能体工具使用的能力边界
+7. [Agentic Jackal: Live Execution and Semantic Value Grounding for Text-to-JQL](/202604/18/2604.09470v1-agentic-jackal-live-execution-and-semantic-value-grounding-for-text-to-jql)  
+   标签：评分：8.0/10、query:agent
+   evidence：在Jira中进行实时执行和语义落地的智能体工具使用
+8. [CONSCIENTIA: Can LLM Agents Learn to Strategize? Emergent Deception and Trust in a Multi-Agent NYC Simulation](/202604/18/2604.09746v1-conscientia-can-llm-agents-learn-to-strategize-emergent-deception-and-trust-in-a-multi-agent-nyc-simulation)  
+   标签：评分：8.0/10、query:agent
+   evidence：大语言模型智能体在多智能体模拟中学习策略行为
 
 ### 速读区论文标签
-1. [Your Agent Is Mine: Measuring Malicious Intermediary Attacks on the LLM Supply Chain](/202604/17/2604.08407v1-your-agent-is-mine-measuring-malicious-intermediary-attacks-on-the-llm-supply-chain)  
+1. [Self-Distilled Reinforcement Learning for Co-Evolving Agentic Recommender Systems](/202604/18/2604.10029v1-self-distilled-reinforcement-learning-for-co-evolving-agentic-recommender-systems)  
    标签：评分：8.0/10、query:agent
-   evidence：LLM智能体工具调用和API路由的安全性
-2. [ParseBench: A Document Parsing Benchmark for AI Agents](/202604/17/2604.08538v2-parsebench-a-document-parsing-benchmark-for-ai-agents)  
-   标签：评分：8.0/10、query:guiagt
-   evidence：用于AI智能体自主决策的文档解析基准
-3. [OpenKedge: Governing Agentic Mutation with Execution-Bound Safety and Evidence Chains](/202604/17/2604.08601v1-openkedge-governing-agentic-mutation-with-execution-bound-safety-and-evidence-chains)  
+   evidence：使用多轮交互的智能体推荐系统
+2. [ODUTQA-MDC: A Task for Open-Domain Underspecified Tabular QA with Multi-turn Dialogue-based Clarification](/202604/18/2604.10159v1-odutqa-mdc-a-task-for-open-domain-underspecified-tabular-qa-with-multi-turn-dialogue-based-clarification)  
    标签：评分：8.0/10、query:agent
-   evidence：治理智能体 API 变更和工具使用安全
-4. [Every Response Counts: Quantifying Uncertainty of LLM-based Multi-Agent Systems through Tensor Decomposition](/202604/17/2604.08708v1-every-response-counts-quantifying-uncertainty-of-llm-based-multi-agent-systems-through-tensor-decomposition)  
+   evidence：用于表格问答的多智能体框架
+3. [Credit-Budgeted ICPC-Style Coding: When Agents Must Pay for Every Decision](/202604/18/2604.10182v1-credit-budgeted-icpc-style-coding-when-agents-must-pay-for-every-decision)  
    标签：评分：8.0/10、query:agent
-   evidence：大模型多智能体系统中的不确定性量化
-5. [Litmus (Re)Agent: A Benchmark and Agentic System for Predictive Evaluation of Multilingual Models](/202604/17/2604.08970v1-litmus-reagent-a-benchmark-and-agentic-system-for-predictive-evaluation-of-multilingual-models)  
+   evidence：资源约束下的自主编程智能体评估
+4. [Verify Before You Fix: Agentic Execution Grounding for Trustworthy Cross-Language Code Analysis](/202604/18/2604.10800v1-verify-before-you-fix-agentic-execution-grounding-for-trustworthy-cross-language-code-analysis)  
    标签：评分：8.0/10、query:agent
-   evidence：用于多语言评估的DAG编排智能体系统
-6. [SAGE: A Service Agent Graph-guided Evaluation Benchmark](/202604/17/2604.09285v1-sage-a-service-agent-graph-guided-evaluation-benchmark)  
+   evidence：用于代码分析的智能体执行落地与推理阶段
+5. [OccuBench: Evaluating AI Agents on Real-World Professional Tasks via Language Environment Simulation](/202604/18/2604.10866v2-occubench-evaluating-ai-agents-on-real-world-professional-tasks-via-language-environment-simulation)  
    标签：评分：8.0/10、query:agent
-   evidence：评估服务智能体与逻辑合规性的基准测试
-7. [SkillMOO: Multi-Objective Optimization of Agent Skills for Software Engineering](/202604/17/2604.09297v1-skillmoo-multi-objective-optimization-of-agent-skills-for-software-engineering)  
+   evidence：通过模拟评估AI智能体在专业任务上的表现的基准
+6. [From Translation to Superset: Benchmark-Driven Evolution of a Production AI Agent from Rust to Python](/202604/18/2604.11518v1-from-translation-to-superset-benchmark-driven-evolution-of-a-production-ai-agent-from-rust-to-python)  
    标签：评分：8.0/10、query:agent
-   evidence：针对软件工程任务的智能体技能和设计模式优化
-8. [BadSkill: Backdoor Attacks on Agent Skills via Model-in-Skill Poisoning](/202604/17/2604.09378v1-badskill-backdoor-attacks-on-agent-skills-via-model-in-skill-poisoning)  
+   evidence：基于基准测试的生产级AI编程智能体演进
+7. [CodeTracer: Towards Traceable Agent States](/202604/18/2604.11641v2-codetracer-towards-traceable-agent-states)  
    标签：评分：8.0/10、query:agent
-   evidence：针对大模型智能体技能的后门攻击
-9. [Many-Tier Instruction Hierarchy in LLM Agents](/202604/17/2604.09443v3-many-tier-instruction-hierarchy-in-llm-agents)  
+   evidence：追踪智能体状态与多阶段工作流
+8. [Detecting Safety Violations Across Many Agent Traces](/202604/18/2604.11806v1-detecting-safety-violations-across-many-agent-traces)  
    标签：评分：8.0/10、query:agent
-   evidence：解决LLM智能体中多优先级指令冲突的范式
-10. [ParseBench: A Document Parsing Benchmark for AI Agents](/202604/17/2604.08538v3-parsebench-a-document-parsing-benchmark-for-ai-agents)  
+   evidence：利用智能体搜索检测智能体轨迹中的安全违规
+9. [Do AI Coding Agents Log Like Humans? An Empirical Study](/202604/18/2604.09409v1-do-ai-coding-agents-log-like-humans-an-empirical-study)  
    标签：评分：7.0/10、query:agent
-   evidence：面向自主决策智能体的文档解析基准测试
-11. [PilotBench: A Benchmark for General Aviation Agents with Safety Constraints](/202604/17/2604.08987v1-pilotbench-a-benchmark-for-general-aviation-agents-with-safety-constraints)  
+   evidence：AI编码智能体日志记录行为的实证研究
+10. [When LLMs Lag Behind: Knowledge Conflicts from Evolving APIs in Code Generation](/202604/18/2604.09515v1-when-llms-lag-behind-knowledge-conflicts-from-evolving-apis-in-code-generation)  
    标签：评分：7.0/10、query:agent
-   evidence：评估LLM智能体物理推理与安全约束的基准
-12. [Policy-Aware Edge LLM-RAG Framework for Internet of Battlefield Things Mission Orchestration](/202604/17/2604.09493v1-policy-aware-edge-llm-rag-framework-for-internet-of-battlefield-things-mission-orchestration)  
+   evidence：演进API环境下的LLM代码生成
+11. [Rebooting Microreboot: Architectural Support for Safe, Parallel Recovery in Microservice Systems](/202604/18/2604.09963v1-rebooting-microreboot-architectural-support-for-safe-parallel-recovery-in-microservice-systems)  
    标签：评分：7.0/10、query:agent
-   evidence：用于任务规划和推理的LLM编排框架
-13. [ADAM: A Systematic Data Extraction Attack on Agent Memory via Adaptive Querying](/202604/17/2604.09747v1-adam-a-systematic-data-extraction-attack-on-agent-memory-via-adaptive-querying)  
+   evidence：用于诊断、规划和验证的三智能体架构
+12. [Agent Mentor: Framing Agent Knowledge through Semantic Trajectory Analysis](/202604/18/2604.10513v1-agent-mentor-framing-agent-knowledge-through-semantic-trajectory-analysis)  
    标签：评分：7.0/10、query:agent
-   evidence：大模型智能体记忆模块的隐私漏洞
+   evidence：调整定义智能体行为的系统提示词
+13. [Calibrate-Then-Delegate: Safety Monitoring with Risk and Budget Guarantees via Model Cascades](/202604/18/2604.14251v1-calibrate-then-delegate-safety-monitoring-with-risk-and-budget-guarantees-via-model-cascades)  
+   标签：评分：6.0/10、query:agent
+   evidence：大模型级联与委派的安全监控
 
 
 <div class="dpr-home-promo-card">

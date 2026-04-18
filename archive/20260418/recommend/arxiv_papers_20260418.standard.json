@@ -1,0 +1,894 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-18T19:17:16.332699+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 3,
+    "deep_divecandidates": 53,
+    "deep_cap": 8,
+    "deep_selected": 8,
+    "quick_candidates": 70,
+    "quick_skim_target": 13,
+    "quick_selected": 13
+  },
+  "deep_dive": [
+    {
+      "id": "2604.09805v1",
+      "title": "Building an Internal Coding Agent at Zup: Lessons and Open Questions",
+      "abstract": "Enterprise teams building internal coding agents face a gap between prototype performance and production readiness. The root cause is that technical model quality alone is insufficient -- tool design, safety enforcement, state management, and human trust calibration are equally decisive, yet underreported in the literature. We present CodeGen, an internal coding agent at Zup, and show that targeted tool design (e.g., string-replacement edits over full-file rewrites) and layered safety guardrails improved agent reliability more than prompt engineering, while progressive human oversight modes drove organic adoption without mandating trust. These findings suggest that the engineering decisions surrounding the model -- not the model itself -- determine whether a coding agent delivers real value in practice.",
+      "authors": [
+        "Gustavo Pinto",
+        "Pedro Eduardo de Paula Naves",
+        "Ana Paula Camargo",
+        "Marselle Silva"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-10T18:28:59+00:00",
+      "link": "https://arxiv.org/pdf/2604.09805v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Design patterns for internal coding agents including tool design and safety guardrails",
+      "llm_evidence_cn": "内部编码智能体的设计模式，包括工具设计和安全护栏",
+      "llm_evidence": "内部编码智能体的设计模式，包括工具设计和安全护栏",
+      "canonical_evidence": "内部编码智能体的设计模式，包括工具设计和安全护栏",
+      "llm_tldr_en": "Explores engineering decisions like tool design and safety layers for production-ready coding agents.",
+      "llm_tldr_cn": "探讨了工具设计和安全层等工程决策对于构建生产级编码智能体的重要性。",
+      "llm_tldr": "探讨了工具设计和安全层等工程决策对于构建生产级编码智能体的重要性。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.10690v1",
+      "title": "Do LLMs Build Spatial World Models? Evidence from Grid-World Maze Tasks",
+      "abstract": "Foundation models have shown remarkable performance across diverse tasks, yet their ability to construct internal spatial world models for reasoning and planning remains unclear. We systematically evaluate the spatial understanding of large language models through maze tasks, a controlled testing context requiring multi-step planning and spatial abstraction. Across comprehensive experiments with Gemini-2.5-Flash, GPT-5-mini, Claude-Haiku-4.5, and DeepSeek-Chat, we uncover significant discrepancies in spatial reasoning that challenge assumptions about LLM planning capabilities. Using chain-of-thought prompting, Gemini achieves 80-86% accuracy on smaller mazes (5x5 to 7x7 grids) with tokenized adjacency representations, but performance collapses to 16-34% with visual grid formats, which is a 2-5x difference, suggesting representation-dependent rather than format-invariant spatial reasoning. We further probe spatial understanding through sequential proximity questions and compositional distance comparisons. Despite achieving 96-99% semantic coverage in reasoning traces, models fail to leverage this understanding for consistent spatial computations, indicating that they treat each question independently rather than building cumulative spatial knowledge. Our findings based on the maze-solving tasks suggest that LLMs do not develop robust spatial world models, but rather exhibit representation-specific and prompting-dependent reasoning that succeeds only under narrow conditions. These results have critical implications for deploying foundation models in applications requiring spatial abstraction.",
+      "authors": [
+        "Weijiang Li",
+        "Yilin Zhu",
+        "Rajarshi Das",
+        "Parijat Dube"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-12T15:30:43+00:00",
+      "link": "https://arxiv.org/pdf/2604.10690v1",
+      "tags": [
+        "keyword:AGENT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "evaluate spatial reasoning and planning in LLMs",
+      "llm_evidence_cn": "评估LLM的空间推理与规划能力",
+      "llm_evidence": "评估LLM的空间推理与规划能力",
+      "canonical_evidence": "评估LLM的空间推理与规划能力",
+      "llm_tldr_en": "Systematically evaluates the spatial world modeling and multi-step planning capabilities of state-of-the-art LLMs.",
+      "llm_tldr_cn": "系统地评估了最先进LLM的空间世界建模和多步规划能力。",
+      "llm_tldr": "系统地评估了最先进LLM的空间世界建模和多步规划能力。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.11322v1",
+      "title": "Do LLMs Know Tool Irrelevance? Demystifying Structural Alignment Bias in Tool Invocations",
+      "abstract": "Large language models (LLMs) have demonstrated impressive capabilities in utilizing external tools. In practice, however, LLMs are often exposed to tools that are irrelevant to the user's query, in which case the desired behavior is to refrain from invocations. In this work, we identify a widespread yet overlooked mechanistic flaw in tool refusal, which we term structural alignment bias: Even when a tool fails to serve the user's goal, LLMs still tend to invoke it whenever query attributes can be validly assigned to tool parameters. To systematically study this bias, we introduce SABEval, a new dataset that decouples structural alignment from semantic relevance. Our analysis shows that structural alignment bias induces severe tool-invocation errors in LLMs, yet remains largely unaccounted for in existing evaluations. To investigate the internal mechanisms underlying this bias, we propose Contrastive Attention Attribution, which reveals two competing pathways for semantic checking and structural matching. The relative strength of these pathways drives LLMs' tool invocation decisions. Based on these findings, we further introduce a rebalancing strategy that effectively mitigates structural alignment bias, as demonstrated by extensive experiments, without degrading general tool-use capabilities.",
+      "authors": [
+        "Yilong Liu",
+        "Xixun Lin",
+        "Pengfei Cao",
+        "Ge Zhang",
+        "Fang Fang",
+        "Yanan Cao"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-13T11:23:36+00:00",
+      "link": "https://arxiv.org/pdf/2604.11322v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:OPCLW",
+        "query:AGENT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "LLM tool use and structural alignment bias in tool invocations",
+      "llm_evidence_cn": "大语言模型工具使用及工具调用中的结构对齐偏差",
+      "llm_evidence": "大语言模型工具使用及工具调用中的结构对齐偏差",
+      "canonical_evidence": "大语言模型工具使用及工具调用中的结构对齐偏差",
+      "llm_tldr_en": "Investigates why LLMs mistakenly invoke irrelevant tools and introduces a dataset to study this bias.",
+      "llm_tldr_cn": "研究了大模型为何会错误调用无关工具，并提出了一个用于研究该偏差的数据集。",
+      "llm_tldr": "研究了大模型为何会错误调用无关工具，并提出了一个用于研究该偏差的数据集。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "LLM tool use and external API integration",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.14401v1",
+      "title": "Credo: Declarative Control of LLM Pipelines via Beliefs and Policies",
+      "abstract": "Agentic AI systems are becoming commonplace in domains that require long-lived, stateful decision-making in continuously evolving conditions. As such, correctness depends not only on the output of individual model calls, but also on how to best adapt when incorporating new evidence or revising prior conclusions. However, existing frameworks rely on imperative control loops, ephemeral memory, and prompt-embedded logic, making agent behavior opaque, brittle, and difficult to verify. This paper introduces Credo, which represents semantic state as beliefs and regulates behavior using declarative policies defined over these beliefs. This design supports adaptive, auditable, and composable execution through a database-backed semantic control plane. We showcase these concepts in a decision-control scenario, where beliefs and policies declaratively guide critical execution choices (e.g., model selection, retrieval, corrective re-execution), enabling dynamic behavior without requiring any changes to the underlying pipeline code.",
+      "authors": [
+        "Duo Lu",
+        "Andrew Crotty",
+        "Uğur Çetintemel"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.DB"
+      ],
+      "published": "2026-04-15T20:31:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.14401v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "declarative control of agentic workflows via policies",
+      "llm_evidence_cn": "通过策略对智能体工作流进行声明式控制",
+      "llm_evidence": "通过策略对智能体工作流进行声明式控制",
+      "canonical_evidence": "通过策略对智能体工作流进行声明式控制",
+      "llm_tldr_en": "Credo introduces a declarative control plane using beliefs and policies to regulate complex agentic AI behaviors.",
+      "llm_tldr_cn": "Credo 引入了使用信念和策略的声明式控制平面，以规范复杂的智能体 AI 行为。",
+      "llm_tldr": "Credo 引入了使用信念和策略的声明式控制平面，以规范复杂的智能体 AI 行为。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.14820v1",
+      "title": "SWE-TRACE: Optimizing Long-Horizon SWE Agents Through Rubric Process Reward Models and Heuristic Test-Time Scaling",
+      "abstract": "Resolving real-world software engineering (SWE) issues with autonomous agents requires complex, long-horizon reasoning. Current pipelines are bottlenecked by unoptimized demonstration data, sparse execution rewards, and computationally prohibitive inference scaling, which collectively exacerbate token bloat, reward hacking, and policy degradation. We present SWE-TRACE (Trajectory Reduction and Agentic Criteria Evaluation), a unified framework optimizing the SWE agent lifecycle across data curation, reinforcement learning (RL), and test-time inference. First, we introduce an LLM multi-task cascading method, utilizing stepwise oracle verification to distill a 60K-instance Supervised Fine-Tuning (SFT) corpus strictly biased toward token-efficient, shortest-path trajectories. Second, to overcome the instability of sparse outcome rewards, we design a MemoryAugmented Agentic RL pipeline featuring a Rubric-Based Process Reward Model (PRM). An auxiliary Rubric-Agent provides dense, fine-grained heuristic feedback on intermediate steps, guiding the model through long-horizon tasks. Finally, we bridge training and inference by repurposing the PRM for heuristic-guided Test-Time Scaling (TTS). By dynamically evaluating and pruning action candidates at each step, SWE-TRACE achieves superior search efficiency without the latency overhead of standard parallel sampling. Extensive experiments on standard SWE benchmarks demonstrate that SWE-TRACE significantly advances the state-of-the-art, maximizing resolution rates while drastically reducing both token consumption and inference latency.",
+      "authors": [
+        "Hao Han",
+        "Jin Xie",
+        "Xuehao Ma",
+        "Weiquan Zhu",
+        "Ziyao Zhang",
+        "ZhiLiang Long",
+        "Hongkai Chen",
+        "Qingwen Ye"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-16T09:41:47+00:00",
+      "link": "https://arxiv.org/pdf/2604.14820v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "optimizing long-horizon reasoning for SWE agents",
+      "llm_evidence_cn": "优化软件工程智能体的长程推理能力",
+      "llm_evidence": "优化软件工程智能体的长程推理能力",
+      "canonical_evidence": "优化软件工程智能体的长程推理能力",
+      "llm_tldr_en": "Presents SWE-TRACE to optimize the lifecycle of autonomous software engineering agents through reward models.",
+      "llm_tldr_cn": "提出 SWE-TRACE 框架，通过奖励模型优化自主软件工程智能体的全生命周期。",
+      "llm_tldr": "提出 SWE-TRACE 框架，通过奖励模型优化自主软件工程智能体的全生命周期。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.14877v1",
+      "title": "Does RL Expand the Capability Boundary of LLM Agents? A PASS@(k,T) Analysis",
+      "abstract": "Does reinforcement learning genuinely expand what LLM agents can do, or merely make them more reliable? For static reasoning, recent work answers the second: base and RL pass@k curves converge at large k. We ask whether this holds for agentic tool use, where T rounds of interaction enable compositional strategies that re-sampling cannot recover. We introduce PASS@(k,T), a two-dimensional metric that jointly varies sampling budget k and interaction depth T, separating capability expansion from efficiency improvement. Our main finding is that, contrary to the static-reasoning result, tool-use RL genuinely enlarges the capability boundary: the RL agent's pass-curve pulls above the base model's and the gap widens at large k rather than converging. The expansion is specific to compositional, sequential information gathering; on simpler tasks RL behaves as prior work predicts. Under matched training data, supervised fine-tuning regresses the boundary on the same compositional tasks, isolating self-directed exploration as the causal factor. Mechanism analysis shows RL reweights the base strategy distribution toward the subset whose downstream reasoning more often yields a correct answer, with the improvement concentrated on how the agent integrates retrieved information. These results reconcile optimistic and pessimistic readings of RL for LLMs: both are correct, on different task types.",
+      "authors": [
+        "Zhiyuan Zhai",
+        "Wenjing Yan",
+        "Xiaodan Shao",
+        "Xin Wang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-16T11:06:19+00:00",
+      "link": "https://arxiv.org/pdf/2604.14877v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "RL expands capability boundary for agentic tool use",
+      "llm_evidence_cn": "强化学习扩展了智能体工具使用的能力边界",
+      "llm_evidence": "强化学习扩展了智能体工具使用的能力边界",
+      "canonical_evidence": "强化学习扩展了智能体工具使用的能力边界",
+      "llm_tldr_en": "Demonstrates that reinforcement learning significantly improves the tool-use capabilities of LLM agents.",
+      "llm_tldr_cn": "证明了强化学习能显著提升LLM智能体的工具使用能力。",
+      "llm_tldr": "证明了强化学习能显著提升LLM智能体的工具使用能力。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "LLM tool use and external API integration",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.09746v1",
+      "title": "CONSCIENTIA: Can LLM Agents Learn to Strategize? Emergent Deception and Trust in a Multi-Agent NYC Simulation",
+      "abstract": "As large language models (LLMs) are increasingly deployed as autonomous agents, understanding how strategic behavior emerges in multi-agent environments has become an important alignment challenge. We take a neutral empirical stance and construct a controlled environment in which strategic behavior can be directly observed and measured. We introduce a large-scale multi-agent simulation in a simplified model of New York City, where LLM-driven agents interact under opposing incentives. Blue agents aim to reach their destinations efficiently, while Red agents attempt to divert them toward billboard-heavy routes using persuasive language to maximize advertising revenue. Hidden identities make navigation socially mediated, forcing agents to decide when to trust or deceive. We study policy learning through an iterative simulation pipeline that updates agent policies across repeated interaction rounds using Kahneman-Tversky Optimization (KTO). Blue agents are optimized to reduce billboard exposure while preserving navigation efficiency, whereas Red agents adapt to exploit remaining weaknesses. Across iterations, the best Blue policy improves task success from 46.0% to 57.3%, although susceptibility remains high at 70.7%. Later policies exhibit stronger selective cooperation while preserving trajectory efficiency. However, a persistent safety-helpfulness trade-off remains: policies that better resist adversarial steering do not simultaneously maximize task completion. Overall, our results show that LLM agents can exhibit limited strategic behavior, including selective trust and deception, while remaining highly vulnerable to adversarial persuasion.",
+      "authors": [
+        "Aarush Sinha",
+        "Arion Das",
+        "Soumyadeep Nag",
+        "Charan Karnati",
+        "Shravani Nag",
+        "Chandra Vadhan Raj",
+        "Aman Chadha",
+        "Vinija Jain",
+        "Suranjana Trivedy",
+        "Amitava Das"
+      ],
+      "primary_category": "cs.MA",
+      "categories": [
+        "cs.MA",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-10T06:33:57+00:00",
+      "link": "https://arxiv.org/pdf/2604.09746v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "LLM agents learning strategic behavior in multi-agent simulations",
+      "llm_evidence_cn": "大语言模型智能体在多智能体模拟中学习策略行为",
+      "llm_evidence": "大语言模型智能体在多智能体模拟中学习策略行为",
+      "canonical_evidence": "大语言模型智能体在多智能体模拟中学习策略行为",
+      "llm_tldr_en": "Explores emergent strategic deception and trust among LLM agents in a simulated urban environment.",
+      "llm_tldr_cn": "在模拟城市环境中探索大语言模型智能体之间涌现的策略性欺骗与信任。",
+      "llm_tldr": "在模拟城市环境中探索大语言模型智能体之间涌现的策略性欺骗与信任。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.09470v1",
+      "title": "Agentic Jackal: Live Execution and Semantic Value Grounding for Text-to-JQL",
+      "abstract": "Translating natural language into Jira Query Language (JQL) requires resolving ambiguous field references, instance-specific categorical values, and complex Boolean predicates. Single-pass LLMs cannot discover which categorical values (e.g., component names or fix versions) actually exist in a given Jira instance, nor can they verify generated queries against a live data source, limiting accuracy on paraphrased or ambiguous requests. No open, execution-based benchmark exists for mapping natural language to JQL. We introduce Jackal, the first large-scale, execution-based text-to-JQL benchmark comprising 100,000 validated NL-JQL pairs on a live Jira instance with over 200,000 issues. To establish baselines on Jackal, we propose Agentic Jackal, a tool-augmented agent that equips LLMs with live query execution via the Jira MCP server and JiraAnchor, a semantic retrieval tool that resolves natural-language mentions of categorical values through embedding-based similarity search. Among 9 frontier LLMs evaluated, single-pass models average only 43.4% execution accuracy on short natural-language queries, highlighting that text-to-JQL remains an open challenge. The agentic approach improves 7 of 9 models, with a 9.0% relative gain on the most linguistically challenging variant; in a controlled ablation isolating JiraAnchor, categorical-value accuracy rises from 48.7% to 71.7%, with component-field accuracy jumping from 16.9% to 66.2%. Our analysis identifies inherent semantic ambiguities, such as issue-type disambiguation and text-field selection, as the dominant failure modes rather than value-resolution errors, pointing to concrete directions for future work. We publicly release the benchmark, all agent transcripts, and evaluation code to support reproducibility.",
+      "authors": [
+        "Vishnu Murali",
+        "Anmol Gulati",
+        "Elias Lumer",
+        "Kevin Frank",
+        "Sindy Campagna",
+        "Vamse Kumar Subbiah"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-10T16:27:31+00:00",
+      "link": "https://arxiv.org/pdf/2604.09470v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Agentic tool use for live execution and semantic grounding in Jira",
+      "llm_evidence_cn": "在Jira中进行实时执行和语义落地的智能体工具使用",
+      "llm_evidence": "在Jira中进行实时执行和语义落地的智能体工具使用",
+      "canonical_evidence": "在Jira中进行实时执行和语义落地的智能体工具使用",
+      "llm_tldr_en": "Proposes Agentic Jackal for translating natural language to JQL via live execution and tool use.",
+      "llm_tldr_cn": "提出Agentic Jackal，通过实时执行和工具调用将自然语言转换为JQL。",
+      "llm_tldr": "提出Agentic Jackal，通过实时执行和工具调用将自然语言转换为JQL。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "LLM tool use and external API integration",
+      "matched_requirement_id": "req-3",
+      "selection_source": "carryover_cache",
+      "paper_id": "2604.09470v1"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2604.10029v1",
+      "title": "Self-Distilled Reinforcement Learning for Co-Evolving Agentic Recommender Systems",
+      "abstract": "Large language model-empowered agentic recommender systems (ARS) reformulate recommendation as a multi-turn interaction between a recommender agent and a user agent, enabling iterative preference elicitation and refinement beyond conventional one-shot prediction. However, existing ARS are mainly optimized in a Reflexion-style paradigm, where past interaction trajectories are stored as textual memory and retrieved as prompt context for later reasoning. Although this design allows agents to recall prior feedback and observations, the accumulated experience remains external to model parameters, leaving agents reliant on generic reasoning rather than progressively acquiring recommendation-specific decision-making ability through learning. Reinforcement learning (RL) therefore provides a natural way to internalize such interaction experience into parameters. Yet existing RL methods for ARS still suffer from two key limitations. First, they fail to capture the interactive nature of ARS, in which the recommender agent and the user agent continuously influence each other and can naturally generate endogenous supervision through interaction feedback. Second, they reduce a rich multi-turn interaction process to final outcomes, overlooking the dense supervision embedded throughout the trajectory. To this end, we propose CoARS, a self-distilled reinforcement learning framework for co-evolving agentic recommender systems. CoARS introduces two complementary learning schemes: interaction reward, which derives coupled task-level supervision for the recommender agent and the user agent from the same interaction trajectory, and self-distilled credit assignment, which converts historical trajectories into token-level credit signals under teacher-student conditioning. Experiments on multiple datasets show that CoARS outperforms representative ARS baselines in recommendation performance and user alignment.",
+      "authors": [
+        "Zongwei Wang",
+        "Min Gao",
+        "Hongzhi Yin",
+        "Junliang Yu",
+        "Tong Chen",
+        "Shazia Sadiq",
+        "Tianrui Li"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR"
+      ],
+      "published": "2026-04-11T04:52:38+00:00",
+      "link": "https://arxiv.org/pdf/2604.10029v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:AGENT",
+        "query:GUIAGT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Agentic recommender systems using multi-turn interaction",
+      "llm_evidence_cn": "使用多轮交互的智能体推荐系统",
+      "llm_evidence": "使用多轮交互的智能体推荐系统",
+      "canonical_evidence": "使用多轮交互的智能体推荐系统",
+      "llm_tldr_en": "Proposes self-distilled reinforcement learning to help agentic recommenders internalize decision-making skills.",
+      "llm_tldr_cn": "提出自蒸馏强化学习，帮助智能体推荐系统将决策能力内化到模型参数中。",
+      "llm_tldr": "提出自蒸馏强化学习，帮助智能体推荐系统将决策能力内化到模型参数中。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.09409v1",
+      "title": "Do AI Coding Agents Log Like Humans? An Empirical Study",
+      "abstract": "Software logging is essential for maintaining and debugging complex systems, yet it remains unclear how AI coding agents handle this non-functional requirement. While prior work characterizes human logging practices, the behaviors of AI coding agents and the efficacy of natural language instructions in governing them are unexplored. To address this gap, we conduct an empirical study of 4,550 agentic pull requests across 81 open-source repositories. We compare agent logging patterns against human baselines and analyze the impact of explicit logging instructions. We find that agents change logging less often than humans in 58.4% of repositories, though they exhibit higher log density when they do. Furthermore, explicit logging instructions are rare (4.7%) and ineffective, as agents fail to comply with constructive requests 67% of the time. Finally, we observe that humans perform 72.5% of post-generation log repairs, acting as \"silent janitors\" who fix logging and observability issues without explicit review feedback. These findings indicate a dual failure in natural language instruction (i.e., scarcity of logging instructions and low agent compliance), suggesting that deterministic guardrails might be necessary to ensure consistent logging practices.",
+      "authors": [
+        "Youssef Esseddiq Ouatiti",
+        "Mohammed Sayagh",
+        "Hao Li",
+        "Ahmed E. Hassan"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-10T15:22:58+00:00",
+      "link": "https://arxiv.org/pdf/2604.09409v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Empirical study of AI coding agents' logging behaviors",
+      "llm_evidence_cn": "AI编码智能体日志记录行为的实证研究",
+      "llm_evidence": "AI编码智能体日志记录行为的实证研究",
+      "canonical_evidence": "AI编码智能体日志记录行为的实证研究",
+      "llm_tldr_en": "Analyzes how AI coding agents handle software logging compared to human developers in open-source repos.",
+      "llm_tldr_cn": "分析AI编码智能体在开源仓库中处理软件日志记录的行为模式。",
+      "llm_tldr": "分析AI编码智能体在开源仓库中处理软件日志记录的行为模式。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Large Language Model based agents",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.14251v1",
+      "title": "Calibrate-Then-Delegate: Safety Monitoring with Risk and Budget Guarantees via Model Cascades",
+      "abstract": "Monitoring LLM safety at scale requires balancing cost and accuracy: a cheap latent-space probe can screen every input, but hard cases should be escalated to a more expensive expert. Existing cascades delegate based on probe uncertainty, but uncertainty is a poor proxy for delegation benefit, as it ignores whether the expert would actually correct the error. To address this problem, we introduce Calibrate-Then-Delegate (CTD), a model-cascade approach that provides probabilistic guarantees on the computation cost while enabling instance-level (streaming) decisions. CTD builds on a novel delegation value (DV) probe, a lightweight model operating on the same internal representations as the safety probe that directly predicts the benefit of escalation. To enforce budget constraints, CTD calibrates a threshold on the DV signal using held-out data via multiple hypothesis testing, yielding finite-sample guarantees on the delegation rate. Evaluated on four safety datasets, CTD consistently outperforms uncertainty-based delegation at every budget level, avoids harmful over-delegation, and adapts budget allocation to input difficulty without requiring group labels.",
+      "authors": [
+        "Edoardo Pona",
+        "Milad Kazemi",
+        "Mehran Hosseini",
+        "Yali Du",
+        "David Watson",
+        "Osvaldo Simeone",
+        "Nicola Paoletti"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-15T11:05:59+00:00",
+      "link": "https://arxiv.org/pdf/2604.14251v1",
+      "tags": [
+        "keyword:AGENT",
+        "query:OPCLW"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Safety monitoring for LLM cascades and delegation",
+      "llm_evidence_cn": "大模型级联与委派的安全监控",
+      "llm_evidence": "大模型级联与委派的安全监控",
+      "canonical_evidence": "大模型级联与委派的安全监控",
+      "llm_tldr_en": "Proposes a model-cascade approach to balance cost and accuracy in LLM safety monitoring.",
+      "llm_tldr_cn": "提出了一种模型级联方法，以平衡大模型安全监控中的成本和准确性。",
+      "llm_tldr": "提出了一种模型级联方法，以平衡大模型安全监控中的成本和准确性。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.10159v1",
+      "title": "ODUTQA-MDC: A Task for Open-Domain Underspecified Tabular QA with Multi-turn Dialogue-based Clarification",
+      "abstract": "The advancement of large language models (LLMs) has enhanced tabular question answering (Tabular QA), yet they struggle with open-domain queries exhibiting underspecified or uncertain expressions. To address this, we introduce the ODUTQA-MDC task and the first comprehensive benchmark to tackle it. This benchmark includes: (1) a large-scale ODUTQA dataset with 209 tables and 25,105 QA pairs; (2) a fine-grained labeling scheme for detailed evaluation; and (3) a dynamic clarification interface that simulates user feedback for interactive assessment. We also propose MAIC-TQA, a multi-agent framework that excels at detecting ambiguities, clarifying them through dialogue, and refining answers. Experiments validate our benchmark and framework, establishing them as a key resource for advancing conversational, underspecification-aware Tabular QA research.",
+      "authors": [
+        "Zhensheng Wang",
+        "ZhanTeng Lin",
+        "Wenmian Yang",
+        "Kun Zhou",
+        "Yiquan Zhang",
+        "Weijia Jia"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.DB",
+        "cs.IR",
+        "cs.MA"
+      ],
+      "published": "2026-04-11T11:11:54+00:00",
+      "link": "https://arxiv.org/pdf/2604.10159v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Multi-agent framework for tabular QA",
+      "llm_evidence_cn": "用于表格问答的多智能体框架",
+      "llm_evidence": "用于表格问答的多智能体框架",
+      "canonical_evidence": "用于表格问答的多智能体框架",
+      "llm_tldr_en": "MAIC-TQA is a multi-agent framework that clarifies ambiguous tabular queries through dialogue.",
+      "llm_tldr_cn": "MAIC-TQA是一个通过对话澄清歧义表格查询的多智能体框架。",
+      "llm_tldr": "MAIC-TQA是一个通过对话澄清歧义表格查询的多智能体框架。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.09515v1",
+      "title": "When LLMs Lag Behind: Knowledge Conflicts from Evolving APIs in Code Generation",
+      "abstract": "The rapid evolution of software libraries creates a significant challenge for Large Language Models (LLMs), whose static parametric knowledge often becomes stale post-training. While retrieval-augmented generation (RAG) is commonly used to provide up-to-date API specifications, \"context-memory conflict\" arises when external instructions contradict a model's internal parametric knowledge. This paper presents a systematic empirical study of LLM code generation under API evolution (e.g., API deprecation, API modification, and API addition), by constructing a benchmark of 270 real-world updates from eight Python libraries. We evaluate four LLM families of 11 models. Our results show that without comprehensive documentation, LLMs struggle to prioritize external context, averaging only 42.55% of generated code examples are executable in the target environment. While structured documentation and larger model scales improve LLMs' ability to update adoption, they do not fully resolve executability issues with a low 66.36% executable rate. In addition, reasoning-based strategies (e.g., Self-Reflection) significantly boost LLMs' performance with 11% improvement on executable rate. Our findings highlight the persistence of outdated patterns from LLMs, even when API update specifications are provided, and emphasize the need for evolution-aware benchmarks and techniques.",
+      "authors": [
+        "Ahmed Nusayer Ashik",
+        "Shaowei Wang",
+        "Tse-Hsun Chen",
+        "Muhammad Asaduzzaman",
+        "Yuan Tian"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-10T17:37:26+00:00",
+      "link": "https://arxiv.org/pdf/2604.09515v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "LLM code generation with evolving APIs",
+      "llm_evidence_cn": "演进API环境下的LLM代码生成",
+      "llm_evidence": "演进API环境下的LLM代码生成",
+      "canonical_evidence": "演进API环境下的LLM代码生成",
+      "llm_tldr_en": "This study benchmarks how LLMs handle knowledge conflicts when external API specifications change over time.",
+      "llm_tldr_cn": "本研究评估了当外部API规范随时间变化时，大模型如何处理知识冲突。",
+      "llm_tldr": "本研究评估了当外部API规范随时间变化时，大模型如何处理知识冲突。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "LLM tool use and external API integration",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.10182v1",
+      "title": "Credit-Budgeted ICPC-Style Coding: When Agents Must Pay for Every Decision",
+      "abstract": "Current evaluations of autonomous coding agents assume an unrealistic, infinite-resource environment. However, real-world software engineering is a resource-bound competition. As we scale toward large agent swarms, ignoring compute and time costs risks catastrophic budget exhaustion. To shift the focus from isolated accuracy to cost-aware problem-solving, we introduce USACOArena, an interactive ACM-ICPC-style arena driven by a strict \"credit\" economy. Every generated token, local test, and elapsed second depletes a fixed budget, forcing agents to make strategic trade-offs. Our comprehensive profiling reveals that frontier single agents and swarms currently fail to optimally balance accuracy with these constraints, exhibiting divergent, path-dependent behaviors. Ultimately, USACOArena provides an essential dynamic training ground for developing highly efficient, resource-aware agent architectures.",
+      "authors": [
+        "Lingfeng Zhou",
+        "Junhao Shi",
+        "Jin Gao",
+        "Dequan Wang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-11T12:22:10+00:00",
+      "link": "https://arxiv.org/pdf/2604.10182v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "evaluation of autonomous coding agents under resource constraints",
+      "llm_evidence_cn": "资源约束下的自主编程智能体评估",
+      "llm_evidence": "资源约束下的自主编程智能体评估",
+      "canonical_evidence": "资源约束下的自主编程智能体评估",
+      "llm_tldr_en": "Introduces USACOArena to evaluate how coding agents balance accuracy with compute and time costs.",
+      "llm_tldr_cn": "引入USACOArena，在严格的信用经济体系下评估编程智能体的成本意识和权衡能力。",
+      "llm_tldr": "引入USACOArena，在严格的信用经济体系下评估编程智能体的成本意识和权衡能力。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "State of the art research on large language model agents",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.09963v1",
+      "title": "Rebooting Microreboot: Architectural Support for Safe, Parallel Recovery in Microservice Systems",
+      "abstract": "Microreboot enables fast recovery by restarting only the failing component, but in modern microservices naive restarts are unsafe: dense dependencies mean rebooting one service can disrupt many callers. Autonomous remediation agents compound this by actuating raw infrastructure commands without safety guarantees. We make microreboot practical by separating planning from actuation: a three-agent architecture (diagnosis, planning, verification) proposes typed remediation plans over a seven-action ISA with explicit side-effect semantics, and a small microkernel validates and executes each plan transactionally. Agents are explicitly untrusted; safety derives from the ISA and microkernel. To determine where restart is safe, we infer recovery boundaries online from distributed traces, computing minimal restart groups and ordering constraints. On industrial traces (Alibaba, Meta) and DeathStarBench with fault injection, recovery-group inference runs in 21 ms at P99; typed actuation reduces agent-caused harm by 95% in simulation and achieves 0% harm online. The primary value is safety, not speed: LLM inference overhead increases TTR for services with fast auto-restart.",
+      "authors": [
+        "Laurent Bindschaedler"
+      ],
+      "primary_category": "cs.DC",
+      "categories": [
+        "cs.DC",
+        "cs.AI",
+        "cs.SE"
+      ],
+      "published": "2026-04-11T00:17:20+00:00",
+      "link": "https://arxiv.org/pdf/2604.09963v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "three-agent architecture for diagnosis, planning, and verification",
+      "llm_evidence_cn": "用于诊断、规划和验证的三智能体架构",
+      "llm_evidence": "用于诊断、规划和验证的三智能体架构",
+      "canonical_evidence": "用于诊断、规划和验证的三智能体架构",
+      "llm_tldr_en": "Proposes a multi-agent architecture to safely manage microservice recovery through structured planning and actuation.",
+      "llm_tldr_cn": "提出了一种多智能体架构，通过结构化规划和执行来安全地管理微服务恢复。",
+      "llm_tldr": "提出了一种多智能体架构，通过结构化规划和执行来安全地管理微服务恢复。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.10800v1",
+      "title": "Verify Before You Fix: Agentic Execution Grounding for Trustworthy Cross-Language Code Analysis",
+      "abstract": "Learned classifiers deployed in agentic pipelines face a fundamental reliability problem: predictions are probabilistic inferences, not verified conclusions, and acting on them without grounding in observable evidence leads to compounding failures across downstream stages. Software vulnerability analysis makes this cost concrete and measurable. We address this through a unified cross-language vulnerability lifecycle framework built around three LLM-driven reasoning stages-hybrid structural-semantic detection, execution-grounded agentic validation, and validation-aware iterative repair-governed by a strict invariant: no repair action is taken without execution-based confirmation of exploitability. Cross-language generalization is achieved via a Universal Abstract Syntax Tree (uAST) normalizing Java, Python, and C++ into a shared structural schema, combined with a hybrid fusion of GraphSAGE and Qwen2.5-Coder-1.5B embeddings through learned two-way gating, whose per-sample weights provide intrinsic explainability at no additional cost. The framework achieves 89.84-92.02% intra-language detection accuracy and 74.43-80.12% zero-shot cross-language F1, resolving 69.74% of vulnerabilities end-to-end at a 12.27% total failure rate. Ablations establish necessity: removing uAST degrades cross-language F1 by 23.42%, while disabling validation increases unnecessary repairs by 131.7%. These results demonstrate that execution-grounded closed-loop reasoning is a principled and practically deployable mechanism for trustworthy LLM-driven agentic AI.",
+      "authors": [
+        "Jugal Gajjar"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI",
+        "cs.CR",
+        "cs.LG",
+        "cs.PL"
+      ],
+      "published": "2026-04-12T20:22:23+00:00",
+      "link": "https://arxiv.org/pdf/2604.10800v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Agentic execution grounding and reasoning stages for code analysis",
+      "llm_evidence_cn": "用于代码分析的智能体执行落地与推理阶段",
+      "llm_evidence": "用于代码分析的智能体执行落地与推理阶段",
+      "canonical_evidence": "用于代码分析的智能体执行落地与推理阶段",
+      "llm_tldr_en": "Proposes a framework for trustworthy code analysis using agentic validation and iterative repair.",
+      "llm_tldr_cn": "提出了一个利用智能体验证和迭代修复进行可靠代码分析的框架。",
+      "llm_tldr": "提出了一个利用智能体验证和迭代修复进行可靠代码分析的框架。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Reasoning and planning capabilities of LLM agents",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.10513v1",
+      "title": "Agent Mentor: Framing Agent Knowledge through Semantic Trajectory Analysis",
+      "abstract": "AI agent development relies heavily on natural language prompting to define agents' tasks, knowledge, and goals. These prompts are interpreted by Large Language Models (LLMs), which govern agent behavior. Consequently, agentic performance is susceptible to variability arising from imprecise or ambiguous prompt formulations. Identifying and correcting such issues requires examining not only the agent's code, but also the internal system prompts generated throughout its execution lifecycle, as reflected in execution logs.   In this work, we introduce an analytics pipeline implemented as part of the Agent Mentor open-source library that monitors and incrementally adapts the system prompts defining another agent's behavior. The pipeline improves performance by systematically injecting corrective instructions into the agent's knowledge. We describe its underlying mechanism, with particular emphasis on identifying semantic features associated with undesired behaviors and using them to derive corrective statements.   We evaluate the proposed pipeline across three exemplar agent configurations and benchmark tasks using repeated execution runs to assess effectiveness. These experiments provide an initial exploration of automating such a mentoring pipeline within future agentic governance frameworks. Overall, the approach demonstrates consistent and measurable accuracy improvements across diverse configurations, particularly in settings dominated by specification ambiguity. For reproducibility, we released our code as open source under the Agent Mentor library.",
+      "authors": [
+        "Roi Ben-Gigi",
+        "Yuval David",
+        "Fabiana Fournier",
+        "Lior Limonad",
+        "Dany Moshkovich",
+        "Hadar Mulian",
+        "Segev Shlomov"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-12T08:02:54+00:00",
+      "link": "https://arxiv.org/pdf/2604.10513v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "adapting system prompts defining agent behavior",
+      "llm_evidence_cn": "调整定义智能体行为的系统提示词",
+      "llm_evidence": "调整定义智能体行为的系统提示词",
+      "canonical_evidence": "调整定义智能体行为的系统提示词",
+      "llm_tldr_en": "Agent Mentor is an open-source library that analyzes and adapts system prompts to improve agentic performance.",
+      "llm_tldr_cn": "Agent Mentor 是一个通过分析和调整系统提示词来优化智能体性能的开源库。",
+      "llm_tldr": "Agent Mentor 是一个通过分析和调整系统提示词来优化智能体性能的开源库。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.10866v2",
+      "title": "OccuBench: Evaluating AI Agents on Real-World Professional Tasks via Language Environment Simulation",
+      "abstract": "AI agents are expected to perform professional work across hundreds of occupational domains (from emergency department triage to nuclear reactor safety monitoring to customs import processing), yet existing benchmarks can only evaluate agents in the few domains where public environments exist. We introduce OccuBench, a benchmark covering 100 real-world professional task scenarios across 10 industry categories and 65 specialized domains, enabled by Language Environment Simulators (LESs) that simulate domain-specific environments through LLM-driven tool response generation. Our multi-agent synthesis pipeline automatically produces evaluation instances with guaranteed solvability, calibrated difficulty, and document-grounded diversity. OccuBench evaluates agents along two complementary dimensions: task completion across professional domains and environmental robustness under controlled fault injection (explicit errors, implicit data degradation, and mixed faults). We evaluate 15 frontier models across 8 model families and find that: (1) no single model dominates all industries, as each has a distinct occupational capability profile; (2) implicit faults (truncated data, missing fields) are harder than both explicit errors (timeouts, 500s) and mixed faults, because they lack overt error signals and require the agent to independently detect data degradation; (3) larger models, newer generations, and higher reasoning effort consistently improve performance. GPT-5.2 improves by 27.5 points from minimal to maximum reasoning effort; and (4) strong agents are not necessarily strong environment simulators. Simulator quality is critical for LES-based evaluation reliability. OccuBench provides the first systematic cross-industry evaluation of AI agents on professional occupational tasks.",
+      "authors": [
+        "Xiaomeng Hu",
+        "Yinger Zhang",
+        "Fei Huang",
+        "Jianhong Tu",
+        "Yang Su",
+        "Lianghao Deng",
+        "Yuxuan Liu",
+        "Yantao Liu",
+        "Dayiheng Liu",
+        "Tsung-Yi Ho"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-13T00:27:32+00:00",
+      "link": "https://arxiv.org/pdf/2604.10866v2",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Benchmark for evaluating AI agents on professional tasks via simulation",
+      "llm_evidence_cn": "通过模拟评估AI智能体在专业任务上的表现的基准",
+      "llm_evidence": "通过模拟评估AI智能体在专业任务上的表现的基准",
+      "canonical_evidence": "通过模拟评估AI智能体在专业任务上的表现的基准",
+      "llm_tldr_en": "OccuBench uses LLM-driven simulators to evaluate AI agents across 100 real-world professional task scenarios.",
+      "llm_tldr_cn": "OccuBench利用大模型驱动的模拟器，评估AI智能体在100个真实专业任务场景中的表现。",
+      "llm_tldr": "OccuBench利用大模型驱动的模拟器，评估AI智能体在100个真实专业任务场景中的表现。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.11518v1",
+      "title": "From Translation to Superset: Benchmark-Driven Evolution of a Production AI Agent from Rust to Python",
+      "abstract": "Cross-language migration of large software systems is a persistent engineering challenge, particularly when the source codebase evolves rapidly. We present a methodology for LLM-assisted continuous code translation in which a large language model translates a production Rust codebase (648K LOC, 65 crates) into Python (41K LOC, 28 modules), with public agent benchmarks as the objective function driving iterative refinement. Our subject system is Codex CLI, a production AI coding agent. We demonstrate that: (1) the Python port resolves 59/80 SWE-bench Verified tasks (73.8%) versus Rust's 56/80 (70.0%), and achieves 42.5% on Terminal-Bench versus Rust's 47.5%, confirming near-parity on real-world agentic tasks; (2) benchmark-driven debugging, revealing API protocol mismatches, environment pollution, a silent WebSocket failure mode, and an API 400 crash, is more effective than static testing alone; (3) the architecture supports continuous upstream synchronisation via an LLM-assisted diff-translate-test loop; and (4) the Python port has evolved into a capability superset with 30 feature-flagged extensions (multi-agent orchestration, semantic memory, guardian safety, cost tracking) absent from Rust, while preserving strict parity mode for comparison. Our evaluation shows that for LLM-based agents where API latency dominates, Python's expressiveness yields a 15.9x code reduction with negligible performance cost, while the benchmark-as-objective-function methodology provides a principled framework for growing a cross-language port from parity into an extended platform.",
+      "authors": [
+        "Jinhua Wang",
+        "Biswa Sengupta"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-04-13T14:21:44+00:00",
+      "link": "https://arxiv.org/pdf/2604.11518v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:AGENT",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "evolution of a production AI coding agent using benchmarks",
+      "llm_evidence_cn": "基于基准测试的生产级AI编程智能体演进",
+      "llm_evidence": "基于基准测试的生产级AI编程智能体演进",
+      "canonical_evidence": "基于基准测试的生产级AI编程智能体演进",
+      "llm_tldr_en": "Presents a methodology for LLM-assisted code translation to evolve a production AI coding agent.",
+      "llm_tldr_cn": "提出一种大模型辅助代码迁移方法，用于生产级AI编程智能体的迭代演进。",
+      "llm_tldr": "提出一种大模型辅助代码迁移方法，用于生产级AI编程智能体的迭代演进。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "State of the art research on large language model agents",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.11641v2",
+      "title": "CodeTracer: Towards Traceable Agent States",
+      "abstract": "Code agents are advancing rapidly, but debugging them is becoming increasingly difficult. As frameworks orchestrate parallel tool calls and multi-stage workflows over complex tasks, making the agent's state transitions and error propagation hard to observe. In these runs, an early misstep can trap the agent in unproductive loops or even cascade into fundamental errors, forming hidden error chains that make it hard to tell when the agent goes off track and why. Existing agent tracing analyses either focus on simple interaction or rely on small-scale manual inspection, which limits their scalability and usefulness for real coding workflows. We present CodeTracer, a tracing architecture that parses heterogeneous run artifacts through evolving extractors, reconstructs the full state transition history as a hierarchical trace tree with persistent memory, and performs failure onset localization to pinpoint the failure origin and its downstream chain. To enable systematic evaluation, we construct CodeTraceBench from a large collection of executed trajectories generated by four widely used code agent frameworks on diverse code tasks (e.g., bug fixing, refactoring, and terminal interaction), with supervision at both the stage and step levels for failure localization. Experiments show that CodeTracer substantially outperforms direct prompting and lightweight baselines, and that replaying its diagnostic signals consistently recovers originally failed runs under matched budgets. Our code and data are publicly available.",
+      "authors": [
+        "Han Li",
+        "Yifan Yao",
+        "Letian Zhu",
+        "Rili Feng",
+        "Hongyi Ye",
+        "Jiaming Wang",
+        "Yancheng He",
+        "Pengyu Zou",
+        "Lehan Zhang",
+        "Xinping Lei",
+        "Haoyang Huang",
+        "Ken Deng",
+        "Ming Sun",
+        "Zhaoxiang Zhang",
+        "He Ye",
+        "Jiaheng Liu"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-04-13T15:52:03+00:00",
+      "link": "https://arxiv.org/pdf/2604.11641v2",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Tracing agent states and multi-stage workflows",
+      "llm_evidence_cn": "追踪智能体状态与多阶段工作流",
+      "llm_evidence": "追踪智能体状态与多阶段工作流",
+      "canonical_evidence": "追踪智能体状态与多阶段工作流",
+      "llm_tldr_en": "Introduces CodeTracer to improve observability and debugging of complex multi-stage agentic workflows.",
+      "llm_tldr_cn": "推出CodeTracer架构，旨在提升复杂多阶段智能体工作流的可观测性与调试效率。",
+      "llm_tldr": "推出CodeTracer架构，旨在提升复杂多阶段智能体工作流的可观测性与调试效率。",
+      "llm_tags": [
+        "query:agent"
+      ],
+      "matched_query_tag": "query:agent",
+      "matched_query_text": "Design patterns for agentic workflows",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.11806v1",
+      "title": "Detecting Safety Violations Across Many Agent Traces",
+      "abstract": "To identify safety violations, auditors often search over large sets of agent traces. This search is difficult because failures are often rare, complex, and sometimes even adversarially hidden and only detectable when multiple traces are analyzed together. These challenges arise in diverse settings such as misuse campaigns, covert sabotage, reward hacking, and prompt injection. Existing approaches struggle here for several reasons. Per-trace judges miss failures that only become visible across traces, naive agentic auditing does not scale to large trace collections, and fixed monitors are brittle to unanticipated behaviors. We introduce Meerkat, which combines clustering with agentic search to uncover violations specified in natural language. Through structured search and adaptive investigation of promising regions, Meerkat finds sparse failures without relying on seed scenarios, fixed workflows, or exhaustive enumeration. Across misuse, misalignment, and task gaming settings, Meerkat significantly improves detection of safety violations over baseline monitors, discovers widespread developer cheating on a top agent benchmark, and finds nearly 4x more examples of reward hacking on CyBench than previous audits.",
+      "authors": [
+        "Adam Stein",
+        "Davis Brown",
+        "Hamed Hassani",
+        "Mayur Naik",
+        "Eric Wong"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-13T17:59:40+00:00",
+      "link": "https://arxiv.org/pdf/2604.11806v1",
+      "tags": [
+        "keyword:AGENT",
+        "keyword:GUIAGT",
+        "keyword:OPCLW",
+        "query:GUIAGT",
+        "query:OPCLW"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Detecting safety violations in agent traces using agentic search",
+      "llm_evidence_cn": "利用智能体搜索检测智能体轨迹中的安全违规",
+      "llm_evidence": "利用智能体搜索检测智能体轨迹中的安全违规",
+      "canonical_evidence": "利用智能体搜索检测智能体轨迹中的安全违规",
+      "llm_tldr_en": "Introduces Meerkat, a system that uses agentic search to find complex safety violations across many traces.",
+      "llm_tldr_cn": "引入了Meerkat，一个利用智能体搜索在大量轨迹中发现复杂安全违规的系统。",
+      "llm_tldr": "引入了Meerkat，一个利用智能体搜索在大量轨迹中发现复杂安全违规的系统。",
+      "llm_tags": [
+        "query:agent:composite"
+      ],
+      "matched_query_tag": "query:agent:composite",
+      "matched_query_text": "Papers central to 大模型智能体相关论文查询, especially work that connects or combines: A; Large Language Model based agents; LLM tool use and external API integration; Reasoning and planning capabilities of LLM agents; Design patterns for agentic workflows; State of the art research on large language model agents.",
+      "matched_requirement_id": "req-composite-agent",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    }
+  ]
+}

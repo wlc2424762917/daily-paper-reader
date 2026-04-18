@@ -1,0 +1,1862 @@
+Title: Do LLMs Know Tool Irrelevance? Demystifying Structural Alignment Bias in Tool Invocations
+
+URL Source: https://arxiv.org/pdf/2604.11322v1
+
+Published Time: Tue, 14 Apr 2026 02:06:55 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+## Do LLMs Know Tool Irrelevance? Demystifying Structural Alignment Bias in Tool Invocations 
+
+Yilong Liu 1,2 , Xixun Lin 1,2 , Pengfei Cao 3,Ge Zhang 4, Fang Fang 1,2 , Yanan Cao 1,2 *1Institute of Information Engineering, Chinese Academy of Sciences, Beijing, China 
+
+> 2
+
+School of Cyber Security, University of Chinese Academy of Sciences, Beijing, China 
+
+> 3
+
+Institute of Automation, Chinese Academy of Sciences, Beijing, China 
+
+> 4
+
+School of Computer Science and Technology, Donghua University, Shanghai, China 
+
+{liuyilong, caoyanan}@iie.ac.cn 
+
+Abstract 
+
+Large language models (LLMs) have demon-strated impressive capabilities in utilizing ex-ternal tools. In practice, however, LLMs are often exposed to tools that are irrelevant to the user’s query, in which case the desired be-havior is to refrain from invocations. In this work, we identify a widespread yet overlooked mechanistic flaw in tool refusal, which we term structural alignment bias: Even when a tool fails to serve the user’s goal, LLMs still tend to invoke it whenever query attributes can be validly assigned to tool parameters. To system-atically study this bias, we introduce SABEval, a new dataset that decouples structural align-ment from semantic relevance. Our analysis shows that structural alignment bias induces severe tool-invocation errors in LLMs, yet re-mains largely unaccounted for in existing eval-uations. To investigate the internal mechanisms underlying this bias, we propose Contrastive Attention Attribution, which reveals two com-peting pathways for semantic checking and structural matching. The relative strength of these pathways drives LLMs’ tool invocation decisions. Based on these findings, we further introduce a rebalancing strategy that effectively mitigates structural alignment bias, as demon-strated by extensive experiments, without de-grading general tool-use capabilities. Our code and dataset are available at https://github. com/along-l/irrelevant-tool .
+
+1 Introduction 
+
+Driven by the significant breakthroughs in model architectures, computational capabilities, and large-scale data sources, large language models (LLMs) have advanced rapidly in recent years (Naveed et al., 2025; Xi et al., 2025; Mohammadi et al., 2025). A key capability of LLMs is the utilization of external tools, which bridges the gap between text generation and real-world environmental inter-
+
+> *Corresponding author.
+
+action (Gao et al., 2024; Houliston et al., 2025; Qu et al., 2025). However, in many practical scenarios, LLMs are often exposed to irrelevant tools that are useless for addressing user queries (Zhang et al., 2024; Ross et al., 2025; Liu et al., 2025a; Lin et al., 2025). For example, a user may request to refund a trans-action, but the LLM only has access to a tool for transferring funds. Invoking such irrelevant tools may introduce system latency and misleading out-puts, and more critically, for high-risk applications, such as financial transactions or database manage-ment, can lead to irreversible and catastrophic con-sequences, including financial loss or data corrup-tion (Xia et al., 2025; Subramani et al., 2025). As a result, the desired behavior of LLMs is to recog-nize the limitation of the available tools and refrain from invocations. Although recent studies have explored the abil-ity of LLMs to reject irrelevant tools (Xu et al., 2024; Patil et al., 2025), we find that there exists a widespread yet overlooked mechanistic flaw in LLMs when refusing tool invocations, which we term Structural Alignment Bias . As illustrated in Fig. 1, while a tool cannot help realize the user’s goal (e.g., user queries a game on PlayStation , but the provided tool is designed to check Nintendo Switch games), the model still shows a strong ten-dency to invoke this tool as there exists a valid one-to-one assignment between query attributes and tool parameters (e.g., the attribute “Spider-Man” can be validly assigned to “ game_title ”, and “Canadian” to “ region ”). In this paper, we define the inconsistency be-tween the tool’s function and the user’s goal as Se-mantic Irrelevance , and refer to the existence of such one-to-one assignment as Structural Align-ment . Building upon these definitions, we char-acterize structural alignment bias as a systematic tendency of LLMs to prioritize this structural align-ment as a shortcut for tool invocations, thereby 1                                
+
+> arXiv:2604.11322v1 [cs.CL] 13 Apr 2026 Can you tell me if ‘ Spider -Man: Miles Morales ’ is on sale on the Canadian PlayStation Store ?
+> "name": "check_ nintendo_switch _game_on_sale",
+> "description": "Checks if a particular game is currently on sale on the Nintendo Switch Store.",
+> "parameters": {
+> "game_title ":{"type": "string", "description": "The title of the video game."},
+> "region ":{"type": "string", "description": "The region to check for the Nintendo Switch Store ."}
+> }
+> Semantically Irrelevant
+> Function: Nintendo Switch Parameters: game_title region
+> Goal: PlayStation Attributes: Spider -Man: Miles Morales Canadian
+> <tool_call >{"name": "check_ nintendo_switch _game_on_sale", "arguments": {"game_title ": "Spider -Man: Miles
+> Morales ", "region ": "Canada "}} </ tool_call >
+> Structurally Aligned
+
+Figure 1: Illustration of erroneous tool invocation driven by the model’s strong reliance on structural alignment. 
+
+bypassing the verification of semantic relevance. To further verify and analyze the proposed struc-tural alignment bias, we construct SABEval , a dataset designed to decouple structural alignment from semantic relevance. SABEval mirrors real-world scenarios where distinct services share uni-fied interfaces, avoiding synthetic corner cases. We conduct comprehensive experiments on five widely used tool-augmented LLMs. Our behavioral anal-ysis uncovers a striking contrast: while the error rate is negligible ( < 0.2% ) on structurally mis-aligned samples created by previous studies (See § 2 for details.), it rises sharply to 41.9% under structural alignment and further escalates to 90.4% as the alignment degree increases. Furthermore, we perform the counterfactual analysis which con-firms a strong causal relationship between struc-tural alignment and erroneous invocations, high-lighting the critical impact of structural alignment bias on model behaviors. To investigate the internal mechanisms underly-ing structural alignment bias, we introduce Con-trastive Attention Attribution (CAA), a novel interpretability method that traces the information flow without requiring the strict token-wise align-ment between counterfactual pairs. Our method reveals two distinct pathways responsible for se-mantic checking and structural matching, respec-tively. Moreover, we find that LLMs’ tool invoca-tion decisions are driven by the relative strength of these two pathways. Based on these insights, we propose a new strategy that rebalances the two pathways to mitigate structural alignment bias. Ex-tensive experiments demonstrate that our method can significantly alleviate structural alignment bias across diverse models and tools, while maintain-ing their general tool-use capabilities. Our main contributions are summarized as follows: • Problem Identification. We are the first to iden-tify and formalize structural alignment bias, a mechanistic flaw in which models over-rely on structural alignment when making tool invoca-tion decisions. • Empirical Evidence. We construct SABEval, a dataset that decouples structural alignment from semantic relevance and provides comprehensive evidence of the prevalence, severity, and causality of structural alignment bias. • Interpretability Method. We propose CAA, a novel interpretability method that reveals mod-els’ internal computations without relying on the strict token correspondence of counterfactuals, enabling the discovery of competitive informa-tion flow for tool invocations. • Bias Mitigation. We introduce a precise in-tervention to mitigate structural alignment bias. Extensive experiments show its effectiveness, achieving an 80% relative error reduction while preserving general tool-use capabilities. 
+
+2 Problem Formulation 
+
+In this section, we first introduce the irrelevance setting in tool invocations. We then propose a for-mal concept of structural alignment with our core question. 
+
+Tool Invocations with Irrelevant Tools. A criti-cal challenge in tool-augmented LLMs is whether LLMs can correctly refuse to invoke tools that can-not serve the user’s goal, a scenario often referred to as the Irrelevance Setting (Patil et al., 2025). Our work specifically addresses this problem. Con-sider an input (t, q ), where t is a candidate tool and 
+
+q is the user query. We denote the tool’s function by ft and the user’s goal by gq. In the irrelevance setting, t is semantically irrelevant to q, which we formalize as ft̸ ≡ gq. This implies that ft does not help realize gq, and the model should reject 2t (Chen et al., 2025). For example, as illustrated in Fig. 1, the tool is designed to check Nintendo Switch games (i.e., ft), which fails to address the user’s goal of checking PlayStation games (i.e., gq), and LLMs should refuse this invocation. 
+
+Structural Alignment. Besides semantic rele-vance, we hypothesize that an LLM’s decision to invoke tools is strongly influenced by another fac-tor: whether the attributes expressed in q can be validly mapped to the parameters of t. We refer to this factor as structural alignment as described in the Introduction. Formally, let Pt = {p1, . . . , p n} be the param-eters of t (e.g., “ game_title ”, “ region ”), and 
+
+Aq = {a1, . . . , a m} be the attributes extracted from q (e.g., “Spider-Man”, “Canadian”). We in-troduce a binary indicator: 
+
+bt,q = I Aq ∼= Pt
+
+, (1) where I(·) is the indicator function and Aq ∼= Pt
+
+denotes that there exists a bijection 1 between Aq
+
+and Pt such that every aj ∈ A q can be validly assigned to a parameter pi ∈ P t, and vice versa (e.g., “Spider-Man” for “ game_title ” and “Cana-dian” for “ region ” in Fig. 1, yielding bt,q = 1 ). For a given input (t, q ), we suppose that structural alignment holds when bt,q = 1 , and that structural misalignment exists when bt,q = 0 .The phenomenon of structural alignment has been largely ignored by previous evaluations of models’ ability to reject irrelevant tools (Patil et al., 2025; Chen et al., 2025; Huang et al., 2023; Liu et al., 2025c). They typically construct evaluation samples by randomly pairing a query with tools sampled from a pool. While such constructions ensure semantic irrelevance, they predominantly induce structural misalignment, thereby confound-ing evaluation results. This observation raises the core question of our work: Do LLMs genuinely recognize that semantic relevance is required for a valid tool invocation, or do they merely rely on structural alignment to make decisions? 
+
+3 Experimental Setup 
+
+To answer the above question, we first establish the experimental setup for our empirical study. Specif-ically, we construct a new dataset, SABEval, and describe its extensions, as well as the evaluated models used in our experiments. 
+
+> 1
+
+That is, Aq and Pt are in a one-to-one correspondence, implying |A q | = |P t|.Annotate Tool Template & Base/Derived Class                                  
+
+> check_ nintendo_switch _game_on_sale
+> check_ <game_platform >_ game_on_sale
+> a) Abstract tool template from an existing tool
+> b) Instantiate derived tools from a tool template
+> check_ playstation _game_on_sale
+> For derived tool in
+> Generate queries for
+> Q1:
+> Sampling pairs of distinct derived
+> Base Class :Game Platform
+> check_ nintendo_switch _game_on_sale
+> check_ xbox _game_on_sale
+> Q2:
+> Q3:
+> For
+> Derived Class :Nintendo Switch ,PlayStation ,Xbox
+> (,)(,)(,)
+> (,)(,)(,)
+> 1. Hierarchical Tool Construction
+> 3. Sibling Pairing to Construct Samples （t，q）
+> 2. Query Generation
+> All parameter values
+> should be specified
+> Sibling Tools
+> w/ same 𝒫 𝑡
+> w/ 𝑓 𝑡 ≢𝑔 𝑞 &𝑏 𝑡 ,𝑞 =1
+> classes for 𝒕 and 𝒒 separately:
+
+Figure 2: SABEval construction with three steps. Sam-ples are semantically irrelevant but structurally aligned. 
+
+Dataset. Existing datasets entangle semantic ir-relevance with structural misalignment. To strictly isolate the former (i.e., ft̸ ≡ gq & bt,q = 1 ), we construct a new dataset SABEval , based on the 
+
+polymorphism principle of Object-Oriented Pro-gramming (Meyer, 1997). As illustrated in Fig. 2, the construction pipeline comprises three steps: hi-erarchical tool construction, query generation, and sibling pairing. Crucially, no valid tool is available for any query in SABEval, meaning any tool in-vocation constitutes an error. Construction details are provided in Appendix A. This design mirrors real-world scenarios where distinct services share unified interfaces, rather than creating synthetic corner cases. Finally, we construct 101 tool tem-plates, 5 queries per derived tool, and 10 sibling combinations per tool template. This process yields our base dataset D0, comprising 5,050 instances. 
+
+Dataset Extensions. To support the analysis in §4 and §5, we construct four extensions 
+
+D1, . . . , D4 by adding tool templates of D0 with 
+
+k ∈ { 1, 2, 3, 4} additional parameters 2. We follow the pipeline in Fig. 2 to generate derived tools and queries from new tool templates, while reusing the original sibling pairings of D0 to construct samples. This guarantees that Dk+1 differs from Dk by one additional attribute-parameter assignment. 
+
+Evaluated Models. We investigate five models that natively support tool invocations: the Qwen3 series (4B, 8B, and 14B) (Yang et al., 2025) 3,ToolACE-2.5-8B (Liu et al., 2025c), and Watt-Tool-8B (Watt-AI, 2024). ToolACE-2.5-8B and 
+
+> 2
+
+We employ GPT-4o (Hurst et al., 2024) to synthesize additional parameters. 
+
+> 3
+
+For the Qwen3 series, we disable the “thinking mode” to maintain consistency with the other models. Nevertheless, we report results with thinking mode enabled in Appendix M.1. We also evaluate Qwen3-32B to study the impact of model size in Appendix M.2. 
+
+3Watt-Tool-8B are fine-tuned from Llama-3.1-8B-Instruct (Dubey et al., 2024) 4. We adopt the default system prompts for all evaluated models, and more details are given in Appendix B. 
+
+4 Behavior Analysis 
+
+To address the research question proposed in § 2, we tackle the following two progressive inquiries: 1. How do LLMs perform with structurally aligned but semantically irrelevant tools? (§ 4.1) 2. To what extent does structural alignment con-tribute to erroneous tool invocations? (§ 4.2) 
+
+4.1 Performance under Structural Alignment 
+
+This section evaluates the model’s capability to re-ject semantically irrelevant but structurally aligned tools. We first introduce the used metric: Tool Invocation Rate (TIR). Consider a dataset D con-sisting of N samples. Let P (w|q, t ) denote the model’s predicted probability for the next token w.TIR is defined as the proportion of samples where the special tool-call token wtool is the most likely prediction: TIR = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+I
+
+
+
+argmax 
+
+> w∈V
+
+P (w|q, t ) = wtool 
+
+
+
+,
+
+(2) where V is the vocabulary. wtool for all models are shown in Appendix F. This formulation enables efficient evaluation via a single forward pass with-out full response generation. While it theoretically counts all tool-call format outputs, including hallu-cinated tool invocations, our premise is that models faithfully invoke only the provided tools. We ver-ify this in Appendix F. For models prone to tool hallucination, a fine-grained metric based on full response parsing would be necessary. In our set-ting, a lower TIR indicates a stronger capability to reject irrelevant tools. We then report two key empirical observations. 
+
+High Rates of Erroneous Invocations. We con-duct experiments on D0 of SABEval and compare the results with the random pairing setting (uni-formly sampling a tool for every query). As shown in Table 1, across all models, TIR of random pair-ing remains extremely low (max 0.16%), while they surge dramatically (max 41.86%) on SABEval. This substantial gap indicates that LLMs hardly                   
+
+> 4We exclude the original Llama models due to their inabil-ity to consistently adhere to the tool invocation format.
+> Model Random SABEval ∆
+> Qwen3-4B 0.16 40.04 +39.88 Qwen3-8B 0.04 34.26 +34.22 Qwen3-14B 0.04 41.86 +41.82 ToolACE-2.5-8B 0.12 40.67 +40.55 Watt-Tool-8B 0.00 10.51 +10.51
+
+Table 1: Tool invocation rate (%) on randomly paired samples and SABEval ( D0). 0 1 2 3 4      
+
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> Tool Invocation Rate (%)  Qwen3-4B Qwen3-8B Qwen3-14B ToolACE-2.5-8B Watt-Tool-8B
+
+Figure 3: Tool invocation rate (%) on SABEval subsets 
+
+D0, . . . , D4 with increasing structural alignment degree. 
+
+reject irrelevant tools when they are structurally aligned, suggesting that their decisions could be strongly biased toward structural alignment. More importantly, this gap indicates that the random pair-ing setting substantially overestimates LLMs’ abil-ity to reject irrelevant tools. 
+
+Error Scales with Alignment Degree. Intu-itively, more fillable tool parameters may make models more likely to invoke the tool. We therefore examine whether TIR increases systematically with the number of attribute–parameter assignments between q and t, which we term the structural alignment degree . To this end, we evaluate on 
+
+D0, . . . , D4 of SABEval 5. As illustrated in Fig. 3, we find the error rates of all models consistently and significantly increase as the alignment degree grows (up to 90.44%). Results grouped by tool template show the same trend (See Appendix C for details.). This further underscores the severity of the performance collapse on structurally aligned samples and reveals the fundamental flaw in the models. 
+
+4.2 Causal Role of Structural Alignment 
+
+In this section, we answer the question of to what extent structural alignment contributes to the erro-neous invocations observed in § 4.1. To do so, we  
+
+> 5We do not simply group samples by the number of pa-rameters in D0, as parameter counts are unevenly distributed across tool templates, and the template itself acts as a con-founding factor between TIR and alignment degree.
+
+4User Query: Can you tell me if ‘Spider-Man: Miles Morales’ is on sale on the Canadian PlayStation Store? 
+
+Original Tool: check_ nintendo_switch _game_on_sale Params: game_title , region 
+
+Counterfactual Strategy Tool Name Parameters 
+
+Structural 
+
+Param Substitution check_ nintendo_switch _game_on_sale game_title , include_dlc 
+
+Param Removal check_ nintendo_switch _game_on_sale game_title 
+
+Param Addition check_ nintendo_switch _game_on_sale game_title , region , include_dlc 
+
+Semantic Target Tool check_ playstation _game_on_sale game_title , region 
+
+Table 2: Example of counterfactuals. We construct structural counterfactuals by intervening on the original tool parameters via three strategies ( substitution , removal , and addition ) while retaining the original query. The semantic counterfactual includes a valid tool that serves the user’s goal, which is utilized for pathway discovery in § 5.1. 
+
+analyze structural counterfactuals of SABEval by intervening on the structural alignment status. 
+
+Intervention Design. Given a sample (t, q ) with 
+
+Pt = {p1, . . . , p n} and bt,q = 1 , we intervene on 
+
+t, i.e., t → t∗, and pair it with q to construct the counterfactual (t∗, q ), for which bt∗,q = 0 . Specifi-cally, we implement three intervention strategies, as illustrated in Table 2: • Parameter Substitution. We substitute l origi-nal parameters, such that Pt∗ = {p1, . . . , p n−l,p∗
+
+> 1
+
+, . . . , p ∗ 
+
+> l
+
+}, where the new parameters p∗ 
+
+> i
+
+are mutually distinct and do not appear in Pt. In this case, there exist both unassignable user attributes and unspecified parameters. • Parameter Removal. We remove l original pa-rameters, such that Pt∗ = {p1, . . . , p n−l}. In this case, |A q| > |P t∗ |, representing a scenario where user attributes cannot be fully assigned. • Parameter Addition. We append l new param-eters, such that Pt∗ = {p1, . . . , p n, p ∗
+
+> 1
+
+, . . . , p ∗ 
+
+> l
+
+}.In this case, |A q| < |P t∗ |, representing a sce-nario where some parameters are unspecified. In practice, we set the perturbation size l = 1 . We conduct experiments on the D1 subset of SABEval and utilize the additional parameters generated in § 3, thereby ensuring the plausibility of the coun-terfactual tools. 
+
+Empirical Results. As shown in Fig. 4, all inter-vention strategies lead to a pronounced reduction in TIR. Notably, parameter substitution exhibits the most significant and consistent impact across all models (relative declines of 58% for Qwen3-8B and 83% for Watt-Tool), aligning with its effect of introducing unassignable attributes and unspecified parameters. We further investigate the probability shifts of wtool in Appendix D, where over 70% and 90% of samples exhibit clear probability decreases for the Qwen3 family and other models, respec-Qwen3-4B   
+
+> Qwen3-8B
+> Qwen3-14B
+> ToolACE-2.5-8B
+> Watt-Tool-8B
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Tool Invocation Rate (%)  60.44
+> 53.43
+> 60.40
+> 54.73
+> 18.46
+> 52.85
+> 46.20
+> 50.24
+> 30.12
+> 2.67
+> 33.80
+> 26.08
+> 35.27 35.52
+> 8.16
+> 32.08
+> 23.17
+> 29.90 28.44
+> 3.15
+> Original
+> CF (Add)
+> CF (Remove)
+> CF (Substitute)
+
+Figure 4: Tool invocation rate (%) on original samples and their structural counterfactuals from D1.
+
+tively. Overall, these results underscore a strong causal effect of structural alignment on erroneous tool invocations. 
+
+Structural Alignment Bias. We previously show that LLMs are prone to invoking irrelevant tools under structural alignment (§ 4.1). Here, we further establish a strong causal link between such behav-ior and structural alignment. Based on these analy-ses, we can now answer the core question posed in § 2: Instead of genuinely recognizing the necessity of semantic relevance, LLMs exhibit a systematic bias toward structural alignment in tool invoca-tions. We term this important problem structural alignment bias 6. Such bias prevents LLMs from reliably rejecting irrelevant tools, leading to erro-neous tool invocations and potentially irreversible consequences. 
+
+5 Mechanistic Analysis 
+
+In this section, we investigate the internal mech-anism driving structural alignment bias. We con-sider semantic irrelevance and structural alignment as competing signals and propose a novel method 
+
+> 6
+
+We provide further analysis in Appendix E to distinguish this bias from naive textual similarity, confirming it originates from the structural properties of the data. 
+
+5CAA (§ 5.1), which reveals the specific informa-tion flow responsible for processing them: semantic pathways (checking the semantic irrelevance, then suppressing invocations) and structural pathways 
+
+(matching attributes to parameters, then promot-ing invocations). Our analysis suggests that their relative strength drives models’ decisions, and tar-geted interventions offer an effective avenue for mitigating this bias (§ 5.2). 
+
+5.1 Contrastive Attention Attribution 
+
+Attention heads serve as channels for information flow between positions (Elhage et al., 2021). For a head h, the attention weight αhi,j acts as a modula-tion coefficient controlling the intensity of informa-tion flow from the source position j to the target po-sition i. Given this, we focus on measuring the im-portance of attention weights to identify semantic and structural pathways. Unlike traditional causal mediation analysis (Wang et al., 2022; Hanna et al., 2023), CAA introduces counterfactual contrast at the group level, eliminating the reliance on strict to-ken correspondence of original and counterfactual inputs. CAA includes three steps: estimating the sample-wise importance; deriving the group-wise importance via span aggregation; introducing the contrastive importance score to identify pathways. 
+
+Sample-wise Importance. Given the input x =(t, q ) ∈ D and a task metric m, we measure the importance of αhi,j via the indirect effect (Pearl, 2001; Vig et al., 2020): 
+
+I(m, α hi,j , x ) = m(x) − m(x | do( αhi,j = 0)) ,
+
+(3) where do( αhi,j = 0) zeros out αhi,j . Eq. (3) de-scribes the induced change for m under zero abla-tion. Based on it, we define two new metrics for semantic checking msem and structural matching 
+
+mstr , respectively: 
+
+msem (x) = max  
+
+> w∈R
+
+log P (w|x) − log P (wtool |x),
+
+(4) 
+
+mstr (x) = log P (wtool |x)−max  
+
+> w∈R
+
+log P (w|x). (5) Here, R = {wr1 , . . . , w rk } ⊂ V is a set of refusal tokens that the model typically starts with when refusing invocations (See Appendix F for a dis-cussion on refusal token selection.). Due to the large number of attention weights, we further use attribution patching (Nanda, 2023) to efficiently approximate Eq. (3) via a first-order Taylor expan-sion: 
+
+I(m, α hi,j , x ) ≈ αhi,j · ∂m (x)
+
+∂α hi,j 
+
+. (6) This enables parallel estimation for all α using only one forward and one backward pass. 
+
+Group-wise Importance. Since sequence lengths vary across samples, the importance of attention weights is not directly comparable. To address this, we adopt a span-level aggregation approach (Haklay et al., 2025) by partitioning the input text into ordered spans S = ⟨si⟩Ni=1 ,where the tool definition and the query are treated as separate spans to ensure consistency across samples. Details of the span partitioning are provided in Appendix G. Consequently, the group-wise importance from a source span sj to a target span si, measured over D, is defined as: 
+
+ˆIhsi,s j (m, D) = 1
+
+|D| 
+
+X
+
+> x∈D
+
+X
+
+> l∈sj
+
+X
+
+> k∈si
+
+I(m, α hk,l , x ).
+
+(7) 
+
+Contrastive Importance Score. Based on Eq. (3) , we can identify attention weights that con-tribute significantly to the metric m. However, this manner captures the aggregated contributions of all features originating from x, making it difficult to disentangle the effects of specific factors. In our setting, we are specifically interested in the ef-fects induced by semantic irrelevance and structural alignment. To isolate these factors, we construct counterfactual samples and introduce Contrastive Importance Score (CIS). Let D∗ = {x∗ | x ∈ D} 
+
+be the set of counterfactual samples corresponding to D. We define CIS as: 
+
+CIS hsi,s j (m, D, D∗) = Zhsi,s j (m, D)−
+
+Zhsi,s j (m, D∗), (8) 
+
+Zhsi,s j (m, D′) = max 
+
+ ˆIhsi,s j (m, D′), 0
+
+
+
+max h′,s p,s q ˆIh′ 
+
+> sp,s q
+
+(m, D′) . (9) Here, Eq. (9) is a normalized form of group-wise importance, where D′ denotes either D or D∗. In Eq. (8), by differencing two normalized terms, we remove the effects of features shared in x.CAA constructs two types of counterfactuals. As shown in Table 2, we construct structural coun-terfactuals D∗,str by parameter substitution, and 6system-start 
+
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> Emb
+> L0
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L18
+> L19
+> L20
+> L21
+> L22
+> L23
+> L24
+> L25
+> Semantic Pathways system-start
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> Emb
+> L0
+> L7
+> L8
+> L9
+> L10
+> L11
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L18
+> L20
+> L21
+> L22
+> L23
+> Structural Pathways
+
+Figure 5: Semantic (left) and structural (right) pathways in Qwen3-8B from top-k attention weights ( k = 23 ,corresponding to 2% of the attention heads). 
+
+semantic counterfactuals D∗,sem by pairing a query with its target tool: 
+
+CIS h, sem 
+
+si,s j := CIS hsi,s j (msem , Dnocall , D∗,sem nocall ),
+
+(10) 
+
+CIS h, str 
+
+si,s j := CIS hsi,s j (mstr , Dcall , D∗,str call ). (11) Here, Dnocall and Dcall consist of cases where the model originally refuses or performs tool invoca-tions, and decisions on their respective counterfac-tuals, D∗,sem 
+
+nocall and D∗,str 
+
+call , are swapped 7. We com-pute Eq. (10) and Eq. (11) , and identify the top-k
+
+attention weights between spans as semantic and structural pathways, respectively. 
+
+5.2 Experiment & Analysis 
+
+We split SABEval into training/validation/test sets (40%, 20%, 40%), with disjoint tool templates. We compute CIS by sampling 500 instances per group (Dnocall and Dcall ) from the training split of the D1
+
+subset. All analyses are performed on the held-out test set. Unless otherwise specified, we select the top-k attention weights where k corresponds to 2% of the number of attention heads. 
+
+Characteristics of Pathways. Fig. 5 illustrates the semantic and structural pathways identified in Qwen3-8B. The x-axis represents the ordered input spans (e.g., tool definition, user query), and the y-axis represents the model layer. Edges denote top-k attention weights aggregated across heads between source and target spans at different lay-ers. While both pathways involve similar layers, we observe clear differences in their information flow patterns. Specifically, semantic pathways are denser at the query positions, indicating that these positions play a key role during semantic checking. In contrast, during structural matching, the model 
+
+> 7
+
+For example, Dnocall is constructed by selecting samples where the model refuses the original (irrelevant) tool and invokes the tool after replacing it with the target tool. 1-10 
+
+> 11-20
+> 21-30
+> 31-40
+> 41-50
+> 51-60
+> 61-70
+> 71-80
+> 81-90
+> 91-100
+> Top Attn Weights
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> Semantic Checking Metric ( ∆msem ) Semantic Pathways
+> No Invocation
+> Invocation
+> 1-10
+> 11-20
+> 21-30
+> 31-40
+> 41-50
+> 51-60
+> 61-70
+> 71-80
+> 81-90
+> 91-100
+> Top Attn Weights
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> Structural Matching Metric ( ∆mstr ) Structural Pathways
+> No Invocation
+> Invocation
+
+Figure 6: Comparison of pathway strengths between invocation and non-invocation cases for Qwen3-8B. 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0                                          
+
+> Scaling Coefficient
+> Semantic Structural
+> 1.00 1.00 1.00 1.00 1.00 1.00 0.99 0.93 0.84 0.68 0.53 0.36 0.25 0.17 0.11 0.06 0.04 0.02 0.01 0.01 0.00
+> 0.10 0.10 0.11 0.14 0.17 0.21 0.26 0.32 0.37 0.46 0.53 0.61 0.67 0.73 0.79 0.84 0.88 0.91 0.94 0.95 0.95 0.25
+> 0.50
+> 0.75
+> 1.00
+> Tool Invocation Rate
+
+Figure 7: TIR under different scaling coefficients for Qwen3-8B ( k = 23 ). 
+
+exhibits strong attention at the final span toward the output instruction, which specifies the tool invo-cation format. This pattern suggests that excessive focus on output formatting biases Qwen3 toward structural alignment. More discussion and results for other models are provided in Appendix H. 
+
+Relative Pathway Strength Drives Model Deci-sions. We find that tool invocation decisions are governed by the relative strength of the two path-ways. To quantify this, we partition the top-100 attention weights into 10 groups and iteratively patch each group via Eq. (3) to assess their impacts on msem and mstr , using 500 invocation and 500 non-invocation cases from Dcall and Dnocall of D1,respectively. As shown in Fig. 6, pathway strengths vary significantly: erroneous invocation cases ex-hibit weaker semantic pathways and stronger struc-tural pathways, opposite to non-invocation cases. We further show in Appendix I that as structural alignment degree increases, structural pathways strengthen while semantic pathways weaken, con-sistent with the higher TIR noted in § 4.1. These re-sults indicate that the relative dominance of the se-mantic and structural pathways determines LLMs’ tool invocation decisions. 
+
+Mitigating the Bias via Attention Scaling. If these pathways indeed govern LLMs’ decision pro-cess, manipulating their strength should causally influence models’ behavior. To validate their causal roles, we intervene on them by scaling the attention 7Model Method SABEval ↓ ACEBench ↑D0 D1 D2 D3 D4 Single Parallel                                                                                                               
+
+> Qwen3-4B Base 37.61 57.85 73.41 85.56 89.76 65 60 Prompt 27.12 42.20 56.83 69.71 75.95 66 57 CAA (Ours) 8.29 14.29 20.29 27.76 36.00 63 61
+> Qwen3-8B Base 30.39 51.61 66.29 75.56 82.44 71 62 Prompt 19.90 34.29 48.73 57.66 66.20 72 66
+> CAA (Ours) 4.29 6.49 7.27 8.98 11.12 67 66
+> Qwen3-14B Base 41.37 59.46 74.73 83.90 91.02 68 62 Prompt 24.29 33.41 43.56 56.78 65.66 70 62 CAA (Ours) 5.56 7.27 9.31 15.51 21.22 68 63
+> ToolACE-2.5 Base 37.95 51.12 63.02 67.41 68.00 90 81
+> Prompt 39.12 53.66 62.63 67.71 67.71 87 81
+> CAA (Ours) 3.41 5.27 5.76 6.88 11.46 89 79 Watt-Tool Base 8.68 15.46 23.31 31.51 39.51 84 76 Prompt 8.59 15.37 22.34 29.61 38.05 83 77
+> CAA (Ours) 2.54 2.98 5.46 8.10 12.68 83 75
+
+Table 3: Evaluation results on all subsets of SABEval and ACEBench. We report the tool invocation rate ( ↓) on SABEval and accuracy ( ↑) on ACEBench. Base denotes the performance of the original model. 
+
+weights of head h between span si and sj :
+
+αhk,l ← ρ · αhk,l , ∀k ∈ si, l ∈ sj , (12) where ρ is a scaling coefficient. We first examine how TIR varies with different ρ on 500 test cases. As shown in Fig. 7, the two pathways exert causal effects on the tool invocation rate (TIR) in opposite directions, which is consistent with their hypothe-sized roles and demonstrates the expected causal effect. Results for other models and different top-k
+
+thresholds are reported in Appendix J, which show similar trends. Motivated by these findings, we propose a tar-geted intervention strategy to mitigate structural alignment bias. Specifically, we amplify semantic pathways ( ρsem > 1) while suppressing structural pathways ( ρstr < 1). The coefficients ρsem and ρstr 
+
+are selected on the validation set (See Appendix K for details.). We evaluate efficacy on SABEval and general tool-use performance on ACEBench (sin-gle and parallel settings 8) (Chen et al., 2025), and compare our method against the prompt baseline 9.The results are shown in Table 3, highlighting three key observations: (1) Our method substan-tially reduces structural alignment bias, achieving a 45.55% average reduction in tool invocation rate, whereas the prompt baseline shows more limited improvements (11.19% average reduction). (2) 
+
+> 8The model must correctly select one or simultaneously multiple tools, and then fulfill the desired parameters. We report the accuracy metric.
+> 9Prompting the model to refuse the invocation when no suitable tool is available. See Appendix L for details. We also compare with one-shot prompting and supervised fine-tuning in Appendix M.3.
+
+With disjoint tool templates, rebalancing the path-ways discovered from tools in the training set re-mains effective in mitigating bias on samples gen-erated from unseen tools. This indicates that the pathways are not tool-specific but generalize across tools. (3) Our method has negligible impact on general tool-use capabilities. Results show that our method introduces only minimal accuracy changes on ACEBench, which are comparable to those in-troduced by prompting. 
+
+6 Related Work 
+
+Irrelevant Tools. Prior studies have explored sce-narios involving irrelevant tools. Xu et al. (2024) frame tool irrelevance as a form of task insolv-ability and introduce a dedicated “ChangeTools ac-tion”, while Huang et al. (2023); Ross et al. (2025); Patil et al. (2025) require LLMs to explicitly ac-knowledge when no tool is applicable. Other works further expect models to clarify irrelevance or ad-dress it through user interaction (Chen et al., 2025; Liu et al., 2025b; Wang et al., 2025). However, these works ignore the factor of structural align-ment, thereby obscuring the underlying bias. 
+
+Irrelevant Context. Although irrelevant tools ap-pear as part of an LLM’s context, they differ fun-damentally from irrelevant context studied in prior works (Cuconasu et al., 2024; Wu et al., 2024a; Niu et al., 2025; Cheng et al., 2025). First, irrelevant tools change the model’s expected behavior (tool invocation to refusal), whereas irrelevant context does not. Moreover, despite prior work identify-ing the competition between irrelevant context and internal knowledge (Cheng et al., 2025), the com-8peting pathways found in our work arise entirely from irrelevant tools themselves, reflecting two dis-tinct query–tool matching mechanisms. 
+
+Mechanistic Interpretability. Mechanistic inter-pretability aims to reverse-engineer the computa-tions of LLMs to uncover the causal mechanisms behind their behaviors (Olah, 2022; Wang et al., 2022). Recent studies indicate that contextual in-formation is often utilized by specific attention heads (Wu et al., 2024b; Jin et al., 2024; Crosbie and Shutova, 2025), employing causal mediation analysis that relies on counterfactual interventions on model components (Vig et al., 2020; Meng et al., 2022; Syed et al., 2024; Haklay et al., 2025). By ex-tending this framework, we gain an internal mech-anistic understanding of the causes of structural alignment bias and provide the mitigation method. 
+
+7 Conclusion 
+
+In this work, we identify structural alignment bias, which can lead LLMs to erroneously invoke ir-relevant tools, potentially resulting in serious and irreversible consequences. To study this problem, we construct a new dataset and conduct a com-prehensive empirical analysis. Our results indi-cate that structural alignment bias is prevalent, can dominate tool-refusal behavior, and substantially increases erroneous invocations as structural align-ment strengthens. Moreover, we introduce CAA to link this behavioral pattern to competing internal signals. Building on these insights, we further de-sign a rebalancing strategy that mitigates this bias without sacrificing general tool-use capabilities. 
+
+Limitations 
+
+To rigorously isolate structural alignment from se-mantic relevance, we focus on the irrelevance set-ting in tool invocations and therefore do not ex-tend our analysis to multi-turn agentic workflows. Nevertheless, understanding this fundamental bias in isolation provides a critical prerequisite for ad-dressing it in more complex settings. Moreover, although we systematically analyze structural align-ment bias, we do not distinguish whether it orig-inates from general pre-training or is specifically introduced during tool-use fine-tuning. We leave the precise pinpointing of its source to future work. 
+
+Acknowledgments 
+
+This work is supported by the National Natu-ral Science Foundation of China (No.62402491, No.U2336202), the China Postdoctoral Science Foundation (No.2025M771524), and the Shanghai Pujiang Program (24PJA004). 
+
+References 
+
+Andy Arditi, Oscar Obeso, Aaquib Syed, Daniel Paleka, Nina Panickssery, Wes Gurnee, and Neel Nanda. 2024. Refusal in language models is mediated by a single direction. Advances in Neural Information Processing Systems , 37:136037–136083. Chen Chen, Xinlong Hao, Weiwen Liu, Xu Huang, Xingshan Zeng, Shuai Yu, Dexun Li, Shuai Wang, Weinan Gan, Yuefeng Huang, and 1 others. 2025. Acebench: Who wins the match point in tool usage? 
+
+arXiv preprint arXiv:2501.12851 .Ziling Cheng, Meng Cao, Marc-Antoine Rondeau, and Jackie CK Cheung. 2025. Stochastic chameleons: Irrelevant context hallucinations reveal class-based (mis)generalization in LLMs. In Proceedings of the 63rd Annual Meeting of the Association for Compu-tational Linguistics (Volume 1: Long Papers) , pages 30187–30214, Vienna, Austria. Association for Com-putational Linguistics. Joy Crosbie and Ekaterina Shutova. 2025. Induction heads as an essential mechanism for pattern matching in in-context learning. In Findings of the Association for Computational Linguistics: NAACL 2025 , pages 5034–5096, Albuquerque, New Mexico. Association for Computational Linguistics. Florin Cuconasu, Giovanni Trappolini, Federico Sicil-iano, Simone Filice, Cesare Campagnano, Yoelle Maarek, Nicola Tonellotto, and Fabrizio Silvestri. 2024. The power of noise: Redefining retrieval for rag systems. In Proceedings of the 47th International ACM SIGIR Conference on Research and Develop-ment in Information Retrieval , pages 719–729. Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, and 1 others. 2024. The llama 3 herd of models. 
+
+arXiv e-prints , pages arXiv–2407. Nelson Elhage, Neel Nanda, Catherine Olsson, Tom Henighan, Nicholas Joseph, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly, Nova DasSarma, Dawn Drain, Deep Ganguli, Zac Hatfield-Dodds, Danny Hernandez, Andy Jones, Jackson Kernion, Liane Lovitt, Kamal Ndousse, and 6 others. 2021. A mathemati-cal framework for transformer circuits. Trans-former Circuits Thread . Https://transformer-circuits.pub/2021/framework/index.html. Shen Gao, Zhengliang Shi, Minghang Zhu, Bowen Fang, Xin Xin, Pengjie Ren, Zhumin Chen, Jun Ma, and Zhaochun Ren. 2024. Confucius: Iterative tool learn-ing from introspection feedback by easy-to-difficult curriculum. In Proceedings of the AAAI conference 
+
+9on artificial intelligence , volume 38, pages 18030– 18038. Tal Haklay, Hadas Orgad, David Bau, Aaron Mueller, and Yonatan Belinkov. 2025. Position-aware auto-matic circuit discovery. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 2792– 2817, Vienna, Austria. Association for Computa-tional Linguistics. Michael Hanna, Ollie Liu, and Alexandre Variengien. 2023. How does gpt-2 compute greater-than?: In-terpreting mathematical abilities in a pre-trained lan-guage model. Advances in Neural Information Pro-cessing Systems , 36:76033–76060. Sam Houliston, Ambroise Odonnat, Charles Arnal, and Vivien Cabannes. 2025. Provable benefits of in-tool learning for large language models. arXiv preprint arXiv:2508.20755 .Yue Huang, Jiawen Shi, Yuan Li, Chenrui Fan, Siyuan Wu, Qihui Zhang, Yixin Liu, Pan Zhou, Yao Wan, Neil Zhenqiang Gong, and 1 others. 2023. Meta-tool benchmark for large language models: Deciding whether to use tools and which to use. arXiv preprint arXiv:2310.03128 .Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Zhuoran Jin, Pengfei Cao, Hongbang Yuan, Yubo Chen, Jiexin Xu, Huaijun Li, Xiaojian Jiang, Kang Liu, and Jun Zhao. 2024. Cutting off the head ends the con-flict: A mechanism for interpreting and mitigating knowledge conflicts in language models. In Findings of the Association for Computational Linguistics: ACL 2024 , pages 1193–1215, Bangkok, Thailand. Association for Computational Linguistics. Xixun Lin, Yucheng Ning, Jingwen Zhang, Yan Dong, Yilong Liu, Yongxuan Wu, Xiaohua Qi, Nan Sun, Yanmin Shang, Kun Wang, and 1 others. 2025. Llm-based agents suffer from hallucinations: A survey of taxonomy, methods, and directions. arXiv preprint arXiv:2509.18970 .Jian Liu, Kangyun Ning, Yisong Su, Wenjuan Han, Jinan Xu, and Yuanzhe Zhang. 2025a. Wtu-eval: A whether-or-not tool usage evaluation benchmark for large language models. In ICASSP 2025-2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) , pages 1–5. IEEE. Jingyu Liu, JingquanPeng JingquanPeng, Xiaopeng Wu, Xubin Li, Tiezheng Ge, Bo Zheng, and Yong Liu. 2025b. Do not abstain! identify and solve the uncer-tainty. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Vol-ume 1: Long Papers) , pages 17177–17197, Vienna, Austria. Association for Computational Linguistics. Weiwen Liu, Xu Huang, Xingshan Zeng, xinlong hao, Shuai Yu, Dexun Li, Shuai Wang, Weinan Gan, Zhengying Liu, Yuanqing Yu, Zezhong WANG, Yux-ian Wang, Wu Ning, Yutai Hou, Bin Wang, Chuhan Wu, Wang Xinzhi, Yong Liu, Yasheng Wang, and 8 others. 2025c. ToolACE: Winning the points of LLM function calling. In The Thirteenth International Conference on Learning Representations .Kevin Meng, David Bau, Alex Andonian, and Yonatan Belinkov. 2022. Locating and editing factual associa-tions in gpt. Advances in neural information process-ing systems , 35:17359–17372. Bertrand Meyer. 1997. Object-oriented software con-struction , volume 2. Prentice hall Englewood Cliffs. Mahmoud Mohammadi, Yipeng Li, Jane Lo, and Wendy Yip. 2025. Evaluation and benchmarking of llm agents: A survey. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , pages 6129–6139. Neel Nanda. 2023. Attribution patching: Activation patching at industrial scale. Humza Naveed, Asad Ullah Khan, Shi Qiu, Muhammad Saqib, Saeed Anwar, Muhammad Usman, Naveed Akhtar, Nick Barnes, and Ajmal Mian. 2025. A com-prehensive overview of large language models. ACM Transactions on Intelligent Systems and Technology ,16(5):1–72. Jingcheng Niu, Xingdi Yuan, Tong Wang, Hamidreza Saghir, and Amir H. Abdi. 2025. Llama see, llama do: A mechanistic perspective on contextual entrain-ment and distraction in LLMs. In Proceedings of the 63rd Annual Meeting of the Association for Compu-tational Linguistics (Volume 1: Long Papers) , pages 16218–16239, Vienna, Austria. Association for Com-putational Linguistics. Chris Olah. 2022. Mechanistic interpretability, vari-ables, and the importance of interpretable bases. Shishir G Patil, Huanzhi Mao, Fanjia Yan, Char-lie Cheng-Jie Ji, Vishnu Suresh, Ion Stoica, and Joseph E. Gonzalez. 2025. The berkeley function calling leaderboard (BFCL): From tool use to agentic evaluation of large language models. In Forty-second International Conference on Machine Learning .Judea Pearl. 2001. Direct and indirect effects. In Proc. of the Conference on Uncertainty in Artificial Intelli-gence .Changle Qu, Sunhao Dai, Xiaochi Wei, Hengyi Cai, Shuaiqiang Wang, Dawei Yin, Jun Xu, and Ji-Rong Wen. 2025. Tool learning with large language mod-els: A survey. Frontiers of Computer Science ,19(8):198343. Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing 
+
+10 and the 9th International Joint Conference on Natu-ral Language Processing (EMNLP-IJCNLP) , pages 3982–3992, Hong Kong, China. Association for Com-putational Linguistics. Hayley Ross, Ameya Sunil Mahabaleshwarkar, and Yoshi Suhara. 2025. When2Call: When (not) to call tools. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 3391– 3409, Albuquerque, New Mexico. Association for Computational Linguistics. Nishant Subramani, Jason Eisner, Justin Svegliato, Ben-jamin Van Durme, Yu Su, and Sam Thomson. 2025. MICE for CATs: Model-internal confidence estima-tion for calibrating agents with tools. In Proceedings of the 2025 Conference of the Nations of the Amer-icas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 12362–12375, Albuquerque, New Mexico. Association for Computational Linguis-tics. Aaquib Syed, Can Rager, and Arthur Conmy. 2024. Attribution patching outperforms automated circuit discovery. In Proceedings of the 7th BlackboxNLP Workshop: Analyzing and Interpreting Neural Net-works for NLP , pages 407–416. Henrique Schechter Vera, Sahil Dua, Biao Zhang, Daniel Salz, Ryan Mullins, Sindhu Raghuram Pa-nyam, Sara Smoot, Iftekhar Naim, Joe Zou, Feiyang Chen, and 1 others. 2025. Embeddinggemma: Pow-erful and lightweight text representations. arXiv preprint arXiv:2509.20354 .Jesse Vig, Sebastian Gehrmann, Yonatan Belinkov, Sharon Qian, Daniel Nevo, Yaron Singer, and Stuart Shieber. 2020. Investigating gender bias in language models using causal mediation analysis. Advances in neural information processing systems , 33:12388– 12401. Kevin Wang, Alexandre Variengien, Arthur Conmy, Buck Shlegeris, and Jacob Steinhardt. 2022. In-terpretability in the wild: a circuit for indirect ob-ject identification in gpt-2 small. arXiv preprint arXiv:2211.00593 .Wenxuan Wang, Shi Juluan, Zixuan Ling, Yuk-Kit Chan, Chaozheng Wang, Cheryl Lee, Youliang Yuan, Jen-tse Huang, Wenxiang Jiao, and Michael R. Lyu. 2025. Learning to ask: When LLM agents meet unclear in-struction. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing ,pages 21784–21795, Suzhou, China. Association for Computational Linguistics. Watt-AI. 2024. Watt-tool 8b. Accessed: 2025-12-08. Siye Wu, Jian Xie, Jiangjie Chen, Tinghui Zhu, Kai Zhang, and Yanghua Xiao. 2024a. How easily do irrelevant inputs skew the responses of large language models? arXiv preprint arXiv:2404.03302 .Wenhao Wu, Yizhong Wang, Guangxuan Xiao, Hao Peng, and Yao Fu. 2024b. Retrieval head mechanisti-cally explains long-context factuality. arXiv preprint arXiv:2404.15574 .Zhiheng Xi, Wenxiang Chen, Xin Guo, Wei He, Yi-wen Ding, Boyang Hong, Ming Zhang, Junzhe Wang, Senjie Jin, Enyu Zhou, and 1 others. 2025. The rise and potential of large language model based agents: A survey. Science China Information Sci-ences , 68(2):121101. Hongfei Xia, Hongru Wang, Zeming Liu, Qian Yu, Yuhang Guo, and Haifeng Wang. 2025. Safetool-bench: Pioneering a prospective benchmark to eval-uating tool utilization safety in llms. arXiv preprint arXiv:2509.07315 .Hongshen Xu, Zichen Zhu, Lei Pan, Zihan Wang, Su Zhu, Da Ma, Ruisheng Cao, Lu Chen, and Kai Yu. 2024. Reducing tool hallucination via reliability alignment. arXiv preprint arXiv:2412.04141 .An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, and 1 others. 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 .Yuxiang Zhang, Jing Chen, Junjie Wang, Yaxin Liu, Cheng Yang, Chufan Shi, Xinyu Zhu, Zihao Lin, Hanwen Wan, Yujiu Yang, Tetsuya Sakai, Tian Feng, and Hayato Yamana. 2024. ToolBeHonest: A multi-level hallucination diagnostic benchmark for tool-augmented large language models. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 11388–11422, Miami, Florida, USA. Association for Computational Linguistics. 
+
+11 A Dataset Construction 
+
+By leveraging the polymorphism principle of Object-Oriented Programming (Meyer, 1997), we construct groups of sibling tools that share an iden-tical interface (i.e., parameters) but possess mu-tually exclusive functionalities (i.e., they belong to different derived classes), enabling us to create samples that are structurally aligned yet seman-tically irrelevant. In what follows, we detail the construction procedure in three steps: 
+
+Hierarchical Tool Construction. We select seed tools from two mainstream benchmarks: BFCL (Patil et al., 2025) and ACEBench (Chen et al., 2025). First, we sanitize these tools and convert them into a unified format. To minimize parsing noise and focus on decision logic, we fil-ter out seed tools that contain nested (i.e., object type) parameters and mandate all parameters as required. Subsequently, we manually annotate a 
+
+base class for each seed tool. These base classes are derived typically from the entities targeted by the seed tools (e.g., mapping “Basketball Player” to “Athlete”). Then, we annotate tool templates by replacing specific entity references in the seed tools with a generic placeholder, denoted as “ <class> ”. Based on tool functionality, we then annotate 
+
+derived classes for each base class. We enforce two main constraints during this process: (1) The seed tool interface must be directly ap-plicable to every derived class. (2) The derived classes must be semantically mutually exclusive, such that a tool instantiated for one derived class cannot resolve queries intended for another. Finally, to instantiate specific derived tools, we simply replace the “ <class> ” placeholder with the target derived class name via string substitution. This process yields tools that share identical param-eters but possess mutually exclusive functionalities. We provide an example in Fig. 24. 
+
+Query Generation. For each instantiated derived tool, we leverage GPT-4o (Hurst et al., 2024) to generate diverse user queries. To ensure the quality and validity of the data, we mainly enforce three constraints during the generation process: (1) The query must explicitly incorporate infor-mation corresponding to every parameter defined in the tool. (2) The query must explicitly mention the name of the derived class associated with the tool. 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20      
+
+> Number of Derived Classes
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> 14
+> 16
+> 18
+> Number of Tool Templates
+> 8
+> 4
+> 11
+> 16
+> 7
+> 12
+> 17
+> 4
+> 66
+> 8
+> 21234
+> Number of Parameters
+> 0
+> 6
+> 12
+> 18
+> 24
+> 30
+> 36
+> 42
+> 48 46
+> 41
+> 12
+> 2
+
+Figure 8: Distribution of derived class counts (left) and parameter counts (right) across tool templates. 
+
+(3) The query must be unambiguous and fully self-contained, requiring no further clarification to be understood. The specific prompt template used for this gen-eration is illustrated in Fig. 25. 
+
+Sibling Pairing. Sibling tools are those derived from the same tool template (i.e., sharing the same base class) but instantiated with distinct derived classes. Finally, we construct samples (t, q ) by pairing a query, originally generated from a specific tool, with one of that tool’s sibling tools. Through this pairing strategy, the pair (t, q ) exhibits struc-tural alignment because the tool accommodates every attribute present in the query, yet it remains semantically irrelevant. 
+
+Data Statistics. Since the seed tools are sourced from benchmarks with broad coverage, SABEval naturally inherits the domain diversity. Specifically, our dataset spans a wide spectrum of topics, in-cluding the seven domains explicitly identified in ACEBench: finance, society, health, entertainment, technology, environment, and culture (Chen et al., 2025). In total, SABEval ( D0) comprises 101 tool tem-plates, each defined with 1 to 4 parameters. Across the base classes corresponding to these templates, we annotated a total of 729 distinct derived classes. On average, each tool template is instantiated into 9 derived tools, with at least 5 queries generated for each derived tool. We sample 10 distinct sibling pairs per tool template to construct the final sam-ples. Fig. 8 shows the distributions of derived class counts and parameter counts across tool templates. 
+
+Dataset Extensions. As described in § 3, we construct four dataset extensions, D1, . . . , D4, by augmenting the tool templates from D0 with k ∈{1, 2, 3, 4} additional parameters, respectively. We employ GPT-4o to synthesize these supplementary parameters, followed by a manual verification pro-12 cess to ensure their validity. The specific prompt used for this process is provided in Fig. 26. 
+
+B System Prompts 
+
+The default system prompts for all models are shown in Figs. 27, 28. 
+
+C TIR Analysis Across Tool Templates 
+
+We randomly sample 10 tool templates from SABEval and compute the average TIR on the sam-ples generated by each template, as well as the overall TIR aggregated across all 10 templates. As shown in Fig. 9, the TIR exhibits a highly consis-tent increasing trend with respect to the degree of structural alignment across different tool templates. 
+
+D Probability Decrease in Structural Counterfactuals 
+
+We investigate the probability shifts of wtool in structural counterfactuals. A decrease in P (wtool )
+
+directly reflects a reduced tendency for tool invo-cation. Specifically, we count samples for which the probability drops by more than 5% relative to the original probability, i.e., P (wtool | q, t ∗) <
+
+0.95 · P (wtool | q, t ). As shown in Table 4, over 70% of counterfactual samples exhibit such de-creases for the Qwen3 series. This proportion fur-ther increases to 90.65% and 96.45% for ToolACE-2.5-8B and Watt-Tool-8B, respectively. These re-sults further substantiate the strong causal effect of structural alignment on tool invocations.                   
+
+> Model Add Remove Substitute
+> Qwen3-4B 38.81 68.57 70.30
+> Qwen3-8B 42.65 72.67 76.71
+> Qwen3-14B 42.43 66.48 73.76
+> ToolACE-2.5-8B 81.92 80.55 90.65
+> Watt-Tool-8B 86.63 91.05 96.45
+
+Table 4: Percentage of samples in which the probability of wtool drops by more than 5% relative to its original value under structural counterfactuals. 
+
+E Discussion about Textual Similarity 
+
+Compared to the structural counterfactual samples obtained in § 4.2, the original structurally aligned samples exhibit more shared concepts and fewer semantic conflicts. Consequently, they naturally                                    
+
+> Models Original Instantiate Param Count
+> 1234
+> sim( t, q )52.26 54.72 57.48 60.57 63.09 Qwen3-4B 89.76 87.39 81.56 73.50 65.11 Qwen3-8B 83.05 77.64 71.60 64.30 57.07 Qwen3-14B 90.44 88.10 82.14 77.96 70.99 ToolACE-2.5 71.47 69.66 70.00 66.71 63.09 Watt-Tool 39.98 38.93 34.42 31.39 24.87
+
+Table 5: TIR for cases flattened with different numbers of parameters (from D4 of SABEval). The similarity score sim( t, q ) is also reported. 
+
+yield higher semantic textual similarity 10 . This observation is intuitive, as textual similarity can be viewed as a downstream consequence of structural alignment. However, we argue that structural alignment im-plies more than just elevated textual similarity; specifically, textual similarity alone is insufficient to explain the observed bias. We demonstrate this through a structural flattening experiment, where we move target parameters from the tool definition to the tool description by instantiating them with query attributes (see Table. 6). This operation in-creases the naive textual similarity between the tool and the query, as the tool description now contains exact mentions of the query attributes. We then measure the cosine similarity between the tool and the query embeddings 11 and evaluate TIR. As shown in Table 5, instantiating more param-eters improves textual similarity; however, TIR declines as LLMs need to predict fewer parameters, suggesting that merely increasing textual similarity does not consistently drive up TIR. This indicates that the structural alignment bias is systematically induced by the structured nature of the data rather than naive textual similarity. 
+
+F Special Tokens 
+
+Tool-call Tokens. When invoking a tool, LLMs are instructed to start their responses with a spe-cial token wtool , which enables us to analyze the tool-invocation behavior. The concrete wtool for each model and their output formats are shown in Table 7. We also inspect the full generated texts on D0
+
+of SABEval and find no cases where LLMs emit 
+
+> 10 Commonly measured by cosine similarity of dense vector representations, e.g., Sentence-BERT (Reimers and Gurevych, 2019).
+> 11 We use EmbeddingGemma-300M (Vera et al., 2025).
+
+13 0 1 2 3 4                          
+
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 0
+> 15
+> 30
+> 45
+> 60
+> 75
+> 90
+> Tool Invocation Rate (%)
+> Model: Qwen3-4B
+> Average Trend 01234
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 0
+> 15
+> 30
+> 45
+> 60
+> 75
+> 90
+> Tool Invocation Rate (%)
+> Model: Qwen3-8B
+> Average Trend 01234
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 0
+> 15
+> 30
+> 45
+> 60
+> 75
+> 90
+> Tool Invocation Rate (%)
+> Model: Qwen3-14B
+> Average Trend 01234
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 0
+> 15
+> 30
+> 45
+> 60
+> 75
+> 90
+> Tool Invocation Rate (%)
+> Model: ToolACE-2.5-8B
+> Average Trend 01234
+> Number of Added Attribute-Parameter ( D0,,D4)
+> 0
+> 15
+> 30
+> 45
+> 60
+> 75
+> 90
+> Tool Invocation Rate (%)
+> Model: Watt-Tool-8B
+> Average Trend
+
+Figure 9: Tool invocation rate (%) across 10 randomly sampled tool templates. The red line denotes the overall TIR aggregated over these 10 groups, while the gray lines represent individual tool template groups. 
+
+User Query: I need hiking shoes recommendations for males dealing with overpronation. 
+
+Tool Name: sandals _prep 
+
+Original Tool Description: Provides a specific list of sandals recommendations for common foot conditions. 
+
+Tool Parameters: foot_condition , gender 
+
+Flattened Tool Description: Provides a specific list of male sandals recommendations for common foot conditions. 
+
+Tool Parameters: foot_condition 
+
+Table 6: An illustration of the structurally flattened case. 
+
+this token without invoking a provided tool (i.e., hallucinating a non-existent tool). 
+
+Refusal Tokens. Consistent with observations of Arditi et al. (2024), we find that model generations typically start with specific phrases when rejecting a tool. Therefore, for each model, we define a set of refusal tokens R = {wr1 , . . . , w rk } ⊂ V ,and then define the semantic checking metric msem 
+
+and structural matching metric mstr in Eq. (4) and Eq. (5) . The concrete refusal tokens we choose for each model are shown in Table 8. These tokens cover over 98% of refusal cases. We use the log-probability difference between the tool-call token and refusal tokens, rather than the former alone, for two reasons. First, when a model is highly confident, absolute probabilities saturate near 0 or 1. In this Softmax region, gra-dients approach zero, causing attribution patching (Eq. 3) to severely underestimate the causal impact of attention heads and potentially leading to nu-merical instability. Second, the difference metric isolates the competition between invocation and refusal by canceling out the Softmax denominator, eliminating confounding effects from other tokens. For example, if the model assigns high probability to a malformed tool invocation, the probability of the tool-call token would decrease due to the unit-sum constraint, conflating formatting errors with genuine refusal. 
+
+G Span Partitioning 
+
+We partition the input text into contiguous and non-overlapping spans to measure group-wise impor-tance. The specific partitions for different models are shown in Tables 12, 13. 
+
+H Semantic and Structural Pathways 
+
+We visualize the identified pathways for other mod-els in Figs. 10, 11, 12, 13. Across all models, tool information primarily flows to the query positions and subsequently to the last span (either directly or via the end position of user message). The Qwen3-4B and 14B models ex-hibit characteristics consistent with the 8B version. 14 Model Tool-call token Tool-call token string Tool-call format           
+
+> Qwen3 family 151657 “<tool_call> ”
+> <tool_call> {"name": <func-name>, "arguments": <args-json-object>} </tool_call>
+> ToolACE-2.5-8B 58 “[”[func_1(param_a=value_a, param_b=value_b...),func_2(params)]
+> Watt-Tool-8B 58 “[”[func_1(param_a=value_a, param_b=value_b...),func_2(params)]
+
+Table 7: Tool-call tokens wtool , their string representations, and concrete tool-call formats         
+
+> Model Refusal tokens Refusal tokens string Example refusal
+> Qwen3 family {785, 40, 4064, 2132} {"The", "I", "None", "It"} “It seems there might be a misunderstanding. The provided function is for comparing VR headsets, not drones. If you’d like to compare VR headsets......” ToolACE-2.5-8B {791, 40} {"The", "I"} “I’m sorry, but I can only provide the current price for a game on the PlayStation platform. I do not have access to GOG prices.” Watt-Tool-8B {791, 40} {"The", "I"} “The given question lacks the parameters re-quired by the function. The available function is for basketball, not lacrosse.”
+
+Table 8: Refusal tokens for each model, corresponding string representations, and an example refusal. These tokens cover over 98% of refusal cases. 
+
+However, ToolACE-2.5-8B and Watt-Tool-8B di-verge in their pathway distributions. Specifically, ToolACE-2.5-8B shows denser semantic pathways at the tool positions, whereas Watt-Tool-8B ex-hibits more focused structural pathways on these positions, and neither model concentrates its struc-tural pathways on the tool output format. Moreover, for ToolACE-2.5-8B, the semantic pathways heav-ily attend to the tool instruction, which explicitly outlines tool rejection, suggesting a dependency on this prompt during semantic checking. 
+
+I Pathway Strengths Across Degrees of Structural Alignment 
+
+We present the comparison of pathway strengths between invocation and non-invocation cases for other models in Figs. 14, 15, 16, 17. Here, we further investigate how semantic and structural pathways vary with increasing structural alignment. Across D0, . . . , D4, we zero-ablate the top-k attention weights of the semantic and structural pathways, where k equals the 2% of the LLM attention heads, and report the results in Fig. 18. These results further indicate that the relative strength of the semantic and structural path-ways drives LLMs’ tool invocation decisions. 
+
+J Pathways Intervention 
+
+We further examine other models and alterna-tive top-k thresholds, and report the variation in TIR under different scaling factors, as shown in Figs. 19, 20, 21, 22, 23. 
+
+K Selection of Scaling Coefficient 
+
+We select the optimal ρsem and ρstr on the validation set by grid search: ρsem ∈ { 1.1, 1.2, 1.3, 1.4, 1.5}
+
+and ρstr ∈ { 0.5, 0.6, 0.7, 0.8, 0.9}. We retain com-binations that achieve at least a 60% relative re-duction in TIR on the original samples, while the increase in TIR on semantic counterfactuals is no more than 3% 12 . Among the remaining candi-dates, we select the combination that minimizes the sum of TIR on the original samples and the non-invocation rate on semantic counterfactual samples. 
+
+L Prompt Baseline 
+
+We additionally append the following instruction to the end of the system prompt: “ If none of the tools can be used, point it out. ” We then evaluate LLMs under this setting. 
+
+> 12 We relax the 3% threshold to 6% since no combination is feasible for Qwen3-4B.
+
+15 M Additional Analysis on Qwen3 Models 
+
+M.1 Impact of Thinking Mode 
+
+We evaluate the impact of enabling the thinking mode on Qwen3-8B and 14B models. Specifically, we measure TIR on a subset of D1 (randomly se-lecting 10 tool templates and 5 sibling pairs per template) under the “Substitute” intervention strat-egy, and compare the results against the default non-thinking setting on the same data points. As shown in Table 9, test-time scaling via the thinking mode reduces erroneous tool invocations, particu-larly for the 14B model. However, directly com-paring reasoning and non-reasoning modes is not entirely fair, as the former consumes significantly more compute and response time. Moreover, the error rates under the thinking mode remain substan-tial (30.8% and 29.2%), further highlighting the prevalence of structural alignment bias.              
+
+> Strategy Qwen3-8B Qwen3-14B Disabled Enabled Disabled Enabled Original 47.2 30.8 50.8 29.2
+> Substitute 21.6 15.6 26.8 14.0
+
+Table 9: TIR (%) with thinking mode disabled and enabled on Qwen3-8B and 14B models, evaluated on a subset of D1.
+
+M.2 Impact of Model Size 
+
+We further evaluate Qwen3-32B on D1 using the same settings as Fig. 4. The results are shown in Table 10. While Qwen3-8B exhibits a notably lower TIR, this is not observed in the larger Qwen3-32B, which instead yields the highest error rate (62.22%) across all model sizes. Overall, TIR does not change monotonically with model size: mid-sized models (8B, 14B) show lower rates, whereas both the smaller (4B) and larger (32B) models ex-hibit higher rates. 
+
+M.3 Additional Baselines 
+
+We compare our method with one-shot prompting and supervised fine-tuning on Qwen3-8B. The re-sults are shown in Table 11. 
+
+One-shot Prompting. We randomly select one training sample to demonstrate the correct refusal behavior, and evaluate two formats: (1) One-shot (raw) , which includes the complete tool definition, the user query, and the expected refusal response; and (2) One-shot (summarized) , which provides a Strategy Qwen3-4B Qwen3-8B Qwen3-14B Qwen3-32B Original 60.44 53.43 60.40 62.22             
+
+> Add 52.85 46.20 50.24 55.41
+> Remove 33.80 26.08 35.27 41.52
+> Substitute 32.08 23.17 29.90 34.47
+
+Table 10: TIR (%) across different Qwen3 model sizes on D1.                                   
+
+> Method D0D1D2D3D4
+> Base 30.39 51.61 66.29 75.56 82.44 Prompt 19.90 34.29 48.73 57.66 66.20 CAA (Ours) 4.29 6.49 7.27 8.98 11.12 One-shot (r) 63.71 84.05 91.22 94.78 96.98 One-shot (s) 30.54 49.37 60.14 69.80 79.95 Fine-tuning 1.41 2.48 2.10 3.51 4.39
+
+Table 11: TIR (%) of additional baselines on Qwen3-8B across SABEval. (r) and (s) denote raw and summarized one-shot formats, respectively. 
+
+natural language description of the refusal logic (i.e., “If a tool is designed to retrieve the most visited zoo, but the user asks for the most visited museum, you should not call the tool and instead explicitly state it is unsuitable.”). Note that the “Prompt” method in Table 3 serves as the zero-shot baseline. Our results show that one-shot prompt-ing fails to improve performance. Surprisingly, the raw format significantly degrades it, suggest-ing that exposing the model to additional complete structural examples exacerbates structural align-ment bias rather than mitigating it. 
+
+Supervised Fine-Tuning. We fine-tune Qwen3-8B using LoRA (rank=8, α=8, dropout=0.05) on all parameters and select the best checkpoint over 2 epochs. While fine-tuning achieves strong in-distribution performance on SABEval, it funda-mentally acts as a black box that forces the model to fit refusal behaviors. Our method approaches the efficacy of fine-tuning without requiring any parameter updates, and allows flexible control over intervention strength at test time. Moreover, our method is interpretable. It serves not merely as a mitigation strategy, but as a direct causal validation of the competing semantic and structural pathways. This mechanistic understanding may also lay the groundwork for more effective future mitigation strategies, such as targeted fine-tuning on the atten-tion heads within the identified pathways. 16 system-start 
+
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> L9
+> L10
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L18
+> L21
+> L22
+> L23
+
+Semantic Pathways system-start 
+
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> L11
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L18
+> L20
+> L21
+> L26
+> L27
+> L28
+> L29
+
+Structural Pathways Figure 10: Pathways in Qwen3-4B. system-start 
+
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> Emb
+> L0
+> L12
+> L13
+> L15
+> L16
+> L17
+> L18
+> L19
+> L20
+> L21
+> L22
+> L23
+> L24
+> L25
+> L26
+> L27
+> L28
+> L29
+> L30
+> L38
+> L39
+
+Semantic Pathways system-start 
+
+> tool-instr
+> tool-start
+> tool-definition
+> tool-end
+> output-instr
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> response
+> L12
+> L13
+> L15
+> L16
+> L17
+> L18
+> L19
+> L20
+> L21
+> L22
+> L23
+> L24
+> L25
+> L26
+> L27
+> L28
+> L29
+> L30
+> L31
+> L32
+> L33
+> L34
+
+Structural Pathways 
+
+Figure 11: Pathways in Qwen3-14B. BOS 
+
+> system-start
+> background
+> tool-instr
+> output-instr
+> tool-start
+> tool-definition
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> L7
+> L8
+> L9
+> L10
+> L11
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L18
+> L19
+
+Semantic Pathways BOS 
+
+> system-start
+> background
+> tool-instr
+> output-instr
+> tool-start
+> tool-definition
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> L0
+> L1
+> L6
+> L7
+> L8
+> L9
+> L10
+> L11
+> L12
+> L13
+> L14
+> L15
+> L18
+> L19
+> L24
+> L25
+> L26
+> L29
+> L30
+> L31
+
+Structural Pathways 
+
+Figure 12: Pathways in ToolACE-2.5-8B. 
+
+17 BOS 
+
+> system-start
+> tool-instr
+> output-instr
+> tool-start
+> tool-definition
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> L5
+> L6
+> L7
+> L8
+> L9
+> L10
+> L11
+> L12
+> L13
+> L14
+> L15
+> L16
+> L17
+> L20
+> L21
+
+Semantic Pathways BOS 
+
+> system-start
+> tool-instr
+> output-instr
+> tool-start
+> tool-definition
+> system-end
+> user-start
+> user-query
+> user-end
+> assistant-start
+> L4
+> L5
+> L6
+> L7
+> L8
+> L9
+> L10
+> L11
+> L12
+> L13
+> L14
+> L18
+> L19
+> L30
+> L31
+
+Structural Pathways Figure 13: Pathways in Watt-Tool-8b. 1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+5
+
+10 
+
+15 
+
+20 
+
+> Semantic Checking Metric ( ∆msem )
+
+Semantic Pathways 
+
+No Invocation 
+
+Invocation 
+
+1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+5
+
+10 
+
+15 
+
+20 
+
+> Structural Matching Metric ( ∆mstr )
+
+Structural Pathways 
+
+No Invocation 
+
+Invocation 
+
+Figure 14: Comparison of pathway strengths between invocation and non-invocation cases for Qwen3-4B. 1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+2.5 
+
+5.0 
+
+7.5 
+
+10.0 
+
+12.5 
+
+15.0 
+
+17.5 
+
+20.0 
+
+> Semantic Checking Metric ( ∆msem )
+
+Semantic Pathways 
+
+No Invocation 
+
+Invocation 
+
+1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+2.5 
+
+5.0 
+
+7.5 
+
+10.0 
+
+12.5 
+
+15.0 
+
+17.5 
+
+> Structural Matching Metric ( ∆mstr )
+
+Structural Pathways 
+
+No Invocation 
+
+Invocation 
+
+Figure 15: Comparison of pathway strengths between invocation and non-invocation cases for Qwen3-14B. 
+
+18 1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+1
+
+2
+
+3
+
+4
+
+5
+
+> Semantic Checking Metric ( ∆msem )
+
+Semantic Pathways 
+
+No Invocation 
+
+Invocation 
+
+1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+> Structural Matching Metric ( ∆mstr )
+
+Structural Pathways 
+
+No Invocation 
+
+Invocation Figure 16: Comparison of pathway strengths between invocation and non-invocation cases for ToolACE-2.5-8B. 1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+> Semantic Checking Metric ( ∆msem )
+
+Semantic Pathways 
+
+No Invocation 
+
+Invocation 
+
+1-10 
+
+11-20 
+
+21-30 
+
+31-40 
+
+41-50 
+
+51-60 
+
+61-70 
+
+71-80 
+
+81-90 
+
+91-100 
+
+Top Attn Weights 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+2.5 
+
+3.0 
+
+3.5 
+
+> Structural Matching Metric ( ∆mstr )
+
+Structural Pathways 
+
+No Invocation 
+
+Invocation 
+
+Figure 17: Comparison of pathway strengths between invocation and non-invocation cases for Watt-Tool-8B. 0 1 2 3 4
+
+Number of Added Attribute-Parameter 
+
+> 4
+> 6
+> 8
+> 10
+> 12
+> 14
+> 16
+> 18
+> Semantic Checking Metric ( ∆msem )
+
+Model: Qwen3-4B      
+
+> Semantic (Left) Structural (Right)
+> 14
+> 16
+> 18
+> 20
+> 22
+> 24
+> 26
+> Structural Matching Metric ( ∆mstr )01234
+
+Number of Added Attribute-Parameter 
+
+> 7.5
+> 10.0
+> 12.5
+> 15.0
+> 17.5
+> 20.0
+> 22.5
+> 25.0
+> Semantic Checking Metric ( ∆msem )
+
+Model: Qwen3-8B      
+
+> Semantic (Left) Structural (Right)
+> 6
+> 8
+> 10
+> 12
+> 14
+> Structural Matching Metric ( ∆mstr )01234
+
+Number of Added Attribute-Parameter 
+
+> 10
+> 12
+> 14
+> 16
+> 18
+> 20
+> 22
+> Semantic Checking Metric ( ∆msem )
+
+Model: Qwen3-14B      
+
+> Semantic (Left) Structural (Right)
+> 20
+> 22
+> 24
+> 26
+> 28
+> Structural Matching Metric ( ∆mstr )01234
+
+Number of Added Attribute-Parameter 
+
+> 5.0
+> 5.1
+> 5.2
+> 5.3
+> 5.4
+> 5.5
+> 5.6
+> 5.7
+> 5.8
+> Semantic Checking Metric ( ∆msem )
+
+Model: ToolACE-2.5-8B      
+
+> Semantic (Left) Structural (Right)
+> 1.4
+> 1.6
+> 1.8
+> 2.0
+> 2.2
+> 2.4
+> Structural Matching Metric ( ∆mstr )01234
+
+Number of Added Attribute-Parameter 
+
+> 5.00
+> 5.25
+> 5.50
+> 5.75
+> 6.00
+> 6.25
+> 6.50
+> 6.75
+> Semantic Checking Metric ( ∆msem )
+
+Model: Watt-Tool-8B  
+
+> Semantic (Left) Structural (Right)
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> 1.75
+> 2.00
+> 2.25
+> 2.50
+> 2.75
+> Structural Matching Metric ( ∆mstr )
+
+Figure 18: Pathway strengths across degrees of structural alignment for Qwen3-8B and ToolACE-2.5-8B. 
+
+19 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+0.99 0.98 0.97 0.97 0.95 0.92 0.90 0.85 0.77 0.71 0.60 0.53 0.43 0.35 0.29 0.26 0.21 0.16 0.14 0.13 0.11 
+
+0.07 0.10 0.14 0.18 0.23 0.28 0.34 0.40 0.47 0.53 0.60 0.68 0.74 0.80 0.84 0.87 0.90 0.91 0.94 0.95 0.96 
+
+Model: Qwen3-4B (Top-k: 11) 
+
+0.25 
+
+0.50 
+
+0.75 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 0.99 0.97 0.95 0.91 0.84 0.74 0.60 0.47 0.33 0.25 0.19 0.13 0.10 0.07 0.04 0.03 0.02 
+
+0.00 0.01 0.02 0.05 0.09 0.14 0.21 0.27 0.37 0.50 0.60 0.73 0.80 0.88 0.91 0.94 0.96 0.98 0.98 0.99 0.99 
+
+Model: Qwen3-4B (Top-k: 23) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 0.99 0.97 0.94 0.87 0.75 0.60 0.45 0.28 0.21 0.14 0.10 0.06 0.03 0.02 0.01 0.01 
+
+0.00 0.00 0.00 0.01 0.02 0.06 0.13 0.22 0.32 0.47 0.60 0.74 0.84 0.90 0.94 0.97 0.98 0.99 1.00 1.00 1.00 
+
+Model: Qwen3-4B (Top-k: 34) 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+Figure 19: TIR at different top-k thresholds under varying scaling coefficients for Qwen3-4B. 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 0.98 0.96 0.91 0.83 0.74 0.63 0.53 0.40 0.31 0.26 0.19 0.13 0.10 0.07 0.05 0.03 0.02 
+
+0.27 0.27 0.28 0.30 0.33 0.36 0.38 0.43 0.46 0.50 0.53 0.57 0.61 0.64 0.67 0.69 0.71 0.74 0.77 0.79 0.81 
+
+Model: Qwen3-8B (Top-k: 11) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 1.00 0.99 0.93 0.84 0.68 0.53 0.36 0.25 0.17 0.11 0.06 0.04 0.02 0.01 0.01 0.00 
+
+0.10 0.10 0.11 0.14 0.17 0.21 0.26 0.32 0.37 0.46 0.53 0.61 0.67 0.73 0.79 0.84 0.88 0.91 0.94 0.95 0.95 
+
+Model: Qwen3-8B (Top-k: 23) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 1.00 0.99 0.96 0.88 0.71 0.53 0.33 0.22 0.11 0.07 0.04 0.01 0.00 0.00 0.00 0.00 
+
+0.07 0.07 0.08 0.09 0.14 0.17 0.23 0.28 0.36 0.44 0.53 0.63 0.69 0.76 0.82 0.90 0.93 0.96 0.98 0.99 0.99 
+
+Model: Qwen3-8B (Top-k: 34) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+Figure 20: TIR at different top-k thresholds under varying scaling coefficients for Qwen3-8B. 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 0.99 0.98 0.97 0.95 0.92 0.89 0.83 0.77 0.70 0.59 0.51 0.41 0.34 0.27 0.22 0.18 0.14 0.12 0.10 0.08 
+
+0.07 0.08 0.11 0.15 0.19 0.25 0.35 0.39 0.45 0.52 0.59 0.66 0.73 0.78 0.83 0.85 0.89 0.91 0.93 0.94 0.96 
+
+Model: Qwen3-14B (Top-k: 16) 
+
+0.25 
+
+0.50 
+
+0.75 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 0.98 0.97 0.91 0.85 0.74 0.59 0.43 0.31 0.22 0.15 0.10 0.08 0.06 0.04 0.04 0.03 
+
+0.00 0.01 0.03 0.04 0.06 0.09 0.15 0.24 0.36 0.48 0.59 0.71 0.80 0.86 0.90 0.93 0.95 0.96 0.98 0.98 0.98 
+
+Model: Qwen3-14B (Top-k: 32) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 1.00 0.98 0.97 0.89 0.78 0.59 0.39 0.23 0.13 0.08 0.05 0.03 0.03 0.01 0.01 0.00 
+
+0.00 0.00 0.01 0.02 0.04 0.06 0.09 0.17 0.30 0.45 0.59 0.74 0.83 0.89 0.93 0.96 0.98 0.98 0.99 1.00 1.00 
+
+Model: Qwen3-14B (Top-k: 48) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+Figure 21: TIR at different top-k thresholds under varying scaling coefficients for Qwen3-14B. 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 0.99 0.98 0.96 0.93 0.88 0.82 0.75 0.67 0.58 0.50 0.42 0.36 0.29 0.24 0.21 0.17 0.14 0.12 0.10 0.08 
+
+0.19 0.22 0.24 0.26 0.29 0.33 0.35 0.39 0.42 0.46 0.50 0.54 0.57 0.60 0.63 0.67 0.71 0.73 0.76 0.78 0.80 
+
+Model: ToolACE-2.5-8B (Top-k: 10) 
+
+0.25 
+
+0.50 
+
+0.75 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 0.99 0.96 0.89 0.78 0.65 0.50 0.37 0.28 0.20 0.13 0.10 0.08 0.06 0.03 0.02 0.01 
+
+0.12 0.15 0.17 0.21 0.24 0.28 0.31 0.35 0.39 0.45 0.50 0.55 0.59 0.65 0.70 0.76 0.81 0.85 0.87 0.90 0.92 
+
+Model: ToolACE-2.5-8B (Top-k: 20) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient 
+
+> Semantic Structural
+
+1.00 1.00 1.00 1.00 1.00 1.00 0.99 0.96 0.86 0.69 0.50 0.33 0.22 0.13 0.09 0.07 0.04 0.02 0.01 0.01 0.00 
+
+0.06 0.09 0.13 0.15 0.18 0.23 0.27 0.31 0.37 0.43 0.50 0.57 0.62 0.68 0.74 0.80 0.84 0.86 0.90 0.92 0.93 
+
+Model: ToolACE-2.5-8B (Top-k: 30) 
+
+0.5 
+
+1.0 
+
+> Tool Invocation Rate
+
+Figure 22: TIR at different top-k thresholds under varying scaling coefficients for ToolACE-2.5-8B. 
+
+20 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 
+
+Scaling Coefficient                                         
+
+> Semantic Structural
+> 0.97 0.94 0.90 0.85 0.74 0.59 0.47 0.36 0.26 0.20 0.14 0.10 0.08 0.07 0.05 0.04 0.02 0.01 0.01 0.00 0.00
+> 0.04 0.04 0.04 0.05 0.06 0.07 0.08 0.10 0.11 0.13 0.14 0.17 0.19 0.21 0.25 0.27 0.29 0.32 0.37 0.40 0.44
+
+Model: Watt-Tool-8B (Top-k: 10)                     
+
+> 0.0
+> 0.5
+> Tool Invocation Rate 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0
+
+Scaling Coefficient                                         
+
+> Semantic Structural
+> 0.97 0.96 0.97 0.96 0.91 0.84 0.71 0.53 0.36 0.24 0.14 0.09 0.05 0.03 0.02 0.01 0.00 0.00 0.00 0.00 0.00
+> 0.01 0.02 0.02 0.03 0.03 0.04 0.05 0.07 0.09 0.11 0.14 0.19 0.22 0.27 0.30 0.33 0.40 0.46 0.51 0.57 0.62
+
+Model: Watt-Tool-8B (Top-k: 20)                     
+
+> 0.0
+> 0.5
+> Tool Invocation Rate 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0
+
+Scaling Coefficient                                         
+
+> Semantic Structural
+> 0.98 0.98 0.98 0.99 0.98 0.96 0.86 0.70 0.45 0.27 0.14 0.07 0.04 0.02 0.01 0.00 0.00 0.00 0.00 0.00 0.00
+> 0.01 0.01 0.01 0.01 0.02 0.02 0.03 0.04 0.07 0.11 0.14 0.19 0.26 0.30 0.35 0.43 0.50 0.59 0.67 0.72 0.77
+
+Model: Watt-Tool-8B (Top-k: 30) 
+
+> 0.0
+> 0.5
+> Tool Invocation Rate
+
+Figure 23: TIR at different top-k thresholds under varying scaling coefficients for Watt-Tool-8B. 
+
+Span Name Span Content 
+
+system-start “<|im_start|>system\n” tool-instruction “# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n” tool-start “<tools>\n” tool-definition tool definition tool-end “</tools>\n\n” output-instruction For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n"name": <function-name>, "arguments": <args-json-object>\n</tool_call> system-end “<|im_end|>\n” user-start “<|im_start|>user\n” user-query user query user-end “<|im_end|>\n” assistant-start “<|im_start|>assistant\n” response “<think>\n\n</think>\n\n” 
+
+Table 12: Spans for Qwen3 models (4B, 8B, and 14B). 
+
+Span Name Span Content 
+
+BOS “<|begin_of_text|>” system-start “<|start_header_id|>system<|end_ header_id|>\n\n” background “Cutting Knowledge Date: December 2023\nToday Date: ...\n\n” tool-instruction “You are an expert in composing functions. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.\nIf none of the function can be used, point it out. If the given question lacks the parameters required by the function, also point it out.\nYou should only return the function call in tools call sections.\n\n” output-instruction “If you decide to invoke any of the function(s), you MUST put it in the format of [func_name1(params_ name1=params_value1, params_name2=params_value2...), func_name2(params)]\nYou SHOULD NOT include any other text in the response.\n” tool-start “Here is a list of functions in JSON format that you can invoke.\n” tool-definition tool definition system-end “<|eot_id|>” user-start “<|start_header_id|>user<|end_header_id|>\n\n” user-query user query user-end “<|eot_id|>” assistant-start “<|start_header_id|>assistant<|end_header_id|>\n\n” 
+
+Table 13: Spans for ToolACE-2.5-8B and Watt-Tool-8B models (identical partitioning, except Watt-Tool-8B has no background span). 
+
+21 Annotation Example: Base Class, Derived Class, Tool Template 
+
+{"base_class": "athlete", "derived_class": [ "basketball", "soccer", "baseball", "american football", "ice hockey", "volleyball", "esports", "cricket", "rugby union", "handball", "futsal", "field hockey" ], "tool_template": { "name": "find_<class>_athlete", "description": "Find the profile information of a <class> athlete based on their full name.", "parameters": { "type": "object", "properties": { "name": { "type": "string", "description": "The full name of the <class> athlete." }}, "required": [ "name" ]}}}
+
+> Figure 24: An example annotation illustrating a base class, derived classes, and a tool template.
+
+22 Prompt for Query Generation During Dataset Construction 
+
+Your task is to generate a set of diverse user queries for the given tool. Note that the queries you generate represent real user queries directed at an LLM assistant. The LLM assistant will need to call the provided tool to answer these queries. Rules for Query Generation: 1. Derived Class Inclusion: Every generated query must contain the exact derived class name provided. 2. Parameter Constraints: - Each query must explicitly contain information for all and only the parameters of the tool. - The expected parameter values must be specific and realistic. Avoid vague values. 3. No Attachments: Do not assume or pretend that files, images, audio clips, videos, or any other attachments are being provided. 4. Quality: Generated queries must be solvable with the tool without requiring further clarification. 5. Diversity: - You should generate at least 5 distinct queries. - The queries should have varied sentence structures (e.g., imperative commands, interrogative queries). - The parameter values across different queries should also be diverse, covering a wide range of realistic scenarios, if applicable. Output Format: Return a single JSON array as follows: [ {{ "query": "First generated query..." }}, {{ "query": "Second generated query..." }}, ... ] [EXAMPLE START] {few-Shot examples} [EXAMPLE END] Now, generate queries for the following tool. Tool Definition: {tool} Derived Class Name: {subclass} 
+
+Figure 25: Query-generation prompt used during dataset construction. 
+
+23 Prompt for Adding Additional Parameters 
+
+Your task is to propose a set of new, additional parameters for the given tool template. These parameters should enrich the tools 's functionality while remaining applicable across all derived classes. You are Given: 1. Tool Template: An tool schema that uses '<class> ' as a placeholder for a specific derived class. 2. List of Derived Classes: A list of the specific derived class names that will eventually replace '<class> '.3. Base Class Description: A brief explanation of the base class corresponding to the tool template. Design Principles: - The tool 's purpose must remain clear and unambiguous after adding new parameters. - All parameter values would be provided by the user when invoke the tool, not generated or assumed by the LLM assistant. The LLM acts as a bridge to execute the tool with user-provided information, not as a param value generator. Rules: 1. Universally Applicable: Each proposed parameter must be universally applicable and make sense for all derived classes provided. 2. Uniqueness: The proposed parameters must be entirely new. They cannot duplicate the functionality or name of any parameters already present in the tool template. 3. Placeholder Usage: Parameter names must be generic and must not contain the '<class> '
+
+placeholder. Parameter description, however, should contain the '<class> ' placeholder if it is contextually appropriate when replaced with a specific subclass. 4. Quantity: Generate at least four distinct and meaningful parameters. 5. Type: New parameters should be simple types: string, integer, number, boolean or array of simple types. Do not propose complex nested structures. Output Format: Return a single JSON object as follows: {{"parameter_name_1": {{"type": "string", "description": "Description for param 1."}}, " parameter_name_2": {{"type": "integer", "description": "Description for param 2."}}, ...}} [EXAMPLE START] {few-Shot examples} [EXAMPLE END] Now, generate new parameters based on the following inputs. Tool Template: {tool template} List of Derived Classes: {derived class list} Base Class Description: {base class description} 
+
+Figure 26: Prompt for adding additional parameters during dataset extension. 
+
+24 System Prompt (Qwen3-4B, Qwen3-8B and Qwen3-14B) 
+
+# Tools You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags: <tools> {tool_definition} </tools> For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags: <tool_call> {"name": <function-name>, "arguments": <args-json-object>} </tool_call> 
+
+> Figure 27: Default system prompt for Qwen3-4B, Qwen3-8B and Qwen3-14B
+
+System Prompt (ToolACE-8B and Watt-Tool-8B) 
+
+You are an expert in composing functions. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose. If none of the function can be used, point it out. If the given question lacks the parameters required by the function, also point it out. You should only return the function call in tools call sections. If you decide to invoke any of the function(s), you MUST put it in the format of [func_name1(params_name1=params_value1, params_name2=params_value2...), func_name2(params)] You SHOULD NOT include any other text in the response. Here is a list of functions in JSON format that you can invoke. {tool_definition} 
+
+> Figure 28: Default system prompt for ToolACE-8B and Watt-Tool-8B
+
+25
