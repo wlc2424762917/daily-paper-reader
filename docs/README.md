@@ -6,169 +6,136 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-21
-- 运行时间：2026-04-21 19:08:28 UTC
+- 最新运行日期：2026-04-22
+- 运行时间：2026-04-22 19:39:26 UTC
 - 运行状态：成功
-- 本次总论文数：49
-- 精读区：36
+- 本次总论文数：38
+- 精读区：25
 - 速读区：13
 
 ### 今日简报（AI）
-今日深度研读 49 篇论文，重点攻克 AI 智能体在安全加固、GUI 幻觉治理及记忆增强领域的关键瓶颈。
-满分力作 enclawed 与 HalluClear 为智能体网关安全和视觉交互可靠性树立了标杆，而“思维检索”技术正引领记忆增强系统从数据检索向逻辑检索跨越。
-建议优先关注如何通过标准化框架提升 AI 助手的安全性，并尝试应用新一代记忆模型优化长短期对话体验。
-- 详情：[/202604/21/README](/202604/21/README)
+今日深度研读 25 篇核心文献，聚焦 Web 智能体在复杂动态环境下的自主规划与导航突破。
+满分论文 WebUncertainty 与 Mango 揭示了双层不确定性建模与全局视图优化是提升 Agent 推理鲁棒性的关键。
+建议重点关注 Web 智能体如何向长程多模态搜索及企业级代码库自动化维护方向演进。
+- 详情：[/202604/22/README](/202604/22/README)
 
 ### 精读区论文标签
-1. [enclawed: A Configurable, Sector-Neutral Hardening Framework for Single-User AI Assistant Gateways](/202604/21/2604.16838v1-enclawed-a-configurable-sector-neutral-hardening-framework-for-single-user-ai-assistant-gateways)  
-   标签：评分：10.0/10、query:opclw
-   evidence：基于OpenClaw个人AI助手网关构建的加固框架
-2. [HalluClear: Diagnosing, Evaluating and Mitigating Hallucinations in GUI Agents](/202604/21/2604.17284v1-halluclear-diagnosing-evaluating-and-mitigating-hallucinations-in-gui-agents)  
+1. [WebUncertainty: Dual-Level Uncertainty Driven Planning and Reasoning For Autonomous Web Agent](/202604/22/2604.17821v2-webuncertainty-dual-level-uncertainty-driven-planning-and-reasoning-for-autonomous-web-agent)  
    标签：评分：10.0/10、query:guiagt
-   evidence：诊断与评估 GUI 智能体中的幻觉问题
-3. [Do LLMs Need to See Everything? A Benchmark and Study of Failures in LLM-driven Smartphone Automation using Screentext vs. Screenshots](/202604/21/2604.17817v1-do-llms-need-to-see-everything-a-benchmark-and-study-of-failures-in-llm-driven-smartphone-automation-using-screentext-vs-screenshots)  
+   evidence：针对真实网页的自主网络智能体
+2. [Mango: Multi-Agent Web Navigation via Global-View Optimization](/202604/22/2604.18779v1-mango-multi-agent-web-navigation-via-global-view-optimization)  
    标签：评分：10.0/10、query:guiagt
-   evidence：LLM 驱动的智能手机自动化及失败案例基准测试
-4. [HINTBench: Horizon-agent Intrinsic Non-attack Trajectory Benchmark](/202604/21/2604.13954v1-hintbench-horizon-agent-intrinsic-non-attack-trajectory-benchmark)  
+   evidence：通过全局视图优化的多智能体网页导航
+3. [Temporal UI State Inconsistency in Desktop GUI Agents: Formalizing and Defending Against TOCTOU Attacks on Computer-Use Agents](/202604/22/2604.18860v1-temporal-ui-state-inconsistency-in-desktop-gui-agents-formalizing-and-defending-against-toctou-attacks-on-computer-use-agents)  
+   标签：评分：10.0/10、query:guiagt
+   evidence：桌面GUI智能体的漏洞与防御
+4. [Autogenesis: A Self-Evolving Agent Protocol](/202604/22/2604.15034v2-autogenesis-a-self-evolving-agent-protocol)  
    标签：评分：9.0/10、query:agent
-   evidence：评估智能体内在安全风险的基准测试
-5. [Enhancing LLM-based Search Agents via Contribution Weighted Group Relative Policy Optimization](/202604/21/2604.14267v1-enhancing-llm-based-search-agents-via-contribution-weighted-group-relative-policy-optimization)  
+   evidence：自我演化智能体协议的设计模式
+5. [Long-Term Memory for VLA-based Agents in Open-World Task Execution](/202604/22/2604.15671v1-long-term-memory-for-vla-based-agents-in-open-world-task-execution)  
    标签：评分：9.0/10、query:agent
-   evidence：用于训练大模型搜索智能体的强化学习方法
-6. [Enhancing LLM-based Search Agents via Contribution Weighted Group Relative Policy Optimization](/202604/21/2604.14267v2-enhancing-llm-based-search-agents-via-contribution-weighted-group-relative-policy-optimization)  
+   evidence：VLA智能体的长程推理与规划
+6. [MemEvoBench: Benchmarking Memory MisEvolution in LLM Agents](/202604/22/2604.15774v1-memevobench-benchmarking-memory-misevolution-in-llm-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：通过强化学习增强基于大语言模型的搜索智能体
-7. [Challenges and Future Directions in Agentic Reverse Engineering Systems](/202604/21/2604.14317v1-challenges-and-future-directions-in-agentic-reverse-engineering-systems)  
+   evidence：评估 LLM 智能体的记忆安全性基准
+7. [Integrating Graphs, Large Language Models, and Agents: Reasoning and Retrieval](/202604/22/2604.15951v2-integrating-graphs-large-language-models-and-agents-reasoning-and-retrieval)  
    标签：评分：9.0/10、query:agent
-   evidence：逆向工程中智能体工具使用情况及局限性分析
-8. [Evaluating Tool-Using Language Agents: Judge Reliability, Propagation Cascades, and Runtime Mitigation in AgentProp-Bench](/202604/21/2604.16706v1-evaluating-tool-using-language-agents-judge-reliability-propagation-cascades-and-runtime-mitigation-in-agentprop-bench)  
-   标签：评分：9.0/10、query:agent
-   evidence：评估工具使用型语言智能体及评判可靠性
-9. [CapSeal: Capability-Sealed Secret Mediation for Secure Agent Execution](/202604/21/2604.16762v1-capseal-capability-sealed-secret-mediation-for-secure-agent-execution)  
-   标签：评分：9.0/10、query:agent
-   evidence：安全智能体执行与API密钥中介
-10. [Governed MCP: Kernel-Level Tool Governance for AI Agents via Logit-Based Safety Primitives](/202604/21/2604.16870v1-governed-mcp-kernel-level-tool-governance-for-ai-agents-via-logit-based-safety-primitives)  
-   标签：评分：9.0/10、query:agent
-   evidence：通过MCP协议进行AI智能体的内核级工具治理
-11. [Small Model as Master Orchestrator: Learning Unified Agent-Tool Orchestration with Parallel Subtask Decomposition](/202604/21/2604.17009v1-small-model-as-master-orchestrator-learning-unified-agent-tool-orchestration-with-parallel-subtask-decomposition)  
-   标签：评分：9.0/10、query:agent
-   evidence：统一的智能体-工具编排与并行子任务分解
-12. [Harness as an Asset: Enforcing Determinism via the Convergent AI Agent Framework (CAAF)](/202604/21/2604.17025v1-harness-as-an-asset-enforcing-determinism-via-the-convergent-ai-agent-framework-caaf)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体工作流设计模式与确定性
-13. [GenericAgent: A Token-Efficient Self-Evolving LLM Agent via Contextual Information Density Maximization (V1.0)](/202604/21/2604.17091v1-genericagent-a-token-efficient-self-evolving-llm-agent-via-contextual-information-density-maximization-v10)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于长程任务的自我进化大模型智能体
-14. [CASCADE: A Cascaded Hybrid Defense Architecture for Prompt Injection Detection in MCP-Based Systems](/202604/21/2604.17125v1-cascade-a-cascaded-hybrid-defense-architecture-for-prompt-injection-detection-in-mcp-based-systems)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于大模型应用中调用外部工具的MCP系统防御架构
-15. [Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration](/202604/21/2604.17148v1-graph-of-agents-a-graph-based-framework-for-multi-agent-llm-collaboration)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于建模多智能体LLM通信与协作的图基框架
-16. [Systematic Capability Benchmarking of Frontier Large Language Models for Offensive Cyber Tasks](/202604/21/2604.17159v1-systematic-capability-benchmarking-of-frontier-large-language-models-for-offensive-cyber-tasks)  
-   标签：评分：9.0/10、query:agent
-   evidence：针对攻击性网络安全任务的大模型智能体跨模型综合评估
-17. [From Language to Action: Enhancing LLM Task Efficiency with Task-Aware MCP Server Recommendation](/202604/21/2604.17234v1-from-language-to-action-enhancing-llm-task-efficiency-with-task-aware-mcp-server-recommendation)  
-   标签：评分：9.0/10、query:agent
-   evidence：大模型智能体通过MCP服务器推荐访问外部工具
-18. [MemSearch-o1: Empowering Large Language Models with Reasoning-Aligned Memory Growth in Agentic Search](/202604/21/2604.17265v1-memsearch-o1-empowering-large-language-models-with-reasoning-aligned-memory-growth-in-agentic-search)  
-   标签：评分：9.0/10、query:agent
-   evidence：自主规划并对外部知识进行推理
-19. [AutoSearch: Adaptive Search Depth for Efficient Agentic RAG via Reinforcement Learning](/202604/21/2604.17337v1-autosearch-adaptive-search-depth-for-efficient-agentic-rag-via-reinforcement-learning)  
-   标签：评分：9.0/10、query:agent
-   evidence：通过与外部工具多步交互实现的智能体RAG
-20. [Hive: A Multi-Agent Infrastructure for Algorithm- and Task-Level Scaling](/202604/21/2604.17353v1-hive-a-multi-agent-infrastructure-for-algorithm--and-task-level-scaling)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于智能体工作流中算法和任务级扩展的多智能体基础设施
-21. [COSEARCH: Joint Training of Reasoning and Document Ranking via Reinforcement Learning for Agentic Search](/202604/21/2604.17555v1-cosearch-joint-training-of-reasoning-and-document-ranking-via-reinforcement-learning-for-agentic-search)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体搜索中推理与文档排序的联合训练
-22. [SafeAgent: A Runtime Protection Architecture for Agentic Systems](/202604/21/2604.17562v1-safeagent-a-runtime-protection-architecture-for-agentic-systems)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体工作流的运行时安全架构
-23. [Tool Learning Needs Nothing More Than a Free 8B Language Model](/202604/21/2604.17739v1-tool-learning-needs-nothing-more-than-a-free-8b-language-model)  
-   标签：评分：9.0/10、query:agent
-   evidence：利用模拟环境训练工具调用智能体
-24. [WebUncertainty: Dual-Level Uncertainty Driven Planning and Reasoning For Autonomous Web Agent](/202604/21/2604.17821v1-webuncertainty-dual-level-uncertainty-driven-planning-and-reasoning-for-autonomous-web-agent)  
+   evidence：图与大模型集成用于推理和智能体的综述
+8. [Penny Wise, Pixel Foolish: Bypassing Price Constraints in Multimodal Agents via Visual Adversarial Perturbations](/202604/22/2604.16515v1-penny-wise-pixel-foolish-bypassing-price-constraints-in-multimodal-agents-via-visual-adversarial-perturbations)  
    标签：评分：9.0/10、query:guiagt
-   evidence：用于网页规划和推理的自主网络智能体框架
-25. [On the Reliability of Computer Use Agents](/202604/21/2604.17849v1-on-the-reliability-of-computer-use-agents)  
+   evidence：针对多模态移动智能体的对抗性攻击
+9. [ClimAgent: LLM as Agents for Autonomous Open-ended Climate Science Analysis](/202604/22/2604.16922v1-climagent-llm-as-agents-for-autonomous-open-ended-climate-science-analysis)  
+   标签：评分：9.0/10、query:agent
+   evidence：大模型作为自主气候科学分析智能体
+10. [SkillFlow:Benchmarking Lifelong Skill Discovery and Evolution for Autonomous Agents](/202604/22/2604.17308v1-skillflowbenchmarking-lifelong-skill-discovery-and-evolution-for-autonomous-agents)  
+   标签：评分：9.0/10、query:agent
+   evidence：智能体工作流框架与技能发现
+11. [EvoMaster: A Foundational Agent Framework for Building Evolving Autonomous Scientific Agents at Scale](/202604/22/2604.17406v1-evomaster-a-foundational-agent-framework-for-building-evolving-autonomous-scientific-agents-at-scale)  
+   标签：评分：9.0/10、query:agent
+   evidence：用于自主科学发现的基础智能体框架
+12. [EvoMaster: A Foundational Evolving Agent Framework for Agentic Science at Scale](/202604/22/2604.17406v2-evomaster-a-foundational-evolving-agent-framework-for-agentic-science-at-scale)  
+   标签：评分：9.0/10、query:agent
+   evidence：用于科学研究的基础演进智能体框架
+13. [SelfHeal: Empirical Fix Pattern Analysis and Bug Repair in LLM Agents](/202604/22/2604.17699v1-selfheal-empirical-fix-pattern-analysis-and-bug-repair-in-llm-agents)  
+   标签：评分：9.0/10、query:agent
+   evidence：大语言模型智能体错误修复模式的实证研究
+14. [HiRAS: A Hierarchical Multi-Agent Framework for Paper-to-Code Generation and Execution](/202604/22/2604.17745v1-hiras-a-hierarchical-multi-agent-framework-for-paper-to-code-generation-and-execution)  
+   标签：评分：9.0/10、query:agent
+   evidence：用于复杂工作流协调的分层多智能体框架
+15. [TitanCA: Lessons from Orchestrating LLM Agents to Discover 100+ CVEs](/202604/22/2604.17860v1-titanca-lessons-from-orchestrating-llm-agents-to-discover-100-cves)  
+   标签：评分：9.0/10、query:agent
+   evidence：编排大模型智能体用于漏洞发现流水线
+16. [OpenGame: Open Agentic Coding for Games](/202604/22/2604.18394v1-opengame-open-agentic-coding-for-games)  
+   标签：评分：9.0/10、query:agent
+   evidence：端到端游戏创作的智能体框架
+17. [MASS-RAG: Multi-Agent Synthesis Retrieval-Augmented Generation](/202604/22/2604.18509v2-mass-rag-multi-agent-synthesis-retrieval-augmented-generation)  
+   标签：评分：9.0/10、query:agent
+   evidence：检索增强生成的多智能体合成
+18. [From Craft to Kernel: A Governance-First Execution Architecture and Semantic ISA for Agentic Computers](/202604/22/2604.18652v1-from-craft-to-kernel-a-governance-first-execution-architecture-and-semantic-isa-for-agentic-computers)  
+   标签：评分：9.0/10、query:agent
+   evidence：智能体计算机的治理优先执行架构
+19. [Towards Optimal Agentic Architectures for Offensive Security Tasks](/202604/22/2604.18718v1-towards-optimal-agentic-architectures-for-offensive-security-tasks)  
+   标签：评分：9.0/10、query:agent
+   evidence：智能体架构与协作拓扑的实证研究
+20. [Human-Guided Harm Recovery for Computer Use Agents](/202604/22/2604.18847v1-human-guided-harm-recovery-for-computer-use-agents)  
    标签：评分：9.0/10、query:guiagt
-   evidence：在OSWorld基准上对计算机使用智能体的可靠性分析
-26. [GraSP: Graph-Structured Skill Compositions for LLM Agents](/202604/21/2604.17870v1-grasp-graph-structured-skill-compositions-for-llm-agents)  
+   evidence：执行操作的计算机使用智能体的损害恢复
+21. [AutomationBench](/202604/22/2604.18934v1-automationbench)  
    标签：评分：9.0/10、query:agent
-   evidence：智能体的图结构技能组合与编排
-27. [Latent Preference Modeling for Cross-Session Personalized Tool Calling](/202604/21/2604.17886v1-latent-preference-modeling-for-cross-session-personalized-tool-calling)  
-   标签：评分：9.0/10、query:agent
-   evidence：大模型智能体的个性化工具调用与 API 执行
-28. [LiteResearcher: A Scalable Agentic RL Training Framework for Deep Research Agent](/202604/21/2604.17931v1-literesearcher-a-scalable-agentic-rl-training-framework-for-deep-research-agent)  
-   标签：评分：9.0/10、query:agent
-   evidence：深度研究智能体的强化学习训练框架
-29. [ReCoQA: A Benchmark for Tool-Augmented and Multi-Step Reasoning in Real Estate Question and Answering](/202604/21/2604.17944v1-recoqa-a-benchmark-for-tool-augmented-and-multi-step-reasoning-in-real-estate-question-and-answering)  
-   标签：评分：9.0/10、query:agent
-   evidence：工具增强与多步推理基准
-30. [Architectural Design Decisions in AI Agent Harnesses](/202604/21/2604.18071v1-architectural-design-decisions-in-ai-agent-harnesses)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体治理框架中的架构模式与设计决策
-31. [WebCompass: Towards Multimodal Web Coding Evaluation for Code Language Models](/202604/21/2604.18224v1-webcompass-towards-multimodal-web-coding-evaluation-for-code-language-models)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：用于评估交互式智能体的多模态网页编程基准
-32. [AJ-Bench: Benchmarking Agent-as-a-Judge for Environment-Aware Evaluation](/202604/21/2604.18240v1-aj-bench-benchmarking-agent-as-a-judge-for-environment-aware-evaluation)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：在图形用户界面领域对智能体进行基准测试
-33. [Agent-World: Scaling Real-World Environment Synthesis for Evolving General Agent Intelligence](/202604/21/2604.18292v1-agent-world-scaling-real-world-environment-synthesis-for-evolving-general-agent-intelligence)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于提升通用智能体能力的自我进化训练场
-34. [ComPASS: Towards Personalized Agentic Social Support via Tool-Augmented Companionship](/202604/21/2604.18356v1-compass-towards-personalized-agentic-social-support-via-tool-augmented-companionship)  
-   标签：评分：9.0/10、query:agent
-   evidence：为智能体配备外部工具以提供社会支持
-35. [StepPO: Step-Aligned Policy Optimization for Agentic Reinforcement Learning](/202604/21/2604.18401v1-steppo-step-aligned-policy-optimization-for-agentic-reinforcement-learning)  
+   evidence：评估AI智能体通过REST API进行跨应用工作流编排的基准测试
+22. [ClawNet: Human-Symbiotic Agent Network for Cross-User Autonomous Cooperation](/202604/22/2604.19211v1-clawnet-human-symbiotic-agent-network-for-cross-user-autonomous-cooperation)  
    标签：评分：9.0/10、query:opclw
-   evidence：提及OpenClaw作为智能体强化学习的杰出应用
-36. [ClawEnvKit: Automatic Environment Generation for Claw-Like Agents](/202604/21/2604.18543v1-clawenvkit-automatic-environment-generation-for-claw-like-agents)  
-   标签：评分：9.0/10、query:opclw
-   evidence：针对类 Claw 智能体的自动环境生成
+   evidence：用于跨用户智能体协作的ClawNet框架
+23. [On Reasoning-Centric LLM-based Automated Theorem Proving](/202604/22/2604.19558v1-on-reasoning-centric-llm-based-automated-theorem-proving)  
+   标签：评分：9.0/10、query:agent
+   evidence：以推理为中心的LLM证明智能体，用于高层规划
+24. [Chat2Workflow: A Benchmark for Generating Executable Visual Workflows with Natural Language](/202604/22/2604.19667v1-chat2workflow-a-benchmark-for-generating-executable-visual-workflows-with-natural-language)  
+   标签：评分：9.0/10、query:agent
+   evidence：使用智能体生成可执行的可视化工作流
+25. [PlayCoder: Making LLM-Generated GUI Code Playable](/202604/22/2604.19742v1-playcoder-making-llm-generated-gui-code-playable)  
+   标签：评分：9.0/10、query:guiagt
+   evidence：评估GUI应用程序和交互流的基准测试
 
 ### 速读区论文标签
-1. [Aethon: A Reference-Based Replication Primitive for Constant-Time Instantiation of Stateful AI Agents](/202604/21/2604.12129v1-aethon-a-reference-based-replication-primitive-for-constant-time-instantiation-of-stateful-ai-agents)  
+1. [Towards Long-horizon Agentic Multimodal Search](/202604/22/2604.12890v1-towards-long-horizon-agentic-multimodal-search)  
    标签：评分：8.0/10、query:agent
-   evidence：有状态AI智能体实例化的基础设施
-2. [AgenticAI-DialogGen: Topic-Guided Conversation Generation for Fine-Tuning and Evaluating Short- and Long-Term Memories of LLMs](/202604/21/2604.12179v1-agenticai-dialoggen-topic-guided-conversation-generation-for-fine-tuning-and-evaluating-short--and-long-term-memories-of-llms)  
+   evidence：长程智能体多模态搜索与上下文管理
+2. [Agentic Discovery with Active Hypothesis Exploration for Visual Recognition](/202604/22/2604.12999v1-agentic-discovery-with-active-hypothesis-exploration-for-visual-recognition)  
    标签：评分：8.0/10、query:agent
-   evidence：用于大语言模型记忆评估的模块化智能体框架
-3. [Thought-Retriever: Don't Just Retrieve Raw Data, Retrieve Thoughts for Memory-Augmented Agentic Systems](/202604/21/2604.12231v1-thought-retriever-dont-just-retrieve-raw-data-retrieve-thoughts-for-memory-augmented-agentic-systems)  
+   evidence：基于假设驱动发现的智能体框架
+3. [CCCE: A Continuous Code Calibration Engine for Autonomous Enterprise Codebase Maintenance via Knowledge Graph Traversal and Adaptive Decision Gating](/202604/22/2604.13102v1-ccce-a-continuous-code-calibration-engine-for-autonomous-enterprise-codebase-maintenance-via-knowledge-graph-traversal-and-adaptive-decision-gating)  
    标签：评分：8.0/10、query:agent
-   evidence：基于大语言模型的记忆增强智能体系统
-4. [CompliBench: Benchmarking LLM Judges for Compliance Violation Detection in Dialogue Systems](/202604/21/2604.12312v1-complibench-benchmarking-llm-judges-for-compliance-violation-detection-in-dialogue-systems)  
+   evidence：用于自主代码库维护的AI智能体系统
+4. [Can Coding Agents Be General Agents?](/202604/22/2604.13107v1-can-coding-agents-be-general-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：评估企业环境中大模型智能体合规性违规的基准测试
-5. [Agentic Insight Generation in VSM Simulations](/202604/21/2604.12421v1-agentic-insight-generation-in-vsm-simulations)  
+   evidence：评估代码智能体在通用业务流程自动化中的表现
+5. [Formal Architecture Descriptors as Navigation Primitives for AI Coding Agents](/202604/22/2604.13108v1-formal-architecture-descriptors-as-navigation-primitives-for-ai-coding-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：解耦的两步智能体架构
-6. [NaviRAG: Towards Active Knowledge Navigation for Retrieval-Augmented Generation](/202604/21/2604.12766v1-navirag-towards-active-knowledge-navigation-for-retrieval-augmented-generation)  
-   标签：评分：8.0/10、query:agent
-   evidence：在检索增强生成中进行主动知识导航的LLM智能体
-7. [Policy-Invisible Violations in LLM-Based Agents](/202604/21/2604.12177v1-policy-invisible-violations-in-llm-based-agents)  
+   evidence：架构描述符作为编码智能体的导航原语
+6. [LIFE -- an energy efficient advanced continual learning agentic AI framework for frontier systems](/202604/22/2604.12874v1-life----an-energy-efficient-advanced-continual-learning-agentic-ai-framework-for-frontier-systems)  
    标签：评分：7.0/10、query:agent
-   evidence：大模型智能体的安全性与政策合规性
-8. [Parallax: Why AI Agents That Think Must Never Act](/202604/21/2604.12986v1-parallax-why-ai-agents-that-think-must-never-act)  
+   evidence：用于自适应系统管理的智能体AI框架
+7. [Agentic Open RAN: A Deterministic and Auditable Framework for Intent-Driven Radio Control](/202604/22/2604.13384v1-agentic-open-ran-a-deterministic-and-auditable-framework-for-intent-driven-radio-control)  
    标签：评分：7.0/10、query:agent
-   evidence：自主AI执行的安全范式
-9. [Multi-Agent Object Detection Framework Based on Raspberry Pi YOLO Detector and Slack-Ollama Natural Language Interface](/202604/21/2604.13345v1-multi-agent-object-detection-framework-based-on-raspberry-pi-yolo-detector-and-slack-ollama-natural-language-interface)  
+   evidence：Open RAN控制的智能体工作流设计
+8. [Evolvable Embodied Agent for Robotic Manipulation via Long Short-Term Reflection and Optimization](/202604/22/2604.13533v1-evolvable-embodied-agent-for-robotic-manipulation-via-long-short-term-reflection-and-optimization)  
    标签：评分：7.0/10、query:agent
-   evidence：使用大模型接口的多智能体目标检测框架
-10. [Cross-Domain Query Translation for Network Troubleshooting: A Multi-Agent LLM Framework with Privacy Preservation and Self-Reflection](/202604/21/2604.13353v1-cross-domain-query-translation-for-network-troubleshooting-a-multi-agent-llm-framework-with-privacy-preservation-and-self-reflection)  
+   evidence：具身智能体中的策略规划与反思
+9. [Don't Let AI Agents YOLO Your Files: Shifting Information and Control to Filesystems for Agent Safety and Autonomy](/202604/22/2604.13536v2-dont-let-ai-agents-yolo-your-files-shifting-information-and-control-to-filesystems-for-agent-safety-and-autonomy)  
    标签：评分：7.0/10、query:agent
-   evidence：具有基于反思推理的多智能体大模型框架
-11. [CodeMMR: Bridging Natural Language, Code, and Image for Unified Retrieval](/202604/21/2604.15663v1-codemmr-bridging-natural-language-code-and-image-for-unified-retrieval)  
-   标签：评分：6.0/10、query:guiagt
-   evidence：针对Web界面和编程构件的多模态代码检索
-12. [Rule-VLN: Bridging Perception and Compliance via Semantic Reasoning and Geometric Rectification](/202604/21/2604.16993v1-rule-vln-bridging-perception-and-compliance-via-semantic-reasoning-and-geometric-rectification)  
+   evidence：文件系统工作流中的智能体安全与控制
+10. [IndicDB -- Benchmarking Multilingual Text-to-SQL Capabilities in Indian Languages](/202604/22/2604.13686v1-indicdb----benchmarking-multilingual-text-to-sql-capabilities-in-indian-languages)  
    标签：评分：6.0/10、query:agent
-   evidence：城市环境中的合规导航智能体
-13. [BOIL: Learning Environment Personalized Information](/202604/21/2604.17137v1-boil-learning-environment-personalized-information)  
+   evidence：用于Text-to-SQL的迭代三智能体框架
+11. [Enhancing Large Language Models with Retrieval Augmented Generation for Software Testing and Inspection Automation](/202604/22/2604.15270v1-enhancing-large-language-models-with-retrieval-augmented-generation-for-software-testing-and-inspection-automation)  
    标签：评分：6.0/10、query:agent
-   evidence：用于引导智能体长期行为的信息学习
+   evidence：利用大模型和 RAG 进行软件测试自动化，与智能体软件工程任务相关。
+12. [TrafficClaw: Generalizable Urban Traffic Control via Unified Physical Environment Modeling](/202604/22/2604.17456v1-trafficclaw-generalizable-urban-traffic-control-via-unified-physical-environment-modeling)  
+   标签：评分：6.0/10、query:agent
+   evidence：基于 LLM 的城市交通控制协调方法
+13. [Memory Centric Power Allocation for Multi-Agent Embodied Question Answering](/202604/22/2604.17810v1-memory-centric-power-allocation-for-multi-agent-embodied-question-answering)  
+   标签：评分：6.0/10、query:agent
+   evidence：多智能体具身问答与记忆
 
 
 <div class="dpr-home-promo-card">
