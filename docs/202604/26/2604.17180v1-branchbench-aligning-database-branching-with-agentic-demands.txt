@@ -1,0 +1,500 @@
+Title: BranchBench: Aligning Database Branching with Agentic Demands
+
+URL Source: https://arxiv.org/pdf/2604.17180v1
+
+Published Time: Tue, 21 Apr 2026 01:01:09 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Branch Bench : Aligning Database Branching with Agentic Demands 
+
+# Elaine Ang 
+
+Columbia University ra3448@columbia.edu 
+
+# In Keun Kim 
+
+Columbia University ik2619@columbia.edu 
+
+# Sam Weldon 
+
+Columbia University sw3927@columbia.edu 
+
+# Kevin Durand 
+
+Columbia University kpd2136@columbia.edu 
+
+# Kostis Kaffes 
+
+Columbia University kkaffes@cs.columbia.edu 
+
+# Eugene Wu 
+
+Columbia University ewu@cs.columbia.edu 
+
+## ABSTRACT 
+
+Branchable databases are evolving from developer tools to infras-tructure for agentic workloads characterized by speculative muta-tions and non-linear state exploration. Traditional RDBMS mecha-nisms such as nested transactions do not provide the persistent iso-lation and concurrent branch management required by autonomous agents, and recent “zero-copy” designs make different trade-offs whose impact on agentic workloads remains unclear. To clarify this space, we present B ranch Bench , a benchmark for evaluating branchable relational DBMSes under agentic ex-ploration. We characterize five representative workloads—agentic software engineering, failure reproduction, data curation, MCTS, and simulation—and design parameterized macrobenchmarks that execute branch–mutate–evaluate loops to reflect these workloads, along with microbenchmarks that isolate branch lifecycle costs. We evaluate state of the art systems including Neon, DoltgreSQL, Tiger Data, Xata, and PostgreSQL baselines, and find a fundamental tension: systems optimized for fast branching suffer up to 5 − 4000 ×
+
+slower reads as branches deepen, while systems optimized for fast data operations incur 25 −1500 × higher branch creation and switch-ing latency. Further, no current system supports the representative workloads at scale. These results highlight the need for branch-native DBMSes designed specifically for agentic exploration. 
+
+Code and Artifacts: The source code, data, and artifacts are available at https://github.com/ElaineAng/db-fork. 
+
+## 1 INTRODUCTION 
+
+The recent emergence of agentic systems is shifting systems from executing a single execution plan to managing large-scale agentic speculation . To solve a high-level task, agents generate and execute a tree of hypothetical actions, and evaluate their effects in order to select the best results. On Terminal-Bench [ 27 ], for instance, Monte Carlo Tree Search (MCTS) can improve task success rates from 3.4% → 30 .6% [ 49 ]. These improvements stem from the ability to efficiently fork, evaluate, and discard many alternative states, rather than from better LLM reasoning. Agentic speculation shifts systems bottlenecks. Traditional data-base systems are designed to isolate concurrent users that execute over a linear progression of shared state. In contrast, a single agent can generate a multitude of speculative worlds. The critical design objective is not only query latency or transaction throughput, but Reward Update 
+
+A
+
+C
+
+B
+
+D
+
+E F
+
+ops 
+
+Figure 1: Agentic exploration via Monte Carlo Tree Search over database state. The agent explores a tree of hypothetical actions by forking database branches, executing operations, evaluating outcomes, and selecting optimal paths. 
+
+speculative state management: the ability to checkpoint, fork, re-store, evaluate, and merge/discard database state at high frequency without prohibitive storage or performance costs. In response, a new class of branchable DBMSes expose an ex-plicit branch abstraction: users can create a new writable branch from a current or past state, switch between branches, and compare (and in some systems, merge) divergent histories using Git-like operations. However, existing systems implement this abstraction using fundamentally different mechanisms. For example, Neon uses storage-layer copy-on-write by marking the appropriate LSN in the write-ahead log and sharing unchanged pages with a branch’s parent [ 42 ] while Xata uses block-level copy-on-write under an unmodified PostgreSQL [ 43 ]. Dolt versions the database state using a custom content-addressed Merkle/prolly-tree storage engine, and supports structural sharing and efficient diff /merge semantics [ 40 ]. Other approaches approximate branching via filesystem snapshots or physical cloning in vanilla PostgreSQL, trading simplicity for coarse granularity and high overheads [ 44 ]. These architectural designs differ in copy-on-write granularity, metadata organization, and garbage collection that each target different branch-related workloads. §3 develops a taxonomy of zero-copy branching mech-anisms based on the targeted DBMS layer and their supported branching features. To make these requirements concrete, we consider five represen-tative agentic applications that span the structural space of specu-lative branching and exercise the typical branch–mutate–evaluate 
+
+loop. We use MCTS as a representative example: 
+
+> arXiv:2604.17180v1 [cs.DB] 19 Apr 2026
+
+Example 1. Figure 1 illustrates MCTS over a branchable DBMS. Each node in the search tree corresponds to a database branch representing a hypothetical world state. In one iteration, the agent selects a branch, forks a child, applies a short sequence of mutations (e.g., ops ), and evaluates the resulting state—either via internal queries, cross-branch comparisons, or external/LLM scoring. Even for a single task, this loop can generate thousands of branches with lifetimes ranging from milliseconds (failed rollouts) to minutes (promising subtrees), stressing branch lifecycle latency, metadata scalability, garbage collection, and cross-branch reads. 
+
+Beyond MCTS, we consider four additional workloads to stress different dimensions of branching: agentic software engineering , fail-ure reproduction , data curation , and simulation . Software engineer-ing and failure reproduction emphasize rapid branch creation and high-throughput execution. Data curation stresses cross-branch analytics and comparison. Simulation generates wide bursts of short-lived branches. These diverse applications span depth, fanout, mutation intensity (logical and physical), and branch life-cycle man-agement. These conflicting requirements stress-test branch creation cost, storage amplification, execution efficiency, and isolation. These pressures highlight four key desiderata for branchable DBMSes: (i) fast and resource-efficient branch creation, switching, and deletion; (ii) scalability to deep and wide branch trees with efficient branch management and garbage collection; (iii) efficient execution of hybrid transactional and analytical workloads over branched state, including cross-branch comparisons; and (iv) perfor-mance isolation so that speculative branches do not unpredictably perturb the base state or other branches. These desiderata are in tension. Mechanisms optimized for fast metadata-only branching may degrade under heavy physical mu-tations; systems tuned for deep lineage retention may incur high overhead under bursty fanouts; aggressive reclamation can conflict with flexible merging or comparison. Understanding these trade-offs—and determining which architectures are best suited to which workload classes—requires a benchmark that systematically varies exploration structure and intensity. Unfortunately, contemporary benchmarks fundamentally as-sume a “single branch” setting and do not measure fork latency, branch tree scalability, cross-branch comparison cost, or garbage collection under high branching loads. Motivated by SEQUOIA 2000 [ 38 ], which exposed mismatches between new scientific work-loads (e.g., spatial data processing, earth observation queries) and existing benchmarks, we argue that branch-intensive agentic work-loads demands a new class of benchmarks. To address this gap, we introduce B ranch Bench , a benchmark to evaluate branchable relational DBMSes under an agent’s ex-ploration patterns. B ranch Bench includes (1) macrobenchmarks 
+
+that instantiate parameterized branch–mutate–evaluate–compare 
+
+loops that reflect the above workloads, and (2) microbenchmarks 
+
+that isolate branch lifecycle primitives to separate mechanism over-heads from query execution. We use B ranch Bench to evaluate representative systems across branching architectures, including storage-layer approaches (Neon, Xata, Tiger), Merkle/prolly-tree versioning (Dolt), and PostgreSQL baselines. In general, current systems exhibit: 
+
+• Limited Capabilities. No system fully supports all agentic workflows at scale. PostgreSQL-native baselines (transaction-s/savepoints, file-copy clones) are only able to execute a very narrow subset of the workflows we consider. 
+
+• Performance Trade-offs. When comparing the two most feature-complete systems, Neon and Dolt, Neon’s data operations incur near-zero overhead, but Neon is also 25 × (1500 ×) slower to create (switch) branches compared to Dolt. In contrast, Dolt’s branch operations are near-instant, but reads are 5 − 4000 × slower as branches and mutations accumulate. Our results demonstrate that existing branchable databases opti-mize for either branching agility or query performance, but not both, leaving a critical gap for systems designed to support high-frequency speculative exploration over persistent, mutable state. In addition, we contribute: 
+
+• Workload characterization. We characterize branching de-mands in agentic speculation via five representative workflows— agentic software engineering, failure reproduction, data curation, MCTS, and simulation—and distill their requirements into exe-cutable branch and workload patterns (§2). 
+
+• Branchable DBMS taxonomy. We develop a taxonomy that categorizes systems by where branching is implemented in the stack and by the branch operations and semantics they support (e.g. diff, merge, isolation) (§3). 
+
+• Benchmark suite. We design B ranch Bench , a benchmark suite that combines (i) macrobenchmarks for the five workflows above with (ii) microbenchmarks that isolate branch lifecycle costs (§4). Through an extensive empirical study, we provide a decision framework for aligning branching strategies with agentic demands and highlight areas for future research and optimization (§5). 
+
+## 2 THE NEED FOR BRANCHING 
+
+Modern agents do not merely read from databases. They explore a space of hypotheses by instantiating new states—extracted ML fea-tures, schema mutations, temporary indexes, and updated data—to evaluate downstream objectives. This iterative exploration is inher-ently divergent: agents fork state into multiple parallel trajectories to compare outcomes, rapidly discard suboptimal branches, and merge “winning” states back. We refer to this distinctive access pattern as Agentic Speculative Branching . With branch , we de-note a named, isolated, and independently mutable database state derived from a parent state, where the system shares as much of the unchanged data across the branches as possible. While existing database engines support branching through mechanisms such as transaction savepoints, physical table copies, or temporary tables, these techniques were designed for occasional branches in traditional applications. In contrast, we anticipate that future agentic workloads will generate branch operations at such scale and frequency that current designs incur prohibitive perfor-mance and storage overheads. This section describes five workflows that each generate sus-tained, high-frequency branching workloads that stress latency, storage, and branching semantics. In these settings, the database ceases to be a passive storage layer and instead becomes the agent’s 
+
+> 2
+
+working memory and experimental substrate. We use these work-flows to motivate requirements of a branchable database and the design of our benchmarking suite. 
+
+Scope. We focus on the DBMS workload generated by single-task exploration : all branches are derived from one root state, and there are no concurrent users or other agentic tasks accessing the data-base. This scoping decision isolates the challenge of managing exploration trees without conflating it with traditional multi-user concurrency control. Even in this simplified setting, we find that existing branchable database designs are pushed to their limits (§ 5), motivating our focus on single-agent performance before addressing multi-agent coordination. 
+
+## 2.1 Representative Workflows 
+
+To stay consistent with our benchmark, our motivating scenarios build on TPC-H and TPC-C schemas. 
+
+2.1.1 Agentic Software Engineering (ASE). Today’s ASE already runs dozens of agents in parallel to fix bugs, develop features, refac-tor code, and redesign the application. Each agent makes iterative changes to the codebase and database [ 4, 17 , 36 , 41 , 45 ]. An iteration may involve reading the current database, apply schema changes or migrations ( ALTER TABLE , CREATE INDEX ), backfill and update data, and run the application’s tests that execute many read-heavy queries. Each iteration is speculative until all tests pass, and must be rolled back if any tests fail. Recent work has shown that when multiple software engineer-ing agents run in parallel, uncoordinated changes make the system brittle [ 24 ]. Thus, branching is both used to isolate concurrently de-veloped features from each other, and to checkpoint state-mutating actions so the agent can easily revert. 
+
+Example 2. Consider an agent implementing a new feature: adding customer loyalty tiering. The agent forks B1 from main before adding a tier column to customer , then forks B2 from B1 before backfilling 
+
+tier based on customer payment histories. But test queries show almost all customers are assigned to the lowest tier due to poor tiering thresholds. The agent forks B3 from B1 to revert the backfill action, then backfills with new thresholds, and runs the tests again. The tests pass, so B3 is merged to main and the others are deleted. 
+
+2.1.2 Failure Reproduction. An error in production may be due to a past database transaction that lay dormant and then triggered the error. The goal of failure reproduction is to reproduce the error and identify the transaction that triggered it. Existing methods replay transaction history of size 𝑁 [ 22 , 23 ], which could benefit from simple binary search: the agent forks from a known-good database state in the past, replays a prefix of the log, and runs tests to trigger the error. By comparing branches with and without the error, the agent narrows the window until it isolates the culprit transaction. In expectation, the agent creates 𝑙𝑜𝑔 2 (𝑁 ) branches from the known-good state, which produces a wide and flat exploration tree. Each branch is write-intensive: it replays a prefix of transactions, then executes read queries to check invariants and test the database state. Since the agent rapidly creates and discards branches, the system must provide fast branch creation and reset, and high write-throughput for replaying transactions. 
+
+Example 3. A test fails when attribute o_ol_cnt in orders does not match the actual row count in order_line for commodities orders, and the agent must analyze a log of 1000 transactions. It forks and replays the first 500 transactions, and finds that the constraint fails. It discards the branch, forks, replays and checks the first 250 transactions, and so on until it isolates transaction 372. The final branch’s mutation history further serves as a reproducible test case. 
+
+2.1.3 Data Curation. A major part of data curation is the process of detecting and correcting errors in a database to improve its qual-ity for downstream use [ 33 ]. There is an increasing shift towards continuous, online data quality monitoring of data corpora [ 34 , 39 ], as well as search-based methods to find sequences of cleaning op-erations to address detected errors [19, 21, 31, 35]. It is thus reasonable to anticipate a future where a pool of agents continuously identify potential data errors in subsets of tables, and then spawn additional agents to clean those errors. This exploration pattern creates one branch to clean each detected anomaly—perhaps dozens concurrently. Agents clean an anomaly by exploring paths of cleaning operations; each operation follows a branch-mutate-validate pattern to explore different operations and hyperparame-ters (e.g., thresholds, window sizes). Mutations may create interme-diates or update/delete tuples, while validation may read data in the current branch or perform cross-branch reads to compare outcomes across candidate cleaning paths. To summarize, this workload de-mands high write-throughput and efficient scans per branch, and fast cross-branch reads. 
+
+Example 4. An agent detects that the customer table has missing 
+
+c_balance values and suspicious outliers in c_ytd_payment . It cre-ates one exploration subtree try different imputation strategies, one branch to drop nulls, and a third subtree to clip outliers at varying percentile thresholds. After each cleaning operation, the agent runs data-quality checks and compares across the branches to discard poor cleaning candidates and select the final outcome. 
+
+2.1.4 Monte Carlo Tree Search. Monte Carlo Tree Search (MCTS) is an optimization and search algorithm that is increasingly applied to database-backed problems such as financial and supply chain management [ 32 , 47 ], text-to-sql [ 51 ], query optimization [ 52 ], and LLM post-training workflows [50]. The algorithm selects a promising leaf, expands it with an untried action, simulates a random rollout to estimate value, and backprop-agates the result [ 6 , 18 ]. Each iteration applies an UPDATE /INSERT 
+
+during expansion to create a new state, and an analytical evalua-tion query after a rollout to estimate a score. The resulting branch tree incrementally grows to become deep and narrow—successive refinements can have tens or hundreds of levels, while each state may have 3 − 10 children. MCTS is often parallelized to expand dif-ferent subtrees concurrently, and to manage storage, a background process prunes low-value branches. 
+
+Example 5. An agent plans which warehouse will fulfill each pend-ing order to minimize total shipping cost. Each tree level corresponds to one order; each branch at that level assigns the order to a different warehouse. Expansion forks a new speculative branch and applies the assignment via an UPDATE (e.g., UPDATE stock SET (...) )to reduce that warehouse’s inventory within the branch’s state and constrain the viable warehouses for subsequent orders. 
+
+> 3
+
+Rollout assigns the remaining orders greedily and scores the com-plete plan with an analytical query such as SELECT SUM(ol_amount) FROM order_line JOIN warehouse . Rewards are backpropagated to favor low-cost assignment sequences. The selection policy depri-oritizes subtrees whose early assignments led to stockouts or high final costs. Search terminates after a fixed iteration budget, and the highest-reward complete path is adopted as the fulfillment plan. 
+
+2.1.5 Simulation. Monte Carlo simulation estimates an outcome distribution by running many independent trials with random-ized inputs and aggregating the results [ 20 ]. For database appli-cations such as loan portfolios, inventory networks, or patient cohorts [ 1 , 7 , 8, 28 , 30 ], each trial executes tens or hundreds of 
+
+INSERT or UPDATE transactions to simulate future possibilities. This results in a wide, flat tree where the initial state is forked thou-sands of times, each representing a sample trial. Each trial runs independently, so the system must sustain high aggregate write throughput and efficient batch branch creation to ensure branching does not dominate runtime. The database must provide fast cross-branch aggregation queries (e.g., percentiles or expected shortfall) to synthesize the results of the entire simulation, as well as efficient pruning and garbage collection to discard ephemeral branches. 
+
+Example 6. A supply-chain risk agent assesses inventory shortfall by forking 1000 branches to simulate 30 days of possible order fulfillment patterns in each branch. Each simulated day inserts into orders ,updates stock , and triggers replenishment when stock.s_quantity 
+
+for an item falls below a threshold. After all trials complete, the agent runs a single cross-branch aggregation to calculate the stockout frequency and total fulfillment cost across all branches and reports the distribution. It then discards all branches. 
+
+## 2.2 Requirements for Branchable Databases 
+
+The workflows highlight several interrelated requirements for branch-able databases that a benchmark should exercise. 
+
+Fast Branch Management. Branching is the primary control struc-ture, so branch creation and deletion must be fast to not bottleneck per-iteration latencies, particularly under concurrent workloads. 
+
+Flexible Tree Topology. The scenarios exhibit topologies that vary across flat stars (simulation, failure reproduction), wide shallow trees (data cleaning), moderate bushy trees (software development), and deep narrow trees (MCTS). The system must efficiently manage branch metadata—parent-child lineage, visibility propagation, and per-branch state—and maintain stable performance as both depth and breadth grow. 
+
+Schema & Data Mutations. The database must handle varying mixtures of schema and data mutations without degrading branch-ing and query performance: software development runs schema migratios and data backfills; failure reproduction replays recorded transaction logs with few schema changes; data cleaning performs bulk and tuple-level table rewrites: MCTS updates a few records at a time; and simulation runs heavy data mutation per branch with almost no schema changes. 
+
+Interleaved read-heavy evaluation. The effects of mutations are evaluated with read queries—integration tests, invariant checks, data-quality metrics, reward queries, or outcome aggregations. These must execute robustly, even at high branch cardinality.           
+
+> DBMS Layer Branch Mechanism Systems
+> Storage Substrate Block-level CoW TigerData, Xata, Vela, PG file copy Recovery WAL-based Neon Manager reconstruction Storage Manager Content-addr. tree Dolt Page-level CoW Minuet (research system) Delta overlays Decibel (research system)
+
+Table 1: Taxonomy of branchable database designs. Cross-branch queries. Agents regularly read and compare data-base states across branches to e.g., select the best curation pipeline, outcome distributions after simulation, or compute the diff between two schema versions. 
+
+Logical and Performance Isolation. Branches must be logically isolated to prevent effects in one branch from affecting others. Branches should also exhibit performance isolation so that heavy workloads on one branch do not degrade the performance on others. 
+
+## 3 BRANCHABLE DATABASE DESIGNS 
+
+The naive approach to branching is do a full dump/restore, or to make a copy of the database ( CREATE DATABASE ... TEMPLATE ... ). Unfortunately, dump/restore does not share overlapping data between the branches and quickly becomes prohibitively expen-sive. Even though PostgreSQL 18 supports creating a new data-base with file_copy_method=clone , that requires Copy-on-Write filesystem support [ 44 ], and has strict requirements on concurrent operations on the database to prevent data inconsistency, making that unsuitable for more demanding agentic speculative workflows (§2). This section first describes why existing nested transaction sup-port is not sufficient for agentic database branching, and then or-ganizes existing zero-copy branching mechanisms into a taxonomy based on the DBMS layer where the copy-on-write (CoW) logic is applied (Table 1). Our focus is on use cases that involve large rates of branching operations, as well as data and schema mutations. As such, we focus on transactional and HTAP systems, and discuss branchable OLAP systems in Section 6. 
+
+## 3.1 Are Nested Transactions Enough? 
+
+At first glance, existing DBMS features—nested transactions and savepoints—appear sufficient to emulate branching: speculative updates can be executed inside a transaction and either committed or rolled back. Unfortunately, transaction mechanisms are ill-suited to agentic use cases for many reasons. First, transactional systems are optimized for short-lived units of work, while long-lived speculative transactions retain historical ver-sions under MVCC and inhibit garbage collection. Although mecha-nisms such as SAGAs [ 15 ], long-lived transactions [ 16 ], and related models [ 9 , 48 ] decompose long-lived transactions into compensat-able steps, they still operate over a single shared “branch”. In con-trast, agentic exploration requires structurally separate branches rather than rollback within a linear execution model. Second, transactions lack a first-class branch abstraction. They do not provide durable named branches, explicit lineage relation-ships, efficient branch switching, nor principled merge semantics.                                                                            
+
+> 4Single Branch Cross Branch Branch Meta Data and Schema System Create Delete Persist Concurrent Operation Merge Diff Aggregation Concurrent Live Branch Nested Branch Schema Change Physical Data Ops
+> Neon ✓✓✓✓×××∼✓✓✓
+> Dolt ✓✓✓✓✓✓×✓✓∼∼
+> TigerData ✓✓✓✓✓××∼✓✓✓
+> Xata ✓✓✓✓✓∼×∼✓✓✓
+> PG file copy ✓✓✓∼×××✓∼✓✓
+> Txn/Savepoint ✓✓××∼××✓∼∼×
+
+Table 2: Feature support matrix for production branchable database systems. ✓ indicates full support; × indicates no support; 
+
+∼ indicates partial support. 
+
+Merging a selected branch back into a parent state is fundamentally different from committing a transaction when multiple alternative branches have evolved. Finally, transactions provide logical rollback but do not explic-itly treat physical mutations (e.g., creating indexes or materialized views) as speculative state. Agentic exploration often evaluates al-ternative physical designs, which must persist independently and be compared across branches rather sequentially applied and reverted. Despite these limitations, it is possible to use transactions to simulate limited exploration use cases that do not need concur-rent branches to exist by serially executing the exploration tree depth-first, creating save points at every step, and rolling back. Our experiments evaluate this as a baseline and find that native data-base transaction/savepoint serves as a fast light-weight branching mechanism on a limited subset of workflows. 
+
+## 3.2 Branchable Database Designs 
+
+We organize branchable data designs based on the DBMS layer that implements the zero-copy branching mechanism (Table 1). 
+
+Storage Substrate: Block-level CoW. This approach sits beneath the DBMS and performs copy-on-write over 4-64KB blocks at the storage level. It treats the DBMS as a black-box and is not aware of DBMS-level structures like pages or tuples. For instance, PostgreSQL 18 introduces a cloning strategy that creates instant database branches by leveraging filesystem-level reflinks[ 44 ]. Unlike traditional methods that physically duplicate data, this approach is lightweight because it initially creates a "thin clone" that shares the same physical disk blocks as the source, requiring only minimal DBMS-level configuration to delegate the heavy lifting to the operating system’s Copy-on-Write (CoW) mech-anisms. However, this efficiency comes with significant constraints: it requires specific filesystem support (like XFS or Btrfs), is limited to cloning databases within the same local PostgreSQL instance, and necessitates terminating all concurrent connections to the source database during the cloning process to ensure a consistent state. More sophisticated implementations leverage distributed block storage with CoW capabilities. For instance, Tiger’s Fluid Storage[ 14 ]implements a distributed key-value block store where forks track parent blocks via metadata operations so that only modified blocks are copied on write. Similarly, Xata[ 43 ] uses an NVMe-oF block-storage cluster that splits data into chunks, with each branch main-taining its own metadata index that initially points to shared blocks. These are lightweight in the data plane but expensive in the control plane as we need to reinstantiate the database compute engine and connections after we create the branch. Further, coarse-grained CoW (e.g., at storage block boundaries that may not align with database pages) can lead to write amplification when small database updates trigger copies of entire storage blocks. 
+
+Storage Manager: Page-level CoW. This approach targets data-base pages—such as B + tree nodes or heap pages—within the DBMS storage manager. In Minuet [ 37 ], branches share a page graph. When a page is first modified, the storage manager copies it and updates that branch’s root pointer. This aligns with DBMS I/O, caching, and buffer pool management. While this design has potential, these systems are not yet produc-tion ready. Minuet is designed for in-memory B-trees, and exhibits high memory overhead to maintain versions, incurs high garbage collection costs as exploration trees grow, and does not scale to distributed nodes. 
+
+Storage Manager: Content-addressed Tree. Systems like Dolt[ 40 ]store the database using a content-addressed tree (a Prolly tree), where internal nodes and leaves are identified by their hash. This mirrors git, where a branch is simply a new pointer to a committed root node. Updates only copy and recompute hashes for the nodes along the path to the updated leaves, and reads traverse the tree starting from the branch’s root. This design efficiently computes diffs and performs three-way merges, but read and write is impacted by large tree fan-outs and chunk sizes; garbage collection must also account for shared chunks across branches. 
+
+Storage Manager: Delta Overlays. Systems like Decibel [ 26 ]represent a branch as a parent state and a sequence of deltas— represented as a WAL, update log, or set of overlay structures. Writes append new deltas, while reads apply the deltas to the par-ent. Thus, branch creation is cheap and the degree of sharing is proportional to the rate of mutations in the branches. Decibel ex-plored different physical representations, including version-first (each branch stores deltas in separate segment files forming a chain) and hybrid schemes (combining delta segments with bitmaps for tracking branch membership). While effective for collaborative data science with long-lived branches, these delta-based approaches face performance chal-lenges under high-frequency branching: read amplification increases with branch depth, and compaction overhead grows with the num-ber of concurrent branches. 
+
+> 5
+
+Recovery Manager. Another approach is to stream the write-ahead log (WAL) to a separate durability service and reconstruct pages for a branch on-demand. For instance, Neon’s[ 42 ] compute nodes stream the WAL to safekeepers , i.e., page servers that replay WAL segments to construct and serve pages for a given branch. Branching is implemented by maintaining separate WAL timelines that share a prefix and marking the diverging log entry to avoid copying data. This effectively provides page-granularity branching (via WAL replay) rather than block-level snapshotting. The design trades write-time copying for read-time reconstruction. A cold page read on a branch may require replaying a chain of WAL records to materialize the page before it can be served, making performance sensitive to branch depth and whether pages are cached. In addition, decoupling compute from durability introduces an extra network hop on cold page access, which can increase latency (especially at the tail). Finally, because correctness requires retaining historical WAL (and associated page versions) until all dependent branches no longer need it, long-lived branches can delay garbage collection and lead to storage bloat. 
+
+Transaction and Logical Layers. In principle, higher DBMS lay-ers can support branching as well. For instance, MVCC already maintains tuple version chains for isolation, and may be extended with branch identifiers and by treating each branch as a long-lived snapshot. However, to the best of our knowledege, this design is not implemented. Similarly, ServiceWeaver [ 53 ] models each branch as a set of views that store inserts and deletes for each relation, and rewrites queries using triggers. However, it is primarily designed for logical differential testing for two versions of a codebase and not agentic exploration use cases that involve arbitrary branch trees that contain physical and logical mutations. 
+
+## 3.3 Feature Comparison 
+
+Table 2 summarizes the branching capabilities of production sys-tems. We exclude research systems (Minuet, Decibel, ServiceWeaver) from this comparison as they are not production-ready and lack comprehensive feature support or availability for empirical evalua-tion. The table reveals that while all production systems support basic branch creation, deletion, and persistence, significant gaps remain: no system supports cross-branch aggregation (querying data across multiple branches simultaneously), and only Dolt pro-vides first-class merge and diff operations due to its Git-inspired content-addressed design. 
+
+## 4 THE B RANCH BENCH BENCHMARK 
+
+We now describe the design of B ranch Bench , which exercises the requirements in the previous section and can be parameterized to emulate our motivating scenarios. We describe the database schema, execution model, and parameterizations for each scenario. 
+
+## 4.1 Database Setup. 
+
+We adopt the CH-benCHmark schema [ 10 ], which unifies the TPC-C and TPC-H benchmarks into a single hybrid workload. The schema retains TPC-C’s nine transactional tables (e.g., warehouse ,
+
+customer , order , orderline , stock ) and augments them with a subset of TPC-H’s analytical tables (i.e., region , supplier , and a slightly modified nation ) to support complex analytical queries 
+
+Figure 2: Architecture of the B ranch Bench macrobench-mark showing the branch-mutate-evaluate-prune loop exe-cuted by parallel workers. 
+
+over the transactional data. This combination of transactional ta-bles with rich foreign-key relationships and large tables for ana-lytics forms the basis for the scenarios: vibe coding features for an inventory application, failure reproduction over the transaction sequences, data curation, fulfillment that optimizes for shipping costs, and simulating inventory shortfalls. 
+
+## 4.2 Execution Model. 
+
+Figure 2 illustrates the architecture of the benchmark, with con-crete operations executed in each phase. 𝑇 concurrently executing worker threads are each assigned 𝑆 steps of work. In the figure, the green steps denote completed steps, yellow denotes the currently executing step, and gray denotes future steps. The workers all execute on a shared branch tree that starts from the root schema state ( 𝐴 in the figure). The tree’s shape is defined by the root fanout 𝐹 r, which specifies the number of children the root node should have; the inner fanout 𝐹 i, which bounds the number of children interior nodes have; and a maximum depth 𝐷 below root. These parameters allows the benchmark to express a range of tree topologies. For instance, 𝐷 =1 forces a flat “star” shape, 𝐹 i=1 forces chains below the root, and intermediate values yield bounded bushy trees. Each step corresponds to a sequence of parameterized operations that operates in four phases: (1) Branch : selects a node whose child count is below its fanout limit and whose depth (below root) is below 𝐷 , forks a new branch, and connects to it. (2) Mutate : apply 𝑀 s DDL operations (e.g., schema changes) and 
+
+𝑀 d data mutations on the new branch. (3) Evaluate : execute 𝑄 𝑣 read queries on the branch to validate or score the result. (4) Prune : with probability 𝛾 , delete the branch. Section A lists examples of mutation and evaluation statements for each workflow. A branch is considered committed once it has completed all phases of a step and has not been pruned. We call all of the committed leaves the Frontier of the tree (denoted as blue nodes in the figure. 
+
+> 6
+
+In addition to per-step work, a workflow executes 𝐶 cross-branch queries that are executed evenly throughout the workflow execu-tion; these are not considered as one of a worker’s 𝑆 steps. When a cross-branch query is ready to run, it is selected by the first ac-tive thread on a FIFO basis. Each cross-branch query reads across a subset of the frontier (committeed leaves). When 𝐶 =1, a single cross-branch aggregation runs at the end of the workflow when all workers have completed their 𝑆 steps. After all threads finish their steps and the final cross-branch queries complete, the workflow is complete. 
+
+Core Parameters. We organize the benchmark parameters into two groups. Table 3 lists the configuration for each workflow. 
+
+• Setup: Workers 𝑇 , steps per worker 𝑆 , cross-branch queries 𝐶 
+
+(spread evenly across all 𝑆 steps; each reads across committed leaf branches), root fanout 𝐹 r, inner fanout 𝐹 i, and maximum depth 𝐷 below the root level. Separating 𝐹 r from 𝐹 i captures workflows whose root branches at a different rate than deeper levels. 
+
+• Per-step: Schema changes 𝑀 s, data mutations 𝑀 d, evaluation queries 𝑄 𝑣 , and prune probability 𝛾 .
+
+## 4.3 Branch Lifecycle Microbenchmarks 
+
+We also develop a microbenchmark suite to isolate the overhead of 
+
+branch lifecycle primitives from the cost of data- and schema-level SQL work. For instance, how are reads impacted by the number of existing branches? What is the cost of creating and connecting to a new branch? While macrobenchmarks measure end-to-end workflow performance, microbenchmarks provide controlled, fine-grained measurements of individual branch operations (e.g., create, switch, delete) and their interaction with SQL execution. To make it easy to add and evaluate new backends, we abstract branchable DBMS backends behind four high-level operations that, respectively, create a new branch and return an identifier, con-nect to a named branch, delete a named branch, and execute SQL statements on the active branch: 
+
+id = create_branch(); connect_branch(id); delete_branch(id); execute_sql(qs); 
+
+The microbenchmark driver executes a scripted sequence of these calls and times each operation independently. Each microbench-mark is specified by a configuration file that defines (i) a setup phase (untimed) used to construct the initial state (e.g., base data size, initial branching structure), and (ii) an execution phase (timed) that issues the operations to be measured. This separation ensures that reported results reflect steady-state primitive costs rather than one-time initialization overheads. 
+
+## 4.4 Evaluation metrics. 
+
+Our metrics seek to quantify end-to-end branchable database per-formance across workflows and to isolate performance bottlenecks for primitive branch operations. 
+
+End-to-end workflow time. Total wall-clock time to complete a full workflow all 𝑆 steps from 𝑇 threads plus the cross-branch aggre-gation. This integrates branching overhead, mutation throughput, schema change performance, and reclamation into a single number, enabling direct comparison across backends for the same workflow configuration. 
+
+Branching overhead ratio. Fraction of total workflow wall-clock time spent on branch management (creation, deletion, switching) versus productive work (mutations and evaluation queries). A high ratio indicates that branching infrastructure, rather than the work-load itself, is the bottleneck. Comparing this across backends and workflow types reveals which systems amortize branching costs effectively. 
+
+Storage Efficiency. We consider both (i) how much additional stor-age branching actually consumes and (ii) how quickly disk space is reclaimed after branch deletion. Workflows that repeatedly cre-ate and discard branches are especially sensitive to both effects. If branches induce substantial storage amplification, storage can balloon even when the live branch count is small; and if reclamation is slow, storage can grow monotonically over time even when the logical branch count remains bounded. 
+
+Per-operation latency. Measures operation latency at the granularity of individual branching primitives (branch lifecycle operations), data operations (DML), and schema operations (DDL) to attribute end-to-end workflow performance to specific system mechanisms. 
+
+## 5 EVALUATION 
+
+We now evaluate our macro and microbenchmarks on represen-tatives of modern branchable database systems. We first evaluate branching costs for each system, and then evaluate the extent that each system is capable of running the macrobenchmarks. We find that not all systems are capable to run the operations that the macrobenchmark workflows require—likely because branching is a relatively new capability—and none can run the workflows to completion within 2 hours. For this reason, we then restrict the evaluation to the two dominating systems—Neon and Dolt—and use a scaled down macrobenchmark to study their operation costs. We find that their main query performance difference lies in range queries and DDLs, so we then report microbenchmark results on these operations. Overall, we find that modern branchable databases make architectural trade-offs to support very distinct workflow classes. 
+
+## 5.1 Experiment Setup 
+
+5.1.1 DBMS Systems. We evaluated on Neon, Xata, TigerData, Dolt, and two PostgreSQL approaches (file copy and transaction-s/savepoints). Since many of the systems are relatively new, we now describe some of the engineering challenges that arose during benchmark evaluation. For PostgreSQL transaction/savepoint and PostgreSQL file-copy clone, we run Postgres 18 with max_connections set to 1200. Neon is both a cloud-hosted service as well as an open-source project. However, we were unable to properly run Neon locally de-spite considerable engineering effort. Their results are with respect to their hosted service, which we ensure runs in the same region as our VM (AWS us-east-1).                                                                   
+
+> 7Group Parameter Software Dev Failure Repro Data Cleaning MCTS MC Simulation.
+> Setup Workers 𝑇 5110 10 1000 Steps/Worker 𝑆 20 10 20 100 1Cross-branch queries 𝐶 1—2—1Root fanout 𝐹 r510 10 10 1000 Inner fanout 𝐹 i3—310 —Depth 𝐷 31325 1Per-step Schema changes 𝑀 s151——Data mutations 𝑀 d145 1150 Read queries 𝑄 𝑣 21111Prune prob 𝛾 0.1 1—0.1 1
+
+Table 3: Parameter instantiations for each workflow (— means no such operation). 
+
+Dolt is self-hosted on AWS, which we built from source. We ran into psycopg2 errors during the initial experiment. After reporting those to the Dolt team, they confirmed and fixed the bug [2]. All self-hosted experiments (Dolt, PostgreSQL) run on a single 
+
+c8i.4xlarge EC2 instance (16 vCPUs, 32 GB RAM) with an 150 GB EBS volume in us-east-1 . All hosted services (Neon, Tiger, Xata) implement rate-limiting to various degrees. We implemented basic timeout and retry mechanisms in order to avoid immediate failure when rate limited. 
+
+5.1.2 Macrobenchmark Setup. We find that most systems are not able to complete the full benchmark and thus we developed two variations: (1) Full. Our target configuration with scale factor 𝑊 = 5 (five warehouses) and the full workflow parameters from Table 3. This setting measures how well each system scales under re-alistic agentic exploration, surfacing performance bottlenecks and resource limitations. (2) Mini. A reduced configuration with scale factor 𝑊 = 1 (one warehouse) and downscaled workflow parameters (fewer work-ers and fewer steps), while keeping the per-step operation mix unchanged. This setting primarily tests whether each DBMS can execute the required branch and SQL operations for each work-flow and exposes correctness/feature gaps and per-operation costs. 
+
+5.1.3 Microbenchmark Setup. The microbenchmark always runs with scale factor 𝑊 = 1. We first study the cost of branching across all systems. From our macrobenchmark experiments, we found that the two “production-ready” DBMSes, Neon and Dolt, are compara-ble for almost all data operations with the exception of DDLs and range queries, so we focus on reporting their performance. 
+
+## 5.2 Branching Performance 
+
+Every agentic application requires the ability to create and connect to new branches. Thus, before running any agentic workloads, we first measure branch and connect performance for all systems. 
+
+5.2.1 Single-Thread. We repeatedly create and connect to a new branch, and create a spine shaped branch tree (fanout=1) where each new child branch uses the previous branch as parent. Figure 3 reports the latency to create and connect to the n-th branch on a single thread. Xata and Tiger have orders of magnitude higher 
+
+Figure 3: Branch creation latency on n-th branch, across all systems. 
+
+branch creation latencies compared to all other systems—to the extent that we disqualify these systems for the rest of the exper-iments. Neon is much slower than Dolt, mostly because Neon’s architecture provisions a new compute instance for every branch to act as the branch’s page server and partly due to network delays to Neon’s cloud service. As expected, PostgreSQL transaction creation forms the lower bound. 
+
+5.2.2 Multi-Thread. To measure interference, we evaluate the per-formance of increasing the number of threads that concurrently create and connect to new branches. Each thread branches from the root to form a wide, depth=1 tree. As show in Figure 4, with the exception of PostgreSQL transactions, the cost of creating and connecting to new branches grows with the number of concurrent branches in all systems. 
+
+## 5.3 Backend Capability Analysis 
+
+We use the macrobenchmark to evaluate the features that each system supports, and limited each workload’s execution to 2 hours. Table 4 shows that no system was able to fully complete the five agentic applications within the 2 hours. The root causes of failed exe-cutions are based on whether a given system supports features such as mutations in concurrent branches, persistent named branches, 
+
+> 8
+
+Figure 4: Multi-branch connection performance across sys-tems.                                 
+
+> System Software Dev Failure Repro Data Cleaning MCTS Simulation
+> Neon ∼✓∼∼×
+> Dolt ✓✓✓∼×
+> Xata ×××××
+> TigerData ∼✓∼∼×
+> PG Clone ×✓××✓
+> Txn/Savepoint ×✓××✓
+
+Table 4: System capability matrix showing which systems can execute the workflow on full configuration. ✓ indicates capable; × indicates incapable; ∼ indicates partially capable with errors or crashes. 
+
+efficient data operations, or simply stable API support. This subsec-tion analyzes the full and partial execution failures. 
+
+5.3.1 Full Failures. We denote a × in the table when a system was unable to execute a workflow. 
+
+PostgreSQL transactions are sufficient only for the Failure Repro-duction and Simulation workflows where a branch is immediately pruned after evaluation ( 𝛾 = 1). This is because switching to a different savepoint or transaction context requires reverting all work done since that savepoint, effectively discarding the current state. Similarly, PG Clone’s limitation is that the source/template database cannot have any active connections at the time of cloning, because PostgreSQL blocks all connections to the template database during the clone operation to ensure a consistent, crash-free copy. Active connections cause cloning to block. 
+
+Xata in principle should be able to support the Failure Reproduction workflow. However, during the course of experiments, their team disabled our API access, which subsequently reported 403 failures. 
+
+Neon finished 348 out of 1000 steps for the Simulation workflow, however we consider it a full failure because not all scenarios were completed and the final outcome requires a cross-branch aggrega-tion across all simulated scenarios. 
+
+Dolt’s reads must traverse its content-addressed tree, which grows longer with the number of branches and mutations. This means that 
+
+Figure 5: Unfinished MCTS exploration tree performance. 
+
+as the number of concurrent branches grows, the read performance becomes considerably slower due to the number of random seeks. For simulation, which runs upwards of 1000 concurrent branches, the reads become so slow that Dolt did not terminate gracefully at the time out. For these reasons, we were not able to collect final statistics about the state of the database for this workflow. 
+
+5.3.2 Partial Workflow Execution. We use ∼ to denote a system that completes a subset of the workload but either did not finish or encountered errors during the execution. 
+
+TigerData did not complete any workflows other than Failure Re-pro. Data Cleaning completed 16/200 steps but timed out waiting for additional branches. The remaining workflows failed due to un-documented API rate-limiting causing API calls to fail. TigerData’s complete isolation between services ensures consistently fast on-branch CRUD operations, but the bottleneck imposed by branch creation time effectively throttles performance in our benchmark suite enough to prevent complete experiment inclusion. 
+
+Neon’s cloud service does not support more than 20 concurrent “live” branches because each branch is attached to a compute in-stance. Although this ensures that queries to each live branch is fast, many workloads require more than 20 concurrent branches: Software Dev, Data Cleaning, and MCTS. When the benchmark tries to acquire a new branch and the API returns an error, we mark that step as a failure and move on to another step. 
+
+Dolt’s partial failure for MCTS is because its reads become increas-ingly expensive. Unlike Simulation, MCTS runs far fewer concur-rent branches and Dolt terminated gracefully at 2 hrs. We use MCTS as an illustrative example of their execution progress over time. Figure 5 shows the number of completed steps (y-axis) over time (x-axis) up until the 2 hour timeout. We see that their progress is step-wise linear. Although Neon completes the first several steps quickly, it then blocks due to the concurrent live branch limit. In summary, Neon only completed 25/100 steps for Software Dev, 26/200 for Data Cleaning, 33/1000 for MCTS, and 348/1000 for Simulation; Dolt completed 170/1000 for MCTS and an unknown number for simulation (see above). 
+
+5.3.3 Storage Utilization. We attempted to measure storage utiliza-tion statistics for each system at the end of a workflow’s execution or time out. Since Xdata, TigerData, PG Clone, and PostgreSQL Transactions fully failed on almost all workloads, we focus on Neon 
+
+> 9
+
+System Software Dev Failure Repro Data Cleaning MCTS Simu. 
+
+Dolt 93.1 MB 63.6 MB 94.1 MB 3.8 MB —Neon 4.0 GB 0 B 4.7 MB 4.1 MB —
+
+Table 5: Storage overhead per workflow for Dolt and Neon. 
+
+and Dolt. Table 5 reports storage overhead that we measured at the end of executing each application (or upon its timeout). 
+
+Neon spends over 43 × more storage overhead for the Software Dev workload because the application executes schema updates with data backfills. This suggests that Neon is not optimized to efficiently manage data overlaps upon schema updates. 
+
+Dolt consumes considerably more storage overhead in Failure Re-pro and Data Cleaning. The former is because Dolt stores the full history of its data even for pruned branches, whereas Neon reclaims the resources. The latter is because the workload adds columns with 
+
+DEFAULT FALSE ; Neon’s PostgreSQL engine stores the FALSE as metadata, whereas Dolt materializes the column. 
+
+Caveat. We emphasize that the storage statistics for Neon are not fully reliable , and so they should be interpreted for order-of-magnitude comparative purposes only. This is for two reasons. The first is that Neon and Dolt did not finish the same number of steps in each workflow, so the exact numbers are not apples-to-apples. The second, more importantly, is that Neon’s metrics reporting has limitations. After starting an experiment run, Neon only begins collecting metrics 15 minutes into the experiment, and then updates the statistics at the top of each hour (e.g., 1PM, 2PM). For this reason, we are unable to analyze storage overheads during a benchmark, and due to resource reclamation, may under-report storage overheads for workflows that prune branches. In contrast, we ran Dolt locally and have precise statistics. 
+
+Figure 6: End-to-end latency for each workflow (mini config). 
+
+## 5.4 Backend Performance Analysis 
+
+Based on the capability analysis in §5.3, we focus our performance evaluation on Neon and Dolt, the two systems that could execute the broadest set of workflows (Table 4) while being reasonbly fast at branching. We use the mini configuration to ensure both systems complete all workflows within the timeout, enabling controlled comparison without API-imposed limits or multi-hour query exe-cution. 
+
+5.4.1 Latency Breakdown by Workflow. Figure 6 shows end-to-end workflow latency decomposed into data operations (SELECT, INSERT, UPDATE, DDL) and branch lifecycle primitives (create, connect, delete). Dolt’s branch operations are very fast, but it is limited by slow reads due to the need to traverse the content-addressed tree’s structures—which grows with the number of branches and mutations— for each query. We see this most dramatically with Simulation, where the high number of branches (1000) and mutation operations (50 per step) causes reads to be particularly expensive. However, Dolt is still faster when the number of mutations is low (Software Dev). Neon’s branching operations are dominated from network round-trips to the control plane API—even when run in the same AWS region—and per-branch compute provisioning delays. The data operations are fast because each branch is provisioned with a dedicated compute instance. 
+
+5.4.2 Heatmap for Neon and Dolt. Figure 7 compares median la-tency for each type of operation (x-axis) and each workflow (y-axis). The left-most heatmap reports the relative performance between Neon and Dolt, where positive cells are where Neon is slower and negative is where Dolt is slower. The middle and right plots report absolute latencies in milliseconds We find that most data operations are relatively similar, except for DDL statements and reads. Dolt’s DDL operations in the Data Cleaning workflow incur substantially higher cost than Neon be-cause Dolt materializes DEFAULT column values for all existing tuples, while PostgreSQL treats this as a metadata-only operation. Dolt’s read latency is 2 − 4000 × higher than Neon’s across workflows—particularly for range read queries. This motivates our microbenchmarks to focus on read performance to understand the performance under varying branch and concurrent thread counts. 
+
+## 5.5 Microbenchmark: Drill down on reads 
+
+To understand the architectural trade-offs between Neon and Dolt revealed by the macrobenchmark, we evaluate read performance scaling in a microbenchmark along two dimensions: query selectiv-ity (point vs range) and concurrency (single vs multi-thread). We use the CH-benCHmark schema (W=1), where point reads query a single key and range reads query a contiguous 100-key range. We vary the number of branches (x-axis) and measure through-put in operations per second (y-axis) with synchronous request execution, consistent with the macrobenchmark pattern. In the single-thread experiment, one thread operates on a single branch to isolate the effect of branch count on per-branch performance. In the multi-thread experiment, each branch is accessed by one thread to measure aggregate system capacity as concurrent branches scale. 
+
+Query Selectivity: Point vs Range. Dolt outperforms Neon on point reads across all configurations because Dolt’s point reads execute locally, whereas Neon incurs network round-trip overhead 
+
+> 10
+
+Figure 7: Median latency heatmap across systems and operations. 
+
+Figure 8: Throughput for a single thread as number of branches increase (range size = 100). 
+
+to the cloud service. However, Dolt’s range scan performance de-grades significantly— 2−4000 × slower than Neon—due to the cost of traversing its content-addressed tree structure. This explains Dolt’s poor performance on Simulation (1000 branches with 50 mutations per step) where range queries dominated end-to-end latency. 
+
+Single-Branch Scaling. Figure 8 shows that increasing the number of branches in the system does not degrade single-branch read per-formance for either system. This indicates that both architectures maintain branch isolation: Neon’s per-branch compute instances operate independently, and Dolt’s content-addressed tree does not incur cross-branch interference when only a single branch is active. 
+
+Multi-Branch Scaling. Figure 9 reveals a fundamental architec-tural trade-off. Neon’s aggregate throughput scales near-linearly with the number of concurrent branches because each branch is provisioned with a dedicated compute instance, providing indepen-dent CPU and I/O resources. This design trades higher per-branch provisioning cost for the ability to scale read capacity by adding branches—up to the 20 concurrent branch limit imposed by the cloud service. In contrast, Dolt’s throughput plateaus at 4 branches because all branches execute within a single process and share a fixed resource pool. Adding branches provides no additional com-pute resources, and concurrent threads contend for CPU and disk I/O. This design minimizes branch overhead and operates at fixed server cost but cannot scale read capacity beyond the single-server 
+
+Figure 9: System reads capacity as number of branches in-crease (range size = 100). 
+
+limit. In summary, Neon’s architecture trades high per-branch re-source cost for parallel execution capacity, while Dolt trades limited scalability for low-overhead branching. Consequently, Neon is cost-effective when expensive per-branch operations (e.g., range scans) amortize the provisioning overhead, whereas Dolt is cost-effective when branch creation frequency dominates and operations are lightweight (e.g., point lookups). This analysis demonstrates the utility of our benchmark suite: the macrobenchmarks surfaced performance bottlenecks under realistic agentic workflows, while the microbenchmarks isolated the underlying architectural trade-offs that explain these bottlenecks. 
+
+## 6 RELATED WORK 6.1 Branching in OLAP systems 
+
+Branch Bench focuses on transaction-heavy agentic workloads that run on RDBMSes designed for highly mutable state, strict transactional guarantees, and low-latency operations. In contrast, analytical agentic workloads [ 25 ] operate over data lake systems optimized for large scans and bulk appends. These systems typically build on top of immutable object stores and implement branching via metadata operations: logical tables reference sets of physical objects, and writes materialize new objects while updating metadata (copy-on-write). Representative systems include: 
+
+> 11
+
+• LakeFS [ 46 ] provides repository-level Git-like operations (branch, commit, merge) over data lakes. It targets collaborative data en-gineering workflows. 
+
+• Apache Iceberg [3] uses table-level branch and tag primitives to support Write-Audit-Publish (WAP) workflows, where an iso-lated audit branch can be used to audit data quality before pub-lishing to production. 
+
+• Delta Lake [ 12 ] supports ACID semantics and time travel along a linear (single-branch) version history. The focus is on incre-mental and streaming pipelines rather than divergent branching. 
+
+• MotherDuck [ 29 ] supports zero-copy database clones for server-less analytics, and only materializes deltas between versions. 
+
+• Bauplan [5 ] combines Git-like branching with isolated, branch-scoped execution environments. This enables versioned develop-ment contexts for experimentation of e.g., ETL pipelines. 
+
+## 6.2 Database Benchmarking 
+
+Branch Bench builds on past database benchmarks to create a pa-rameterized, reproducible workload generator and evaluation suite. We use data from CH-benCHmark [ 10 ], which combines TPC-C and -H benchmarks to evaluate HTAP systems. YCSB [ 11 ] and OLTP-Bench [ 13 ] highlighted the value of workload parameterization and extensible benchmarking frameworks. However, existing benchmarks assume a single-branch model that is not applicable to agentic exploration that demands tree-structured branch states. A single task may generate thousands of ephemeral branches, perform mutations in isolation, compare states across branches, and discard large subtrees. This introduces new workload dimensions that go beyond prior benchmarks, including branch creation and restoration, scalability to various branch tree-topologies, cross-branch query costs, schema and physical design operations, metadata overhead under high branch cardinality, and garbage collection efficiency for short-lived states. To this end, B ranch Bench introduces a parameterized frame-work to model the “branch-mutate-evaluate” loop characteristic of agentic workloads, and supports microbenchmarks to measure indi-vidual primitive operations as well as macrobenchmarks motivated by future agentic data applications. 
+
+## 7 CONCLUSION 
+
+Agentic systems introduce a new database paradigm where even single agents generate thousands of speculative branches through high-frequency forking, evaluation, and pruning. This paper pre-sented B ranch Bench , the first systematic benchmark for evaluat-ing database branching mechanisms under agentic workloads. We characterized agentic branching through five representative work-flows (software development, failure reproduction, data cleaning, MCTS, simulation), and developed a parametrized benchmark suite that instantiates the “branch–mutate–evaluate–prune” loop and periodic background cross-branch aggregation. Evaluation of production systems reveals fundamental trade-offs in branch resource management: systems allocating dedicated com-pute instances per branch (e.g., Neon) incur higher branch creation and switching costs but provide better performance, whereas sys-tems managing all branches within a single instance (e.g., Dolt) enable faster branching operations but their data operations suffer from higher overheads. Additionally, existing systems lack native cross-branch aggregation support, a critical primitive for agentic workflows that must compare outcomes across speculative paths. Supporting these emerging agentic exploration workloads demands elevating branch instantiation latency, metadata scalability, and cross-branch analytics to first-class design considerations. 
+
+## REFERENCES 
+
+[1] Antoine Amend. 2020. Modernizing Risk Management Part 1: Streaming Data Ingestion, Rapid Model Development and Monte Carlo Simulations at Scale. https://www.databricks.com/blog/2020/05/27/modernizing-risk-management-part-1-streaming-data-ingestion-rapid-model-development-and-monte-carlo-simulations-at-scale.html. Published May 27, 2020. [2] Elaine Ang. 2025. psycopg2 support. https://github.com/dolthub/doltgresql/ issues/2143. [3] Apache Software Foundation. 2024. Apache Iceberg. https://iceberg.apache.org/. Accessed: 2026-03-01. [4] James Arthur. 2025. Vibe coding with a database in the sandbox. https://electric-sql.com/blog/2025/06/05/database-in-the-sandbox. Published June 5, 2025. [5] Bauplan Labs. 2024. Bauplan. https://www.bauplanlabs.com/. Accessed: 2026-03-01. [6] Cameron B. Browne, Edward Powley, Daniel Whitehouse, Simon M. Lucas, Peter I. Cowling, Philipp Rohlfshagen, Stephen Tavener, Diego Perez, Spyridon Samothrakis, and Simon Colton. 2012. A Survey of Monte Carlo Tree Search Methods. IEEE Transactions on Computational Intelligence and AI in Games 4, 1 (2012), 1–43. https://doi.org/10.1109/TCIAIG.2012.2186810 [7] Zhuhua Cai, Zografoula Vagena, Luis Leopoldo Perez, Subramanian Arumugam, Peter J. Haas, and Chris Jermaine. 2013. Simulation of database-valued markov chains using SimSQL. In ACM SIGMOD Conference . https://api.semanticscholar. org/CorpusID:18300835 [8] Raouf Chebri. 2022. ketteQ uses Neon branching for scenario analysis. https: //neon.com/blog/database-branching-for-postgres-with-neon. Published Dec 06, 2022. [9] Panayiotis K Chrysanthis and Krithi Ramamritham. 1990. ACTA: A framework for specifying and reasoning about transaction structure and behavior. In Pro-ceedings of the 1990 ACM SIGMOD international conference on Management of data . 194–203. [10] Richard Cole, Florian Funke, Leo Giakoumakis, Wey Guy, Alfons Kemper, Stefan Krompass, Harumi Kuno, Raghunath Nambiar, Thomas Neumann, Anisoara Patel, Meikel Poess, Kai-Uwe Sattler, Bernhard Seeger, Jan Takahashi, and Marek Wolski. 2011. Mixed Workload CH-benCHmark. In Proceedings of the Fourth International Workshop on Testing Database Systems (DBTest) . https://doi.org/10. 1145/1988842.1988850 [11] Brian F. Cooper, Adam Silberstein, Erwin Tam, Raghu Ramakrishnan, and Russell Sears. 2010. Benchmarking cloud serving systems with YCSB. In ACM Symposium on Cloud Computing . https://api.semanticscholar.org/CorpusID:2589691 [12] Delta Lake Project. 2024. Delta Lake. https://delta.io/. Accessed: 2026-03-01. [13] Djellel Eddine Difallah, Andrew Pavlo, Carlo Curino, and Philippe Cudré-Mauroux. 2013. OLTP-Bench: An Extensible Testbed for Benchmarking Relational Databases. Proc. VLDB Endow. 7 (2013), 277–288. https://api. semanticscholar.org/CorpusID:2612270 [14] Mike Freedman. 2025. Fluid Storage: Forkable, Ephemeral, and Durable Infras-tructure for the Age of Agents. https://www.tigerdata.com/blog/fluid-storage-forkable-ephemeral-durable-infrastructure-age-of-agents. [15] Hector Garcia-Molina and Kenneth Salem. 1987. Sagas. ACM Sigmod Record 16, 3 (1987), 249–259. [16] Jim Gray et al . 1981. The transaction concept: Virtues and limitations. In VLDB ,Vol. 81. 144–154. [17] Sam Harrison. 2024. Looking at How Replit Agent Handles Databases. https: //neon.com/blog/looking-at-how-replit-agent-handles-databases. Published Nov 08, 2024. [18] Levente Kocsis and Csaba Szepesvári. 2006. Bandit based monte-carlo planning. In European conference on machine learning . Springer, 282–293. [19] Sanjay Krishnan and Eugene Wu. 2019. Alphaclean: Automatic generation of data cleaning pipelines. arXiv preprint arXiv:1904.11827 (2019). [20] Dirk P. Kroese, Tim J. Brereton, Thomas Taimre, and Zdravko I. Botev. 2014. Why the Monte Carlo method is so important today. Wiley Interdisciplinary Reviews: Computational Statistics 6 (2014). https://api.semanticscholar.org/CorpusID: 18521840 [21] Peng Li, Xi Rao, Jennifer Blase, Yue Zhang, Xu Chu, and Ce Zhang. 2021. Cleanml: A study for evaluating the impact of data cleaning on ml classification tasks. In 
+
+2021 IEEE 37th international conference on data engineering (ICDE) . IEEE, 13–24. [22] Qian Li, Peter Kraft, Michael Cafarella, Çağatay Demiralp, Goetz Graefe, Christos Kozyrakis, Michael Stonebraker, Lalith Suresh, Xiangyao Yu, and Matei Zaharia. 2023. R3: Record-replay-retroaction for database-backed applications. Proceedings 
+
+> 12
+
+of the VLDB Endowment 16, 11 (2023), 3085–3097. [23] Qian Li, Peter Kraft, Michael Cafarella, Çağatay Demiralp, Goetz Graefe, Chris-tos Kozyrakis, Michael Stonebraker, Lalith Suresh, and Matei Zaharia. 2022. Transactions Make Debugging Easy. arXiv preprint arXiv:2212.14161 (2022). [24] Wilson Lin. 2026. Scaling Long-Running Autonomous Coding. https://www. cursor.com/blog/scaling-agents. Published January 14, 2026. [25] Shu Liu, Soujanya Ponnapalli, Shreya Shankar, Sepanta Zeighami, Alan Zhu, Shubham Agarwal, Ruiqi Chen, Samion Suwito, Shuo Yuan, Ion Stoica, et al .2025. Supporting our ai overlords: Redesigning data systems to be agent-first. 
+
+arXiv preprint arXiv:2509.00997 (2025). [26] Michael Maddox, David Goehring, Aaron J Elmore, Samuel Madden, Aditya Parameswaran, and Amol Deshpande. 2016. Decibel: The relational dataset branching system. In Proceedings of the VLDB Endowment. International Confer-ence on Very Large Data Bases , Vol. 9. 624. [27] Mike A. Merrill, Alexander G. Shaw, Nicholas Carlini, Boxuan Li, Harsh Raj, Ivan Bercovich, Lin Shi, Jeong Yeon Shin, Thomas Walshe, E. Kelly Buchanan, Junhong Shen, Guanghao Ye, Haowei Lin, Jason Poulos, Maoyu Wang, Mari-anna Nezhurina, Jenia Jitsev, Di Lu, Orfeas Menis Mastromichalakis, Zhiwei Xu, Zizhao Chen, Yue Liu, Robert Zhang, Leon Liangyu Chen, Anurag Kashyap, Jan-Lucas Uslu, Jeffrey Li, Jianbo Wu, Minghao Yan, Song Bian, Vedang Sharma, Ke Sun, Steven Dillmann, Akshay Anand, Andrew Lanpouthakoun, Bardia Koopah, Changran Hu, Etash Guha, Gabriel H. S. Dreiman, Jiacheng Zhu, Karl Krauth, Li Zhong, Niklas Muennighoff, Robert Amanfu, Shangyin Tan, Shreyas Pimpal-gaonkar, Tushar Aggarwal, Xiangning Lin, Xin Lan, Xuandong Zhao, Yiqing Liang, Yuanli Wang, Zilong Wang, Changzhi Zhou, David Heineman, Hange Liu, Harsh Trivedi, John Yang, Junhong Lin, Manish Shetty, Michael Yang, Nabil Omi, Negin Raoof, Shanda Li, Terry Yue Zhuo, Wuwei Lin, Yiwei Dai, Yuxin Wang, Wenhao Chai, Shang Zhou, Dariush Wahdany, Ziyu She, Jiaming Hu, Zhikang Dong, Yuxuan Zhu, Sasha Cui, Ahson Saiyed, Arinbjörn Kolbeinsson, Jesse Hu, Christopher Michael Rytting, Ryan Marten, Yixin Wang, Alex Dimakis, Andy Konwinski, and Ludwig Schmidt. 2026. Terminal-Bench: Benchmarking Agents on Hard, Realistic Tasks in Command Line Interfaces. arXiv:2601.11868 [cs.SE] https://arxiv.org/abs/2601.11868 [28] JP Morgan et al . 1997. Creditmetrics-technical document. JP Morgan, New York 
+
+1 (1997), 102–127. [29] MotherDuck. 2024. MotherDuck. https://motherduck.com/. Accessed: 2026-03-01. [30] Richard E Murray, Patrick B Ryan, and Stephanie J Reisinger. 2011. Design and validation of a data simulation model for longitudinal healthcare data. In AMIA Annual Symposium Proceedings , Vol. 2011. 1176. [31] Felix Neutatz, Binger Chen, Ziawasch Abedjan, and Eugene Wu. 2021. From Cleaning before ML to Cleaning for ML. IEEE Data Eng. Bull. 44, 1 (2021), 24–41. [32] Deniz Preil and Michael Krapp. 2022. Artificial intelligence-based inventory management: a Monte Carlo tree search approach. Annals of Operations Research 
+
+308, 1 (2022), 415–439. [33] Erhard Rahm, Hong Hai Do, et al . 2000. Data cleaning: Problems and current approaches. IEEE Data Eng. Bull. 23, 4 (2000), 3–13. [34] Sebastian Schelter, Dustin Lange, Philipp Schmidt, Meltem Celikel, and Felix Biessmann. 2018. Automating large-scale data quality verification. pVLDB (2018). [35] Shafaq Siddiqi, Roman Kern, and Matthias Boehm. 2023. SAGA: A scalable frame-work for optimizing data cleaning pipelines for machine learning applications. 
+
+Proceedings of the ACM on Management of Data 1, 3 (2023), 1–26. [36] Carlota Soto. 2024. Database Branching Workflows: A Guide for Devel-opers. https://neon.com/blog/database-branching-workflows-a-guide-for-developers. Published May 9, 2024. [37] Benjamin Sowell, Wojciech Golab, and Mehul A Shah. 2012. Minuet: A scalable distributed multiversion b-tree. arXiv preprint arXiv:1205.6699 (2012). [38] Michael Stonebraker, Jim Frew, Kenn Gardels, and Jeff Meredith. 1993. The SEQUOIA 2000 storage benchmark. , 10 pages. https://doi.org/10.1145/170036. 170038 [39] Anomalo team. 2024. Continuous Monitoring for Data Quality: Solutions for Reliable Data. https://www.anomalo.com/blog/continuous-monitoring-for-data-quality-solutions-for-reliable-data. [40] Dolt Team. 2025. Dolt - Using Branches. https://docs.dolthub.com/sql-reference/ version-control/branches. [41] Kimi Team. 2026. Kimi K2.5: Visual Agentic Intelligence. arXiv:2602.02276 [cs.CL] https://arxiv.org/abs/2602.02276 [42] Neon Team. 2026. Neon Branching - Branch your data the same way you branch your code. https://neon.com/docs/introduction/branching. [43] Xata Team. 2025. Xata Instant Branching: Copy-on-Write branching system for PostgreSQL databases. https://xata.io/documentation/core-concepts/branching. [44] Bob Ternosky. 2026. Instant Per-Branch Databases with PostgreSQL 18’s clone file copy and Copy-on-Write Filesystems. https://medium.com/axial-engineering/instant-per-branch-databases-with-postgresql-18s-clone-file-copy-and-copy-on-write-filesystems-1b1930bddbaa. [45] Joe Thom. 2025. Building Production-Ready Apps with Automated Database Migrations on Replit. https://blog.replit.com/production-databases-automated-migrations. Published December 12, 2025. [46] Treeverse. 2024. lakeFS. https://lakefs.io/. Accessed: 2026-03-01. [47] Edoardo Vittori, Amarildo Likmeta, and Marcello Restelli. 2021. Monte carlo tree search for trading and hedging. In Proceedings of the Second ACM International Conference on AI in Finance . 1–9. [48] Gerhard Weikum and Hans-Jörg Schek. 1992. Concepts and applications of multilevel transactions and open nested transactions. [49] Jiakai Xu, Tianle Zhou, Eugene Wu, and Kostis Kaffes. 2025. Toward Systems Foundations for Agentic Exploration. SOSP SSA Workshop (2025). [50] Xiao Yu, Baolin Peng, Vineeth Vajipey, Hao Cheng, Michel Galley, Jianfeng Gao, and Zhou Yu. 2024. Exact: Teaching ai agents to explore with reflective-mcts and exploratory learning. arXiv preprint arXiv:2410.02052 (2024). [51] Shuozhi Yuan, Limin Chen, Miaomiao Yuan, and Zhao Jin. 2025. MCTS-SQL: Light-Weight LLMs can Master the Text-to-SQL through Monte Carlo Tree Search. arXiv:2501.16607 [cs.DB] https://arxiv.org/abs/2501.16607 [52] Xuanhe Zhou, Guoliang Li, Chengliang Chai, and Jianhua Feng. 2022. A Learned Query Rewrite System using Monte Carlo Tree Search. Proceedings of the VLDB Endowment 15, 1 (2022). https://doi.org/10.14778/3485450.3485456 [53] Kexin Zhu, Michael Whittaker, Srdjan Petrovic, Robert Grandl, and Sanjay Ghe-mawat. 2025. Vive la Différence: Practical Diff Testing of Stateful Applica-tions. Proc. VLDB Endow. 18 (2025), 2018–2030. https://api.semanticscholar.org/ CorpusID:280693134 
+
+> 13
+
+## A MACROBENCHMARK QUERIES 
+
+This section provides examples of the queries used in the mac-robenchmark. 
+
+## A.1 Software Development 
+
+Schema Change: 
+
+ALTER TABLE customer ADD COLUMN loyalty_tier_xx; 
+
+Data Mutation (backfill): 
+
+UPDATE customer SET loyalty_tier_xx = (CASE WHEN ...); 
+
+Read (evaluate quality): 
+
+SELECT loyalty_tier_xx, COUNT(*) FROM customer GROUP BY loyalty_tier_xx; 
+
+Compare (cross-branch): 
+
+SELECT loyalty_tier_xx, COUNT(*) AS tier_count, AVG(c_ytd_payment) AS avg_payment FROM customer GROUP BY loyalty_tier_xx; 
+
+## A.2 Failure Reproduction 
+
+Schema Change (replay): 
+
+ALTER TABLE order_line ADD COLUMN X; ALTER TABLE orders ADD/DROP COLUMN Y; ALTER TABLE customer ADD COLUMN Z; 
+
+Data Mutation (replay): 
+
+INSERT INTO orders (...); UPDATE customer SET (...); DELETE FROM order_line WHERE (...); 
+
+Read (invariant check): 
+
+SELECT DISTINCT o.o_id FROM orders JOIN order_line ON (...) GROUP BY (...) HAVING (...); 
+
+## A.3 Data Cleaning 
+
+Schema Change (aux column): 
+
+ALTER TABLE customer ADD COLUMN c_clean_xx DEFAULT FALSE; 
+
+Data Mutation (strategies): 
+
+UPDATE customer SET c_balance = 0 WHERE c_balance IS NULL; DELETE FROM customer WHERE c_balance IS NULL; 
+
+Read (correctness): 
+
+SELECT COUNT(CASE WHEN c_balance < 0 THEN 1 END) AS invalid FROM customer; 
+
+Compare (cross-branch): 
+
+SELECT COUNT(...) AS invalid, MAX(c_ytd_payment)-MIN(c_ytd_payment) AS spread FROM customer; 
+
+## A.4 Monte Carlo Tree Search 
+
+Data Mutation: 
+
+UPDATE stock SET s_quantity = (...) WHERE (...); 
+
+Read (expected reward): 
+
+SELECT SUM(ol_amount) AS total_cost FROM order_line JOIN warehouse ON (...); 
+
+## A.5 Simulation 
+
+Data Mutation: 
+
+INSERT INTO orders (...); UPDATE stock SET (...) WHERE (...); INSERT INTO order_line (...); 
+
+Read (evaluate outcomes): 
+
+SELECT SUM(...) AS stockouts, SUM(ol.ol_amount) AS total_cost FROM stock JOIN order_line ON (...); 
+
+Compare (aggregate across branches): 
+
+SELECT AVG(stockouts), AVG(total_cost) FROM all_branches.outcome_metrics;

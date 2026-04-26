@@ -1,0 +1,755 @@
+Title: Measure Twice, Click Once: Co-evolving Proposer and Visual Critic via Reinforcement Learning for GUI Grounding
+
+URL Source: https://arxiv.org/pdf/2604.21268v1
+
+Published Time: Fri, 24 Apr 2026 00:29:37 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Measure Twice, Click Once: Co-evolving Proposer and Visual Critic via Reinforcement Learning for GUI Grounding 
+
+Wenkai Wang 1, Xiyun Li 2, Hongcan Guo 3, Wenhao Yu 2, Tianqing Fang 2
+
+Haitao Mi 2, Dong Yu 2, Shengyu Zhang 1 *1Zhejiang University, 2Tencent AI Lab, 3The University of Hong Kong 
+
+{ wenkaiwang , sy_zhang }@zju.edu.cn 
+
+Abstract 
+
+Graphical User Interface (GUI) grounding re-quires mapping natural language instructions to precise pixel coordinates. However, due to visually homogeneous elements and dense layouts, models typically grasp semantic in-tent yet struggle with achieving precise lo-calization. While scaling sampling attempts (Pass@k) reveals potential gains, static self-consistency strategies derived from geometric clustering often yield limited improvements, as the model’s predictions tend to be spatially dispersed. In this paper, we propose replacing static consistency strategies with a learnable selection mechanism that selects the optimal target by critiquing its own proposals rendered on the screenshot. Given the significant dis-parity between the model’s grounding and cri-tiquing capabilities, we propose a co-evolving Propose-then-Critic framework. To jointly op-timize these, we introduce a maturity-aware adaptive co-evolutionary reinforcement learn-ing paradigm. This approach dynamically bal-ances the training objectives of proposer and critic, where the diversity of the proposer’s outputs enhances critic robustness, while the critic’s maturing discrimination capability con-versely unlocks the proposer’s potential for ex-tensive spatial exploration, fostering the mu-tual reinforcement and co-evolution of both capabilities, thereby ensuring generalizability to adapt to diverse and complex interface lay-outs. Extensive experiments over 6 bench-marks show that our method significantly en-hances both grounding accuracy and critic reli-ability. 
+
+1 Introduction 
+
+The rapid evolution of autonomous Graphical User Interface (GUI) agents is reshaping the landscape of digital automation (Zhang et al., 2024; Wang et al.). At the heart of this interaction lies GUI 
+
+> *
+
+Corresponding author. Input Instruction :   
+
+> Change the page view
+> GT Icon:
+> Step1 Propose
+> (Candidate Generation)
+> Model output:
+> <think> The user wants
+> to change the page view,
+> likely referring to
+> switching … I Choose 5
+> points …<think>
+> Candidates:[174, 263], […], …
+
+High Recall        
+
+> 21
+> 3
+> 4
+> 0
+> Step3 Critic
+> (Point Discrimination)
+> Model output:
+> [Analysis of candidates...]
+> Candidate 0 is not on the
+> Target. It is …Candidate 1
+> Is … Candidate 2 is on the
+> target … .
+> Ranked ids: [2, 3, 0, 1, 4]
+
+High Precision Top 1 Selected Candidat e: HIT ✅     
+
+> 21
+> 3
+> 4
+> 0
+> Overlay candidate points with IDs
+> 2
+> 1
+> 3
+> 4
+> 0
+> Step2 Visualization
+> 2
+> 1
+> 3
+> 4
+> 0
+> Final Selection
+> Median Coordinate ❌
+
+Figure 1: Overview of the Propose-then-Critic framework. The process involves three steps: (1) Pro-pose: generating diverse candidates for coverage; (2) Visualize: rendering candidates with ID markers; and (3) Critic: ranking candidates to select the precise tar-get. 
+
+Grounding, a fundamental capability that trans-lates abstract natural language instructions into precise executable coordinates. Recent advance-ments in Multimodal Large Language Models (MLLMs) (Bai et al., 2025a) have shown signif-icant promise, leveraging robust vision-language alignment to interpret screens and user intents. However, applying MLLMs to GUI Grounding remains challenging, as it demands not only se-mantic understanding of the user intent and screen layout but also the regression of pixel-perfect co-
+
+> arXiv:2604.21268v1 [cs.LG] 23 Apr 2026
+
+ordinates (Liu et al., 2025c). This is particularly difficult in modern GUI environments character-ized by high resolutions and densely packed, small UI elements, where models often struggle to accu-rately localize targets in a single attempt. Empirically, sampling multiple candidates yields a significantly higher Pass@K than single-shot generation, suggesting that the correct target often lies within the model’s potential output distribution. Nevertheless, as shown in Figure 5 naive self-consistency strategies derived from geometric clustering (e.g. Geometric Median or Medoid) often yield limited improvements (Du et al., 2025). This is largely due to stochastic dis-persion of predicted coordinates, which prevents simple geometric aggregation from forming areliable consensus. Current methods predominately adopt a direct regression paradigm, training models to determin-istically map semantic instructions to specific co-ordinates (Wu et al., 2025b; Yuan et al.; Xu et al., 2024). However, such deterministic supervision may constrain generative diversity, potentially hin-dering robust generalization across varied layouts (Chu et al., 2025). Some training-free methods at-tempt to leverage output consistency (Xu et al., 2025; Luo et al., 2025), yet the high spatial vari-ance renders these improvements marginal. Other works explore iterative refinement through self-reflection to improve precision (Zhao et al., 2025; Nguyen, 2024; Liu et al., 2025b). However, we ob-serve that the critic capability of existing models typically lags behind their generative performance, limiting their effectiveness in refining coordinate proposals. This leads to a key research question: 
+
+How can we design a learnable paradigm to effectively exploit the latent potential within the model’s multiple sampling attempts? 
+
+To address this challenge, we introduce a novel Propose-then-Critic framework, which shifts GUI grounding from a single-pass regression task to a learnable Visual Perception Ranking paradigm. In-stead of relying on fragile geometric clustering to aggregate disparate coordinates, we leverage the model’s inner discriminative capabilities to verify its own proposals through visual feedback render-ing potential targets on the screenshot to align-ing semantic intent with pixel-level execution. To bridge the inherent disparity between the model’s grounding and critiquing capabilities, we propose a Co-evolutionary Reinforcement Learning strat-egy. Unlike standard RL approaches that often sti-fle exploration in favor of exploiting high-reward modes, our method treats the Proposer and Critic as symbiotic agents. Crucially, we introduce a maturity-aware mechanism to harmonize the in-trinsic tension between prediction accuracy and candidate diversity. This mechanism orchestrates an adaptive curriculum: it initially guides agents to master fundamental localization, and progres-sively evolves to encourage expansive spatial ex-ploration as they mature. By dynamically rebal-ancing the learning focus, the diversity of the pro-poser’s outputs serves to enhance the robustness of the critic, while the critic’s maturing discrimina-tion capability empowers the proposer to expand its spatial search scope, fostering a mutual rein-forcement loop. This ensures the model exploits the full potential of test-time visual search without collapsing into a repetitive solution. Distinct from self-consistency methods, our framework gener-ates multiple candidates in a single inference pass, substantially reducing token overhead compared to repeated sampling. Our contributions are as fol-lows: • We propose a Propose-then-Critic framework that transforms GUI grounding into a Visual Perception Ranking paradigm, utilizing vi-sual feedback to bridge the instruction-visual alignment gap. • We introduce a Co-evolutionary Reinforce-ment Learning strategy driven by a dynamic maturity mechanism, which adaptively bal-ances prediction accuracy and diversity. • We achieve a relative improvement of ground-ing capability up to 17.2%. Our method sub-stantially improves both the generation accu-racy and the critic capabilities of MLLMs. 
+
+2 Related Work 
+
+2.1 GUI Grounding 
+
+GUI Grounding aligns user instructions with spe-cific screen elements by predicting precise execu-tion coordinates (Cheng et al., 2024). Mainstream MLLMs use Supervised Fine-Tuning (SFT) for direct regression, enhancing capabilities via data scaling (Cheng et al., 2024; Xu et al., 2024; Gou et al., 2024; Xie et al., 2025; Hong et al., 2024). Some research explores training-free paradigms leverage test-time scaling (Sample-K)or self-reflection for refinement (Wu et al., 2025a; Nguyen, 2024; Liu et al., 2025b). However, since SFT based methods may constrains generation di-versity and static aggregation struggles with spa-tial variance, we propose a Reinforcement Learn-ing framework to unlock the model’s latent sam-pling potential. 
+
+2.2 MLLM Reinforcement Learning 
+
+Reinforcement Learning (RL) has been broadly leveraged to enhance visual reasoning (Guo et al., 2025a; Huang et al., 2025; Zhang et al., 2025; Li et al., 2026; Yu et al., 2025; Fang et al., 2025). In the domain of GUI grounding, recent works have adopted this paradigm to either optimize re-ward modeling for direct regression or transform the inference paradigm (Liu et al., 2025c; Yang et al., 2025; Tang et al., 2025; Kang et al., 2025; Lu et al., 2025). Specifically, RCPO leverage re-gion consistency (Du et al., 2025) as a reward sig-nal, while other notable approaches like GUI Spot-light (Lei et al., 2025) and GUI-Cursor (Zhao et al., 2025) employ RL to enable iterative re-finement. However, such dependence on self-verification may lead to erroneous corrections due to potential semantic blindness. In comparison, our maturity-aware co-evolutionary paradigm syn-ergistically evolves both generation and discrimi-nation capabilities, fostering robust grounding per-formance. 
+
+3 Motivation 
+
+> Figure 2: Analysis of Latent Potential via Pass@k.
+
+Current GUI agents typically employ a "direct regression" paradigm, mapping instructions di-rectly to pixel coordinates. However, this method suffers from a significant visual-semantic gap: translating abstract intent into precise pixels intro-duces unavoidable spatial variance. This creates a bottleneck for single-shot performance, prompting us to look beyond deterministic regression and ex-plore multiple sampling strategies to mitigate the high spatial variance inherent in single-shot esti-mation. 
+
+The Latent Potential and Continuous Consis-tency Challenge. We observe that while the single-shot accuracy (Pass@1) of GUI agents is limited, their Pass@k performance is substantially higher, indicating that the correct semantic under-standing is often present but distributed across a probabilistic output space. To exploit this, one might apply Test-Time Compute techniques like Self-Consistency. However, unlike discrete text to-kens, the high spatial variance and stochastic dis-persion inherent in continuous coordinates prevent geometric clustering from forming a reliable con-sensus, leading to imprecise localization. 
+
+The Pitfalls of Naive Visual Criticism To bridge this gap, a natural progression is to trans-form the regression problem into a visual dis-crimination taskrendering candidate points on the screen for a VLM to judge. However, as shown in Figure 3, we observe that while off-the-shelf VLMs can easily filter out random noise, they struggle to distinguish the target from model-generated candidates, which typically cluster near the target or land on valid UI elements, acting as plausible distractors that confuse the critic. 
+
+> Figure 3: Analysis of Critic’s Semantic Blindness and its Negative Impact.
+
+4 Methodology 
+
+To unlock the latent potential in multiple sam-pling and bridge the gap between model’s gen-erative and discriminatory capabilities, we pro-Proposer Response 
+
+> Critic Response
+
+Unified Rollout 
+
+(Propose -then -Judge)  
+
+> Raw UI Image
+> Click the Ap p
+> store button …
+> Instruction
+
+Policy Model 
+
+Critic Rewards             
+
+> Top1 selection 𝑹 𝒕𝒐𝒑𝟏 Accuracy 𝑹 𝒏𝒅𝒄𝒈
+> 𝑹 𝒕𝒐𝒑𝟏 =s+,-( 𝑹 𝒏𝒅𝒄𝒈 =-./ !
+> 0-./ !
+> s=𝒆 -𝒅 𝟐
+> 𝟐 𝝈 𝟐
+> Top1 Tag Target
+
+𝒅 
+
+Decoupled Reward Construction Maturity -Aware Co -Evolution    
+
+> Proposer Maturity 𝑴 𝒑 Critic Maturity 𝑴 𝒄
+
+Tag A 
+
+Tag B
+
+Tag C 
+
+DCG H               
+
+> 𝑴 𝑷
+> 𝒕 =𝟏 −𝜶 𝑴 𝑷
+> 𝒕 3𝟏 +𝜶 𝑹 𝒂𝒄𝒄
+> 𝒕 𝑴 𝒄 𝒕 =𝟏 −𝜶 𝑴 𝒄 𝒕 3𝟏 +𝜶 𝑹 𝒏𝒅𝒄𝒈
+> 𝒕
+
+t            
+
+> Based Reward
+> Top1 Tag 𝑹 𝑻𝒐𝒑𝟏
+> 1
+> 2
+> 3
+> 4
+> Based Reward
+> Accuracy 𝑹 𝒂𝒄𝒄
+> Final Proposer Reward
+> 𝑹 𝒑 =𝑹 𝒂𝒄𝒄 +𝑴 𝒄 #𝑹 𝒄𝒐𝒗
+> Final Proposer Reward
+> 𝑹 𝒄 =𝑹 𝒕𝒐𝒑𝟏 +𝑴 𝒑 #𝑹 𝒏𝒅𝒄𝒈
+
+# + +   
+
+> Advanced Reward
+> Rank Quality 𝑹 1234
+> Advanced Reward
+> Coverage 𝑹 567
+
+Unlock Diversity 
+
+Weighted by 𝑴 𝒄 
+
+Unlock Ranking 
+
+Weighted by 𝑴 𝒑       
+
+> 𝑹 𝒂𝒄𝒄 =∑Softmax (s$)>s$+ Hit
+
+Proposer Rewards 
+
+𝒅𝒆𝒕 (∑)
+
+𝑩 𝒐𝒙 𝒈𝒕 
+
+𝑪𝒆𝒏𝒕𝒆𝒓 𝒈𝒕    
+
+> =tanh (|det (∑)|)𝑹 𝒄𝒐𝒗
+> Visualized Image
+> 4
+> 01
+> 23
+
+Tag B 
+
+Tag A
+
+Tag C 
+
+IDCG H
+
+t   
+
+> Accuracy 𝑹 𝒂𝒄𝒄 Coverage 𝑹 𝒄𝒐𝒗
+
+Figure 4: The Co-evolutionary Reinforcement Learning framework. Left: The unified ’Propose-then-Judge’ pipeline. Middle: Decoupled reward formulation optimizing the Proposer and the Critic. Right: The Maturity-Aware mechanism which dynamically schedules optimization weights to synergistically evolve generation and discrimination capabilities. 
+
+pose the Co -evolutionary Framework of Proposer and Visual Critic based on reinforcement learn-ing (COPC). In this section, we will elaborate on the methodology of COPC, which is built upon Grouped Reward Policy Optimization (GRPO). The framework first generates the Proposer and Critic trajectories, then assigns decoupled rewards to each role. By dynamically modulating the re-ward weights based on training maturity, our ap-proach facilitates the synergistic co-evolution of the Proposer and Critic. 
+
+4.1 Propose-then-Critic Paradigm 
+
+Formally, we define the GUI grounding task as lo-cating a target coordinate p∗ ∈ R2 on a screen 
+
+I given an instruction T . We employ a sin-gle MLLM, parameterized by θ, which alternates between two distinct roles Proposer and Critic 
+
+guided by task-specific prompts. 
+
+The Proposer (Generation). Given the raw im-age I and instruction T , the model operates in gen-eration mode to generate a set of K candidate co-ordinates P = {p1, . . . , p K } in a single inference pass: 
+
+P ∼ πθ(·|I , T , prompt gen ) (1) 
+
+Visualization (The Bridge). We employ a vi-sualization function V to render the candidate set 
+
+P onto the screen, generating a "marked image" 
+
+Ivis = V(I, P), where each candidate is anno-tated with a distinct visual marker (e.g., a numeric tag). 
+
+The Critic (Discrimination). The generation history Hgen = {I , T , prompt gen , P} . The Critic outputs a ranked sequence of indices ρ:
+
+ρ ∼ πθ(·|H gen , Ivis , prompt crit ) (2) where ρ = ( k1, . . . , k m) is a permutation of the candidate indices. The final prediction is the top-ranked candidate ˆp = pk1 . This setup ensures the critic evaluates candidates with full awareness of the initial intent and generation context. 
+
+4.2 Proposer and Critic Reward Design 
+
+CoPC formulates accuracy and spatial coverage re-ward signals for the Proposer to model the preci-sion and diversity of the generation phase. Sub-sequently, for the Critic phase, it employs Top-1 accuracy and ranking quality as the two distinct reward signals. 
+
+Proposer Accuracy Reward: We quantify the quality of a single point pi by mapping its Eu-clidean distance from the ground truth center pgt to the (0 , 1] interval using a Gaussian kernel: 
+
+si = exp 
+
+(
+
+− ∥pi − pgt ∥2
+
+2σ2
+
+)
+
+(3) To aggregate the quality of K samples, we uti-lize Softmax aggregation to prioritize the optimal candidate, effectively mitigating the impact of sub-optimal samples and preventing average-based re-ward dilution from suppressing generative diver-sity. Additionally, a binary Hit Reward is added to incentivize falling within the ground truth bound-ing box Bgt . The accuracy reward is formulated as: 
+
+Racc =
+
+> K
+
+∑
+
+> i=1
+
+Softmax (si) · si + 1
+
+K
+
+> K
+
+∑
+
+> i=1
+
+rhit,i (4) where rhit,i denotes the hit reward for candi-date pi, which equals a defined constant if pi falls within the ground truth bounding box, and 0 other-wise. 
+
+Proposer Coverage Reward: To facilitate ef-fective Test-time Search, we encourage spatial di-versity by quantifying the geometric area covered by the candidate set. We compute the covariance matrix Σ of the generated coordinates and map its determinant to a normalized range [0 , 1] using a hyperbolic tangent function: 
+
+Rcov = tanh 
+
+(√ | det(Σ) | + ϵ
+
+)
+
+(5) where ϵ ensures numerical stability. This formu-lation prevents unbounded reward growth while in-centivizing sufficient exploration. 
+
+Critic Top-1 Selection Reward: To explicitly capture the final prediction accuracy, we formulate the Critic Top-1 Selection Reward. Let pbest be the point selected by the Critic as the top candi-date. The reward is defined as the selected point’s quality: 
+
+Rtop 1 = sbest (6) 
+
+Critic Ranking Reward: To cultivate fine-grained discrimination, we employ Normalized Discounted Cumulative Gain (NDCG), which im-poses heavier penalties on ranking errors at the top of the list. We define the relevance score si for a candidate pi using a Gaussian kernel based on its distance to the ground truth. The reward is cal-culated as the ratio of the Discounted Cumulative Gain (DCG) to the Ideal DCG (IDCG): 
+
+Rndcg = DCG K
+
+IDCG K
+
+=
+
+∑Ki=1 sπi / log 2(i + 1) 
+
+∑Ki=1 s(i)/ log 2(i + 1) (7) where πi denotes the candidate index predicted at rank i, and s(i) represents the relevance scores sorted in descending order ( s(1) ≥ · · · ≥ s(K)). This ensures the Critic maximizes the alignment of the predicted ranking with the ground truth. 
+
+Maturity-Aware Co-Evolution: To bal-ance the Proposer’s accuracy and diversity while steadily enhancing final prediction performance, we design a progressive dynamic weighting mech-anism based on the model’s training maturity. This approach effectively mitigates optimization con-flicts arising from simultaneously maximizing all rewards from scratch, such as the model prioritiz-ing diversity over accuracy before learning to lo-calize targets. We define the maturity of the Proposer ( CP ) and the Critic ( CJ ) using the Exponential Moving Av-erage of their respective performance metrics: 
+
+C(t) 
+
+> P
+
+= (1 − α)C(t−1)  
+
+> P
+
++ αR (t)
+
+> acc
+
+C(t) 
+
+> J
+
+= (1 − α)C(t−1)  
+
+> J
+
++ αR (t)
+
+> ndcg
+
+(8) where α is the momentum coefficient. The final rewards are dynamically weighted as follows: 
+
+RP roposer = Racc + CJ · Rcov 
+
+RCritic = Rtop 1 + CP · Rndcg 
+
+(9) 
+
+4.3 Why Propose-then-Critic? A Mechanism Analysis 
+
+The core mechanism of COPC utilizes maturity-aware dynamic weighted rewards to simultane-ously enhance the model’s generative and discrim-inative capabilities. In this section, we analyze the effectiveness of COPC training methodology. 
+
+Proposer Evolves Critic: Progressive Hard Negative Mining. Driven by the maturity-aware mechanism, the Proposer constructs a dynamic curriculum for the Critic. As Proposer’s maturity increases, it evolves from making random errors to generating high-quality candidates that cluster densely around valid UI elements. These progres-sively harder negatives force the Critic to upgrade its capability from simple noise filtering to fine-grained visual discrimination, ensuring it can dis-tinguish the precise target from semantic distrac-tors. 
+
+Critic Unlocks Proposer: Adaptive Explo-ration via Maturity. The Critics maturation is the catalyst for unlocking the Proposers latent po-tential. In our co-evolutionary strategy, the sys-tem dynamically upweights the coverage reward only as the Critics reliability improves. This re-liable safety net allows the Proposer to shift from conservative regression to expansive sampling. By mitigating the risks of spatial variance, the mature Critic empowers the Proposer to maximize recall, transforming pixel-perfect localization into a man-ageable high-coverage search. 
+
+5 Experiment 
+
+5.1 Experiment Settings 5.1.1 Datasets. 
+
+We evaluate our method on a total of 6 bench-marks . Specifically, we use the training sets from Widget Caption(Li et al., 2020b), Omni-Act(Kapoor et al., 2024), GUICourse(Chen et al., 2025), ShowUI(Lin et al., 2024), RICO-SCA(Li et al., 2020a), OS-ATLAS(Wu et al., 2024) to train our models. Our benchmarks includes MMBench-GUI(Wang et al., 2025), ScreenSpot-Pro (Li et al., 2025), UI-Vision (Nayak et al., 2025), ScreenSpot-v2 (Wu et al., 2024), UI-I2E-Bench(Liu et al., 2025a), OSWorld-G(Xie et al., 2025). Detail in Appendix C. 
+
+5.1.2 Baselines. 
+
+To comprehensively evaluate the effectiveness of the COPC method, we benchmark it against three categories of baseline methods: Direct Prompting on Base Model ; SFT Based Meth-ods : standard SFT on the dataset, CoT SFT on the dataset, Two Stage SFT on the dataset ; RL Based Methods : DPO(Rafailov et al., 2023), GRPO(Guo et al., 2025a). We also se-lected a range of both open-source and Closed-Source General and GUI-Specific MLLMs as baselines: Claude 3.7 Sonnet(Anthropic, 2025), GPT-4o(Hurst et al., 2024), Claude Computer Use(Anthropic, 2024), SEED-1.5-VL(Guo et al., 2025b), Qwen2.5-VL-3B, Qwen2.5-VL-7B(Bai et al., 2025b), Qwen3-VL-2B, and Qwen3-VL-4B, Qwen3-VL-8B(Bai et al., 2025a), Aguvis-7B(Xu et al., 2024), OS-Atlas-Base-7B, UI-TARS-1.5-7B(Qin et al., 2025), UGround-V1-7B(Gou et al., 2024), GUI-G2-7B(Tang et al., 2025), SE-GUI-3B, SE-GUI-7B(Yuan et al.), GUI-Spotlight(Lei et al., 2025), GUI-Cursor(Zhao et al., 2025). De-tail in Appendix B. 
+
+5.1.3 Metrics. 
+
+We employ two metrics to decouple the evaluation of generation coverage and discrimination preci-sion: Oracle@K: Evaluates the Proposer’s recall capability. It calculates the percentage of sam-ples where at least one of the generated candidates (N ≤ K) falls within the ground-truth bounding box. Top-1 Accuracy: Evaluates the end-to-end system performance. It calculates the percentage of samples where the highest-ranked candidate se-lected by the Critic falls within the ground-truth bounding box. 
+
+5.2 Comparison with Different Models 
+
+To verify effectiveness, we benchmark against Closed-Source, General Open-Source, and GUI-specific models (Table 1). We report direct in-ference performance based on our reproduction for general models and official results for GUI-specific baselines. Our performance denotes the Top-1 Accuracy. 
+
+Obs. ∂ Our method consistently achieves state-of-the-art performance across varying model scales. Our method consistently outper-forms baselines across varying scales. Notably, on OSWorld-G, Ours (UI-Tars1.5) achieves 48.5% , surpassing the base model (46.8 %). Furthermore, Ours (Qwen3-VL-8B) demonstrates robust gains, validating the efficacy of our COPC framework. 
+
+5.3 Performance of Different Training Methods 
+
+To verify that CoPC can simultaneously enhance the model’s candidate generation and visual dis-crimination accuracy, we conducted an extensive comparison on Qwen3-VL-4B against baselines including Direct SFT, Two-Stage SFT, DPO, and GRPO across multiple benchmarks (Table 2). 
+
+Obs. ∑ SFT methods fail to cultivate self-critic capabilities As indicated by the significant performance degradation gap ∆ in Table 2, SFT methods are insufficient for training the model to visually discriminate the correct target from self-generated distractors. 
+
+Obs. ∏ CoPC achieves improvement in both generation and discrimination. Unlike previ-ous RL methods that often trade off exploration for stability, CoPC outperforms the strong base-line GRPO on both Oracle@5 and Top-1 accu-racy across the vast majority of tasks. This proves that our maturity-aware co-evolution strategy ef-fectively enhances the Proposer’s spatial coverage while improve the Critic’s capability. Model SSpot-Pro SSpot-v2 OSWorldG MMB-L2 I2E UIV-B UIV-F UIV-S 
+
+Closed-Source Models 
+
+GPT-4o 0.8 20 .1 – 2.87 – 1.6 1.5 1.0
+
+Claude-3.7 Sonnet 27 .7 87 .6 – 4.66 – 9.5 7.7 7.6
+
+Claude Computer Use 17 .1 – – – – – – –Seed-1.5-VL 60 .9 95 .2 62 .9 – – – – –Operator 36 .6 70 .5 40 .6 – – – – –
+
+General Open-source Models 
+
+Qwen2.5-VL-3B 16 .1 80 .9 27 .3 21 .2 21 .7 0.6 0.2 0.3
+
+Qwen2.5-VL-7B 26 .8 88 .8 31 .4 33 .8 28 .4 1.2 0.8 0.5
+
+Qwen3-VL-2B 16 .7 70 .3 23 .8 48 .1 44 .8 11 .7 9.3 2.1
+
+Qwen3-VL-4B 46 .4 88 .7 55 .3 77 .4 72 .1 27 .2 26 .5 8.8
+
+Qwen3-VL-8B 50 .1 91 .2 54 .7 80 .1 76 .5 35 .1 30 .6 10 .8
+
+GUI-specific Models 
+
+Aguvis-7B – – 38 .7 – – 17 .8 18 .3 5.1
+
+OS-Atlas-Base-7B 18 .9 85 .1 – 41 .4 – 12 .2 11 .2 3.7
+
+UI-TARS-1.5-7B 42 .0 91 .6 46 .8 64 .3 66 .1 22 .9 25 .1 6.6
+
+UGround-V1-7B 31 .1 – – 65 .6 – 15 .4 17 .1 6.3
+
+GUI-G2-7B 47 .5 93 .3 – – – – – –GUI-Spotlight 52 .8 – 62 .7 – – 32 .1 30 .2 9.1
+
+GUI-Cursor 56 .5 93 .9 – – – – – –
+
+Ours (UI-Tars1.5) 47.3 90.2 48.5 68.9 69.3 24.0 22.9 7.4 Ours (Qwen3-VL-8B) 58.7 91.3 59.6 78.4 81.8 38.2 34.5 14.1  
+
+> Table 1: Comparison of our model against various Closed-Source, General Open-Source, and GUI-specific MLLMs on 6 GUI-related benchmarks.
+
+Method ScreenSpot-Pro ScreenSpot-v2 OSWorld-G MMBench-GUI 
+
+Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆
+
+Base 41 .2 29 .3 -11.9 91 .3 79 .3 -12.0 51 .1 32 .8 -18.3 77 .9 58 .3 -19.6 Direct SFT 32 .4 23 .6 -8.8 84 .7 65 .1 -19.6 42 .6 25 .7 -16.9 68 .9 47 .2 -21.7 Two-Stage SFT 43 .7 35 .8 -7.9 90 .6 85 .4 -5.2 52 .9 47 .5 -5.4 74 .8 64 .3 -10.5 DPO 42 .5 34 .2 -8.3 90 .3 88 .6 -1.7 52 .3 48 .2 -4.1 72 .4 65 .9 -6.5 GRPO 58 .4 53 .4 -5.0 93.1 92 .5 -0.6 61 .2 57 .3 -3.9 82 .9 75 .7 -7.2 
+
+Ours 59.8 56.4 -3.4 93.1 92.6 -0.5 63.2 59.4 -3.8 84.5 79.3 -5.2 Method I2E-bench UI-Vision-Basic UI-Vision-Func UI-Vision-Spatial 
+
+Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆ Ora.@5 Top-1 ∆
+
+Base 74 .2 55 .0 -19.2 25 .8 16 .4 -9.4 27 .5 16 .6 -10.9 17 .6 6.1 -11.5 Direct SFT 63 .2 49 .3 -13.9 18 .6 12 .1 -6.5 22 .0 13 .4 -8.6 8.2 2.3 -5.9 Two-Stage SFT 73 .4 65 .1 -8.3 26 .3 20 .2 -6.1 26 .4 18 .3 -8.1 17 .9 13 .4 -4.5 DPO 76 .6 62 .3 -14.3 22 .1 15 .9 -6.2 25 .8 18 .0 -7.8 16 .4 12 .3 -4.1 GRPO 78 .4 72 .6 -5.8 32 .9 25 .0 -7.9 34 .2 26 .0 -8.2 17 .3 12 .8 -4.5 
+
+Ours 80.6 76.0 -4.6 36.8 30.5 -6.3 34.6 27.8 -6.8 19.4 15.5 -3.9 
+
+> Table 2: Performance comparison across 6 GUI Grounding benchmarks. We report Oracle@5 (generator upper bound), Top-1 (final selection), and the performance gap ( ∆). Our method consistently achieves the best accuracy with the smallest gap (closest to 0), demonstrating effective visual discrimination.
+
+5.4 Comparison with Spatial Consistency Strategies 
+
+To validate the necessity of our Visual Critic, we benchmark against four spatial aggregation strategiesArithmetic Mean, Coordinate-wise Me-dian, Geometric Median, and Medoidwhich aggre-gate answers from 8 independent inference runs. In contrast, our method generates multiple candi-Figure 5: Comparison with Spatial Consistency Strate-gies. 
+
+dates in a single pass followed by one critic turn, significantly reducing token consumption while in-troducing visual verification. Comparison results on Qwen3-VL-4B are shown in Figure 5. 
+
+Obs. π Visual Discrimination surpasses geo-metric consensus with higher efficiency. Despite consuming significantly fewer tokens, our method surpasses all spatial baselines. We observe that Arithmetic Mean often fail predictions into invalid background regions (e.g., between icons). Simi-larly, Medoid and Median fail on multi-modal dis-tributions: they blindly select the geometric cen-ter, whereas our Critic explicitly uses visual cues to distinguish the true target from semantic distrac-tors. 
+
+5.5 Sensitivity Analysis    
+
+> Figure 6: Sensitivity Analysis of Momentum Coeffi-cient αon Qwen3-VL-2B.
+
+To evaluate the stability of our maturity-aware mechanism, we analyze the impact of the momen-tum coefficient α on Qwen3-VL-2B , as shown in Figure 6. 
+
+Obs. ∫ Robustness to maturity update rates. 
+
+We observe that Mean Accuracy Reward curves exhibit consistent convergence with minimal fluc-tuation across a broad range of α. This con-firms our framework’s robustness to momentum settings, ensuring stable optimization without ex-tensive tuning. 
+
+5.6 Performance of CoPC on Different Models 
+
+> Figure 7: Performance Analysis on Qwen2.5-VL Se-ries.
+
+To verify the generality of our framework, we extended our evaluation to the Qwen2.5-VL series (3B and 7B), as shown in Figure 7. 
+
+Obs. ª achieves superior training perfor-mance across a variety of models. Our method consistently outperforms both base models and spatial aggregation strategies regardless of the un-derlying architecture, demonstrating that the bene-fits of our co-evolutionary mechanism are transfer-able across different backbones. 
+
+5.7 Ablation Study Method Ora.@5 Top-1 ∆
+
+Ours (Full Model) 70.0 67.3 -2.7 
+
+w/o component: 
+
+— Maturity (Static Weights) 62 .6 57 .5 -5.1 — Coverage Reward 66 .7 63 .2 -3.5 — Ranking Reward 69 .3 64 .9 -4.4 
+
+> Table 3: Ablation study on Qwen3-VL-4B.
+
+We conduct ablation studies on Qwen3-VL-4B to evaluate the contribution of each component, as shown in Table 3. 
+
+Obs. º Maturity Mechanism ensures stable optimization. Replacing the dynamic maturity schedule with static weights results in the most severe performance drop. This confirms that dy-namic weighting is essential to resolve the opti-mization conflict between accuracy and diversity. Obs. Ω Specific rewards are indispensable for training. Removing Rcov leads to a notable de-cline in Oracle@5, verifying its necessity for max-imizing candidate recall. Removing Rndcg widens the selection gap, indicating that ranking objec-tives are crucial for the Critic to pinpoint the cor-rect target from valid candidates 
+
+6 Conclusion 
+
+In this paper, we introduce the Co-evolutionary Framework of Proposer and Visual Critic (COPC), shifting GUI grounding to a Visual Perception Ranking paradigm. Utilizing a maturity-aware co-evolutionary RL strategy, we synergistically opti-mize the Proposer and Critic to unlock latent po-tential. Experiments across 6 benchmarks confirm COPC outperforms state-of-the-art models. By bridging the semantic-visual gap, our method ad-vances robust autonomous GUI agents. 
+
+Limitations 
+
+While CoPC demonstrates significant improve-ments in GUI grounding precision, there remain marginal areas for refinement. First, as a two-stage framework, although we have substantially reduced computational overhead compared to stan-dard consistency strategies, the inference latency is inherently higher than single-step regression models, presenting a trade-off for strictly real-time applications. Second, in extremely dense interface layouts, the visual markers rendered for critic veri-fication might occasionally introduce slight occlu-sion to local semantic details of tiny elements. Fu-ture work will explore more lightweight architec-tures and adaptive visual prompting techniques to address these aspects. 
+
+Acknowledgements 
+
+Supported by National Natural Science Foun-dation of China (No. 62402429, U24A20326, 62441236) Supported by the Key Research and Development Program of Zhejiang Province(No. 2025C01026) Ningbo Yongjiang Talent Intro-duction Programme (2023A-397-G) Young Elite Scientists Sponsorship Program by CAST (2024QNRC001) The author gratefully ac-knowledges the support of Zhejiang University Education Foundation Qizhen Scholar Foundation. Supported by Tencent Rhino-Bird Joint Research Program 
+
+References 
+
+Anthropic. 2024. Developing computer use. https://www.anthropic.com/news/ developing-computer-use . Accessed: 2026-01-01. Anthropic. 2025. Claude 3.7 sonnet system card. Tech-nical report, Anthropic. Accessed: 2025-08-02. Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, Wenbin Ge, Zhi-fang Guo, Qidong Huang, Jie Huang, Fei Huang, Binyuan Hui, Shutong Jiang, Zhaohai Li, Ming-sheng Li, and 45 others. 2025a. Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 .Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wen-bin Ge, Sibo Song, Kai Dang, Peng Wang, Shi-jie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, and 8 oth-ers. 2025b. Qwen2.5-vl technical report. arXiv preprint arXiv:2502.13923 .Wentong Chen, Junbo Cui, Jinyi Hu, Yujia Qin, Junjie Fang, Yue Zhao, Chongyi Wang, Jun Liu, Guirong Chen, Yupeng Huo, and 1 others. 2025. Guicourse: From general vision language model to versatile gui agent. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Vol-ume 1: Long Papers) , pages 21936–21959. Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Li YanTao, Jianbing Zhang, and Zhiyong Wu. 2024. Seeclick: Harnessing gui grounding for advanced visual gui agents. In Proceedings of the 62nd An-nual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 9313– 9332. Tianzhe Chu, Yuexiang Zhai, Jihan Yang, Sheng-bang Tong, Saining Xie, Dale Schuurmans, Quoc V Le, Sergey Levine, and Yi Ma. 2025. Sft mem-orizes, rl generalizes: A comparative study of foundation model post-training. arXiv preprint arXiv:2501.17161 .Yong Du, Yuchen Yan, Fei Tang, Zhengxi Lu, Chang Zong, Weiming Lu, Shengpei Jiang, and Yongliang Shen. 2025. Test-time reinforcement learning for gui grounding via region consistency. arXiv preprint arXiv:2508.05615 .Tianqing Fang, Hongming Zhang, Zhisong Zhang, Kaixin Ma, Wenhao Yu, Haitao Mi, and Dong Yu. 2025. Webevolver: Enhancing web agent self-improvement with co-evolving world model. In Pro-ceedings of the 2025 Conference on Empirical Meth-ods in Natural Language Processing , pages 8970– 8986. Boyu Gou, Ruohan Wang, Boyuan Zheng, Yanan Xie, Cheng Chang, Yiheng Shu, Huan Sun, and Yu Su. 2024. Navigating the digital world as humans do: Universal visual grounding for gui agents. arXiv preprint arXiv:2410.05243 .Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, and 1 others. 2025a. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 .Dong Guo, Faming Wu, Feida Zhu, Fuxing Leng, Guang Shi, Haobin Chen, Haoqi Fan, Jian Wang, Jianyu Jiang, Jiawei Wang, and 1 others. 2025b. Seed1. 5-vl technical report. arXiv preprint arXiv:2505.07062 .Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, and 1 others. 2024. Cogagent: A visual language model for gui agents. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 14281–14290. Wenxuan Huang, Bohan Jia, Zijie Zhai, Shaosheng Cao, Zheyu Ye, Fei Zhao, Zhe Xu, Yao Hu, and Shaohui Lin. 2025. Vision-r1: Incentivizing reason-ing capability in multimodal large language models. 
+
+arXiv preprint arXiv:2503.06749 .Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Weitai Kang, Bin Lei, Gaowen Liu, Caiwen Ding, and Yan Yan. 2025. Guirlvg: Incentivize gui visual grounding via empirical exploration on reinforce-ment learning. arXiv preprint arXiv:2508.04389 .Raghav Kapoor, Yash Parag Butala, Melisa Russak, Jing Yu Koh, Kiran Kamble, Waseem AlShikh, and Ruslan Salakhutdinov. 2024. Omniact: A dataset and benchmark for enabling multimodal generalist autonomous agents for desktop and web. In Euro-pean Conference on Computer Vision , pages 161– 178. Springer. Bin Lei, Nuo Xu, Ali Payani, Mingyi Hong, Chun-hua Liao, Yu Cao, and Caiwen Ding. 2025. \textsc 
+
+{GUI-Spotlight }: Adaptive iterative focus refine-ment for enhanced gui visual grounding. arXiv preprint arXiv:2510.04039 .Kaixin Li, Ziyang Meng, Hongzhan Lin, Ziyang Luo, Yuchen Tian, Jing Ma, Zhiyong Huang, and Tat-Seng Chua. 2025. Screenspot-pro: Gui grounding for professional high-resolution computer use. In 
+
+Proceedings of the 33rd ACM International Confer-ence on Multimedia , pages 8778–8786. Mukai Li, Qingcheng Zeng, Tianqing Fang, Zhenwen Liang, Linfeng Song, Qi Liu, Haitao Mi, and Dong Yu. 2026. Verified critical step optimization for llm agents. arXiv preprint arXiv:2602.03412 .Yang Li, Jiacong He, Xin Zhou, Yuan Zhang, and Ja-son Baldridge. 2020a. Mapping natural language in-structions to mobile ui action sequences. In Proceed-ings of the 58th Annual Meeting of the Association for Computational Linguistics , pages 8198–8210. Yang Li, Gang Li, Luheng He, Jingjie Zheng, Hong Li, and Zhiwei Guan. 2020b. Widget caption-ing: Generating natural language description for mobile user interface elements. arXiv preprint arXiv:2010.04295 .Kevin Qinghong Lin, Linjie Li, Difei Gao, Zhengyuan Yang, Zechen Bai, Weixian Lei, Lijuan Wang, and Mike Zheng Shou. 2024. Showui: One vision-language-action model for generalist gui agent. In 
+
+NeurIPS 2024 Workshop on Open-World Agents ,volume 1. Xinyi Liu, Xiaoyi Zhang, Ziyun Zhang, and Yan Lu. 2025a. Ui-e2i-synth: Advancing gui grounding with large-scale instruction synthesis. arXiv preprint arXiv:2504.11257 .Yuhang Liu, Pengxiang Li, Zishu Wei, Congkai Xie, Xueyu Hu, Xinchen Xu, Shengyu Zhang, Xiao-tian Han, Hongxia Yang, and Fei Wu. 2025b. In-figuiagent: A multimodal generalist gui agent with native reasoning and reflection. arXiv preprint arXiv:2501.04575 .Yuhang Liu, Zeyu Liu, Shuanghe Zhu, Pengxiang Li, Congkai Xie, Jiasheng Wang, Xavier Hu, Xiao-tian Han, Jianbo Yuan, Xinyao Wang, and 1 oth-ers. 2025c. Infigui-g1: Advancing gui grounding with adaptive exploration policy optimization. arXiv preprint arXiv:2508.05731 .Zhengxi Lu, Yuxiang Chai, Yaxuan Guo, Xi Yin, Liang Liu, Hao Wang, Han Xiao, Shuai Ren, Guanjing Xiong, and Hongsheng Li. 2025. Ui-r1: Enhancing efficient action prediction of gui agents by reinforce-ment learning. arXiv preprint arXiv:2503.21620 .Tiange Luo, Lajanugen Logeswaran, Justin John-son, and Honglak Lee. 2025. Visual test-time scaling for gui agent grounding. arXiv preprint arXiv:2505.00684 .Shravan Nayak, Xiangru Jian, Kevin Qinghong Lin, Juan A Rodriguez, Montek Kalsi, Rabiul Awal, Nicolas Chapados, M Tamer Özsu, Aishwarya Agrawal, David Vazquez, and 1 others. 2025. Ui-vision: A desktop-centric gui benchmark for vi-sual perception and interaction. arXiv preprint arXiv:2503.15661 .Anthony Nguyen. 2024. Improved gui ground-ing via iterative narrowing. arXiv preprint arXiv:2411.13591 .Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, and 1 others. 2025. Ui-tars: Pioneering automated gui interaction with na-tive agents. arXiv preprint arXiv:2501.12326 .Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-pher D Manning, Stefano Ermon, and Chelsea Finn. 2023. Direct preference optimization: Your lan-guage model is secretly a reward model. Advances in neural information processing systems , 36:53728– 53741. Fei Tang, Zhangxuan Gu, Zhengxi Lu, Xuyang Liu, Shuheng Shen, Changhua Meng, Wen Wang, Wenqi Zhang, Yongliang Shen, Weiming Lu, and 1 others. 2025. Gui-g 2: Gaussian reward modeling for gui grounding. arXiv preprint arXiv:2507.15846 .Xuehui Wang, Zhenyu Wu, JingJing Xie, Zichen Ding, Bowen Yang, Zehao Li, Zhaoyang Liu, Qingyun Li, Xuan Dong, Zhe Chen, and 1 others. 2025. Mmbench-gui: Hierarchical multi-platform evalu-ation framework for gui agents. arXiv preprint arXiv:2507.19478 .Yiqin Wang, Haoji Zhang, Jingqi Tian, and Yansong Tang. Ponder & press: Advancing visual gui agent towards general computer control, 2024b. URL https://arxiv. org/abs/2412.01268 .Hang Wu, Hongkai Chen, Yujun Cai, Chang Liu, Qingwen Ye, Ming-Hsuan Yang, and Yiwei Wang. 2025a. Dimo-gui: Advancing test-time scaling in gui grounding via modality-aware visual reasoning. 
+
+arXiv preprint arXiv:2507.00008 .Qianhui Wu, Kanzhi Cheng, Rui Yang, Chaoyun Zhang, Jianwei Yang, Huiqiang Jiang, Jian Mu, Baolin Peng, Bo Qiao, Reuben Tan, and 1 others. 2025b. Gui-actor: Coordinate-free visual grounding for gui agents. arXiv preprint arXiv:2506.03143 .Zhiyong Wu, Zhenyu Wu, Fangzhi Xu, Yian Wang, Qiushi Sun, Chengyou Jia, Kanzhi Cheng, Zichen Ding, Liheng Chen, Paul Pu Liang, and 1 others. 2024. Os-atlas: A foundation action model for gen-eralist gui agents. arXiv preprint arXiv:2410.23218 .Tianbao Xie, Jiaqi Deng, Xiaochuan Li, Junlin Yang, Haoyuan Wu, Jixuan Chen, Wenjing Hu, Xinyuan Wang, Yuhui Xu, Zekun Wang, and 1 others. 2025. Scaling computer-use grounding via user in-terface decomposition and synthesis. arXiv preprint arXiv:2505.13227 .Hai-Ming Xu, Qi Chen, Lei Wang, and Lingqiao Liu. 2025. Attention-driven gui grounding: Leveraging pretrained multimodal large language models with-out fine-tuning. In Proceedings of the AAAI Con-ference on Artificial Intelligence , volume 39, pages 8851–8859. Yiheng Xu, Zekun Wang, Junli Wang, Dunjie Lu, Tian-bao Xie, Amrita Saha, Doyen Sahoo, Tao Yu, and Caiming Xiong. 2024. Aguvis: Unified pure vi-sion agents for autonomous gui interaction. arXiv preprint arXiv:2412.04454 .Yan Yang, Dongxu Li, Yutong Dai, Yuhao Yang, Ziyang Luo, Zirui Zhao, Zhiyuan Hu, Junzhe Huang, Amrita Saha, Zeyuan Chen, and 1 others. 2025. Gta1: Gui test-time scaling agent. arXiv preprint arXiv:2507.05791 .Wenhao Yu, Zhenwen Liang, Chengsong Huang, Kis-han Panaganti, Tianqing Fang, Haitao Mi, and Dong Yu. 2025. Guided self-evolving llms with minimal human supervision. arXiv preprint arXiv:2512.02472 .Xinbin Yuan, Jian Zhang, Kaixin Li, Zhuoxuan Cai, Lujian Yao, Jie Chen, Enguang Wang, Qibin Hou, Jinwei Chen, Peng-Tao Jiang, and 1 others. Se-gui: Enhancing visual grounding for gui agents via self-evolutionary reinforcement learning. In The Thirty-ninth Annual Conference on Neural Informa-tion Processing Systems .Chaoyun Zhang, Shilin He, Jiaxu Qian, Bowen Li, Liqun Li, Si Qin, Yu Kang, Minghua Ma, Guyue Liu, Qingwei Lin, and 1 others. 2024. Large lan-guage model-brained gui agents: A survey. arXiv preprint arXiv:2411.18279 .Jingyi Zhang, Jiaxing Huang, Huanjin Yao, Shunyu Liu, Xikun Zhang, Shijian Lu, and Dacheng Tao. 2025. R1-vl: Learning to reason with multimodal large language models via step-wise group relative policy optimization. arXiv preprint arXiv:2503.12937 .Yu Zhao, Wei-Ning Chen, Huseyin Atahan Inan, Samuel Kessler, Lu Wang, Lukas Wutschitz, Fangkai Yang, Chaoyun Zhang, Pasquale Minervini, Saravan Rajmohan, and 1 others. 2025. Learning gui grounding with spatial reasoning from visual feedback. arXiv preprint arXiv:2509.21552 .
+
+A EXPERIMENTAL SETUP 
+
+In this section, we provide a detailed description of the experimental configuration, including a com-prehensive explanation of training dataset, dataset filtering strategy, base algorithm, training hyperpa-rameter and prompt design. 
+
+A.1 Training Dataset 
+
+We utilized the training sets from Widget Caption, OmniAct, GUICourse, ShowUI, RICO-SCA, and OS-ATLAS to train our model. These datasets cover a variety of GUI environments including mobile, web, and desktop platforms. We use the dataset strictly for its intended purpose of evalu-ating algorithms. We state that we used the pre-processed version of datasets, where the original authors have already removed PII and offensive content. 
+
+Widget Captioning dataset is a large-scale crowdsourced dataset for automatic UI element captioning. Based on the extended, crawler-supplemented RICO dataset and filtered, it in-cludes 21,750 unique UI screens (6,470 apps), 61,285 caption-missing elements, and 162,859 hu-man annotations. Covering 10 categories (e.g., im-age buttons, switches), its descriptions are mostly 2-3 words (avg. 2.72) with a "predicate + object" structure, plus multimodal data (UI screenshots, view hierarchies) for model training(CC BY 4.0). 
+
+OmniACT dataset is the first multimodal dataset for desktop and web apps, with 9,800 pairs of screenshots, natural language instructions, and PyAutoGUI executable scripts. Supporting cross-platform use (macOS, Windows, Linux, web) and 6 task categories, it enables training and evaluat-ing generalist autonomous agents integrating lan-guage and visual UI understanding. 
+
+GUICourse is a dataset suite for training vision-based GUI agents from VLMs, including GUIEnv (10M+0.7M samples to boost OCR/grounding), GUIAct (67k single-step, 5.6k multi-step web, 9.1k smartphone samples for navigation), and GUIChat (44k single-turn, 6k multi-turn dialogues for interaction), addressing VLMs GUI limitations via foundational ability and knowledge enhance-ment(Creative Commons Attribution 4.0 Interna-tional License). 
+
+ShowUI introduces a small-scale yet high-quality instruction-following dataset tailored for training GUI visual agents, addressing critical data challenges in GUI perception and interaction. Cu-rated through meticulous data analysis and a rebal-anced sampling strategy, this dataset encompasses 256K task instances (screenshots for grounding, tasks for navigation) with 2.7M element annota-tions, spanning diverse devices including web, mo-bile, and desktop platforms(Apache-2.0 license). 
+
+RICO-SCA , a synthetic grounding dataset, in-cludes 295k single-step commands for 178k UI objects across 25k+ Android screens (from Rico). ANDROIDHOWTO, for action phrase extrac-tion, has 32k data points from 9k+ web how-to guides with annotated operation/object/argument spans. PIXELHELP, for full-task evaluation, provides 187 multi-step Pixel phone instruc-tions paired with human-executed action-screen sequences(apache-2.0). 
+
+OS-Atlas is the largest open-source cross-platform GUI grounding corpus to date, developed to address the critical data scarcity in training gen-eralist GUI agents. It comprises over 2.3 million distinct screenshots and more than 13.58 million GUI elements, spanning five major platformsWin-dows, macOS, Linux, Android, and the webfilling the long-standing gap of desktop GUI grounding data in existing datasets(apache-2.0). 
+
+A.2 Hardware 
+
+All experiments are performed on a CentOS Linux 7 server. The hardware specifications consist of 240GB of RAM, a 16-core Intel Xeon CPU, and eight NVIDIA H20 GPUs, each having 96GB of memory. 
+
+A.3 Data Filtering Strategy 
+
+To ensure the stability of the co-evolutionary train-ing and maximize the sample efficiency of our re-inforcement learning framework, we implement a rigorous, hierarchical data filtering protocol. This process begins with static quality verification, de-signed to purify the raw instruction-screenshot pairs by eliminating noise and ambiguity. Specif-ically, we first apply heuristic rules to filter out samples with significant annotation errors, such as invalid coordinates that fall outside the view-port or bounding boxes with extreme scales (e.g., covering less than 0.1% or more than 90% of the screen area), which typically indicate non-interactive background elements or layout noise. Following this, to address the challenge of seman-tic ambiguitywhere an instruction might plausibly refer to multiple elements or none at allwe em-ploy a strong proprietary Vision-Language Model (e.g., Qwen3-VL-235B-A22B) as a zero-shot ver-ifier. The model is presented with the screenshot, the annotated bounding box, and the instruction, and is tasked with verifying their alignment. Sam-ples where the VLM detects a semantic mismatch or ambiguity are excluded, ensuring that our re-ward signals are grounded in high-quality supervi-sion. Upon establishing a clean base dataset, we pro-ceed to difficulty-aware pre-selection to isolate the most valuable samples for the RL phase. We de-fine a training subset D′ ⊂ D by evaluating the ini-tial policy πθ0 against the data. For each query q,we sample a set of N trajectories. Queries exhibit-ing "Uniform Success" (where all N trajectories are correct) are discarded as trivial, as the model has already mastered these patterns. Conversely, queries resulting in "Uniform Failure" (where all 
+
+N trajectories fail) are also removed. Such persis-tent failure typically stems from overly complex reasoning chains beyond the model’s current ca-pacity or residual label noise, which can desta-bilize the reward mechanism. By filtering these extremes, we focus the training on the "learning frontier"queries yielding a mixed distribution of outcomeswhere the policy’s self-evaluation and exploration mechanisms are most actively chal-lenged. Finally, we enforce online optimization filter-ing during the on-policy training updates to main-tain the fidelity of the gradient estimation. Within the Grouped Reward Policy Optimization (GRPO) framework, policy updates rely on the normal-ized advantage of sampled trajectories. We iden-tify and discard "Zero-Advantage" mini-batches where all generated trajectories within a group re-ceive identical rewards. In such cases, the ad-vantage estimates vanish, rendering the update non-informative and driven solely by the KL-divergence penalty. Additionally, we implement truncation filtering to exclude trajectories termi-nated prematurely by the maximum sequence length. This prevents the model from being un-fairly penalized for verbose but potentially correct reasoning chains, thereby preserving the accuracy of the critic’s ranking reward. 
+
+A.4 Base Algorithm 
+
+To facilitate the stable co-evolution of the Proposer and Critic, we employ Grouped Reward Policy Optimization (GRPO). Unlike standard Proximal Policy Optimization (PPO) which relies on a sep-arate value function critic for advantage estima-tion, GRPO optimizes the policy by normalizing rewards within a group of outputs generated from the same input. This is particularly advantageous for our framework as it reduces the memory over-head of maintaining value networks for both Pro-poser and Critic roles while effectively handling the high variance inherent in spatial coordinate sampling. 
+
+Group-wise Advantage Estimation. For each training step, given a batch of input instructions and GUI images {(T, I )}, we sample a group of G
+
+outputs {o1, o 2, . . . , o G} from the old policy πθold .In the Proposer phase, these outputs correspond to candidate coordinate sets; in the Critic phase, they correspond to ranking permutations. Each output 
+
+oi receives a task-specific reward ri (as defined in Eq. 4-7). To mitigate the baseline variance across different GUI layouts, we compute the advantage 
+
+Ai by normalizing the reward against the group statistics: 
+
+Ai = ri − mean ({r1, . . . , r G})
+
+std ({r1, . . . , r G}) + ϵ (10) where ϵ is a small constant for numerical stabil-ity. This group-wise relative comparison encour-ages the model to distinguish superior candidates from mediocre ones within the specific context of the current screen, rather than learning absolute re-ward values. 
+
+Objective Function. The training objective maximizes the surrogate loss while constraining the policy update via KL-divergence regulariza-tion to prevent mode collapse. The overall objec-tive function is formulated as follows: 
+
+J (θ) = Eq∼D ,{oi}
+
+[
+
+1
+
+G
+
+> G
+
+∑
+
+> i=1
+
+(
+
+min 
+
+( πθ(oi|q)
+
+πθold (oi|q) Ai,
+
+clip 
+
+( πθ(oi|q)
+
+πθold (oi|q) , 1 − ε, 1 + ε
+
+)
+
+Ai
+
+)
+
+− βDKL 
+
+(πθ|| πref 
+
+))]
+
+(11) Here, q represents the multimodal input con-text (T, I ). The first term is the clipped surrogate objective standard in PPO, where ε controls the trust region size. The second term, DKL (πθ|| πref ),serves as a token-level regularization penalty, en-suring the co-evolving policy does not deviate ex-cessively from the initial SFT reference policy 
+
+πref , thereby maintaining the model’s fundamen-tal linguistic and visual capabilities during the RL phase. 
+
+A.5 Training Hyperparameter 
+
+In this section, we detail the specific implementa-tion configurations to ensure the reproducibility of our experiments. We adopt Qwen3-VL-8B as the primary backbone for the CoPC framework. The specific hyperparameters governing the Grouped Reward Policy Optimization (GRPO) process and the maturity-aware mechanismoptimized for train-ing stability and convergenceare summarized in Table 4. 
+
+A.6 Prompt Design 
+
+We design two distinct system prompts to drive the propose-then-critic framework. The Proposer prompt instructs the model to employ Chain-of-Thought (CoT) reasoninganalyzing UI layout and Hyperparameter Setting             
+
+> Clip Ratio 0.25 Top P 0.99 Rollout Repeat Size 8Temperature 1.0 Optimizer Adam KL Type Low Var KL Learning rate 5e-7 Epochs 2momentum coefficient α0.01
+> σ0.5 * GT Box Width train batch size 64
+> Table 4: Hyperparameters of Qwen3-VL-8B.
+
+user intentbefore generating K diverse candidate coordinates (x, y ) to maximize target coverage. Conversely, the Critic prompt tasks the model with acting as a visual judge. It receives the screenshot with visualized candidates and strictly ranks them based on a priority hierarchy of target hit accuracy, centrality, and boundary proximity. Both prompts enforce structured JSON output for efficient pars-ing and interaction. 
+
+Proposer Prompt: 
+
+You are a GUI exploration agent acting as a Candidate Generator. Your goal is to propose a set of potential coordinates that might match the user’s instruction. Instructions: First, output your detailed thinking process (100-200 words) to explain: 1. How you inter-pret the user’s core intent (e.g., "click a submit button", "select a dropdown menu"); 2. Reason-ing about potential target element positions (based on common GUI layout conventions, e.g., "sub-mit buttons are often at the bottom center/right of forms"); 3. How you ensure coordinate diversity (e.g., "spreading points across top-left, bottom-center, right-middle areas to cover ambiguous tar-gets"); 4. Why you selected these 5 specific coor-dinates (e.g., "covering likely target regions while avoiding clustering"). Then, strictly follow the below rules to gener-ate coordinates: 1. Analyze the UI layout and the user’s intent. 2. Generate 5 distinct candidate co-ordinates (x, y ). 3. Do not worry about being per-fectly precise with every point. Instead, focus on diversity and coverage. Ensure that at least one of your candidates falls exactly on the target element. 4. Avoid outputting all points in the same cluster; spread them out slightly to cover different parts of the potential target or ambiguous elements. Out-put STRICTLY in the following JSON block: “‘ { "candidates": [ [x1, y1], [x2, y2], [x3, y3], [x4, y4], [x5, y5] ] } “‘ User Instruction:{User Instruc-tion} 
+
+Critic Prompt: 
+
+You are a Visual Judge for GUI navigation. In-put: A screenshot with N candidate positions (IDs 0 to N-1) and a user instruction. Task: Rank ALL candidate IDs (0 to N-1) from most accurate to least accurate based on the crite-ria below. Ranking Criteria (Strict Priority): 1. Target Hit: Candidates physically ON the correct target ele-ment strictly outrank those OFF it. 2. On-Target: Among candidates ON the target, prioritize those closer to the visual center. 3. Off-Target: Among candidates OFF the target, prioritize those closer to the target’s boundary. Output Instructions: 1. Analysis Phase: First, explicitly analyze the candidates based on the cri-teria. Identify which IDs are on the target and which are off. 2. JSON Phase: After the analy-sis, output the final ranking in a JSON block. Format Example: [Analysis of candidates...] “‘json { "ranked_ids": [id_best, id_second, ..., id_worst] }“‘ 
+
+B Baselines 
+
+B.1 Training Baselines 
+
+To comprehensively evaluate the effectiveness of our proposed framework, we compare it against four distinct training paradigms. 
+
+Direct Supervised Fine-Tuning (Direct SFT) 
+
+represents the standard approach for training GUI agents, where the model is optimized to map the instruction and screenshot directly to the fi-nal pixel coordinates. We treat this as a standard regression task using the original dataset triples 
+
+(I, T, p gt ) without generating any intermediate rea-soning or candidates. The model is trained using the cross-entropy loss to maximize the likelihood of the ground truth coordinates. For the hyperpa-rameters, we utilize the AdamW optimizer with a global batch size of 128 and an initial learning rate of 2 × 10 −5. We employ a cosine decay scheduler with a warmup ratio of 0.03 over 3 training epochs, setting the weight decay to 0.05 and the maximum sequence length to 6000 to accommodate the vi-sual tokens and textual instructions. Two-Stage Supervised Fine-Tuning (Two-Stage SFT) is designed to validate the structural advantage of the "Propose-then-Critic" paradigm using purely supervised learning. Since the origi-nal dataset lacks intermediate supervision, we con-struct a distilled dataset using a larger teacher model to generate chain-of-thought reasoning, multiple candidate proposals (Proposer), and the subsequent selection (Critic) for each sample. The student model is then trained to mimic this sequen-tial process in a unified inference session. We maintain the optimization settings similar to Di-rect SFT, using a learning rate of 2 × 10 −5 and a batch size of 128 over 3 epochs. However, to han-dle the increased context length required for the in-termediate reasoning steps and candidate lists, we extend the maximum sequence length to 12000. 
+
+Direct Preference Optimization (DPO) is in-troduced to further enhance the model’s discrimi-nation capabilities by incorporating negative con-straints into the Two-Stage SFT framework. Build-ing upon the supervised checkpoint, we construct preference pairs where trajectories that success-fully locate the target (Hit) are labeled as chosen responses yw, and those that fail to hit the target are labeled as rejected yl. The model is optimized to maximize the implicit reward margin between these positive and negative pairs. For this align-ment stage, we use a significantly lower learning rate of 5 × 10 −7 to ensure stability and set the KL penalty coefficient β to 0.1. The training is con-ducted for 1 epoch with a global batch size of 64 and a warmup ratio of 0.1. 
+
+Group Relative Policy Optimization (GRPO) 
+
+serves as a baseline to isolate the impact of our specific reward design and maturity mechanism. While this method utilizes the same two-stage roll-out architecture as our proposed CoPC, it is trained solely using basic Accuracy Rewards. Specifically, the Proposer receives a reward only if the ground truth is included in the candidate set. Crucially, the advanced coverage rewards, ranking rewards (NDCG), and the maturity-aware dynamic weight-ing mechanism are removed. We train this base-line with a learning rate of 1 × 10 −6, a group size of G = 8 for advantage estimation, and a KL diver-gence coefficient of 0.04. The optimization runs for approximately 1 epoch with a batch size of 64 and a maximum sequence length of 12000. 
+
+B.2 Spatial Consistency Baselines 
+
+In Section 5.4, we compare our method against several statistical aggregation strategies to validate the necessity of visual discrimination. Let P =
+
+{p1, p 2, . . . , p K } denote the set of K candidate co-ordinates generated by the Proposer for a single in-struction, where each pi ∈ R2. The final predicted coordinate ˆp is derived using the following formu-lations: 
+
+Arithmetic Mean (Mean) The Arithmetic Mean calculates the centroid of the candidate set. It is equivalent to minimizing the sum of squared Euclidean distances (L2 loss) to all points. While computationally efficient, it is highly sensitive to outliers. 
+
+ˆpmean = 1
+
+K
+
+> K
+
+∑
+
+> i=1
+
+pi (12) 
+
+Coordinate-wise Median (Coord) This method computes the median value for the hori-zontal ( x) and vertical ( y) axes independently. It minimizes the sum of absolute differences (L1 loss) along each dimension. While more robust to outliers than the mean, it ignores the spatial correlation between the x and y coordinates. 
+
+ˆpcoord = (median( {xi}Ki=1 ), median( {yi}Ki=1 ))
+
+(13) 
+
+Geometric Median (Geo) The Geometric Me-dian (also known as the L1-median or spatial me-dian) is a robust estimator of central tendency in Euclidean space. Unlike the Coordinate-wise Me-dian, it minimizes the sum of L2 distances to all sample points. Since no closed-form solution ex-ists, we approximate it using Weiszfeld’s algo-rithm. 
+
+ˆpgeo = argmin 
+
+> p∈R2
+> K
+
+∑
+
+> i=1
+
+∥p − pi∥2 (14) 
+
+Medoid The Medoid is similar to the Geometric Median in that it minimizes the sum of pairwise distances, but with the constraint that the selected point must be one of the original candidates in P.This ensures the output is a valid coordinate explic-itly generated by the model, rather than a synthe-sized point. 
+
+ˆpmedoid = argmin 
+
+> p∈P
+> K
+
+∑
+
+> i=1
+
+∥p − pi∥2 (15) C Method 
+
+In this section, we elaborate on the design princi-ples governing the reward functions in the COPC framework. Our objective is to decouple the opti-mization of Candidate Generation (Proposer) and Visual Discrimination (Critic), ensuring they co-evolve without interference. 
+
+Proposer Accuracy Reward ( Racc ) Standard mean-based aggregation methods (e.g., minimiz-ing average distance) often compel the model to converge toward the geometric center of the target distribution to minimize global loss, lead-ing to "safe" but imprecise predictions in the in-valid background. To address this, we employ a Softmax-weighted aggregation strategy that prior-itizes the best-performing candidate. The quality of each individual candidate pi is first quantified using a Gaussian kernel si = exp( − || pi−pgt || 2 
+
+> 2σ2
+
+) to map Euclidean distances into a bounded similar-ity score. Crucially, the final reward aggregates these scores via Softmax, formulated as Racc =∑ Softmax (si) · si + 1
+
+> K
+
+∑ rhit,i . This mechanism assigns disproportionately high weight to the opti-mal candidate while suppressing the influence of sub-optimal outliers. Consequently, it effectively mitigates the penalty for exploration, allowing the Proposer to "gamble" on diverse locations without being punished for "misses," provided at least one candidate precisely captures the target intent. 
+
+Proposer Coverage Reward ( Rcov ) To strictly prevent mode collapsewhere the model generates 
+
+K identical or highly clustered points to minimize variancewe formulate a coverage reward based on the geometric spread of the candidates. Instead of simple pairwise distances, we utilize the deter-minant of the covariance matrix Σ of the gener-ated coordinates, which geometrically represents the "volume" or area spanned by the candidate distribution. We map this determinant to a nor-malized range using a hyperbolic tangent function: 
+
+Rcov = tanh( √|det (Σ) | + ϵ). The determinant acts as a robust proxy for spatial diversity, ensur-ing the candidates are not colinear or collapsed into a single pixel, while the tanh normalization ensures the reward signal remains stable within 
+
+[0 , 1] . This formulation prevents unbounded re-ward growth and ensures the auxiliary diversity objective does not overwhelm the primary accu-racy gradient, effectively encouraging the model to explore the spatial search space during the early stages of training. 
+
+Critic Top-1 Selection Reward ( Rtop 1) While the ranking quality is important, the ultimate util-ity of the GUI agent depends solely on the preci-sion of the final executed action. Therefore, we design the Top-1 Selection Reward Rtop 1 as a di-rect proxy for the system’s end-to-end success rate. It is defined simply as the Gaussian quality score of the candidate selected as the highest rank by the Critic, i.e., Rtop 1 = sbest . By explicitly rewarding the quality of only the top-ranked candidate pbest ,this sparse but high-signal objective ensures that the optimization process remains grounded in the task’s primary goal: precise execution. This pre-vents the model from optimizing for general rank-ing metrics at the expense of the specific precision required for the top-1 output, aligning the Critic’s objective directly with the inference-time success criterion. 
+
+Critic Ranking Reward ( Rndcg ) To cultivate fine-grained visual discrimination capability, we treat the Critic’s task as a list-wise information re-trieval problem rather than a simple binary classi-fication task. Since candidate quality is continu-ous (based on distance to the ground truth) rather than binary, simple accuracy metrics are insuffi-cient. We employ Normalized Discounted Cumu-lative Gain (NDCG), calculated as the ratio of Dis-counted Cumulative Gain (DCG) to Ideal DCG: 
+
+Rndcg = DCG K 
+
+> IDCG K
+
+. This formulation uses a loga-rithmic decay factor in the denominator ( log 2(i +1) ), which imposes significantly heavier penalties for ranking errors at the top of the list compared to the bottom. This forces the Critic to be extremely discriminating about the high-ranking candidates that directly impact potential selection, while be-ing more tolerant of sorting errors among the low-quality "noise" candidates in the tail of the distri-bution, thereby focusing the model’s capacity on differentiating the target from the most plausible distractors. 
+
+D Evaluation Benchmarks 
+
+To comprehensively evaluate the generalization ability and grounding precision of the COPC framework across different platforms (Desktop, Mobile, Web) and complex application scenarios, we selected 6 representative mainstream bench-marks for testing. This section details the specific characteristics and data composition of these eval-uation benchmarks (including MMBench-GUI, ScreenSpot-Pro, UI-Vision, etc.). MMBench-GUI is a multi-platform GUI agent benchmark covering 6 systems (Windows, macOS, Linux, iOS, Android, Web) with 8123 tasks. It uses a 4-level hierarchical evaluation and the EQA metric (balancing success and efficiency), identi-fies visual localization as a core bottleneck, and provides open resources to advance GUI agent re-search. 
+
+ScreenSpot-Pro is a benchmark for evaluating MLLMs’ GUI grounding in high-resolution professional environments, featuring 1,581 instruction-screenshot pairs from 23 apps (5 industries, 3 OSes), authentic high-res full-screen images, expert annotations, and tiny target elements to reflect real-world professional complexity. 
+
+UI-Vision is the first open-source benchmark for desktop graphical user interfaces (GUIs), fill-ing the gap left by web/mobile-focused tools. It covers 83 open-source apps across 6 domains, with dense annotations and 8k+ query-label pairs. 
+
+ScreenSpot-v2 is a revised GUI grounding benchmark derived from the original ScreenSpot dataset, with approximately 11.32% of incor-rect or ambiguous annotations correctedincluding spelling errors, ambiguous instructions, redundant samples, and mislabeled bounding boxeswhile pre-serving the total number of test samples. 
+
+UI-E2I-Synth is a GPT-4o-powered pipeline for GUI instruction grounding, generating 9.9M instructions with 1.6M cross-platform (Web/Windows/Android) screenshots. It balances element types, includes explicit/implicit instruc-tions, aligns with real-device element-to-screen ratios. 
+
+OS-WorldG is a fine-grained GUI grounding benchmark featuring 564 carefully annotated sam-ples, covering five core competencies (text match-ing, element recognition, layout understanding, fine-grained manipulation, and rejection handling) with 32 annotated UI element types; each sam-ple is paired with paraphrased, software-expertise-free instructions, requiring an average of 0.5 person-hours for annotation. 
+
+E Case Study 
+
+In this section we provide detailed case studies to illustrate the "Propose-then-Critic" process. The Visual Feedback figures visualize the candidate coordinates generated by the Proposer during the first inference round. These candidates are ren-dered as numbered markers overlaid on the orig-inal GUI screenshot. In these figures, the red bounding box denotes the Ground Truth region. 
+
+F Information About Use Of Ai Assistants 
+
+We used large language models (ChatGPT, Copi-lot) to assist with coding and linguistic polishing. No AI tools were used to generate the scientific ideas or novel contributions of this work. Figure 8: Example 1 
+
+Prompt 
+
+Question: Enter Sculpt mode to use Inflate brush to enlarge some specific areas. 
+
+Proposer Output 
+
+Proposer Output : The user wants to enter Sculpt mode and use the Inflate brush to enlarge specific areas of a 3D object in Blender. The current screenshot already shows that the user is in Sculpt Mode, as indicated by the active "Sculpt Mode" tab in the top menu and the "Inflate" brush selected in the toolbar. The core intent is to ensure proper tool activation and focus on shaping the mesh. Based on the interface, the most critical elements for this task are: 1) Ensuring Sculpt Mode is active (top menu), 2) Selecting the Inflate brush (left toolbar), and 3) Hovering or clicking on the object to apply the brush. The top-left area contains the Sculpt Mode tab; the left scrollbar contains the tools including Inflate; and the 3D view center around the object is where the user will perform sculpting. To cover potential interactions, I spread coordinates across the top-left (menu activation), toolbar (tool selection), and 3D canvas (object interaction), ensuring diversity while including the Inflate brush and likely object interaction zone. "candidates": [ [45, 32], [13, 233], [320, 452], [249, 32], [262, 430] ] Figure 9: Example 1 Visual Feedback 
+
+Critic Output 
+
+Critic Output :[Analysis of candidates...] The user’s instruction is to enter Sculpt mode and use the Inflate brush to enlarge specific areas. The current screenshot already shows that the user is in Sculpt Mode. However, to ensure perfect alignment with the instruction, the top priority is making sure the "Inflate" brush is selected which is visibly highlighted on the left toolbar. The candidate at ID 1 is pinpointing the "Inflate" brush icon itself, which is the primary target for fulfilling the users instruction. Candidates 0 and 3 are on the top menu bar ID 0 is on the "Sculpt" menu, which is already active, and ID 3 is on the "Texture Paint" menu, which is irrelevant here they are off-target but close to the sculpting context. Candidate 4 is on the 3D view outside the object, which is too far from the actual sculpting focus. Candidate 2 is on the object surface itself; this may be relevant for future sculpting, but per the instructions focus on tool activation, it is second-tier. Id 1 (Inflate brush) is most accurate and needs to be ranked #1. Among candidates that are technically on-target (only ID 1 qualifies here), it is closest to visual center of its target. Thus, ID 1 is clearly the best. Subsequently, because ID 0 and ID 3 are on the top menu bar (relevant to mode), and ID 2 (surface interaction) likely aids the sculpting itself the role of ID 2 purely as a hitpoint the registrations go ranks 2, 3, 4. We need to include "3T:" and "S-4 blend" as contexts, but focus on core matching. Finally, since ID 4 is on the object surface, physically far from element useful to activate - particularly scores low. NX-6 (ETER-level ranked as 5points from Bear_Jargon attribute selection) needs explicit ordering. Or: descending value. json { "ranked_ids": [1, 0, 3, 2, 4] } Figure 10: Example 2 
+
+Prompt 
+
+Question: Enter Sculpt mode to use Inflate brush to enlarge some specific areas. 
+
+Proposer Output 
+
+Proposer Output : The user wants to close a popup in Excel specifically, the "Shape data with the Power Query Editor" notification that appears in the top-left corner. This is a common UI element that users want to dismiss quickly. The popup is anchored to the top-left, containing a green "Got it" button at its bottom-right corner, which is the primary affordance for closing it. Given standard UI design, the buttons location is predictable. The popup is small compared to the rest of the interface, so its approximate bounding box spans from roughly [5, 100] to [100, 180]. To cover plausible clicks: Ill sample points around the button area (bottom-right of the popup) while also including points near the popup header (top-left) and middle-left area for ambiguity. This ensures diversity while targeting the closing mechanism. { "candidates": [ [35, 120], [80, 160], [90, 185], [40, 140], [75, 110] ] } Figure 11: Example 2 Visual Feedback 
+
+Critic Output 
+
+Critic Output :[Analysis of candidates...] The user’s instruction is to "close the popup in Excel," and the popup in question is the "Shape data with the Power Query Editor" notification in the top-left of the Excel window. The only actionable element for closing this popup is the green "Got it" button at its bottom-right. Candidate 0 (at [35, 120]) is in the top-left text area, not on the button. Candidate 1 (at [80, 160]) is in the main body text, off-target. Candidate 2 (at [90, 185]) is on the green "Got it" button HIT. Candidate 3 (at [40, 140]) is in the text area, off-target. Candidate 4 (at [75, 110]) is in the header of the popup, off-target. Since only candidate 2 is on the target (the "Got it" button), per Priority Rule 1, it is the absolute best. The other candidates are off-target. According to Rule 3 (for off-target), the one closest to the boundary of the button (which candidate 2 is-on) is already the best. The rest are farther away from the button region. No other candidate hits the button. Therefore, the ranking is clear: candidate 2 is best, and the others are progressively worse due to being farther away (and none are on-target). “‘json { "ranked_ids": [2, 0, 1, 3, 4] } “‘
