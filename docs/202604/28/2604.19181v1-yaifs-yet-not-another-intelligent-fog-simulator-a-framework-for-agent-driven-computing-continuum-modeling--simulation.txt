@@ -1,0 +1,430 @@
+Title: YAIFS: Yet (not) Another Intelligent Fog Simulator: A Framework for Agent-Driven Computing Continuum Modeling & Simulation
+
+URL Source: https://arxiv.org/pdf/2604.19181v1
+
+Published Time: Wed, 22 Apr 2026 00:45:24 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# Highlights 
+
+YAIFS: Yet (not) Another Intelligent Fog Simulator: A Framework for Agent-Driven Computing Continuum Modeling & Simulation 
+
+Isaac Lera, Carlos Guerrero 
+
+• Service-oriented simulation for cloud–edge systems 
+
+• Multi-agent adaptive placement using MCP tools 
+
+• Natural language interaction via LLM-based agent 
+
+• Reproducible and programmable simulation workflows 
+
+> arXiv:2604.19181v1 [cs.DC] 21 Apr 2026
+
+# YAIFS: Yet (not) Another Intelligent Fog Simulator: A Framework for Agent-Driven Computing Continuum Modeling & Simulation 
+
+Isaac Lera, Carlos Guerrero 
+
+> University of the Balearic Islands (UIB), Carretera de Valldemossa, km 7.5, Palma, 07122, Balearic Islands, Spain
+
+Abstract 
+
+Simulation plays a key role in the design and evaluation of distributed systems, yet it is often treated as a static tool with limited interaction capabilities. In this work, we present Yet (not) Another Intelligent Fog Simulator (YAIFS), a substantial evolution of YAFS that redefines simulation as an interactive and service-oriented environment. YAIFS introduces a layered architecture that exposes the simulation through a unified API and a service interface, enabling external entities to observe, control, and modify its execution. A central contribution of this work is the integration of the Model Context Protocol 
+
+(MCP) as a standardized interaction layer between agents and the simulation. Through MCP, heterogeneous agents can access simulation state, invoke actions, and coordinate their behavior using a common set of tools. This abstraction decouples agent logic from simulator internals and supports reproducible and programmable experimentation workflows. To illustrate these capabilities, we present two complementary scenarios. With the new framework, we can integrate a large language model (LLM) to provide an inter-active assistant that enables users to control simulations through prompts. Second, we design a multi-agent scenario in which specialized agents monitor system condi-tions and dynamically adapt application placement decisions. Together, these scenarios highlight how MCP structures agent–simulation interactions and enables adaptive and programmable behavior under dynamic workloads. The results show that the proposed approach transforms the simulation into an interactive environment that can be systematically explored and controlled by ex-ternal agents. This perspective opens new directions for AI-driven experimentation in distributed cloud–edge systems, where simulations become programmable entities rather than static evaluation artifacts. The implementation is publicly available at: 
+
+https://github.com/acsicuib/YAIFS .
+
+Keywords: Cloud–Edge Computing, Fog Computing, Simulation-as-a-Service, AI-driven Experimentation, Model Context Protocol     
+
+> Email addresses: isaac.lera@uib.es (Isaac Lera), carlos.guerrero@uib.es (Carlos Guerrero)
+
+1. Introduction 
+
+The increasing complexity of cloud—edge infrastructures has made simulation an essential tool for evaluating system behavior under diverse conditions. However, as these systems grow in scale and heterogeneity, the challenge is no longer limited to accurately modeling their behavior, but also to efficiently exploring a large space of possible configurations and interactions. Traditional simulation frameworks typically require manual definition and execution of experiments, limiting the ability to systematically analyze alternative scenarios. In this context, when we introduced YAFS in 2019 [1], we proposed several innovations that advanced the simulation of cloud continuum architectures. YAFS has had a significant impact on the research community, as reflected by its citation record and by the number of studies that have used it as an experimental framework. In particular, YAFS provided a flexible representation of infrastructure as complex graphs and supported customizable processes that could be invoked during simulation to model dynamic behaviors such as node failures or user mobility. While this approach enabled a high degree of modeling flexibility, it also required users to operate at a relatively low level of abstraction, making the design and execution of experiments a manual and often time-consuming process. Recent advances in artificial intelligence, particularly large language models (LLMs) and autonomous agents, open new opportunities to rethink how simulation environ-ments are used. Rather than static experimental tools, simulations can be treated as interactive environments that agents can explore, control, and optimize. For example, users can express high-level goals through prompts such as “compare two placement strategies minimizing latency” or “deploy an application at the edge and evaluate its performance” , which are then translated into executable simulation workflows. In this work, we present a substantial evolution of YAFS, called Yet (not) Another Intelligent Fog Simulator (YAIFS). The main novelty lies in a shift in perspective with respect to traditional simulation frameworks, where the simulator is exposed as a layered service architecture, in which each layer defines a different abstraction level and a cor-responding distribution of responsibilities between the user and the platform. At lower layers, users retain fine-grained control over modeling and execution decisions, which maximizes flexibility at the cost of higher operational responsibility; at higher layers, users can progressively delegate these tasks to the platform. This design mirrors the service hierarchy paradigm in cloud computing, ranging from low-level, user-managed operation to higher-level interfaces that enable more automated workflows. Impor-tantly, YAIFS itself does not embed decision-making intelligence. Instead, higher-level capabilities can be realized through external agents interacting with the system via the Model Context Protocol (MCP). In this work, we implement an LLM-based agent as a proof of concept, which operates on top of YAIFS to interpret user intents and orches-trate simulation workflows, including scenario modeling, execution, and result analysis. Figure 1 summarizes this layered model following a visual logic similar to that used in cloud service hierarchies, progressing from lower-level services with greater user control to higher-level services with increased delegation and automation. The first layer, Core , corresponds to the original version of the simulator (YAFS), where users directly implement simulation logic with full control over the execution. The next layer, API , is realized through a unified framework that encapsulates the functionality of the simulator core via an API. At this level, the simulation workflow 2and parameterization remain under the user’s control, but are expressed through higher-level abstractions. Building on this, we introduce a third layer, the Simulation as a Service , that enables the orchestration of multiple simulations. Simulations are no longer treated as static experimental artifacts, but as dynamic entities that can be managed and evolved over time. This layer enables users to monitor, modify, clone, and explore simulations across different execution paths, supporting more complex experimental workflows. On top of this, we enable interaction with simulations through external agents via the MCP. MCP provides a standardized interface through which agents can access the simulation state and execute actions within the environment. Through this mechanism, agents are able to observe, reason about, and act upon simulations, enabling automated and adaptive experimentation workflows. Finally, the design paradigm proposed enables interaction through natural language via an additional LLM-mediated layer. In this setting, simulations are mediated by LLM-based agents, allowing users to express only the aspects of the simulation that are relevant to them, while delegating lower-level responsibilities to the system. By expressing objectives and experimental intentions at a higher level of abstrac-tion, users can significantly reduce the learning curve associated with complex sim-ulation tools. For instance, a user may specify prompts such as: "Compare energy consumption and response time when deploying services closer to the edge versus cen-tralized cloud nodes" or "We could reassign these services closer to the cloud cluster to compare the impact on latency with previous results" . Depending on the capabilities of the underlying model, agents can also support the experimental process by suggesting exploratory actions, such as proposing alternative application placement strategies to evaluate hypothetical scenarios. In addition, generative AI capabilities enable interactions that go beyond the func-tionality explicitly implemented in the simulator. For example, given a deployment model produced during a simulation, an agent can generate infrastructure configura-tions compatible with orchestration tools such as Terraform or Kubernetes , effectively bridging simulated scenarios and real-world deployments. YAFS High Expressiveness A Uni fi ed Framework Multi-Simulation Orchestration Agent Communication Protocol LLM-mediated Interaction 
+
+> Core API Core Service API MCP Service LLM-agent (MCP case) MCP LLM-agent (MCP case) Core API Service MCP LLM-agent (MCP case) Core API Service MCP LLM-agent (MCP case) Core API Service MCP LLM-agent (MCP case)
+
+Figure 1: Layered visibility model 
+
+3The main contributions of this work are summarized as follows: 
+
+• We introduce the concept of simulation-as-a-service for cloud–edge ecosystem simulation. YAIFS exposes a programmable API and service interface that en-ables external control of the simulation lifecycle, while providing built-in metrics and mechanisms to compare system behavior across different temporal windows of the simulation, enabling retrospective and what-if analyses. 
+
+• We integrate the MCP as a standardized interface that enables external agents and tools to observe, query, and act upon the simulation environment. As a proof of concept, we implement a CLI-based client that demonstrates this interaction through a single LLM-based agent operating over the MCP interface. 
+
+• We enable the integration of intelligent agents within the experimental workflow, allowing AI-based systems (e.g., LLMs or reinforcement learning agents) to partic-ipate in the exploration, control, and evaluation of infrastructure scenarios. This opens the door to more automated, reproducible, and exploratory methodologies for analyzing distributed computing infrastructures. 
+
+• We provide an open-source implementation of YAIFS, including documentation and illustrative scenarios, publicly available in a GitHub repository. Overall, we redefine the role of simulation in the study of distributed systems across the cloud-–edge continuum. Instead of treating simulations as static experimental arti-facts executed offline, we frame them as interactive environments that can be observed, controlled, and evolved by external agents. This perspective provides a foundation for AI-driven experimentation in such systems. The remainder of this paper is organized as follows. Section 2 discusses the back-ground and related work. Section 3 describes the modeling abstractions provided by the simulator for representing cloud–continuum scenarios. Section 4 presents the archi-tecture of YAIFS and its simulation-as-a-service model. Section 5 describes the integra-tion of MCP and illustrates its use through a proof-of-concept implementation, where a LLM-based agent interacts with the simulation across different prompts. Section 6 presents an illustrative MCP-based multi-agent scenario. Finally, Section 7 concludes the paper and outlines future research directions. 
+
+2. Related Work 
+
+A wide range of simulation frameworks has been proposed to model and evaluate cloud–edge continuum systems, particularly focusing on application placement, work-load offloading, and infrastructure heterogeneity. These simulators provide rich capa-bilities for representing distributed environments, but they are typically designed to be used through simulator-specific APIs, scripts, or tightly coupled control logic. iFogSim [2] is one of the earliest and most widely adopted simulators for fog comput-ing. It enables the modeling of application modules and their placement across cloud and edge resources, allowing researchers to evaluate latency, energy consumption, and resource utilization under different offloading strategies. Building on this foundation, 4iFogger [3] extends simulation capabilities within the OMNeT++ ecosystem, empha-sizing topology-aware placement and dynamic workload routing using complex-network measures. PureEdgeSim [4] provides a flexible framework for evaluating orchestration strategies across cloud, fog, and edge infrastructures. It includes support for containerized de-ployments, mobility-aware scenarios, and different placement policies. SatEdgeSim [5] further extends PureEdgeSim to model satellite–edge environments, enabling the study of deployment and offloading strategies in scenarios where satellite links introduce ad-ditional latency and energy considerations. DISSECT-CF-Fog [6] integrates cloud simulation with fog computing extensions, in-corporating TOSCA-based deployment descriptions and predictive models to support dynamic placement and capacity-aware orchestration. ENIGMA [7] focuses on large-scale, location-aware simulations involving mobile devices, supporting experiments on workload distribution and offloading in highly dynamic environments. More recently, EdgeAISim [8] has been proposed to study AI-driven workloads at the edge, and ECLYPSE [9] combines simulation and emulation to model the cloud–edge continuum with a focus on adaptability and reproducibility. Comprehensive surveys such as [10, 11] highlight the maturity of this ecosystem, typically comparing simulators in terms of modeling capabilities, scalability, realism, and usability. These studies show that existing tools are well-suited for evaluating placement strategies and system behavior under diverse conditions. However, despite their strengths, most existing simulators share a common inter-action paradigm: they are primarily designed to be programmed directly by the user, with experimental logic embedded in scripts or simulator-specific APIs. As a result, the interaction between external decision-making entities and the simulation is often ad hoc and tightly coupled to the implementation. In contrast, our work focuses on redefining this interaction model. YAIFS exposes simulation as a service and introduces the MCP as a standardized interaction layer. This approach enables external agents, ranging from LLM-based assistants to multi-agent systems, to observe, query, and act upon the simulation through a unified set of tools. 
+
+3. Modeling 
+
+YAIFS builds upon the modeling perspective introduced in YAFS for representing distributed infrastructures in the cloud continuum. In this approach, the infrastructure is described as a graph-based topology of computational resources, applications are modeled as directed acyclic graphs (DAGs) representing service dependencies, and users are represented as request-generating modules located at nodes of the topology. Request routing and application placement are controlled through configurable se-lection mechanisms that determine how messages traverse the infrastructure and where application components are deployed. These mechanisms can be customized to repre-sent different routing policies or placement strategies. To support the new interaction layers, we define a consistent set of modeling ab-stractions that can be safely manipulated through these interfaces. The following sub-sections describe the main entities of the simulation model and the metrics derived from 5simulation execution. 
+
+3.1. Infrastructure design 
+
+The computational infrastructure is modeled as a set of interconnected clusters rep-resenting resources distributed across the cloud–edge continuum. Each cluster groups a collection of nodes that share local connectivity and administrative boundaries. Clusters are typically associated with conceptual layers of the cloud-–edge infras-tructure. In our examples, we adopt a common terminology where CDC (Cloud Data Center), MEC (Multi-access Edge Computing), and EDC (Edge Data Center) repre-sent different levels of proximity to end users. However, these roles are not enforced by the simulator, and users remain free to define arbitrary cluster types depending on the experimental scenario. Within each cluster, nodes represent individual computational resources. For mod-eling simplicity, nodes belonging to the same cluster are assumed to have full internal connectivity. Nodes may have different roles, such as control-plane nodes responsible for maintaining connectivity with other clusters and worker nodes hosting application components. Clusters are connected through physical links that define the inter-cluster network topology. These links include attributes such as geographical distance and target la-tency, which are used to estimate propagation delays and support placement decisions based on network characteristics. In addition, we introduce the concept of region , which allows grouping clusters according to geographical or administrative boundaries. This abstraction enables the computation of traffic-related metrics such as ingress and egress costs between regions. Figure 2 shows an example topology of a cloud–continuum infrastructure. Listing 1 presents a simplified excerpt of the JSON configuration used to define such infrastruc-tures in YAIFS. 
+
+> Listing 1: Example infrastructure configuration
+> "clusters": [{ "name": "cdc-0", "role": "CDC", "region": "region-a", "nodes": [{ "name": "cdc-0-control-plane", "role": "control-plane", "capacity": {"cpu": "100.0", "memory": "100000m"} }] }]
+
+Applications are modeled following an ETSI-like description of network services. In this model, an application is composed of a set of Virtual Network Functions (VNFs) executed in a specific order to resolve a service request. The service logic is therefore represented as a VNF chain, where each function processes the request and forwards it to the next stage. This representation remains compatible with the original service model introduced in YAFS, where applications are defined as directed processing flows across multiple modules. The main extension is the ability to explicitly define a backward response path from the final VNF to the user that initiated the request. This mechanism allows modeling scenarios in which responses must traverse the network back to the originating user. 6CDCs MECs EDCs       
+
+> control-plane cdc-0 Region ARegion Bcontrol-plane cdc-1 control-plane cdc-2
+> mec-2
+> edc-0 edc-1 edc-2 edc-3 edc-4 edc-5 edc-6 mec-3 mec-1 mec-0 Users
+
+Figure 2: Example topology of a cloud–continuum infrastructure composed of 3 CDC clusters, 4 MEC 
+
+clusters, and 7 EDC clusters, each containing multiple computational nodes. 
+
+User behavior follows the model originally introduced in YAFS. Users are repre-sented as request-generating entities associated with a specific application. Each user specifies the invoked application, the distribution governing request generation, and the message sent to the first VNF of the service chain. This abstraction allows the simula-tor to represent different workload patterns by configuring the statistical properties of request generation. We also support the definition of custom processes that model dynamic events occur-ring during the simulation. These processes capture phenomena such as user mobility, node failures, node recoveries, or dynamic workload changes. They can be defined ei-ther as user-provided functions executed during simulation events or through structured descriptors interpreted by the simulator. For example, the following process models user mobility by randomly moving users between candidate nodes every 30 time units. 
+
+Listing 2: Example process definition for user mobility 
+
+> {"name": "user-mobility-ar", "kind": "user_mobility_random", "enabled": true, "distribution": { "type": "deterministic", "time": 30 }, "params": { "app_ref": "Augmented Reality (AR)", "nodes": ["mec-0-worker-1", "edc-1-worker-1", "edc-2-worker-1"], "create_probability": 0.10, "move_probability": 0.80 }}
+
+Application placement corresponds to the assignment of VNFs to nodes in the in-frastructure topology. Placements may be defined explicitly or generated dynamically 7through placement strategies implemented as simulation processes. By default, message routing between VNFs follows the shortest path between the nodes hosting the corresponding functions. This default behavior can be overridden by custom routing policies that take into account additional criteria such as network latency, link cost, or infrastructure constraints. 
+
+3.2. Metrics design 
+
+We group the metrics provided by the simulator into several categories that capture service performance, infrastructure utilization, network behavior, and operational costs. 
+
+• Application-level metrics. These metrics describe the performance experi-enced by service requests as they traverse the VNF chain of an application. They include indicators such as the total number of processed requests, the number of successful and unsuccessful responses, and latency statistics (mean response time, percentiles such as p50 and p95, and maximum response time). The re-sponse time is further decomposed into its main components, including network transmission time, processing time at each VNF, and waiting time caused by resource contention. 
+
+• Infrastructure utilization metrics. These metrics describe how computational resources are used during the simulation. They include node utilization, cluster utilization, and the distribution of users across nodes. Such indicators help eval-uate how efficiently the infrastructure is used and how workloads are distributed across the cloud—edge hierarchy. 
+
+• Network metrics. Network-related indicators characterize how requests tra-verse the infrastructure topology. These include link utilization, the number of hops per request, and aggregated measurements of network congestion. The simu-lator also estimates the geographical distance traveled by requests and application responses, allowing the analysis of propagation effects and routing efficiency. 
+
+• Cost and resource consumption metrics. To support economic analysis of deployment strategies, the simulator computes cost-related indicators associated with application placement and network traffic. These include placement cost, egress traffic cost between regions, and the total cost of a deployment configura-tion. 
+
+• Runtime monitoring metrics. Lightweight runtime snapshots summarize the current state of the simulation, including entity-level counters and connectivity anomalies such as unreachable links. These metrics are useful for monitoring long-running simulations or for agent-driven experimentation workflows. All these metrics are accessible through the different interaction layers of the system. At the API level they are computed directly from simulation traces, while the service-oriented interface exposes them as simulation-scoped operations. Through the MCP transport layer, the same metrics can be retrieved by external tools or autonomous agents, enabling automated analysis and comparison of experimental scenarios. 84. Architecture of YAIFS 
+
+We organize the system architecture into three main layers: Core , API , and Service Interface . Each layer exposes a different level of abstraction for interacting with the simulator, allowing users and external agents to operate the system according to their desired level of control. 
+
+4.1. Core layer 
+
+The Core layer provides the fundamental primitives of the simulator and imple-ments the discrete-event execution engine inherited from YAFS. Internally, it is built on a simpy environment that orchestrates application, placement, population, and cus-tom processes over simulation time. The Core also implements a network-level message pipeline where transmission delays are computed from link bandwidth and propagation attributes, while dynamic link occupancy is tracked to model contention effects. In addition, it maintains explicit deployment mappings between DES processes, applica-tion modules, and topology nodes, and integrates path-selection and failure-handling mechanisms to support rerouting and loss accounting under topology changes. Finally, the layer records fine-grained node and link metrics during execution. The design intentionally preserves compatibility with the original architecture while introducing minimal extensions required by YAIFS. 
+
+4.2. API layer 
+
+On top of this foundation, the API layer provides higher-level abstractions for mod-eling applications, users, and infrastructure elements while orchestrating the execution of the underlying simulation engine. This layer encapsulates simulation lifecycle man-agement (e.g., initialization, execution control, pause, resume, and termination) and exposes a set of standardized domain operations for interacting with the simulated environment. Through this interface, users can create and modify infrastructure elements such as clusters and nodes, register applications, instantiate users, and dynamically deploy, migrate, replicate, or remove application components during runtime. The API also supports the definition of dynamic processes-including mobility patterns, failures, recov-eries, and service relocations-while maintaining internal consistency mechanisms such as routing cache updates after topology changes. By encapsulating these mechanisms, the API reduces the complexity of interacting with the discrete-event engine while providing a structured interface that can be safely accessed by external tools and autonomous agents. 
+
+4.3. Service Interface layer 
+
+Finally, the Service Interface layer exposes the simulator as a service-oriented en-vironment in which simulations are treated as managed, long-lived entities. Through this interface, simulations can be created, initialized, executed, paused, resumed, or terminated, enabling external tools and agents to orchestrate the full lifecycle of an experiment. In the current implementation, each simulation maintains explicit lifecycle states (e.g., created, initialized, running, paused, stopped, or failed) and supports controlled 9execution through scheduled runtime windows. To ensure consistency, runtime modi-fications to topology, applications, users, or processes are restricted to actionable non-running states. The service layer also enables branch-oriented experimentation through safe fork 
+
+operation that duplicate the full simulation state once execution is paused or idle. This allows researchers to explore alternative configurations-such as different placement policies, workload conditions, or failure scenarios-while preserving the lineage between the original and derived simulations. Additionally, the interface exposes introspection and metric endpoints, including state snapshots, time-windowed application metrics, network statistics, and deployed entities. These capabilities enable external clients and autonomous agents to coordinate reproducible, comparative, and exploratory experimentation workflows. Table 1 compares representative primitives across the three access layers, showing which operation should be invoked depending on whether the interaction occurs at one specific interface. 
+
+Table 1: Small subset of primitives and their mapping across core , api , and service interface layers.                           
+
+> Primitive
+> Object:
+> Core
+> (none)
+> API
+> Simulation.
+> Service interface
+> Service. Create simulation Object construction and setup: Sim(...) Simulation(. . . ..) .create_simulation(...)
+> Create one user/source Sim.deploy_source(app_name, id_node, msg, distribution) .create_users(...) .create_users(sim_id, definition, nodes=...)
+> Create users in batch Repeated:
+> deploy_source(...) calls
+> .create_users(definition, nodes=...) .create_users(...)
+> Register custom process Sim.deploy_monitor(name, function, distribution, ...) .register_process(...) .create_process(sim_id, definition)
+> Run simulation window Sim.run(until=...) .run_for(duration, step=...) .run_for(sim_id, ...)
+> Pause /resume execu-tion Controlled at process level .pause() .resume() .pause(sim_id) .resume(sim_id)
+> Fork simulation state Manual state management .fork(...) .fork(sim_id, ...)
+> Wait until idle state N/A (single-engine execution primitive) N/A (no orchestration wait primitive)
+> .wait_until_idle(sim_id, ...)
+> Application metrics summary N/A (raw metrics collection in engine) N/A (no aggregated service-level summary)
+> .get_app_metrics(sim_id, ...)
+
+5. MCP Integration & LLM scenarios 
+
+To enable interaction between external agents and the simulation environment, we integrate the MCP as a standardized communication layer. Through MCP, agents can discover available operations, access the simulation state, and perform actions through a common protocol interface, enabling interoperable and reproducible experimentation workflows. MCP acts as a bridge between the simulation service and external agent run-times. Instead of interacting directly with internal simulator APIs, agents communicate through MCP tools and resources that expose the main capabilities of the environment. Through this interface, agents can create and control simulations, modify experimental conditions, trigger system events, and retrieve metrics describing the state and perfor-mance of the infrastructure. 10 This integration allows the simulation to be treated as an interactive environment that can be observed and manipulated by autonomous agents. In particular, MCP enables LLM-based agents or reinforcement learning systems to reason about the sim-ulation state and coordinate experimental actions through a standardized interface. To illustrate agent interaction with the simulation environment, we implemented a simple command line interface (CLI) that communicates with the MCP server. Through this interface, user requests expressed in natural language are interpreted by a LLM and translated into MCP tool calls that operate on the simulator. In the next scenarios, we used the OpenAI GPT-5 model to perform this interpretation. In addition, the application provided in the repository logs all interactions, including user prompts, model responses, tool calls, and the configurations generated to represent the requested or inferred scenarios. It also records the execution traces of the simulations, enabling full traceability and reproducibility of the experimental workflows. This logging capability is particularly relevant for analyzing agent behavior and understanding how high-level requests are decomposed into sequences of simulation operations. The first interaction illustrates how the agent interprets the capabilities available through the MCP tools exposed by the simulator. When the user asks what the system can do, the language model summarizes the set of available operations and presents them as high-level functionalities that can be executed through the simulation inter-face. As shown in Listing 3, the agent describes tasks such as creating simulations, deploying applications, modifying placements, managing user traffic, running experi-ments, and collecting metrics. The example also highlights another relevant property of the interaction: the agent naturally adapts its responses to the language used by the user. In this case, after the initial query in English, the user asks the same question in Spanish and the agent replies accordingly in Spanish. 
+
+Listing 3: Agent interpretation of the available YAIFS tools and capabilities.    
+
+> you> what can you do? model> I can help you **set up, run, and analyze YAIFS/YAFS simulations**. Concretely, I can: - **Create simulations** (from a scenario directory or from a generated configuration: clusters/nodes, topology, services, users, placements). - **Inspect state** of a simulation (nodes, clusters, deployed apps/VNFs, processes). - **Deploy/replicate VNFs and applications** (and optionally choose placement strategies/allowed nodes). - **Move or remove VNFs** to create **different placement variants**. - **Manage user traffic** (add/remove users, move users to nodes, adjust their traffic rate λ). - **Run the simulation** (run for a duration, schedule, pause/resume, stop, destroy). - **Collect metrics** and compare outcomes: - application-level metrics (latency/critical path, etc.) - network-level metrics (link/egress cost/utilization depending on scenario) If you tell me your goal (e.g., *compare two placements*, *minimize latency*, *minimize cost*, etc.) and provide a ‘simulation_id‘ (or let me create one), I’ll propose the experiment and execute it.
+> you> ¿qué puedes hacer? model> Puedo ayudarte a diseñar, ejecutar y analizar simulaciones YAIFS/YAFS. En concreto, puedo: ...
+
+The next interaction illustrates how a user can create a simulation scenario using natural language. The agent interprets the request and generates the corresponding infrastructure through the available MCP tools. As shown in Listing 4, the simula-tion is created and a unique identifier is returned, allowing the user or the agent to continue configuring the scenario before executing the experiment. In addition to nat-ural language descriptions, YAIFS also supports defining scenarios through structured configuration files (e.g., JSON) that can be given to the MCP client. 11 Listing 4: Agent-driven creation of a simulation infrastructure      
+
+> you> Create a simulation with three clusters, each with 10 nodes.
+> [03/25/26 17:47:16] INFO Processing request of type CallToolRequest server.py:720 [03/25/26 17:47:17] INFO Processing request of type CallToolRequest server.py:720
+> model> Done. I created a new YAIFS/YAFS simulation with **3 clusters** and **10 nodes per cluster** (**30 nodes total**). - **simulation_id:** ‘sim-35a3ffb7‘ - **name:** ‘clusters3_nodes10‘ - **status:** created (not started yet) If you want, I can now deploy the default applications/VNFs and run it, or we can create two different placement variants and compare them.
+> you>
+
+The next interaction 5 illustrates how a high-level user request is decomposed into a sequence of MCP tool calls that collectively implement the experiment. The internal sequence of MCP tool calls generated by the agent is as follows: create_default_simu-lation , list_simulations , create_simulation_application , create_simulation_applica-tion , get_simulation_state , list_simulation_processes , list_simulation_deployed_app-lications , list_simulation_application_vnfs , list_simulation_application_vnfs , list_-simulation_users , run_simulation_for , wait_simulation_until_ready , and get_simula-tion_application_metrics . This sequence reveals that the agent explores the available tool space rather than following a strictly optimal execution path. In particular, some operations are redundantly invoked (e.g., create_simulation_application and list_si-mulation_application_vnfs ), while others correspond to exploratory inspection steps (e.g., list_simulation_processes , list_simulation_users ) that are not strictly required to fulfill the user request. A more optimal sequence would consist of a reduced set of operations: (i) create_de-fault_simulation , (ii) run_simulation_for , (iii) wait_simulation_until_ready , and (iv) 
+
+get_simulation_application_metrics .
+
+Listing 5: Agent planning: tool call decomposition 
+
+> you> Create a baseline simulation, deploy an application and a user randomly, and run it for 1000 time units. Then analyze the response times.
+> (...) **Response time analysis (per application):** **Augmented Reality (AR):** - Requests: 8 (successful: 8 / failed: 0) - response_mean: 69.90 - response_p50: 69.90 - response_p95: 74.90 - response_max: 74.90 - processing_mean: 0.90 - waiting_mean: 0.0 **mIoTs:** - Requests: 4 (successful: 4 / failed: 0) - response_mean: 35.60 - response_p50: 35.60 - response_p95: 35.60 - response_max: 35.60 - processing_mean: 0.30 - waiting_mean: 0.0 (...)
+
+The final interaction (Listing 6) illustrates a higher-level request posed by the user: comparing two alternative placement strategies. In this case, the simulator layers does not provide a single primitive operation to perform this task. Instead, the agent in-terprets the request and plans a sequence of actions using the available MCP tools, 12 including generating alternative placements, executing the corresponding simulations, and comparing the resulting metrics. The agent first proposes possible placement vari-ants and then requests the necessary information (e.g., a simulation identifier or scenario definition) to execute the comparison. This example highlights how the agent can trans-late abstract experimental goals expressed in natural language into concrete simulation workflows. 
+
+Listing 6: Agent planning skills  
+
+> you> Are you able to suggest two different placements and compare them with each other? model> Yes if you already have a YAIFS/YAFS simulation (or a scenario I can load), I can: 1) Propose **two alternative placement strategies/topologies** (e.g., "spread across clusters" vs "pack into fewer clusters", or "pin to allowed nodes" sets). 2) Apply them in the simulator by **deploying/moving VNF instances** accordingly. 3) **Compare results** using simulation metrics (application/network metrics, critical path/latency, throughput, link usage, etc.). To do this concretely, I need one of the following from you: - **Option A:** Tell me the **simulation_id** you want to compare (and which apps/VNFs are involved). - **Option B:** Share the **scenario directory path** (the one containing ‘topology.json‘, ‘services.json‘, ‘placements.json‘, ‘users.json‘, etc.), or let me create/load a default one. Also, for the two placements, what do you mean by "different"? - By **cluster** (e.g., Cluster A/B vs A/C)? - By **node constraints** (e.g., "only edge nodes" vs "only core nodes")? - By **objective** (minimize latency vs minimize cost vs maximize reliability)? If you reply with a simulation_id (or scenario path) + your intended placement difference, I’ll run the two placements and produce a side-by-side comparison.
+> you>
+
+6. Experimental MCP-based Scenario and Evaluation 
+
+To evaluate the capabilities of the proposed MCP-based multi-agent approach, we design a dynamic cloud–edge scenario that introduces workload variations and localized demand hotspots. The goal is not only to analyze how different placement strategies behave under changing conditions, but also to illustrate how agent-based orchestration can adapt the system through structured interaction with the simulation. We consider three placement strategies: 
+
+• Random placement : applications are initially deployed randomly across the infrastructure. A fixed number of initial replicas (20) is created, and users are assigned to shared instances in a round-robin fashion. 
+
+• Greedy placement : application instances are deployed as close as possible to users, minimizing network distance. A new instance of the application is created for each user, resulting in no sharing of VNF chains. 
+
+• Multi-agent MCP placement : the simulation evolves dynamically in discrete time windows, where agents monitor system metrics and adapt placement deci-sions during execution. The random and greedy strategies are designed as interpretable baselines. The greedy approach is expected to provide lower latency, as each user is served by a ded-icated application instance deployed at the edge. However, this comes at the cost of 13 Table 2: Application characteristics in the evaluated scenario             
+
+> Application # VNFs # Messages Latency Requirement (simulation units)
+> Perception Pipeline 34120 Coordination Pipeline 2375 Telemetry Monitoring 1250
+
+a significantly higher number of replicas and increased deployment cost due to the use of MEC nodes. In contrast, the random strategy is expected to exhibit higher average latency, as VNF chains are distributed across the infrastructure, potentially increasing network congestion. The multi-agent approach is expected to achieve an intermediate behavior, balancing performance and resource usage by dynamically adapting deploy-ments to current system conditions. The remainder of this section is organized as follows. We first describe the scenario configuration, then detail the multi-agent design, followed by the experimental results. Finally, we discuss the role of MCP in structuring the interaction between agents and the simulation, which constitutes the main objective of this experimental study. 
+
+6.1. Infrastructure Description 
+
+The topology spans CDC , EDC , and MEC clusters, comprising 3, 10, and 27 clus-ters, respectively, with a total of 214 nodes distributed non-uniformly across them. User requests are generated at MEC nodes, while application services can be deployed across the entire infrastructure. Applications are modeled as service chains with different la-tency requirements. The evaluated workload includes three representative applications: 
+
+Perception Pipeline , Coordination Pipeline , and Telemetry Monitoring , which differ in complexity and latency sensitivity as summarized in Table 2. 
+
+6.2. Multi-Agent MCP Placement Strategy Design 
+
+We focus our description on the MCP-based multi-agent approach. The random and greedy placement strategies are used as baselines and are briefly discussed in the results comparison. The proposed strategy relies on the interleaved execution of two agents throughout the simulation. This design illustrates the role of the MCP layer while keeping the system simple and interpretable. The simulation follows a window-based execution model: 1. The Monitoring Agent observes the simulation over a time window Wk and pro-duces a system snapshot Sk.2. The Placement Agent selects a strategy based on Sk.3. A set of candidate placement actions is generated. 4. Up to a maximum of B actions are executed ( B = action_budget_per_window ). 5. The simulation advances to the next window or terminates when the predefined simulation horizon is reached. The following subsections describe the behavior of each agent in detail. 14 6.2.1. Monitoring Agent 
+
+The Monitoring Agent observes the state of the simulation at the end of each ac-tionable time window and produces a structured snapshot that is later consumed by the 
+
+Placement Agent . It does not modify the system state; rather, its role is to transform low-level metrics into a compact representation of the current operational condition of the infrastructure. Let the simulation be partitioned into actionable windows 
+
+Wk = [ tk, t k+1 ), |Wk| = tk+1 − tk,
+
+where |Wk| denotes the duration of the k-th window. At the end of each window, the monitoring agent produces a state summary. 
+
+Sk =
+
+
+
+Tk, Rk, Unode  
+
+> k
+
+, Ok, Ulink  
+
+> k
+
+, CkPk,
+
+
+
+,
+
+These are computed over the current window as follows. 
+
+Response_p95 ( Tk). For each application a, let R(a, W k) be the set of completed service requests of application a whose end time belongs to Wk. For each request r ∈ R (a, W k),let resp( r) denote its end-to-end service response time, including return messages when applicable. The latency indicator used by the agent is the empirical 95th percentile: 
+
+response _p95( a, W k) = Q0.95 
+
+
+
+{ resp( r) | r ∈ R (a, W k) }
+
+
+
+,
+
+where Q0.95 denotes the empirical 95th percentile. An application is marked as degraded if 
+
+response _p95( a, W k) > latency _requirement(a) 
+
+Unsuccessful requests ( Rk). This indicator captures delivery failures, incomplete ser-vice chains, and response losses. Let requests _total( a, W k) be the number of requests emitted for application a during Wk, and let requests _successful( a, W k) be the number of requests that complete at least one valid service path within the same observation horizon. The number of unsuccessful requests is defined as 
+
+requests _unsuccessful( a, W k) = max 
+
+
+
+requests _total( a, W k)
+
+− requests _successful( a, W k), 0
+
+
+
+.
+
+An application-level incident is raised whenever 
+
+requests _unsuccessful( a, W k) > 0.
+
+Node utilization ( Unode  
+
+> k
+
+) and overloaded nodes ( Ok). For each node n, the monitoring agent estimates the effective computational load from computation events recorded during the window. Let M(n, W k) be the set of computation events executed at node 
+
+n whose completion time belongs to Wk. For each event m ∈ M (n, W k), let 
+
+service _time( m) = tout (m) − tin (m)
+
+15 be the service time of the event. The window-based node utilization is then defined as 
+
+node _utilization( n, W k) = 
+
+P  
+
+> m∈M (n,W k)
+
+service _time( m)
+
+|Wk| .
+
+A node is considered overloaded if 
+
+node _utilization( n, W k) > θ node ,
+
+where θnode is the node utilization threshold. In the current configuration, θnode = 0 .08 .We empirically set this threshold to a relatively low value in order to induce a diverse set of actions, since the workload is highly distributed across a large number of nodes. If this condition is maintained for a number of consecutive windows greater than or equal to ωoverload , the node is inserted into the overloaded set Ok. In the current scenario, 
+
+ωoverload = 1 .
+
+Link utilization ( Ulink  
+
+> k
+
+) and Congested links ( Ck). For each link e, let T (e, W k) be the set of transmitted messages traversing e during Wk. If size( m) denotes the size of message 
+
+m, the average bandwidth used over the window is 
+
+bandwidth _used( e, W k) = 
+
+P   
+
+> m∈T (e,W k)
+
+size( m)
+
+|Wk| .
+
+Let bandwidth _available( e) be the nominal capacity of link e. The link utilization is computed as 
+
+link _utilization( e, W k) = bandwidth _used( e, W k)bandwidth _available( e).
+
+A link is marked as congested if 
+
+link _utilization( e, W k) > θ link ,
+
+where θlink is the congestion threshold. In the current scenario, θlink = 0 .5. Congested links are collected into the set Ck.
+
+Placement cost ( Pk). The monitoring agent also observes the aggregated placement cost associated with the currently deployed services. If the aggregated placement cost exceeds the configured budget θcost , the placement agent may activate a cost-oriented strategy. In the current configuration, θcost = 8 .7.Formally, for an application a, the placement cost is defined as: 
+
+placement _cost( a) = X
+
+> d∈D (a)
+
+cost  node( d),
+
+where D(a) denotes the set of active VNF deployments for application a, and node( d)
+
+is the node hosting deployment d. In our scenario, node costs reflect the proximity to end users: CDC nodes have a cost of 0.01 , EDC nodes 0.06 , and MEC nodes 0.30 .16 Table 3: Strategy-dependent prioritization of placement actions                            
+
+> Selected Strategy Primary Action Subsequent Actions
+> Cost Consolidate Replicate (if degraded applica-tions); Move (if overloaded nodes and budget allows)
+> Overload Move Replicate (if degraded applica-tions); Consolidate (if cost con-straints apply)
+> Congestion Replicate Move (if overloaded nodes exist);
+> Consolidate (if cost constraints ap-ply)
+> Balanced None None
+
+6.2.2. Placement Agent 
+
+The Placement Agent operates at the end of each actionable time window Wk,consuming the system snapshot Sk produced by the Monitoring Agent . The agent selects a placement strategy σk through a hierarchical rule-based policy: 
+
+σk =
+
+
+
+Cost , if Pk > θ cost ,
+
+Overload , if Ok̸ = ∅,
+
+Congestion , if Ck̸ = ∅,
+
+Balanced , otherwise ,
+
+The activation of a strategy determines both the type of action to be executed and the selection of destination nodes. When the Balanced strategy is activated, no actions are performed. The available actions are as follows: 
+
+• Consolidation (consolidate ): reduces placement cost by migrating VNFs from high-cost nodes to lower-cost nodes when the cost budget is exceeded. This action is prioritized when the Cost strategy is activated. 
+
+• Replication (replicate ): creates additional VNF instances for applications ex-periencing degradation or failures. The agent selects affected applications, identi-fies their dominant user region, and deploys missing VNFs on a suitable destina-tion node. This action is prioritized when the Congestion strategy is activated. 
+
+• Migration (move ): relocates VNFs from overloaded nodes. For each overloaded node, candidate VNFs are prioritized based on application latency and moved to a lower-cost, lower-utilization destination. This action is prioritized when the 
+
+Overload strategy is activated. We summarize the prioritization of placement actions under each strategy in Table 3. The previous actions select the destination node using the next scoring function: 
+
+score( n) = dusers (n) + α · U n 
+
+> k
+
+(n) + β · P n + Π region (n),
+
+where: 17 • dusers (n) is the mean distance between node n and the current users of the appli-cation, 
+
+• Un 
+
+> k
+
+(n) is the utilization of node n in window Wk,
+
+• Pn is the cost associated with node n,
+
+• Πregion (n) is a binary region penalty equal to 0 for nodes in the dominant user region and δregion = 25 .0 otherwise. The relative importance of utilization and cost in the scoring function is controlled by the strategy-dependent penalty coefficients α and β. In the cost strategy, cost is strongly prioritized ( β = 60 .0) over utilization ( α = 25 .0). The overload strategy emphasizes utilization ( α = 55 .0) while reducing the influence of cost ( β = 20 .0). The 
+
+congestion strategy assigns moderate importance to utilization ( α = 25 .0) and a lower weight to cost ( β = 12 .0), reflecting its focus on proximity and responsiveness. Finally, the balanced strategy adopts intermediate values ( α = 35 .0, β = 20 .0), providing a compromise between load distribution and cost efficiency. The total number of actions per window is limited by a fixed budget of B = 4 ac-tions, ensuring bounded intervention and preventing excessive oscillations in placement decisions. To evaluate the adaptive behavior of the system, we introduce a controlled workload perturbation through a HotspotUsers event. This event dynamically concentrates de-mand on a latency-sensitive application by injecting additional users at specific points in time. Concretely, at t = 1000 , 60 additional users of the Perception Pipeline appli-cation are created at specific MEC node, generating a sudden increase in request load. At t = 1800 , these users are relocated to a neighboring node, introducing a spatial shift in demand. Finally, at t = 2600 , 40% of these users are removed, partially relieving the system. This sequence creates a non-stationary workload characterized by abrupt load increases, spatial redistribution of demand, and partial recovery. These conditions are designed to trigger adaptive behavior in the placement agent, particularly VNF migration ( move ) actions in response to node overload. 
+
+6.3. Results and Analysis 
+
+The comparison between the three placement strategies (random, greedy, and multi-agent) is conducted under the same nominal user workload and the same workload perturbation introduced by the HotspotUsers event. In the random strategy, VNFs are assigned to nodes arbitrarily, and users are associated with applications using a round-robin scheme. Additional users introduced by the hotspot event reuse already deployed VNF instances. In contrast, the greedy strategy deploys application instances on demand: each time a user is created, a new instance of the requested application is generated and all its VNFs are deployed on the MEC node where the user is located. As a result, no sharing of VNF replicas occurs, and each user is served by an independent service chain. This behavior is consistently maintained during the hotspot event. After simulating 5000 time units, we obtain the results shown below. Figure 3 illustrates the evolution of the response time decomposition (network, waiting, and processing) for each application (rows) and strategy (columns). It is important to note that the time scales differ across strategies. The greedy strategy achieves the lowest 18 Figure 3: Evolution of agent strategies over time for each application 
+
+overall latency, where processing time becomes the dominant component. In contrast, in the random and multi-agent strategies, network latency has a more significant impact. The Perception Pipeline application, which is heavily affected by the hotspot, shows a clear performance degradation from t = 1000 , when the demand spike increases multiple components of the response time. In the random and multi-agent strategies, the increase is mainly reflected in waiting time, whereas in the greedy strategy the network becomes the primary bottleneck due to the concentration of deployments at the edge. Notably, the impact of the hotspot is effectively mitigated only in the multi-agent approach, which dynamically repositions VNFs in response to the changing load conditions. Across all applications, the multi-agent strategy provides a more balanced trade-off between the two baseline approaches, avoiding the extreme behaviors observed in both the random and greedy strategies. Figure 4 shows the sequence of actions performed by the multi-agent system across simulation windows. The first three rows present key metrics observed by the Monitor-ing Agent , namely the number of congested links, overloaded nodes, and the aggregated placement cost. The last row displays the actions executed by the Placement Agent .Vertical separators indicate window boundaries and also reflect the dominant condition identified by the monitoring agent in each window, which guides the subsequent deci-sions of the placement agent. The observed actions illustrate how the placement agent attempts to correct the system state over time. Initially, consolidation and replication actions are performed to address cost inefficiencies and link congestion, particularly under increasing load. As the simulation evolves, migration ( move ) actions become dominant, aiming to alleviate node overload by redistributing VNFs across the infras-19 Figure 4: Evolution of multi-agent actions over time 
+
+tructure. Finally, the total number of deployed VNFs highlights the resource footprint of each strategy: approximately 41 for random, 567 for greedy, and 56 for the multi-agent approach. This comparison reflects the trade-off between performance and resource efficiency, where the multi-agent strategy achieves a more balanced deployment. 
+
+6.4. Discussion 
+
+Up to this point, the interaction between agents and the simulation has remained implicit in the description of the experimental scenario. Here, we make this interaction explicit by examining the role of MCP as the abstraction that enables and structures agent-driven control of the simulation. Our agents operate through a set of standardized tools that expose the capabilities of the simulation. The execution flow at each window can be summarized as follows: 1. The simulation advances through control operations such as schedule_for and 
+
+wait_until_ready .2. The Monitoring Agent queries system metrics using tools such as get_simula-tion_application_metrics and get_simulation_network_metrics .3. Based on these observations, the agent constructs the snapshot Sk.4. The Placement Agent consumes Sk and selects a placement strategy. 5. If required, additional information is retrieved through tools such as list_simu-lation_users , list_simulation_application_vnfs , and list_simulation_no-de_placements .20 6. Placement actions are executed via tools such as replicate_application_vnf 
+
+and move_application_vnf .This interaction pattern highlights that MCP does not represent direct communica-tion between agents, but rather a shared interface that mediates access to the simulation state and operations. Agents remain logically independent and coordinate implicitly through the environment. From this perspective, MCP fulfills three key roles. First, it provides a common interface , allowing agents to interact with the simulation through a consistent set of operations without accessing internal data structures. Second, it enables decoupling ,as agent logic is expressed in terms of tool invocations and remains independent of the execution context, whether local or remotely exposed through MCP transports. Third, it supports traceability , as every interaction is recorded with information about the actor, simulation window, invoked tool, input and output summaries, and execution status. This separation makes it possible to audit the behavior of the system at a fine-grained level, including what the monitoring agent observed, which strategy the place-ment agent selected, and how each action was materialized through tool calls. Overall, MCP transforms the simulation into an interactive and programmable en-vironment, where behavior is defined through sequences of observable and reproducible interactions. This perspective shifts the role of simulation from a static evaluation tool to a dynamic system that can be systematically explored and controlled by external agents. 
+
+7. Conclusions 
+
+In this work, we presented YAIFS, a service-oriented evolution of YAFS that rede-fines the role of simulation in distributed cloud–edge systems. The proposed framework introduces a layered architecture that progressively exposes different levels of abstrac-tion, from low-level simulation control to high-level orchestration. This design enables both fine-grained modeling flexibility and structured interaction through standardized interfaces. A central contribution of this work is the integration of the Model Context Protocol (MCP) as a unified interaction layer between external agents and the simulation envi-ronment. By exposing simulation capabilities as a set of tools and resources, MCP de-couples agent logic from simulator internals and enables a consistent interaction model across different execution contexts. This abstraction allows simulations to be treated as controllable and observable entities, rather than static artifacts. To demonstrate these capabilities, we presented two complementary scenarios. First, an LLM-based assistant enables users to interact with the simulation through natural language, illustrating how MCP can support intuitive and high-level control. Second, a multi-agent scenario showcases how specialized agents can monitor system conditions and dynamically adapt placement decisions through structured interactions. Together, these scenarios highlight the flexibility of the framework and the role of MCP in enabling agent-driven experimentation. Overall, this work introduces a shift in perspective by treating simulation as a service that can be programmatically accessed, controlled, and evolved. This approach opens 21 new possibilities for integrating simulation environments within AI-driven workflows, where agents can reason about system behavior, explore alternative configurations, and automate experimental processes. The YAIFS framework is available at https://github.com/acsicuib/YAIFS , where we provide the full implementation, documentation, and a collection of representative YAFS scenarios re-implemented using the proposed interaction layers (API and service-oriented interface), as well as the illustrative use cases presented in this work, including the LLM-based interaction and the multi-agent MCP scenario. Additional implemen-tation details and experimental configurations, which are omitted here for brevity, are also provided to facilitate reproducibility and further exploration. Future work will explore the integration of learning-based agents, including rein-forcement learning and advanced LLM-based planning strategies, as well as the coordi-nation of multiple agents operating over shared simulation environments. In addition, extending MCP interoperability with external orchestration tools and real-world de-ployment frameworks may enable tighter coupling between simulated and operational systems, further bridging the gap between experimentation and deployment. 
+
+Acknowledgments 
+
+This work was supported by Grant PID2024-158637OB-I00, funded by MICIU/AEI/-10.13039/501100011033 and by “ERDF A way of making Europe” (ERDF/EU). 
+
+References 
+
+[1] I. Lera, C. Guerrero, C. Juiz, Yafs: A simulator for iot scenarios in fog computing, IEEE Access 7 (2019) 91745–91758. doi:10.1109/ACCESS.2019.2927895 .[2] H. Gupta, A. Vahid Dastjerdi, S. K. Ghosh, R. Buyya, ifogsim: A toolkit for modeling and simulation of resource management techniques in the internet of things, edge and fog computing environments, Software: Practice and Experience 47 (9) (2017) 1273–1296. doi:10.1002/spe.2509 .[3] B. Hussein, S. hashem, ifogger: A new framework to simulate fog computing re-source placement inside omnet++ environment, Mustansiriyah Journal of Pure and Applied Sciences 1 (10 2024). doi:10.47831/mjpas.v1i3.55 .[4] C. Mechalikh, H. Taktak, F. Moussa, Pureedgesim: A simulation framework for performance evaluation of cloud, edge and mist computing environments, Com-puter Science and Information Systems 18 (1) (2021) 43–66. [5] J. Wei, S. Cao, S. Pan, J. Han, L. Yan, L. Zhang, Satedgesim: A toolkit for model-ing and simulation of performance evaluation in satellite edge computing environ-ments, in: 2020 12th International Conference on Communication Software and Networks (ICCSN), IEEE, 2020, pp. 307–313. doi:10.1109/ICCSN49120.2020. 9237691 .[6] A. Markus, M. Biro, K. Skala, Z. Šojat, A. Kertesz, Modeling dew computing in dissect-cf-fog, Applied Sciences 12 (17) (2022). doi:10.3390/app12178809 .URL https://www.mdpi.com/2076-3417/12/17/8809 
+
+22 [7] E. Del Pozo Puñal, F. Garcia-Carballeira, Enigma: simulador de plataformas edge y fog computing (Sep. 2021). doi:10.5281/zenodo.10953027 .URL https://doi.org/10.5281/zenodo.10953027 
+
+[8] A. R. Nandhakumar, A. Baranwal, P. Choudhary, M. Golec, S. S. Gill, Edgeaisim: A toolkit for simulation and modelling of ai models in edge computing environments, Measurement: Sensors 31 (2024) 100939. 
+
+doi:https://doi.org/10.1016/j.measen.2023.100939 .URL https://www.sciencedirect.com/science/article/pii/ S2665917423002751 
+
+[9] J. Massa, V. De Caro, S. Forti, P. Dazzi, D. Bacciu, A. Brogi, Eclypse: A python framework for simulation and emulation of the cloud-edge continuum, Journal of Software: Evolution and Process 38 (1) (Jan. 2026). doi:10.1002/smr.70081 .URL http://dx.doi.org/10.1002/smr.70081 
+
+[10] A. Markus, A. Kertesz, A survey and taxonomy of simulation envi-ronments modelling fog computing, Simulation Modelling Practice and Theory 101 (2020) 102042, modeling and Simulation of Fog Computing. 
+
+doi:https://doi.org/10.1016/j.simpat.2019.102042 .URL https://www.sciencedirect.com/science/article/pii/ S1569190X1930173X 
+
+[11] C. Mechalikh, Z. Safavifar, F. Golpayegani, et al., Quality matters: A compre-hensive comparative study of edge computing simulators, Simulation Modelling Practice and Theory 138 (2025) 103042. 23
