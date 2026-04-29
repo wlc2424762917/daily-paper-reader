@@ -1,0 +1,305 @@
+Title: Benchmarking and Improving GUI Agents in High-Dynamic Environments
+
+URL Source: https://arxiv.org/pdf/2604.25380v1
+
+Published Time: Wed, 29 Apr 2026 00:42:27 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# Benchmarking and Improving GUI Agents in High-Dynamic Environments 
+
+# Enqi Liu, Liyuan Pan, Zhi Gao, Yan Yang, Chenrui Shi, Yang Liu, Jingrong Wu, Qing Li 
+
+enqi.liu@bit.edu 
+
+## Abstract 
+
+Recent advancements in Graphical User Interface (GUI) agents have predominantly focused on training paradigms like supervised fine-tuning (SFT) and reinforcement learning (RL). However, the challenge of high-dynamic GUI environments remains largely un-derexplored. Existing agents typically rely on a single screenshot after each action for decision-making, leading to a partially ob-servable (or even unobservable) Markov decision process, where the key GUI state including important information for actions is often inadequately captured. To systematically explore this chal-lenge, we introduce DynamicGUIBench, a comprehensive online GUI benchmark spanning ten applications and diverse interaction scenarios characterized by important interface changes between actions. Furthermore, we present DynamicUI, an agent designed for dynamic interfaces, which takes screen-recording videos of the interaction process as input and consists of three components: a dy-namic perceiver, a refinement strategy, and a reflection. Specifically, the dynamic perceiver clusters frames of the GUI video, gener-ates captions for the centroids, and iteratively selects the most informative frames as the salient dynamic context. Considering that there may be inconsistencies and noise between the selected frames and the textual context of the agent, the refinement strategy employs an action-conditioned filtering to refine thoughts to miti-gate thought-action inconsistency and redundancy. Based on the refined agent trajectories, the reflection module provides effective and accurate guidance for further actions. Experiments on Dynam-icGUIBench demonstrate that DynamicUI significantly improves the performance in dynamic GUI environments, while maintaining competitive performance on other public benchmarks. 
+
+## 1 Introduction 
+
+Leveraging Vision-Language Models (VLMs) to develop GUI agents has emerged as a promising frontier for automating complex tasks, such as file processing and information retrieval, across mobile and desktop platforms [ 12 , 13 , 18 , 43 , 45 , 48 ]. Given the domain gap be-tween natural environments and GUI screenshots, research has pre-dominantly focused on developing strong learning algorithms [ 34 ,44 , 46 ], constructing large-scale, high-quality datasets [ 1, 8] or architecting sophisticated systems [ 7, 42 ] to improve GUI compre-hension. While these advancements are undoubtedly valuable, most existing agents [ 31 , 33 , 47 ] rely on a singular screenshot captured after each action for decision-making. This paradigm overlooks the temporal nature of GUI interactions, failing to account for high-dynamic environments where visual changes of the interfaces (e.g., transient notifications, streaming animations, or page scrolling) oc-cur between discrete action steps while these changes may not be fully observable from a single screenshot and can lead to the loss of critical task-relevant information, as shown in Fig. 1. Consequently,           
+
+> REALISTIC POMDP: HIDDEN DYNAMICS BETWEEN OBSERVATIONS
+> Instruction: Configure the car with as many premium options as possible, including Eco-Wheel.
+> Observation 𝑂 𝑡 −1
+> A✓
+> B✓
+> C✓
+> NOTE: C conflicts with A+B; removed. Click ‘Proceed to Checkout’. A✓
+> B✓
+> C✗
+> Observation 𝑂 𝑡
+> Agent Hidden Dynamics —————————
+
+Figure 1: Illustration of how hidden dynamics make task-relevant state information only partially observable to cur-rent GUI agents. In this example, a configuration mismatch prompt appears between two observations, so the current observation 𝑂 𝑡 does not fully preserve the temporal informa-tion required by the task, even when considering the previous observation 𝑂 𝑡 −1.
+
+a single-frame observation is insufficient to fully capture the evolv-ing GUI state, reducing the interaction to a partially observable Markov decision process (POMDP) and stripping the GUI agents of essential context for informed planning. Although recent studies such as D-GARA [ 3 ] and GUI-Robust [ 41 ]have begun to consider ‘dynamic’ GUI tasks, they mainly model dynamics as observable anomalies or perturbations, such as un-expected advertisements or warning dialogs. Such settings still implicitly follow a fully observable MDP assumption, where the post-action screenshot is treated as sufficient to represent the envi-ronment state. This view overlooks the hidden interstitial dynamics that may occur between two consecutive observations. In real-world GUI environments, however, crucial task-relevant events may emerge, evolve, or disappear before the next screenshot is captured, making the underlying interaction process inherently partially observable. As a result, important evidence for instruc-tion understanding and action selection can be lost under sparse temporal sampling. To bridge this gap, we introduce DynamicGUIBench, a compre-hensive online GUI benchmark with 149 tasks across ten appli-cations, explicitly designed to evaluate GUI agents under hidden interstitial dynamics. In contrast to traditional benchmarks that primarily assume static post-action interfaces, DynamicGUIBench focuses on four representative categories of dynamic challenges, namely interruptive UI states, ephemeral reference, dynamic list se-lection, and content-triggered interaction. These categories capture a broad range of realistic cases in which the true environment state cannot be reliably recovered from a single screenshot alone. By explicitly modeling such partially observable interaction processes, DynamicGUIBench provides a more rigorous and realistic testbed for evaluating robust GUI agents. We further propose DynamicUI, a novel agent framework that takes the full interaction screen recording video as input and con-sists of three modules: a dynamic perceiver, a refinement strategy, 
+
+> arXiv:2604.25380v1 [cs.CV] 28 Apr 2026
+
+and a reflection module. The dynamic perceiver condenses the raw video into informative dynamic context by clustering frames and iteratively selecting salient centroids based on generated captions and confidence scores. The refinement strategy further mitigates inconsistencies between the agent’s intended actions and resulting executable behaviors. Finally, the reflection module leverages the refined trajectory to provide high-level guidance for subsequent actions. Extensive experiments on DynamicGUIBench and other public benchmarks show that DynamicUI is highly competitive with existing state-of-the-art methods, particularly in dynamic GUI scenarios, while maintaining strong general GUI understanding. Our main contributions are as follows. 
+
+• We introduce DynamicGUIBench, an online benchmark span-ning ten applications and diverse dynamic GUI scenarios, where substantial interface changes occur between actions, which make the interaction process partially observable for existing agents. 
+
+• We propose DynamicUI, a GUI agent for rapidly changing interfaces, built on a dynamic perceiver, a trajectory refine-ment strategy, and a reflection module. 
+
+• Extensive experiments on DynamicGUIBench and the OS-World benchmark demonstrate that DynamicUI achieves strong performance in dynamic environments while remain-ing competitive in static settings. 
+
+## 2 Related Work 
+
+GUI Benchmark. Existing GUI benchmarks can be broadly grouped by the type of tasks they target. One major line focuses on short-horizon, step-wise action prediction [ 4, 37 ], where the goal is to pre-dict the next click, type, or grounded action from a single screenshot or a short observation history. These benchmarks mainly evaluate perception, grounding, and immediate decision-making ability at the current step. A second line emphasizes long-horizon goal com-pletion [ 5 , 19 , 24 ], requiring agents to perform multi-step reasoning, planning, backtracking, and recovery in order to accomplish an in-struction end-to-end in realistic environments. A third line studies cross-application workflows [ 6 , 32 , 39 ], where agents must coordi-nate actions across multiple apps, windows, or webpages, and trans-fer intermediate information between heterogeneous interfaces. In addition, several recent benchmarks explicitly stress robustness under anomalies or disruptions [ 3, 26 , 41 ], such as pop-up dialogs, permission prompts, interruptions, or environment perturbations, in order to better approximate practical deployment settings. However, despite differences in task scope and evaluation pro-tocol, existing benchmarks still assume a fully observable MDP, where each screenshot is treated as a sufficient representation of the current state and transitions are assumed not to contain crit-ical latent events. Even when anomalies are considered, they are typically modeled as directly observable interruptions, rather than missing or partially observed intermediate states. In contrast, our benchmark is designed for POMDP-style GUI tasks, where substantial interface changes and latent events may occur between two observations. As a result, a single frame obser-vation can be incomplete or even misleading with respect to the            
+
+> Human Script VLM Inspiration
+> Propose Extend Build Judge Generate Check
+> Instruction
+> Check
+> Instruction Instruction EFunc. 01 02 03 04 05
+> ✗✓✗✓
+
+Figure 2: Pipeline of data construction. EFunc. represents evaluator and reward function. 
+
+true state. This setting better reflects real-world desktop and mo-bile interaction, where agents must reason over dynamic context, partial evidence, and temporally sparse but task-critical events. 
+
+GUI Agent. Recent progress in GUI agents has been driven by advances in both agentic models and agent frameworks, mainly un-der supervised fine-tuning (SFT) and reinforcement learning (RL) paradigms. SFT-based methods fine-tune large vision–language models on GUI datasets to improve UI grounding, action predic-tion, and instruction following, as exemplified by ShowUI [ 16 ], CogAgent [ 11 ], HATS [ 28 ], SeeClick [ 4], and SimpAgent [ 2 ]. RL-based approaches, such as UI-AGILE [ 15 ] and GUI-R1 [ 21 ], improve decision-making through interaction feedback and reward-driven optimization. Beyond single-stage training, multi-stage or modular pipelines such as GTA1 [ 42 ], Aguvis [ 39 ], and related planner– executor systems introduce reasoning, grounding, and verification modules to enhance execution in complex environments. At the same time, another important direction explores stronger foundation backbones for GUI control, including general-purpose VLMs and native GUI-action models such as Qwen-VL [ 1 ], Open-CUA [ 35 ], GUI-Owl [ 38 ], UIPro [ 14 ], and UI-TARS [ 23 ]. These mod-els show that scaling multimodal pretraining and instruction tuning can substantially improve action grounding and long-horizon con-trol. However, such gains mainly stem from stronger perception and action generation, rather than explicit modeling of hidden states or missing observations in dynamic interfaces. Most existing methods improve execution through expert im-itation, reward shaping, stronger backbones, or modular design, rather than explicitly enhancing dynamic state tracking under par-tial observability. As a result, they remain limited in POMDP-style GUI tasks, where critical intermediate states may be latent or unob-served. In contrast, we propose a training-free framework that can be readily integrated into diverse VLM-based agents to strengthen dynamic context modeling in GUI interaction. 
+
+## 3 DynamicGUIBench 3.1 Data Collection and Annotation 
+
+To capture real-world dynamics in desktop environments, such as unexpected pop-up dialogs, system prompts, and user-driven inter-face changes, we develop a structured data construction pipeline, as illustrated in Fig. 2. The pipeline consists of five stages. First, annotators propose task ideas grounded in everyday desk-top workflows. Second, a VLM expands them into candidate instruc-tions, which are refined for clarity, executability, and consistency Table 1: Comparison of existing GUI benchmarks and our benchmark in terms of application diversity, task scale, eval-uation setting (Mode), anomaly presence (An.), and dynamic tasks (Dyn.). ✓ and ✗ denote the presence and absence of anomaly or dynamic tasks, respectively.                                                           
+
+> Benchmark Venue Apps/Web Tasks Mode An. Dyn.
+> Mind2Web [5] NeurIPS’23 137 2,350 Offline ✗✗
+> OSWorld [37] NeurIPS’24 10 369 Online ✗✗
+> GUI Odyssey [20] ICCV’25 201 7,735 Offline ✗✗
+> WorldGUI [10] arXiv’25 10 315 Offline ✗✗
+> Android World [25] ICLR’25 20 116 Offline ✗✗
+> OSWorld-G [36] NeurIPS’25 10 564 Online ✗✗
+> GUI-Robust [41] NeurIPS’25 392 5,318 Offline ✓✗
+> D-GARA [3] AAAI’26 7152 Online ✓✗
+> Ours 2026 10 149 Online ✓✓
+
+with the benchmark design. Third, annotators create automation configurations for task initialization and dynamic event triggering. Fourth, they define task-specific evaluation functions and instanti-ate the corresponding evaluators to form complete task specifica-tions. Finally, all tasks are double-checked by multiple annotators for correctness and overall quality. To improve reproducibility and reduce variance caused by net-work conditions and environment updates, we provide fully self-contained offline assets for Chrome-based and multi-app tasks, where complete HTML files are constructed to ensure deterministic rendering and interaction behavior. These design choices make DynamicGUIBench more reproducible, extensible, and practical for standardized evaluation. 
+
+## 3.2 Benchmark Analysis 
+
+Tab. 1 compares DynamicGUIBench with representative GUI agent benchmarks. Existing benchmarks largely fall into two groups: (i) of-fline datasets constructed from static traces, such as Mind2Web [ 5 ], GUI Odyssey [ 20 ], GUI-ReWalk [ 17 ], GUI Knowledge Bench [ 29 ], and GUI-Robust [ 41 ], and (ii) online interactive environments, such as OSWorld [ 37 ], Android World [ 25 ], and D-GARA [ 3 ]. While GUI-Robust and D-GARA explicitly introduce anomalous situations, the task state in these benchmarks remains fully observable at each step, such that these scenarios can still be handled by existing methods with partial-observability modeling and do not fundamen-tally depart from a fully observable Markov process. In contrast, DynamicGUIBench introduces an online, dynamic environment where latent interstitial states make the task partially observable and sometimes non-Markovian, thereby filling a key gap in existing benchmarks by enabling systematic evaluation of GUI agents under dynamic context shifts and incomplete observability. Tab. 2 summarizes the benchmark statistics. DynamicGUIBench contains 149 tasks spanning 10 application domains, covering a broad range of realistic desktop interaction scenarios. Chrome and multi-application tasks account for the largest shares, while 146 tasks are feasible and 3 are infeasible, enabling evaluation of both execution capability and infeasibility awareness. Built on top of OS-World, the benchmark supports direct interactive evaluation while 
+
+Table 2: Key statistics in DynamicGUIBench.                      
+
+> Statistic Number Statistic Number
+> Chrome 38 (25.5%) Multi apps 33 (22.4%) Gimp 10 (6.8%) Os 7 (4.7%) Libreoffice calc 14 (9.5%) Thunderbrid 9 (6.1%) Libreoffice impress 7 (4.7%) VLC 5 (3.4%) Libreoffice writer 14 (9.5%) VS Code 12 (8.1%) Feasible 146 (98%) Infeasible 3 (2.0%)
+
+preserving realistic task dynamics. More details on the benchmark construction are provided in the supplementary material. 
+
+## 3.3 POMDP Design 
+
+To systematically characterize dynamic interstitial states in desktop environments, we organize DynamicGUIBench under a POMDP taxonomy with four categories: 
+
+• Interruptive UI states (InterruptUI). Sudden inserted inter-face states, such as warnings, security prompts, login failures, or configuration errors, that interrupt the original workflow and must be handled before the task can proceed. 
+
+• Ephemeral reference (EphemRef). Tasks that rely on short-lived interaction history, such as recent selections, previous steps, or last-used settings, which may not be recoverable from the current screenshot alone. 
+
+• Dynamic list selection (DynList). Candidate sets such as inboxes, feeds, and search results may change over time, requiring selection based on relative attributes (e.g., recency, rank, or price) rather than fixed positions. 
+
+• Content-triggered interaction (ContentTrig). Actions are triggered by semantic content in text, images, videos, or subtitles, where the decisive evidence may be brief, implicit, or not fully captured by a single static screenshot. Fig. 3 presents one representative example for each of the four categories, showing that the environment may evolve between two recorded observations while the decisive intermediate evidence is not fully reflected in either endpoint screenshot. These cases illustrate that the central challenge is not merely the presence of visible anomalies, but the omission of temporally localized yet task-critical information under sparse observation. Such scenarios arise naturally in everyday web and desktop interactions and constitute common sources of failure for GUI agents in realistic settings. As shown in Fig. 4, DynamicGUIBench covers all four categories with diverse distributions across application domains. More importantly, these categories induce different forms of partial observability, in-cluding interrupted workflows, short-lived references, evolving candidate sets, and transient semantic cues, which are difficult to capture faithfully with static web-style benchmarks. 
+
+## 4 Method 4.1 Formulation 
+
+We formulate GUI task automation as a sequential decision-making problem, where the agent controller is parameterized by a vision-language-action (VLA) model 𝑀 𝜃 (such as Qwen3-vl-8B [ 1 ] and Case 1: InterruptUI 
+
+> Case 2: EphemRef
+> Case 3: DynList
+> Case 4: ContentTrig
+
+Observation 1 (Login Page, 𝑂 𝑡 ) Interstitial State (Pop-up, 𝐻 𝑡 ) Observation 2 (Login Page, 𝑂 𝑡 +1)
+
+Observation 1 (Original, 𝑂 𝑡 ) Interstitial State (Adjust, 𝐻 𝑡 ) Observation 2 (Completed, 𝑂 𝑡 +1)
+
+Observation 1 (Idle, 𝑂 𝑡 ) Interstitial State (Playing, 𝐻 𝑡 ) Observation 2 (Ended, 𝑂 𝑡 +1)
+
+Observation 1 (Email-1, 𝑂 𝑡 ) Interstitial State (Email-3, 𝐻 𝑡 ) Observation 2 (Email-2, 𝑂 𝑡 +1)
+
+"Please help me set the brightness to twice the maximum brightness." 
+
+Instruction 
+
+"Ensure that VLC plays the video to completion. If playback finishes normally, close VLC." 
+
+Instruction 
+
+"Please open the second email that appeared m-ost recently." 
+
+Instruction 
+
+"Log in using the acc-ount with username and password: ***." 
+
+Instruction 
+
+Figure 3: Representative cases from DynamicGUIBench. Each example illustrates a hidden interstitial state 𝐻 𝑡 (marked by the red dashed box) arising between two consecutive observations, 𝑂 𝑡 and 𝑂 𝑡 +1. Case 1: InterruptUI , interrupted by a blocking dialog. Case 2: EphemRef , dependent on short-lived interaction history. Case 3: DynList , dependent on relative ordering in a changing list. Case 4: ContentTrig, triggered by temporally localized semantic content. 0 10 20 30 40 50 60 
+
+> Interruptive UI (16, 11.4%)
+> Ephemeral Ref. (81, 57.9%)
+> DynList (18, 12.9%)
+> ContentTrig (25, 17.9%)
+> chrome
+> gimp
+> libreoffice calc
+> libreoffice impress
+> libreoffice writer
+> multi apps
+> os
+> vs code
+> vlc
+
+Figure 4: Task distribution in DynamicGUIBench across four POMDP categories, with colors indicating applications. 
+
+UITARS-1.5-7B [ 23 ]). At each time step 𝑖 , the agent observes the inference video 𝑣 𝑖 , which records the visual trajectory over the previous 𝑛 steps, together with the historical thoughts and actions (𝑟 𝑖 −𝑛 , 𝑎 𝑖 −𝑛 , . . . , 𝑟 𝑖 −1, 𝑎 𝑖 −1), the output of the reflection module 𝑓 𝑖 −1,and the task instruction 𝑞 . The agent generates a new thought 𝑟 𝑖 and an executable action 𝑎 𝑖 from the action space, such as clicking on a specific UI element, entering text, or scrolling through the interface. Executing the action 𝑎 𝑖 results in a new environment state 𝑣 𝑖 +1. The interaction loop continues iteratively, with the agent observing the updated environment, generating decisions, and executing actions until a termination condition is satisfied (e.g., task completion or failure) or a predefined maximum number of steps is reached, 
+
+𝑟 ★ 
+
+> 𝑖
+
+, 𝑎 ★ 
+
+> 𝑖
+
+= arg max  
+
+> 𝑟 𝑖 ,𝑎 𝑖
+
+𝑀 𝜃 (𝑟 𝑖 , 𝑎 𝑖 | 𝑞, 𝑣 𝑖 , 𝑟 𝑖 −𝑛 , 𝑎 𝑖 −𝑛 , . . . , 𝑎 𝑖 −1, 𝑓 𝑖 −1). (1) The whole framework is shown in Fig. 5. 
+
+## 4.2 Dynamic Perceiver 
+
+Specifically, at time step 𝑖 , we record all 𝑚 frames from the first oper-ation to the 𝑖 -th operation as a video sequence 𝑣 𝑖 = {𝑜 1, 𝑜 2, . . . , 𝑜 𝑚 },which provides dynamic context for the current decision. In con-trast, relying solely on the current observation 𝑜 𝑚 , as in many prior methods, incorrectly reduces the underlying POMDP to a Figure 5: The overall architecture of DynamicUI. The system comprises three collaborative components: (1) Dynamic Perceiver utilizes a Visual Encoder and a Cluster Process to capture key dynamic visual information. (2) Reflection Module analyzes task-specific screenshots and generate corrective thoughts when inconsistencies arise. (3) Refinement Strategy prunes redundant information and improves the accuracy of action execution. This closed-loop mechanism ensures precise GUI navigation by aligning visual perception with iterative logical reasoning through state transitions. 
+
+fully observable MDP. This simplification may overlook key hid-den dynamics across actions, leading to incomplete instruction understanding and unsuccessful task execution. To preserve informative dynamic context while suppressing re-dundant observations, we use 𝑣 𝑖 as the input representation of the GUI agent. At each step, every frame is encoded by a visual encoder 
+
+𝐸 𝑣 to obtain frame-level features z𝑡 = 𝐸 𝑣 (𝑜 𝑡 ) for 𝑡 ∈ { 1, . . . , 𝑚 }. We then cluster these features to capture meaningful dynamic vari-ations across the interaction trajectory while consolidating near-duplicate frames, thereby mitigating the repeated-screenshot issue shown in Fig. 6 (a). Formally, 
+
+{C 𝑐 }𝐶 𝑐 =1, {𝝁 𝑐 }𝐶 𝑐 =1 = Cluster ({ z𝑡 }𝑚 𝑡 =1, 𝐶 ), (2) where 𝐶 is initialized to 3. Each cluster roughly represents a distinct stage of the task. We then generate a caption for each cluster center as ˆ𝑦 𝑐 = 𝑀 𝑠 (𝑞 𝑠 | 𝝁 𝑐 ) using a VLM 𝑀 𝑠 , and feed both (𝝁 𝑐 , ˆ𝑦 𝑐 ) together with the current instruction 𝑞 into another VLM 𝑀 conf ,
+
+(𝑟 𝑐 , 𝜅 𝑐 ) = 𝑀 conf (𝑞, 𝑣 𝑖 , 𝝁 𝑐 , ˆ𝑦 𝑐 ), 𝑐 ∈ { 1, . . . , 𝐶 }, (3) where 𝑟 𝑐 ∈ [ 0, 3] denotes the relevance score between the 𝑐 -th cluster center and the current instruction, with a higher score indi-cating that this cluster is more likely to provide useful task-relevant evidence, and 𝜅 𝑐 ∈ [ 0, 100 ] denotes the confidence score, measuring the confidence of model in its own relevance judgment. If the scores do not meet predefined thresholds, we iteratively refine the clustering by increasing the number of clusters, 
+
+𝐶 ← 2𝐶 if max  
+
+> 𝑐
+
+𝑟 𝑐 < 𝜏 𝑟 or max  
+
+> 𝑐
+
+𝜅 𝑐 < 𝜏 𝜅 , (4) until convergence or a predefined maximum number of clusters is reached, with 𝜏 𝑟 = 3 and 𝜏 𝜅 = 80 . We then select the qualified cluster centers as key frames, denoted by { ˜𝑜 𝑖 } where 𝑖 ∈ I indexes their positions in the original video, and provide them to the GUI agent as visual context. 48 52  
+
+> (a) Repeated Screenshots (b) Action Inconsistency Thought: I should drag the slider left to lower the brightness. (c) Error accumulation
+
+Figure 6: Three failure modes of traditional GUI agents. 
+
+## 4.3 Refinement Strategy 
+
+After the Dynamic Perceiver selects the instruction-relevant frames 
+
+˜𝑜 𝑖 and the GUI agent predicts the next action 𝑎 𝑖 , the generated thought may be inconsistent with the executed action or the re-sulting outcome. As illustrated in Fig. 6 (b), although the agent predicts the intended action, the executed click does not satisfy the expectation described in the thought, indicating that the click coordinates need further refinement. To address this issue, we pro-pose an action-conditioned refinement strategy to improve the consistency and reliability of subsequent decision-making. Specifically, we introduce a VLM 𝑀 𝐹 to jointly refine the retained thought–action pairs based on the executed action, the neighboring screenshots, and the visual prompt on the resulting screenshot, which together reveal whether the intended operation has been correctly carried out. This step corrects cases where the original thought appears plausible but the action is incorrectly executed, 
+
+˜𝑟 𝑡 , ˜𝑎 𝑡 = 𝑀 𝐹 
+
+ 𝑟 𝑡 , 𝑎 𝑡 𝑞 𝑓 , 𝑎 𝑡 , 𝑜 𝑡 −1, 𝑜 𝑡 
+
+ , (5) Successful Case (Ours) 
+
+> ‘Please log into the system with username and password *** a-nd calculate the grades for the master’s students.’
+
+Failure Case (Others)            
+
+> ‘Please log into the system with username and password *** a-nd calculate the grades for the master’s students.’
+> ‘Input account details, then click Login .’ ‘Encounter ‘Cache Error’, need to click Refresh .’ ‘Click Refresh .’ ‘Input password details, then click Login again.’ ‘Click Login .’ ‘Click left button.’ ‘Follow the Master Records
+> tip, then click the left button.’ ‘Finish the task.’ ‘Click Login .’
+
+Observation 1 (𝑂 𝑡 ) Interstitial State (Prompt appears, 𝐻 𝑡 ) 
+
+> ‘Encounter ‘Cache Error’, need to click Refresh .’
+
+Observation 2 (𝑂 𝑡 +1)       
+
+> ‘Click Login .’ ‘Click Login .’ ‘Click Login .’ ‘Click Login .’
+
+Figure 7: A representative comparison between DynamicUI (top) and traditional GUI agents (bottom) on DynamicGUIBench. DynamicUI captures the interstitial state 𝐻 𝑡 , identifies the task-critical prompt Cache Error, then click ‘Refresh’ , and successfully completes the task. In contrast, traditional GUI agents miss this transient cue and get stuck repeatedly clicking the ‘Login’ button. The red boxes highlight task-critical hidden dynamics. 
+
+where ˜𝑟 𝑡 and ˜𝑎 𝑡 denote the refined thought and refined action for step 𝑡 , respectively, and 𝑞 𝑓 represents the system prompt of 𝑀 𝐹 .
+
+## 4.4 Reflection Module 
+
+As shown in Fig. 6 (c), the agent’s reasoning can drift away from the actual task objective during multi-step interaction. In this example, the thought suggests dragging the brightness slider to the left, yet the executed action moves it to the right. Such incorrect actions are recorded in the interaction history and may further bias subsequent reasoning, leading to compounding failures. To alleviate this issue, we introduce an auxiliary VLM, denoted as 𝑀 𝑅 , as a reflection module to better evaluate task progress and provide corrective guidance for subsequent actions. Given the reflection prompt 𝑞 𝑟 , selected key screenshots ˜𝑜 𝑖 −1,the textual interaction history, and the corresponding actions, the reflection module produces an auxiliary textual feedback 𝑓 𝑖 , which is then used to guide the GUI agent in generating subsequent actions and improve next-step action prediction, 
+
+𝑓 𝑖 = 𝑀 𝑅 (𝑞 𝑟 , ˜𝑜 𝑖 −1, 𝑟 𝑖 −𝑛 , 𝑎 𝑖 −𝑛 , · · · , 𝑟 𝑖 −1, 𝑎 𝑖 −1). (6) Please refer to the supplementary material for more details. 
+
+## 5 Experiments 5.1 Implementation Details 
+
+We compare two representative paradigms of GUI agents: propri-etary API-based agents (e.g., doubao-1-5-0717 [ 9], o3 [ 22 ], and Seed1.8-VL [ 27 ]) and open-source agentic models (e.g., Qwen3-vl [ 1 ], UITARS-1.5 [ 23 ], and EvoCUA [ 40 ]). Unless otherwise speci-fied, the maximum number of interaction steps is set to 50 for all methods. 
+
+## 5.2 Experimental Results 
+
+To systematically evaluate dynamic reasoning and interaction ca-pabilities, we benchmark DynamicUI against a diverse set of state-of-the-art agent models on DynamicGUIBench. As shown in Tab. 3, both open-weight models (e.g., Qwen3-VL-8B) and proprietary API-based agents (e.g., o3) achieve rather limited performance, high-lighting the difficulty of dynamic GUI tasks for current agents. Among all baselines, Qwen3-VL-8B achieves the strongest over-all performance with an average accuracy of 15.1% under the 50-step setting, while most other methods remain below this level by a large margin. In particular, several models completely fail on Table 3: Comparison with state-of-the-art methods on the DynamicGUIBench. Abbreviations: Th. (Thunderbird), Multi. (Multi-Apps), Vs. (Visual Studio Code), Imp. (Impress), Wri. (Writer). The best scores are in bold.                                                                                                                                                             
+
+> Agent Model Step Acc (%)
+> Chrome Gimp Calc Imp. Wri. Multi. Os Th. Vlc Vs. Avg. o3 [22] 15 7.9 10.0 7.1 0.0 7.1 6.1 0.0 0.0 20.0 8.3 6.7 Qwen3-vl-4B [1] 15 18.4 10.0 7.1 0.0 7.1 9.1 14.3 0.0 40.0 0.0 10.7 Qwen3-vl-8B [1] 15 21.1 20.0 14.3 0.0 14.3 9.1 14.3 0.0 40.0 16.7 14.8 o3 [22] 50 10.5 0.0 14.3 0.0 7.1 6.1 42.9 0.0 20.0 0.0 8.7 UITARS-1.5-7B [23] 50 13.2 10.0 7.1 0.0 7.1 9.1 0.0 0.0 20.0 0.0 8.1 Qwen3-vl-4B [1] 50 13.2 10.0 7.1 0.0 7.1 9.1 28.6 0.0 60.0 0.0 10.7 Qwen3-vl-8B [1] 50 26.3 22.0 14.3 0.0 7.1 7.5 14.3 0.0 60.0 8.3 15.1 doubao-1-5-0717[9] 50 5.3 0.0 7.1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 2.8 Seed1.8-VL [27] 50 10.5 10.0 0.0 14.3 7.1 3.0 0.0 0.0 0.0 16.7 6.7 EvoCUA-8B [40] 50 18.4 33.0 0.0 0.0 7.1 4.5 28.6 0.0 20.0 16.7 11.7 Ours w/ Qwen3-vl-8B 15 29.0 10.0 14.3 0.0 7.1 12.2 14.3 11.1 0.0 16.7 15.5
+> Ours w/ Qwen3-vl-8B 50 36.8 30.0 14.3 14.3 7.1 9.1 28.6 44.4 40.0 8.3 22.1
+
+Table 4: Ablation on the DynamicGUIBench.                
+
+> Dynamic Perceiver Reflection Module Refinement Strategy Acc(%)
+> ---15.1
+> ✓-17.4
+> ✓-✓17.4
+> ✓✓-20.8
+> ✓✓✓22.1
+
+certain applications, and some categories such as Thunderbird re-main especially challenging: both o3 and Qwen3-VL-4B obtain 0.0% accuracy on this domain. These results indicate that existing agents struggle to robustly handle dynamically changing interface states, temporal updates, and interstitial events. In contrast, DynamicUI consistently outperforms all baselines. Under the 50-step setting, our method achieves the best average accuracy of 22.1%, surpassing the strongest baseline, Qwen3-VL-8B [ 1], by 7.0 absolute percentage points. Moreover, DynamicUI achieves the best or second-best performance across all 10 appli-cation domains, including substantial gains on Chrome (36.8%), and Thunderbird (44.4%),. Notably, DynamicUI is the only method that achieves non-zero accuracy on Thunderbird, highlighting its advantage in handling highly dynamic email-based tasks. We also observe that increasing the interaction budget from 15 steps to 50 steps brings clear improvements to DynamicUI, with average accuracy rising from 15.5% to 20.8%. This trend suggests that DynamicUI can more effectively exploit longer decision hori-zons, which is particularly important for tasks requiring multi-step reasoning over dynamic interface changes. A category-wise breakdown shows that DynamicUI performs best on InterruptUI (31.3%) and DynList (22.7%), demonstrating advantages in handling blocking system states and dynamically updated item collections. In contrast, performance is lower on Con-tentTrig (19.2%) and EphemRef (18.8%), where success depends on recovering short-term interaction history or grounding fleeting semantic cues. This suggests that DynamicUI is more effective for explicit and structured dynamic changes, while temporally sparse and content-conditioned signals remain challenging. Moreover, we evaluate DynamicUI on the OSWorld benchmark, as summarized in Table 5. To demonstrate the generality of our framework, we instantiate DynamicUI with two different base agents, UITARS-1.5-7B [ 23 ] and Qwen3-vl-8B [ 1]. With UITARS-1.5-7B as the base agent, DynamicUI improves the average accuracy from 27.2% to 28.2% under the 50-step setting, with particularly notable gains on Gimp, OS, Thunderbird, VLC, and VS Code. When instantiated with Qwen3-vl-8B, our framework reaches 28.4% aver-age accuracy, exceeding the corresponding Qwen3-vl-8B baseline by 2.6 points. These results suggest that DynamicUI is not limited to a single agent architecture and can provide competitive gains on a broader benchmark. 
+
+## 5.3 Ablation Study 
+
+We conduct ablation studies on DynamicGUIBench to validate the effectiveness of the dynamic perceiver, refinement strategy, and reflection module, as shown in Tab. 4. As shown in Tab. 4, the Dynamic Perceiver and reflection module are the main contributors to the overall gains. Adding DP improves the accuracy from 15.1% to 17.4%, while further introducing reflec-tion boosts it to 20.8%. In contrast, the refinement strategy brings only marginal improvements, likely because it mainly improves step-level actions, whose effect may be diluted by the overall tra-jectory under long-horizon evaluation. We compare the Dynamic Perceiver (DP) with uniform frame sampling using 1 and 3 frames, since the average number of frames selected by DP is close to three. Tab. 6 shows that simply sampling more frames does not guarantee better performance: Uniform-3 is slightly worse than Uniform-1 on average (16.4% vs. 16.8%). This indicates that performance depends more on selecting informative observations than on increasing the number of frames. By explic-itly retrieving task-relevant historical context, DP achieves the best average accuracy of 22.1%. Its gains are most evident on Interrup-tive UI (43.8%) and EphemRef (20.0%), where critical evidence is often tied to inserted interface states. DP also remains competitive Table 5: Comparison with state-of-the-art methods on the OSWorld [ 37 ] benchmark. We use ‘*’ to denote the results evaluated by us (which will be updated if improved evaluation scripts become available). 
+
+Agent Model Step Acc (%) 
+
+Chrome Gimp Calc Imp. Wri. Multi. Os Th. Vlc Vs. Avg. o3 [22] 50 21.7 38.5 8.5 4.3 21.7 11.8 37.5 20.0 17.6 21.7 17.2 Opencua-a3b [35] 50 21.6 53.9 2.1 23.3 34.8 6.5 37.5 6.7 11.8 43.5 19.9 UITARS-72b-dpo [23] 50 33.2 61.5 12.8 25.5 43.5 6.7 33.3 33.3 23.5 47.8 25.8 UITARS-1.5-7B [23] 50 32.8 53.9 8.5 39.3 41.3 8.6 25.6 46.7 24.4 52.2 27.2 Qwen3-vl-4B* [1] 50 30.4 21.7 12.8 21.8 39.1 5.2 33.3 46.7 23.0 13.0 19.8 Opencua-7B [35] 50 38.6 43.6 13.2 32.6 33.3 12.1 43.5 42.2 28.3 47.1 28.2 Qwen3-vl-8B* [1] 50 23.9 34.8 17.0 31.8 56.5 9.2 33.3 66.7 40.4 21.7 25.8 Ours w/ UITARS-1.5-7B 50 32.8 57.7 8.5 39.3 41.3 8.6 29.8 50.0 27.5 54.4 28.2 Ours w/ Qwen3-vl-8B 50 34.8 69.6 17.0 19.6 26.1 13.1 62.5 40.0 17.7 43.5 28.4 
+
+Table 6: Comparison of uniform frame sampling baselines and our Dynamic Perceiver (DP) across four POMDP cate-gories on DynamicGUIBench.                              
+
+> Method Frames Interruptive UI Ephemeral Ref. DynList ContentTrig Avg.
+> Qwen3-vl-8B [1] -25.0 12.3 13.6 19.2 15.1 Uniform 125.0 15.3 31.8 3.9 16.8 325.0 17.0 13.6 11.5 16.4 Ours DP 43.8 20.0 22.7 15.4 22.1
+
+Table 7: Comparison of different general-purpose models for the reflection module on DynamicGUIBench.                
+
+> Method Interruptive UI Ephemeral Ref. DynList ContentTrig Avg.
+> Qwen3-vl-8B [1] 25.0 9.3 9.1 11.5 11.3 GPT-5.4-mini [30] 43.8 20.0 22.7 15.4 22.1
+
+on DynList and ContentTrig, demonstrating the effectiveness of adaptive perception over uniform history sampling. We further compare Qwen3-VL-8B and GPT-5.4-mini as the re-flection module on DynamicGUIBench. Tab. 7 shows that using the same model for both execution and reflection is suboptimal, as the two roles may become contradictory or redundant. Reflection may suggest terminating the task while the executor continues acting, or simply duplicate reasoning already available to the executor. In con-trast, GPT-5.4-mini provides more reliable high-level guidance and more accurate intermediate to-do lists, yielding consistent gains across all four categories and substantially better overall accuracy. 
+
+## 5.4 Qualitative Success and Failure Analysis 
+
+Fig. 7 presents a representative successful case of DynamicUI and a representative failure case of traditional GUI agents on Dynam-icGUIBench. In the top example, the environment undergoes several task-relevant interstitial changes during the web interaction. By explicitly tracking these transient states and incorporating them into the historical context, DynamicUI is able to recover the crit-ical prompt ‘Cache Error, then click Refresh.’ and take the correct follow-up action, ultimately completing the task successfully. In contrast, the bottom example shows that traditional GUI agents rely primarily on the current observation and fail to recover this missing intermediate evidence once it disappears. As a result, they incorrectly interpret the page state, repeatedly click the ‘Login’ button, and fall into a failure loop. This comparison highlights that, in dynamic GUI environments, successful decision-making often depends not only on the current screenshot but also on preserving and reasoning over task-critical interstitial states. 
+
+## 6 Conclusion 
+
+In this paper, we introduce DynamicGUIBench, the first partially observable benchmark designed to evaluate GUI agents under dy-namic environments, covering four common dynamic processes in desktop environments. Our experiments show that current VLM-based GUI agents still struggle in such settings, highlighting a clear gap between existing capabilities and real-world GUI interaction demands. To address this challenge, we further propose DynamicUI, a framework consisting of three components: a dynamic perceiver, a reflection module, and a refinement strategy. Extensive results demonstrate that DynamicUI effectively improves performance in dynamic GUI environments while maintaining competitive perfor-mance on an additional public benchmark. 
+
+## References                      
+
+> [1] Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, and others. 2025. Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 (2025). [2] Gongwei Chen, Xurui Zhou, Rui Shao, Yibo Lyu, Kaiwen Zhou, Shuai Wang, Wentao Li, Yinchuan Li, Zhongang Qi, and Liqiang Nie. 2025. Less is more: Empowering gui agent with context-aware simplification. In Proceedings of the IEEE/CVF International Conference on Computer Vision . 5901–5911. [3] Sen Chen, Tong Zhao, Yi Bin, Fei Ma, Wenqi Shao, and Zheng Wang. 2025. D-GARA: A Dynamic Benchmarking Framework for GUI Agent Robustness in Real-World Anomalies. arXiv preprint arXiv:2511.16590 (2025). [4] Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Li YanTao, Jianbing Zhang, and Zhiyong Wu. 2024. Seeclick: Harnessing gui grounding for advanced visual gui agents. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 9313–9332. [5] Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su. 2023. Mind2web: Towards a generalist agent for the web.
+> Advances in Neural Information Processing Systems 36 (2023), 28091–28114. [6] Xinzge Gao, Chuanrui Hu, Bin Chen, and Teng Li. 2025. Chain-of-memory: Enhancing gui agents for cross-application navigation. arXiv preprint arXiv:2506.18158 (2025). [7] Gonzalo Gonzalez-Pumariega, Vincent Tu, Chih-Lun Lee, Jiachen Yang, Ang Li, and Xin Eric Wang. 2025. The unreasonable effectiveness of scaling agents for computer use. arXiv preprint arXiv:2510.02250 (2025). [8] Boyu Gou, Ruohan Wang, Boyuan Zheng, Yanan Xie, Cheng Chang, Yiheng Shu, Huan Sun, and Yu Su. 2024. Navigating the digital world as humans do: Universal
+
+visual grounding for gui agents. arXiv preprint arXiv:2410.05243 (2024). [9] Dong Guo, Faming Wu, Feida Zhu, Fuxing Leng, Guang Shi, Haobin Chen, Haoqi Fan, Jian Wang, Jianyu Jiang, Jiawei Wang, and others. 2025. Seed1. 5-vl technical report. arXiv preprint arXiv:2505.07062 (2025). [10] Henry Hengyuan Zhao, Difei Gao, and Mike Zheng Shou. 2025. WorldGUI: Dynamic Testing for Comprehensive Desktop GUI Automation. arXiv e-prints 
+
+(2025), arXiv–2502. [11] Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, and others. 2024. Cogagent: A visual language model for gui agents. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition . 14281–14290. [12] Zhiyuan Huang, Ziming Cheng, Junting Pan, Zhaohui Hou, and Mingjie Zhan. 2025. Spiritsight agent: Advanced gui agent with one look. In Proceedings of the computer vision and pattern recognition conference . 29490–29500. [13] Bin Lei, Nuo Xu, Ali Payani, Mingyi Hong, Chunhua Liao, Yu Cao, and Caiwen Ding. 2025. GUI-Spotlight: Adaptive Iterative Focus Refinement for Enhanced GUI Visual Grounding. (2025). [14] Hongxin Li, Jingran Su, Jingfan Chen, Zheng Ju, Yuntao Chen, Qing Li, and Zhaoxiang Zhang. 2025. UIPro: Unleashing Superior Interaction Capability For GUI Agents. In Proceedings of the IEEE/CVF International Conference on Computer Vision . 1613–1623. [15] Shuquan Lian, Yuhang Wu, Jia Ma, Yifan Ding, Zihan Song, Bingqi Chen, Xi-awu Zheng, and Hui Li. 2025. Ui-agile: Advancing gui agents with effective reinforcement learning and precise inference-time grounding. arXiv preprint arXiv:2507.22025 (2025). [16] Kevin Qinghong Lin, Linjie Li, Difei Gao, Zhengyuan Yang, Shiwei Wu, Zechen Bai, Stan Weixian Lei, Lijuan Wang, and Mike Zheng Shou. 2025. Showui: One vision-language-action model for gui visual agent. In Proceedings of the Computer Vision and Pattern Recognition Conference . 19498–19508. [17] Musen Lin, Minghao Liu, Taoran Lu, Lichen Yuan, Yiwei Liu, Haonan Xu, Yu Miao, Yuhao Chao, and Zhaojian Li. 2025. GUI-ReWalk: Massive Data Generation for GUI Agent via Stochastic Exploration and Intent-Aware Reasoning. arXiv preprint arXiv:2509.15738 (2025). [18] Yizhou Liu, Fei Tang, Yuchen Yan, Zhengxi Lu, Wenqi Zhang, Yongliang Shen, Weiming Lu, Jun Xiao, and Yueting Zhuang. Label-free GUI Grounding via Confidence-guided Negative Reinforcement Learning. (????). [19] BUST LONG, TASK AUTOMATION, and GUI AGENT. LONGHORIZONUI: AUnified FRAMEWORK FOR ROBUST LONG-HORIZON TASK AUTOMATION OF GUI AGENT. (????). [20] Quanfeng Lu, Wenqi Shao, Zitao Liu, Lingxiao Du, Fanqing Meng, Boxuan Li, Botong Chen, Siyuan Huang, Kaipeng Zhang, and Ping Luo. 2025. Guiodyssey: A comprehensive dataset for cross-app gui navigation on mobile devices. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision . 22404– 22414. [21] Run Luo, Lu Wang, Wanwei He, Longze Chen, Jiaming Li, and Xiaobo Xia. 2025. Gui-r1: A generalist r1-style vision-language action model for gui agents. arXiv preprint arXiv:2504.10458 (2025). [22] OpenAI. 2025. Openai o3 and o4-mini system card. technical report (2025). [23] Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, and others. 2025. Ui-tars: Pioneering automated gui interaction with native agents. arXiv preprint arXiv:2501.12326 (2025). [24] Zengyi Qin, Jinyuan Chen, Yunze Man, Shengcao Cao, Ziqi Pang, Zhuoyuan Wang, Xin Sun, Gen Lin, Han Fang, Ling Zhu, and others. 2025. OSGym: Super-Scalable Distributed Data Engine for Generalizable Computer Agents. arXiv preprint arXiv:2511.11672 (2025). [25] Christopher Rawles, Sarah Clinckemaillie, Yifan Chang, Jonathan Waltz, Gabrielle Lau, Marybeth Fair, Alice Li, William Bishop, Wei Li, Folawiyo Campbell-Ajala, and others. Androidworld: A dynamic benchmarking environment for au-tonomous agents, 2024. URL https://arxiv. org/abs/2405.14573 (????). [26] Christopher Rawles, Sarah Clinckemaillie, Yifan Chang, Jonathan Waltz, Gabrielle Lau, Marybeth Fair, Alice Li, William Bishop, Wei Li, Folawiyo Campbell-Ajala, and others. 2024. Androidworld: A dynamic benchmarking environment for autonomous agents. arXiv preprint arXiv:2405.14573 (2024). [27] Bytedance Seed. Seed1. 8 Model Card: Towards Generalized Real-World Agency .Technical Report. 2025a. Technical Report. [28] Rui Shao, Ruize Gao, Bin Xie, Yixing Li, Kaiwen Zhou, Shuai Wang, Weili Guan, and Gongwei Chen. 2026. HATS: Hardness-Aware Trajectory Synthesis for GUI Agents. arXiv preprint arXiv:2603.12138 (2026). [29] Chenrui Shi, Zedong Yu, Zhi Gao, Ruining Feng, Enqi Liu, Yuwei Wu, Yunde Jia, Liuyu Xiang, Zhaofeng He, and Qing Li. 2025. GUI Knowledge Bench: Re-vealing the Knowledge Gap Behind VLM Failures in GUI Tasks. arXiv preprint arXiv:2510.26098 (2025). [30] Aaditya Singh, Adam Fry, Adam Perelman, Adam Tart, Adi Ganesh, Ahmed El-Kishky, Aidan McLaughlin, Aiden Low, AJ Ostrow, Akhila Ananthram, and others. 2025. Openai gpt-5 system card. arXiv preprint arXiv:2601.03267 (2025). [31] Linxin Song, Yutong Dai, Viraj Prabhu, Jieyu Zhang, Taiwei Shi, Li Li, Junnan Li, Zeyuan Chen, Jieyu Zhao, Ran Xu, and others. CoAct-1: Computer-using Multi-agent System with Coding Actions. In The Fourteenth International Conference on Learning Representations .[32] Yuchen Sun, Shanhui Zhao, Tao Yu, Hao Wen, Samith Va, Mengwei Xu, Yuanchun Li, and Chongyang Zhang. 2025. Gui-xplore: Empowering generalizable gui agents with one exploration. In Proceedings of the computer vision and pattern recognition conference . 19477–19486. [33] Kimi Team, Tongtong Bai, Yifan Bai, Yiping Bao, SH Cai, Yuan Cao, Y Charles, HS Che, Cheng Chen, Guanduo Chen, and others. 2026. Kimi K2. 5: Visual Agentic Intelligence. arXiv preprint arXiv:2602.02276 (2026). [34] Wenhao Wang, Mengying Yuan, Zijie Yu, Guangyi Liu, Rui Ye, Tian Jin, Siheng Chen, and Yanfeng Wang. 2025. MobileA3gent: Training Mobile GUI Agents Using Decentralized Self-Sourced Data from Diverse Users. In Proceedings of the Fourth Workshop on Bridging Human-Computer Interaction and Natural Language Processing (HCI+ NLP) . 79–112. [35] Xinyuan Wang, Bowen Wang, Dunjie Lu, Junlin Yang, Tianbao Xie, Junli Wang, Jiaqi Deng, Xiaole Guo, Yiheng Xu, Chen Henry Wu, and others. 2025. Opencua: Open foundations for computer-use agents. arXiv preprint arXiv:2508.09123 
+
+(2025). [36] Tianbao Xie, Jiaqi Deng, Xiaochuan Li, Junlin Yang, Haoyuan Wu, Jixuan Chen, Wenjing Hu, Xinyuan Wang, Yuhui Xu, Zekun Wang, and others. 2025. Scaling computer-use grounding via user interface decomposition and synthesis. arXiv preprint arXiv:2505.13227 (2025). [37] Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan Li, Siheng Zhao, Ruisheng Cao, Toh J Hua, Zhoujun Cheng, Dongchan Shin, Fangyu Lei, and others. 2024. Osworld: Benchmarking multimodal agents for open-ended tasks in real computer environments. Advances in Neural Information Processing Systems 37 (2024), 52040–52094. [38] Haiyang Xu, Xi Zhang, Haowei Liu, Junyang Wang, Zhaozai Zhu, Shengjie Zhou, Xuhao Hu, Feiyu Gao, Junjie Cao, Zihua Wang, and others. 2026. Mobile-Agent-v3. 5: Multi-platform Fundamental GUI Agents. arXiv preprint arXiv:2602.16855 
+
+(2026). [39] Yiheng Xu, Zekun Wang, Junli Wang, Dunjie Lu, Tianbao Xie, Amrita Saha, Doyen Sahoo, Tao Yu, and Caiming Xiong. 2024. Aguvis: Unified pure vision agents for autonomous gui interaction. arXiv preprint arXiv:2412.04454 (2024). [40] Taofeng Xue, Chong Peng, Mianqiu Huang, Linsen Guo, Tiancheng Han, Haozhe Wang, Jianing Wang, Xiaocheng Zhang, Xin Yang, Dengchang Zhao, and others. 2026. Evocua: Evolving computer use agents via learning from scalable synthetic experience. arXiv preprint arXiv:2601.15876 (2026). [41] Jingqi Yang, Zhilong Song, Jiawei Chen, Mingli Song, Sheng Zhou, Xiaogang Ouyang, Chun Chen, Can Wang, and others. 2025. Gui-robust: A comprehensive dataset for testing gui agent robustness in real-world anomalies. arXiv preprint arXiv:2506.14477 (2025). [42] Yan Yang, Dongxu Li, Yutong Dai, Yuhao Yang, Ziyang Luo, Zirui Zhao, Zhiyuan Hu, Junzhe Huang, Amrita Saha, Zeyuan Chen, and others. 2025. Gta1: Gui test-time scaling agent. arXiv preprint arXiv:2507.05791 (2025). [43] Yuhao Yang, Yue Wang, Dongxu Li, Ziyang Luo, Bei Chen, Chao Huang, and Junnan Li. 2025. Aria-ui: Visual grounding for gui instructions. In Findings of the Association for Computational Linguistics: ACL 2025 . 22418–22433. [44] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan, and Yuan Cao. 2022. React: Synergizing reasoning and acting in language models. In The eleventh international conference on learning representations .[45] Jiabo Ye, Xi Zhang, Haiyang Xu, Haowei Liu, Junyang Wang, Zhaoqing Zhu, Ziwei Zheng, Feiyu Gao, Junjie Cao, Zhengxi Lu, and others. 2025. Mobile-agent-v3: Fundamental agents for gui automation. arXiv preprint arXiv:2508.15144 
+
+(2025). [46] Xinbin Yuan, Jian Zhang, Kaixin Li, Zhuoxuan Cai, Lujian Yao, Jie Chen, Enguang Wang, Qibin Hou, Jinwei Chen, Peng-Tao Jiang, and others. 2025. Enhancing visual grounding for gui agents via self-evolutionary reinforcement learning. 
+
+arXiv preprint arXiv:2505.12370 (2025). [47] Bofei Zhang, Zirui Shang, Zhi Gao, Wang Zhang, Rui Xie, Xiaojian Ma, Tao Yuan, Xinxiao Wu, Song-Chun Zhu, and Qing Li. 2026. Tongui: Internet-scale trajecto-ries from multimodal web tutorials for generalized gui agents. In Proceedings of the AAAI Conference on Artificial Intelligence , Vol. 40. 12367–12375. [48] Yu Zhao, Wei-Ning Chen, Huseyin Atahan Inan, Samuel Kessler, Lu Wang, Lukas Wutschitz, Fangkai Yang, Chaoyun Zhang, Pasquale Minervini, Saravan Rajmo-han, and others. 2025. Learning gui grounding with spatial reasoning from visual feedback. arXiv preprint arXiv:2509.21552 (2025).

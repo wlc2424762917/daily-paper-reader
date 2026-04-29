@@ -1,0 +1,795 @@
+Title: Incisor: Ex Ante Cloud Instance Selection for HPC Jobs
+
+URL Source: https://arxiv.org/pdf/2604.24464v1
+
+Published Time: Tue, 28 Apr 2026 01:58:56 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Incisor: Ex Ante Cloud Instance Selection for HPC Jobs 
+
+Michael A. Laurenzano 
+
+Institute for Software Integrated Systems Vanderbilt University 
+
+Nashville, TN michael.a.laurenzano@vanderbilt.edu 
+
+Shihan Cheng 
+
+Institute for Software Integrated Systems Vanderbilt University 
+
+Nashville, TN shihan.cheng@vanderbilt.edu 
+
+David A. B. Hyde 
+
+Institute for Software Integrated Systems Vanderbilt University 
+
+Nashville, TN david.hyde.1@vanderbilt.edu 
+
+Abstract —We present Incisor, a cloud HPC job submission system for the ex ante instance selection problem : choosing suit-able hardware in the challenging but common setting where only the executable, inputs, and invocation commands are available at submission time. In practice, this task is manual and expertise-intensive, requiring users to combine incomplete knowledge of rapidly evolving cloud offerings with workload-specific intuition, static analysis, and systems reasoning to infer hardware con-straints and select an instance type for each job. Incisor auto-mates this process by pairing widely available program analysis tools with LLM-guided reasoning to infer hardware requirements and choose cloud instances. Using submission artifacts alone, Incisor atop frontier coding LLMs selects working AWS EC2 instances ex ante for 100% of first-time runs of source-compiled (C, C++, Fortran) and Python applications. Against a strong baseline combining expert-derived constraints with SkyPilot’s instance selection, Incisor cuts job runtime by 54% and instance costs by 44%. 
+
+I. I NTRODUCTION 
+
+In conventional HPC environments, hardware choices are amortized over long procurement cycles and typically result in a small number of stable choices. In the cloud, catalogs of hardware choices are large and evolve continuously. The major cloud providers expose thousands of resource configurations spanning wide ranges of architectures, CPU counts, memory capacities, accelerator options and storage configurations. Fig-ure 1 illustrates the growth of instance choices across the 3 largest public cloud providers: Microsoft Azure, Amazon Web Services and Google Cloud Platform. Today those 3 providers offer a combined choice of more than 3,000 instance types, an order of magnitude more choices than a decade ago. For users running HPC workloads in the cloud, the rapid growth of instance choices makes it increasingly important and increasingly difficult to address the ex ante instance selection problem : choosing a well-suited hardware configuration for a job before the job is ever run. The user must navigate a large, expanding catalog under uncertainty about which hardware features the workload can exploit. In principle, making a good choice is straightforward for users with application domain knowledge, distributed systems expertise, and up-to-date knowledge of cloud offerings and prices. In practice, that combination of expertise is rare, and even when available, applying it to each workload is time-consuming, error-prone, and fragile to catalog or workflow changes. 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025  
+
+> Year
+> 10 1
+> 10 2
+> 10 3
+> 1706
+> (a) Microsoft Azure
+> Conventional
+> Accelerated
+> 10 1
+> 10 2
+> 10 3
+> 1104
+> (b) Amazon Web Services
+> 10 1
+> 10 2529
+> (c) Google Cloud Platform
+> # of Instance Types
+
+Fig. 1: The number of available instance types from the major cloud providers has exploded over the past decade. 
+
+Conventional approaches based on workload profiling and detailed performance analysis or prediction can be difficult to operationalize: they require instrumented runs, representa-tive input datasets, multiple benchmarking iterations, and the resulting models must be updated as software versions, en-vironments, and instance families change [1]–[10]. Moreover, established profiling and modeling techniques often rely on direct access to detailed hardware counters, topology details, and tracing tools, whereas cloud workloads typically run inside VM environments that occlude visibility into the underlying system’s operation. For many users, these approaches add tooling overhead, domain expertise shortfalls, and extra cloud costs that outweigh the expected gains. The hypothesis motivating this work is that agentic LLM systems are well matched to the ex ante instance selection problem. The key subproblems, inspecting job artifacts to estimate resource requirements and ranking hardware options against a cloud catalog, have four properties that favor an agentic approach. First, the evidence available to solve the problem is concrete and specific rather than subjective, consist-ing of executables, configuration variables, and cloud catalogs. Second, mature, widely available tools such as disassemblers, decompilers, and catalog APIs exist to extract that evidence. Third, the outputs are empirically verifiable by running the 
+
+> arXiv:2604.24464v1 [cs.DC] 27 Apr 2026
+
+job and comparing inferred constraints to measured behavior. Finally, the problem tolerates imprecision because instance resources are discretized into coarse tiers (e.g., GBs of mem-ory offered in powers of 2) where the risks of being wrong are asymmetric: underprovisioning may trigger failure while overprovisioning is merely inefficient. In this paper we introduce Incisor , an end-to-end cloud HPC job submission system that uses agentic LLMs designed to harness these properties to estimate hardware constraints and select cloud instances for HPC jobs given only the artifacts available before execution, including the program executable, its environment variables, inputs, and invocation commands. Incisor covers the lifecycle of submitted jobs, storing and indexing artifacts for reuse, collecting coarse-grained perfor-mance measurements during runs to refine future estimates, and triggering retries when instance recommendations prove unsuitable. This paper makes the following contributions:  
+
+> •
+
+Agentic Design for Ex Ante Instance Selection. We characterize the properties that make the problems of ex ante hardware constraint estimation and instance selection amenable to agentic LLM automation, and describe the enabling agent architecture, tool suite, and verification mechanisms used to automate both stages (Section IV).  
+
+> •
+
+End-to-End Job Handling. We describe the design of Incisor, an end-to-end system for handling HPC job submissions given only the program executable, its inputs and the invocation commands. In addition to assigning jobs to instances to address the ex ante instance selection problem, Incisor collects and leverages high level perfor-mance measurements to improve instance selections on future runs; deals with erroneous predictions gracefully; and catalogs the artifacts necessary to minimize user burden in making cloud instance choices (Section V).  
+
+> •
+
+Evaluation Across 31 HPC Workloads. Across 31 scientific, financial, and machine learning workloads spanning common parallelization mechanisms (OpenMP, MPI, Python multiprocessing), source languages (C, C++, Fortran, and Python), and accelerator use, we evaluate 6 LLM backends spanning frontier commercial and open-weight agents. We find that frontier coding agents achieve 100% first-run success, reducing instance costs by 44% and job runtime by 54% relative to expert-derived config-urations and improving to 45% and 56% when leveraging data from a single prior run (Section VI). II. M OTIVATING EXAMPLE 
+
+Choosing a cloud instance before a job has ever been run can benefit cloud workflow and provisioning systems [11], [12], and requires answering a set of questions that are easy to pose but challenging to answer programmatically: How much memory will the job use? , How many CPUs can it effectively exploit? , and Will it benefit from accelerators or faster stor-age? In practice, answering these questions involves expertise and domain knowledge about the application, its invocation, and the available cloud hardware options. To concretize this challenge, consider the OpenMP version of the NAS Parallel Benchmarks conjugate gradient (CG) application [13], class D, compiled for x86_64 and executed with 8 OpenMP threads. 
+
+A. Measured Behavior 
+
+Running the job across multiple cloud instances and mea-suring its behavior (see Section V-D1) reveals peak resident memory usage of approximately 16 .5 GB, full core utilization up to 8 CPUs with no benefit from additional cores, no GPU activity, and minimal I/O. These measurements give exactly the information needed for instance selection. 
+
+B. Ex Ante Program Analysis 
+
+While runtime measurement is informative, profiling runs incur time and cost, require expertise to interpret, and may need to be repeated after changes to the program or its invo-cation. The motivating question is whether similar conclusions can be reached ex ante from submission-time artifacts alone. For this example, the answer is yes. Key constraint dimensions can be recovered directly from the executable and invocation context before the job is ever launched. 
+
+CPU Count. In many HPC codes, the degree of parallelism is determined by explicit configuration of recognizable program-ming constructs. In the CG example, the job run script sets 
+
+OMP_NUM_THREADS=8 . A static inspection of the executable reveals OpenMP constructs within the method conj_grad ,including calls to omp_num_threads . Together, this ev-idence indicates that the program will attempt to create 8 OpenMP threads and is therefore likely to benefit from 8 CPUs, but will not exploit additional CPUs unless the thread count is changed at invocation time. 
+
+Platform and ISA. Static inspection also reveals compatibility constraints. Using readelf to inspect the program’s ELF64 header, we can extract its machine fields to identify that the binary contains x86_64 machine code. Disassembly via 
+
+objdump can then reveal specific SIMD idioms and registers. The presence of AVX instruction mnemonics and use of 
+
+ymm registers indicates AVX instruction set usage. Conversely, the absence of both zmm registers and AVX-512 mnemonics suggests no requirement for AVX512-capable CPUs. 
+
+Memory. Memory requirements can likewise be inferred from the executable. Following control flow from the program’s entry point shows that execution unconditionally reaches the compiler-supplied allocation helper routine alloc_space .This routine makes a handful of calls to malloc , and inspec-tion of the routine reveals patterns such as the following, from which the allocation size can be derived directly:                   
+
+> // allocate 251MB of heap memory bf 00 52 bc 0f mov $0xfbc5200,%edi e8 1f c8 ff ff call 10a0 <malloc@plt>
+
+Summing the sizes of the dominant data structures allocated in this fashion within alloc_space shows that the program requires approximately 16 GB of heap-allocated memory. 
+
+I/O and Acceleration. Scanning the executable for parallel I/O APIs (MPI-IO, HDF5, ADIOS), GPU libraries (CUDA, 0  
+
+> 1
+> 2
+> 4
+> 8
+> 16
+> 32
+> 64
+> 128
+> 256
+> 512
+> 1024
+> 2048
+> 4096
+> 8192
+> 16384
+> 32768
+> 65536
+> Memory (GB)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> AWS Instance Count
+> Underprovisioned
+> Target Memory
+> Overprovisioned
+> 18 GB Fig. 2: Memory capacity distribution across 794 x86_64 Linux AWS instance types. Instances below the 18 GB threshold (red x pattern) for CG class D are expected to fail with an out-of-memory error.
+
+ROCm), and offload-related code reveals no evidence of paral-lel I/O or accelerator usage, ruling out benefits from premium storage and GPU-enabled instances. 
+
+Instance Selection. Taken together, this evidence defines a submission-time constraint bundle for an x86_64 instance with at least 18 GB of memory (16 GB application heap plus overhead), 8 CPUs, AVX1 support, and no accelerators or premium storage. Figure 2 illustrates why this matters. Of 794 binary-compatible AWS instance types, 85 (11%) fall below the 18 GB threshold and would fail due to underprovisioning. Of the 709 feasible instances, only 79 fall in the right-sized 16–32 GB tier, while the remaining 630 carry substantially more memory than needed, representing unnecessary cost from overprovisioning. Static analysis identifies this threshold without running the program, eliminating infeasible instances and focusing the search on cost-effective choices. 
+
+C. The Opportunity for Automation 
+
+The analysis above follows disciplined reasoning steps such as tracing control flow to allocation sites, inspecting the binary for ISA requirements, and cross-referencing findings against a cloud catalog. While no static analysis can ensure total cover-age of program behavior, many HPC programs rely on stan-dardized parallelization, allocation, and acceleration patterns whose resource implications are evident from submission-time artifacts. These properties makes the ex ante instance selection problem a natural fit for agentic LLM systems that can plan multi-step analyses, invoke tools, and programmatically derive actionable findings. III. R ELATED WORK 
+
+Prior work in LLM-assisted program analysis, cloud in-stance characterization and workflow scheduling informs In-cisor’s design. Each area addresses a facet of the problem, but none targets end-to-end instance selection for previously unseen HPC workloads using submission-time artifacts. 
+
+LLM-Assisted Program Analysis. Recent work uses LLMs for program analysis tasks spanning static analysis, symbolic reasoning, and dataflow inference [14]–[18]. A related line of work targets HPC performance analysis, including parallel program behavior prediction, performance modeling, and cost-aware cloud scheduling [19]–[23]. Incisor differs by embed-ding agentic LLMs within an automated end-to-end system for handling job submissions via a constraint-driven instance-selection pipeline, emphasizing robustness to catalog changes and partial observability rather than standalone code reasoning. 
+
+Cloud Instance Characterization and Selection. Other stud-ies evaluate cloud instance families for HPC through empirical cost-performance analysis. Maas et al. explore instance op-tions to identify cost-efficient choices, showing that the best selection is highly dependent on workload characteristics [24], [25]. Kumar et al. compare GPU-enabled instances for HPC and AI workloads using a TOPSIS-based multi-criteria frame-work [26], and Tharwani et al. show that CPU performance and cost efficiency vary substantially across instance genera-tions and providers [27]. Other work in this area automates configuration selection via exploratory runs. CherryPick [9] uses Bayesian optimization and Ernest [7] extrapolates from small-scale samples, but both require executing the workload. Incisor targets the challenging ex ante setting where no prior runs can be assumed to exist, inferring a suitable instance from submission-time artifacts alone while treating runtime history as helpful but optional. These empirical characteri-zation studies are complementary to our approach, as their findings may inhabit LLM training corpora and be leveraged implicitly during agent reasoning about instance trade-offs. 
+
+Resource Brokering and Workflow Scheduling. Prior work on mapping jobs to heterogeneous resources spans grid-era resource brokers such as AppLeS [28] and Nim-rod/G [29], which used performance models and economics-based scheduling to place jobs across distributed sites [30]. Cloud workflow schedulers including Pegasus [31], SkyPi-lot [12], and other DAG-based schedulers [32], [33] extended this to heterogeneous VMs, trading off cost, time, and reliabil-ity. These systems share the core problem of choosing where to run each task to optimize an objective such as cost-within-deadline. Incisor addresses a related but differently constrained problem, targeting per-job instance selection for previously unseen HPC workloads by inferring hardware requirements from submission-time artifacts alone and selecting from large, continuously evolving cloud catalogs. IV. A GENTIC INSTANCE SELECTION 
+
+The problem addressed in this work is choosing a cloud instance type for an HPC job given only the executable, envi-ronment variables, inputs, and invocation commands available at submission time. We decompose this into two subproblems:  
+
+> •
+
+Hardware constraint estimation , which infers the job’s resource requirements from submission artifacts alone, including memory high water mark, CPU count, platform and accelerator needs, and I/O intensity.  
+
+> •
+
+Instance selection , which maps those estimated con-straints onto the catalog of available cloud instances to identify cost-effective choices. We decompose the problem this way because the two sub-problems draw on different evidence and tools. Constraint estimation draws on program analysis such as tracing alloca-tions, identifying parallel constructs, and inspecting binaries, while instance selection draws on cloud offerings, pricing, Fig. 3: Incisor agent architecture operation for hardware constraint estimation. 
+
+and hardware capabilities. Crucially, this decomposition makes the intermediate constraint estimates independently checkable against measured resource use after the job runs, providing concrete diagnostics that can be incorporated into later runs. 
+
+A. Why an Agentic Approach? 
+
+The problems of submission-time constraint estimation and instance selection have a set of characteristics that make them particularly amenable to an agentic solution. 
+
+Evidence-Grounded Reasoning. Both subproblems admit to concrete evidence over subjective judgment, be it submission artifacts such as binaries, scripts, and configuration variables for constraint estimation or cloud instance catalogs for instance selection. Because the inputs to both stages are concrete and tool-accessible, the agent’s reasoning can be grounded in factual evidence and derived observations at every step. 
+
+Robust Tooling. Mature tool interfaces exist for both stages, from disassemblers, decompilers, and symbol inspectors for constraint estimation to catalog query tools for instance selec-tion. A tool-capable agent can gather evidence programmati-cally rather than relying on parametric knowledge alone. 
+
+Verifiable Results. Both subproblems produce outputs that can be empirically checked by running the job. Measured resource use validates inferred constraints and job success or failure validates the instance choice, creating a tight feedback loop that can quickly correct flawed reasoning across runs. 
+
+Tolerance for Imprecision. Cloud instance resources are quantized into coarse tiers or discrete options, with memory and CPU counts roughly doubling between adjacent sizes and features such as accelerators and fast storage either present or absent. This makes instance selection fundamentally a coarse classification problem rather than one requiring fine-grained quantitative estimates. The risks are asymmetric because un-derprovisioning causes hard failures while overprovisioning merely incurs inefficiency, favoring conservative estimates when evidence is incomplete. Unlike conventional HPC perfor-mance modeling, which is often useful only when predictions are precise, this problem is forgiving enough for an LLM-driven approach to be practical. Concrete evidence, reliable tools, empirical verifiability, and tolerance for imprecision together map directly onto the strengths of modern agentic LLM systems [34]–[41], which combine multi-step reasoning with structured tool use and evidence synthesis to automate sophisticated tasks. 
+
+B. Agent Architecture 
+
+Figure 3 shows the architecture of an Incisor agent, il-lustrated for the constraint estimation stage. Incisor supports both commercial and open-weight agent implementations. For open-weight models, Incisor uses a custom agent harness with vLLM for backend inference. For commercial models, the custom harness is replaced by the provider’s agentic infras-tructure. Implementation details are given in Section VI-A. Each agent receives an agent configuration that provides the driver prompt and output schema defining the task, and input data that provides the task-specific evidence. For constraint estimation, the input data comprises the submitted executable, invocation command, and environment variables. Inspired by least-to-most prompting [42], the decomposer first invokes an LLM to break the configured task into a sequence of subtask definitions to produce findings that inform later subtasks. For the constraint estimation agent, these corre-spond to individual constraint dimensions such as CPU count, memory capacity, and platform requirements. The subtask executor then processes each subtask through a subtask loop driven by a ReAct iterator [43] to alternate between reasoning, acting by invoking tools, and observing tool results. The results of tool invocations are stored in a shared tool results cache so that results gathered for one subtask are available to later subtasks without redundant calls. Each subtask loop produces subtask findings that accumulate across the sequence, allowing later subtasks to build on earlier evidence. Once all subtasks complete, a synthesizer accumulates find-ings, merges them into a coherent result, maps the result to the output schema as a structured JSON bundle, and validates the output against the schema constraints to produce the agent output. Incisor runs this architecture twice in sequence for each job. The constraint estimation agent output becomes input data to the instance selection agent, which additionally has access to the cloud instance catalog. The underlying agent harness enforces per-tool timeouts along with iteration and token budgets to ensure convergence instead of unbounded reasoning loops, while the prompting strategy biases toward conservative estimates when evidence is incomplete. C. Hardware Constraint Estimation 
+
+Upon job submission, Incisor triggers constraint estimation to turn submission-time artifacts into a structured constraint bundle for the subsequent instance selection stage. 
+
+Input and Output. The input data consists of the job submis-sion artifacts: the executable or entry point, inputs, invocation command, environment variables, and optionally source code, documentation, or data from prior runs. The agent output is a hardware constraint bundle covering memory high water mark, CPU count, platform requirements (e.g., aarch64 vs. 
+
+x86_64 ), GPU usage and count, GPU memory requirement, and I/O intensity. Each estimate includes a confidence level and rationale for use by later stages and offline inspection. 
+
+Tools. For executable binaries, the agent has access to standard Linux inspection tools including file and readelf for ELF metadata (ISA, architecture, shared library dependencies), 
+
+nm for symbol tables, ldd for dynamic library resolution, 
+
+objdump for disassembly, size for section sizes, and 
+
+strings for embedded string literals. For deeper analysis, the agent can invoke angr for control flow graph construc-tion and targeted symbolic exploration [44], and Ghidra for decompilation and cross-reference analysis [45]. For Python workloads, the agent reads the script and its local module tree directly. All file access, including any user-supplied auxiliary artifacts, is mediated through read-only directory listing, glob, read, slice, and grep tools scoped to staged artifact directories. Prior job history is available via a job similarity tool built for Incisor. Executable similarity is assessed by constructing a static control flow graph from the submitted program using PyCG [46] for Python or angr for compiled binaries, which is then compared to historical job CFGs using the Weisfeiler-Lehman graph kernel [47] and subjected to a similarity threshold. When two executables match, a second comparison scores the invocation context (command line arguments and environment variables, cast to a typed graph) using the same kernel, and the top matching historical records are surfaced to the agent as additional evidence. Specifically, up to 3 recent successful runs and all unique failure cases with their failure reasons are returned, with recency used to break ties. The agent also has access to a calculator tool for arithmetic operations and unit conversion, providing a reliable numerical capability to aid in translating low level program evidence into quantified intermediate or finalized observations. 
+
+Verification. Generated constraints are checked by running the job and comparing inferred resource needs against measure-ments, as described in Section V-D1. Similarity-based history lookup allows these measurements and any prior failures to be used as strong evidence of constraints (or lack thereof) on future submissions of similar jobs. 
+
+D. Instance Selection 
+
+Running after constraint estimation, instance selection maps estimated constraints onto the catalog of available cloud in-stances to produce a ranked list of instance preferences. 
+
+Input and Output. The input data consists of the constraint bundle from the previous stage together with access to the cloud instance catalog. Incisor leverages SkyPilot’s [12] in-stance catalog, a provider-normalized store exposing a unified view of instance capabilities (memory in GB, vCPUs, physical CPUs, accelerators) and price points in dollars per hour, allowing clean comparisons to be made across providers. The agent output is a ranked list of up to 10 instance preferences with written rationale explaining each selection. 
+
+Tools. The agent queries the instance catalog to filter and compare offerings against hard constraints and reason about cost-performance trade-offs. The agent also has access to the same calculator tool used in constraint estimation. 
+
+Verification. Instance suitability is verified in two ways. At provision time, ranked candidates are validated against hard constraints, catching errors such as nonexistent instance types, instances with memory below the estimated requirement, or missing accelerator support before any cloud resources are allocated. At runtime, executing the job reveals conclu-sively whether the provisioned instance was adequate. Out-of-memory terminations, illegal instruction faults, and other resource-related failures indicate underprovisioning, while successful completion with low utilization indicates overpro-visioning. Failures at either stage triggers redeployment to a more appropriate instance as described in Section V-D2, and all outcomes serve as evidence to refine future estimates. V. I NCISOR DESIGN AND IMPLEMENTATION 
+
+Incisor embeds the agentic capability described above into an end-to-end job system that accepts job submissions, pro-visions cloud resources, executes jobs, and records measure-ments to feed back into future recommendations. 
+
+A. System Overview 
+
+Incisor begins with a user’s submitted job artifacts, includ-ing the runnable workload together with its invocation context and any optional supporting artifacts. From those artifacts, it derives hardware constraints, ranks candidate instances from a cloud instance catalog, provisions resources, executes the job, captures measurements and outputs, and stores the resulting records for future reuse. Figure 4 depicts this workflow as four tightly integrated subsystems:   
+
+> •1
+
+Job Submission ingests binaries, scripts, environment variables, source code, documentation, and optional prior-run references, and normalizes them into a structured job representation used by the rest of the system.   
+
+> •2
+
+Instance Recommender consumes the normalized job representation and runs the two-stage agent pipeline described in Section IV to produce a ranked list of in-stance preferences with brief explanations of the choices.   
+
+> •3
+
+Execution Engine provisions the preferred instance, launches the workload within a standardized execution envelope, and collects the measurements needed to vali-date recommendations and diagnose failures.   
+
+> •4
+
+Job Records persists job artifacts, selected resources, logs, outputs, and historical run results as a durable job record that supports provenance, debugging, and future recommendation runs. Fig. 4: Overview of the Incisor system’s job handling steps. 
+
+This organization is key to Incisor’s design. By embedding the recommender within a job service loop, runs automatically validate and reinforce the recommendations they were built on. 
+
+B. Job Submission and Artifacts 
+
+Incisor’s Job Submission 1 subsystem ingests the job artifacts provided in a user’s job specification and normal-izes them into a structured representation. At a minimum, a submission provides a runnable workload, its environment and its invocation command. Additional artifacts can supply more evidence for constraint estimation, and user-supplied constraints can override automated inference entirely. 
+
+[Required] Job and Invocation Context. The invocation con-text comprises the run command and its arguments, relevant environment variables (e.g., OMP_NUM_THREADS ), and any wrapper scripts. Small changes here can dominate runtime behavior, so Incisor treats invocation context as a first-class input to both static analysis and job history matching. Users may provide a compiled binary, a shell script, or an interpreted entry point. For binaries, Incisor infers platform and ISA con-straints from ELF metadata and disassembly; for interpreted workloads, architecture selection is left to the selection agent.          
+
+> >incisor run "OMP_NUM_THREADS=16 ./cg.D.x" >incisor run "./train_model.py --epochs 10"
+
+[Optional] Additional Artifacts. When available, Incisor can consume source code, build files, documentation, and problem-class descriptors as optional evidence. Incisor also searches its job history for similar jobs using the similarity tool described in Section IV-C, surfacing matching records to the constraint estimation agent. Users may also supply explicit job identifiers, hardware constraints, or bypass recommendation entirely by naming an instance type.                           
+
+> >incisor run "OMP_NUM_THREADS=16 ./cg.D.x" \--job-src "/path/to/NPB3.4-OMP" >incisor run "OMP_NUM_THREADS=16 ./cg.D.x" \--job-history 18726,18843 >incisor run "OMP_NUM_THREADS=16 ./cg.D.x" --ram 32 >incisor run "OMP_NUM_THREADS=16 ./cg.D.x" \--cloud aws --instance-type c8a.4xlarge
+
+C. Instance Preferences 
+
+The Instance Recommender 2 turns the normalized sub-mission into a ranked list of instance preferences, typically in a few minutes per job submission and independent of job runtime. Internally, it uses the two-stage agent pipeline described in Section IV, first estimating hardware constraints from the submitted artifacts and any retrieved history, then ranking cloud instances using those constraints together with instance capabilities and prices from a managed catalog. Incisor’s ranking procedure is designed to be deliberately conservative. Memory capacity, architecture and ISA compat-ibility are treated as hard feasibility constraints because under-provisioning can easily lead to job failure. Other dimensions, such as CPU count above the application’s parallelism ceiling, premium storage, or accelerators when unused, are treated as softer performance and cost tradeoffs. When uncertainty remains after submission-time analysis, such as when memory bounds are inferred from partial evidence, the recommender biases toward instances with headroom and records that uncer-tainty in the explanation. As part of this conservative posture, the constraint estimator enforces a 1 GB floor on memory estimates and the instance selector enforces a 2 GB floor when mapping constraints to instances, ensuring headroom for the operating system, monitoring facilities, and other non-application overhead, even for minimal workloads. In the absence of strong evidence to the contrary, the recommendation pipeline also leans toward newer CPU fami-lies, which often offer better price-performance, and toward AMD over Intel architectures based on observed trends in common cloud catalogs [24], [25]. These heuristics act only as a disposition and are overridden by stronger signals from inferred constraints and job history. 
+
+D. Resource Provisioning and Execution 
+
+Incisor’s Execution Engine 3 turns instance preferences into an actual job run. It provisions cloud resources and executes workloads using SkyPilot [12], which provides cloud-agnostic job orchestration, access to provider catalogs, and portable provisioning across clouds. Incisor uses SkyPilot’s provisioning substrate but replaces its built-in instance selec-tion with the recommender described above, then layers arti-fact storage, indexing, and job-history management on top to support richer reasoning across runs. The instance preferences provide both the default instance choice for execution and fallback candidates when the top-ranked choice is unavailable or proves to be a poor fit at runtime. When the preferred Purpose Metrics Source                                     
+
+> Mem. Capacity MemTotal ,
+> MemAvailable /proc/meminfo (D) Mem. Stalls some ,full /proc/pressure/memory (D) CPU Utilization user ,system ,idle /proc/stat (D) CPU Utilization waiting ,running /proc/schedstat (D) CPU Stalls some ,full /proc/pressure/cpu (D) GPU Compute GPU-Util nvidia-smi (V) GPU Memory Memory-Usage nvidia-smi (V) I/O Activity read ,write disk_bytes (D) I/O Stalls some ,full /proc/pressure/io (D) Disk Space Used ,Avail Linux utility df
+> TABLE I: A selection of key runtime metrics collected by Incisor. Most are gathered via Prometheus using its node exporter (D) [49] and NVIDIA GPU exporter (V) [50].
+
+instance cannot be provisioned or fails to complete execution, Incisor steps down the list until a working candidate is found. Jobs are launched under a standardized execution envelope with consistent lifecycle semantics covering setup, run, and teardown phases, uniform log capture, and a predictable di-rectory layout for staged artifacts and outputs. This standard-ization is important for the rest of the system because it makes monitoring facilities portable across instance types and cloud providers and ensures that failures and outputs are recorded in a form that can be reused by the job record and feedback mechanisms described below. 
+
+1) Runtime Performance Monitoring: To make recommen-dation outcomes checkable, Incisor collects runtime measure-ments during execution across heterogeneous cloud instances and providers. Incisor deploys a uniform monitoring stack based on Prometheus, a widely adopted open source mon-itoring system with broad cloud support [48]. Our design prioritizes measurements that are widely available across Linux distributions and cloud images, stable under common containerization and orchestration choices, and directly inter-pretable in terms of the constraint dimensions targeted by the recommender. Table I summarizes a selection of key measurements made, their sources, and how Incisor uses them. Each measurement category maps directly to a constraint dimension used by the recommender. Memory capacity and pressure-stall indicators validate the memory high water mark estimate, CPU utilization and scheduling statistics validate CPU count, GPU utilization and memory confirm accelerator sizing, I/O throughput and pressure surface storage bottle-necks, and disk space measurements inform disk provisioning. Together these measurements support assessment of whether the selected instance was well-matched to the workload. For Python workloads, module dependencies are initially gathered ex ante by the constraint estimation agent from source code analysis, since the true set of imported modules is only known after execution. To close this gap, Incisor deploys a lightweight runtime harness that records the full set of modules imported during execution, providing the constraint estimation agent with concrete module dependencies on future runs. 
+
+2) Recovery from Underprovisioning: Underprovisioning resources may lead to failures such as out-of-memory errors, illegal instruction faults, missing GPUs, or insufficient disk. When such a failure occurs, Incisor retries the job on the next ranked instance to address the diagnosed violation. For example, an out-of-memory failure triggers a retry on the next candidate with at least 2 × the memory. This is possible because the recommender produces a ranked candidate set rather than a single choice, and because many such errors are recoverable after one observed run. 
+
+E. Job Results 
+
+Job Records 4 persists job results and provenance as first-class system outputs. For each completed run, Incisor stores job artifacts, the selected instance configuration, logs, exit code, outputs, and raw performance measurements. From these, Incisor derives and stores a compact summary of the measurements described in Section V-D1, small enough ( < 1k tokens) to avoid straining LLM context windows. This allows multiple historical run results to be surfaced to the constraint estimation agent on future runs of similar jobs, closing the loop between inference and execution. VI. R ESULTS 
+
+We describe our experimental setup and evaluate whether Incisor can reliably select viable, cost-effective instances from submission-time artifacts alone. We also investigate the factors that drive result quality, including the richness of available inputs and the capability of the underlying LLM. 
+
+A. Experimental Setup 
+
+Infrastructure. Incisor supports both commercial and locally-hosted LLM agents. All agents use identical prompt templates, I/O schemas and verification logic. We evaluate two commer-cial models, Claude Opus 4.6 and Claude Sonnet 4.6, both using the Claude Code 2.1 harness for task execution, tool orchestration, and structured output parsing. Where the pro-duction harness provides built-in tooling capabilities, Incisor leverages those tools in place of our custom tool implementa-tions. For open-weight models, we use Qwen3.5 35B A3B, Nemotron Super 49B, Llama3.3 70B, and Ministral3 14B via the agentic harness described in Section IV. This agentic harness is written in Python, with backend inference performed via vLLM 0.16 [51] on a control plane server equipped with a 64 core AMD EPYC 9575F and 4 NVIDIA RTX 6000 Ada GPUs (48 GB each) to enable parallel open-weight model inference. Commercial backends require no dedicated local LLM inference hardware. Resource provisioning and execution use SkyPilot 0.12.0 along with a Prometheus 3.9 monitoring stack detailed in Section V-D1, both of which operate uniformly across cloud providers. We evaluate Incisor on Amazon Web Services (AWS) within a single region ( us-east-1 ) using on-demand EC2 instances and prices frozen to a single point in time across all runs, ensuring that results reflect constraint estimate and instance selection quality rather than regional availability factors and/or price fluctuations across time or providers. 
+
+Baselines. We compare Incisor against two baselines. The first, Expert + SkyPilot , represents a strong baseline in which an expert manually specifies key hardware constraints for each workload. The expert constraints were derived by a researcher with over 20 years experience in HPC/systems performance analysis via a combination of static analysis of program artifacts and iterative refinement over multiple job runs. These constraints are passed into SkyPilot via its 
+
+resources block, then SkyPilot selects the cheapest feasible instance satisfying those resource constraints. This baseline represents a realistic outcome of the manual, iterative approach outlined in Section I. It reliably produces viable instance selections but requires significant per-workload effort from a domain expert that remains difficult to scale to large numbers of workloads and to users lacking deep HPC experience. The second baseline, SkyPilot , uses SkyPilot default instance selection with no user-supplied hardware constraints beyond the run command, representing what a user would experience when using a state-of-the-art cloud provisioning tool but bringing no particular workload or cloud expertise to provide useful guidance on instance selection. 
+
+Workloads. We use 31 benchmark configurations spanning HPC microbenchmarks, scientific simulations, computational finance, and machine learning, covering diverse paralleliza-tion and acceleration strategies and operating across compute bound, memory bound, and I/O bound resource regimes. For consistency with the SkyPilot baselines, which do not support automatic platform selection, all compiled workloads use GCC 12.2 to target x86_64 . Interpreted workloads use Python 3.11 and are architecture agnostic unless native extensions impose additional constraints derived by the instance recommender. Microbenchmarks include hpcg [52] (sparse linear algebra with irregular memory access) and iozone [53] (file I/O). From HeCBench [54] we use bezier , invk2j , and nms .From the NAS Parallel Benchmarks [13] we use the MPI and OpenMP variants of bt , cg , ep , ft , lu , mg , and sp , plus the OpenMP version of ua . Additional scientific applications include lammps [55] (molecular dynamics), lulesh [56] (shock hydrodynamics), and two Palabos lattice-Boltzmann cases [57]: boussinesq3d (Rayleigh–B´ enard convection) and bubbles3d (two-bubble collision). We use four Python applications, mnist (image classification), astro (n-body simulation), genomics (association analysis), and seismic 
+
+(wave propagation). Financial workloads blackscholes ,
+
+bonds , and repo are from FinanceBench [58]. 
+
+B. Can an agentic LLM select instances that actually run a submitted job on the first attempt? 
+
+Figure 5 illustrates success among instances chosen ex ante by Incisor using six LLM backends and by both the 
+
+SkyPilot + Expert and SkyPilot baselines. Incisor with frontier coding models Opus4.6 and Sonnet4.6 achieve a 100% first-run success rate across the 31 workloads, as does the Expert + SkyPilot baseline. By contrast, SkyPilot without expert-chosen constraints fails on 19% of jobs, predominantly from out-of-memory errors, underscoring the importance of making use of hardware constraints for instance selection. Among open-weight models, results are more varied. Qwen3.5 fails on 10% (a) Incisor  
+
+> (claude-opus-4-6)
+> (b) Incisor
+> (claude-sonnet-4-6)
+> (c) Incisor
+> (qwen-3-5-35B-A3B)
+> (d) Incisor
+> (nemotron-super-49B-1-5)
+> (e) Incisor
+> (llama-3-3-70B-instruct)
+> (f) Incisor
+> (ministral-3-14B-instruct)
+> (g) Expert + SkyPilot (h) SkyPilot
+> Run Succeeds
+> Fail - Out of Memory
+> Fail - Platform Mismatch
+> Fail - Other
+> Fig. 5: Job success rates using Incisor agent selections and SkyPilot baseline ex ante instance assignments.
+
+of jobs, all from out-of-memory errors. Nemotron has the highest failure rate at 26%, followed by Llama3.3 at 20% and Ministral3 at 13%. Out-of-memory is the class of error that dominates across all configurations, indicating that memory estimation is the most relevant (and challenging) constraint to correctly provide in this domain. However, other error types arise in a handful of cases. Llama3.3 recommended the platform-incompatible instance 
+
+c6a.32xlarge for bonds , choosing an instance lacking AVX-512 support. The associated job failed within 1 second of post-setup execution and was successfully rerun on the 2nd-ranked instance. Nemotron twice hallucinated a nonexistent instance m8a.32xlarge ; while similar instances such as 
+
+m6a.32xlarge and m8a.24xlarge exist, the requested one does not. This was caught at provisioning time and retried successfully. All Fail - Other cases were recovered via In-cisor’s ranked-candidate fallback mechanism (Section V-D2). These results show that ex ante reasoning performed by the strongest models is accurate enough for practical deployment. To understand what makes it accurate, it is important to isolate the contribution of each class of submission-time input. 
+
+C. What drives quality in agentic constraint estimates? 
+
+Figure 6 compares 3 configurations using Incisor + Opus4.6 with data sources of increasing richness. In Ex Ante + No Tools 
+
+the agent receives only the invocation command and environ-ment variables, with no access to the executable or analysis tools. This configuration isolates reasoning from invocation context alone. In Ex Ante the agent has the executable and access to the binary analysis tools described in Section IV-C and to source code for Python workloads. This setting reflects Incisor’s primary operating mode. Finally, in 2nd Run the agent receives coarse-grained runtime measurements from one prior successful run, in addition to the executable and tools. 
+
+All Constraint Estimates. Figure 6(a) summarizes the frac-tion of workloads whose constraint estimates carry over- or underprovision risk across the 3 configurations. We classify estimates as underprovision risks when they underpredict a quantitative constraint or mispredict a categorical one in a way that would cause failure (e.g., incompatible platform ISA), Ex Ante + No Tools 
+
+> Ex Ante
+> 2nd Run
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> % of Job Submissions
+> Overprovision Risk
+> Underprovision Risk
+
+(a) All constraint estimates. invk2j 
+
+> iozone
+> ep (omp)
+> ep (mpi)
+> astro
+> nms
+> seismic
+> lulesh
+> boussinesq3d
+> mnist
+> genomics
+> bubbles3d
+> lammps
+> ua (omp)
+> lu (omp)
+> lu (mpi)
+> bt (omp)
+> sp (omp)
+> hpcg
+> cg (omp)
+> bezier
+> blackscholes
+> cg (mpi)
+> sp (mpi)
+> mg (omp)
+> mg (mpi)
+> bt (mpi)
+> bonds
+> ft (omp)
+> ft (mpi)
+> repo
+
+0.25 
+
+1
+
+4
+
+16 
+
+64 
+
+256  
+
+> Memory High Water Mark (GB)  Ex Ante + No Tools
+> Ex Ante
+> 2nd Run
+> Expert-Derived
+> Overprovision Risk
+> Underprovision Risk
+
+(b) Memory high water mark estimates. Fig. 6: Incisor constraint estimates across input configurations. (a) Fraction of job submissions with over- or under-provisioning risk, showing that tool access and historical data substantially reduce misprediction. (b) Per-application memory high water mark estimates under three input configurations compared to expert-derived ground truth (black lines). Blue (hatched) regions indicate overprovision risk; red (crosshatched) regions indicate underprovision risk. astro  
+
+> bezier
+> blackscholes
+> bonds
+> boussinesq3d
+> bt (mpi)
+> bt (omp)
+> bubbles3d
+> cg (mpi)
+> cg (omp)
+> ep (mpi)
+> ep (omp)
+> ft (mpi)
+> ft (omp)
+> genomics
+> hpcg
+> invk2j
+> iozone
+> lammps
+> lu (mpi)
+> lu (omp)
+> lulesh
+> mg (mpi)
+> mg (omp)
+> mnist
+> nms
+> repo
+> seismic
+> sp (mpi)
+> sp (omp)
+> ua (omp)
+> 0.2x
+> 0.4x
+> 0.6x
+> 0.8x
+> 1x
+> 2x
+> 4x
+> 6x
+> 8x
+> 10x
+> Instance Costs (normalized)
+> 5
+> 3
+> 1
+> 4
+> 2
+> 3
+> 1
+> 5
+> 4
+> 2
+> 3
+> 2
+> 4
+> 1
+> 5
+> 5
+> 2
+> 4
+> 3
+> 1
+> 1
+> 5
+> 34
+> 2
+> 2
+> 5
+> 4
+> 31
+> 5
+> 41
+> 2
+> 33
+> 1
+> 5
+> 2
+> 4
+> 13
+> 5
+> 4
+> 2
+> 1
+> 5
+> 42
+> 3
+> 35
+> 2
+> 4
+> 1
+> 4
+> 2
+> 3
+> 5
+> 1
+> 5
+> 1
+> 32
+> 32
+> 4
+> 5
+> 1
+> 4
+> 2
+> 3
+> 1
+> 5
+> 3
+> 5
+> 2
+> 1
+> 4
+> 3
+> 5
+> 1
+> 4
+> 2
+> 1
+> 5
+> 23
+> 4
+> 2
+> 4
+> 1
+> 3
+> 5
+> 1
+> 3
+> 2
+> 5
+> 4
+> 3
+> 1
+> 4
+> 2
+> 5
+> 5
+> 1
+> 2
+> 4
+> 3
+> 3
+> 4
+> 1
+> 2
+> 5
+> 3
+> 2
+> 4
+> 1
+> 5
+> 3
+> 1
+> 4
+> 5
+> 2
+> 3
+> 5
+> 2
+> 4
+> 1
+> 5
+> 1
+> 2
+> 3
+> 1
+> 4
+> 5
+> 3
+> 2
+> 2
+> 4
+> 31
+> 5
+> 4
+> 23
+> 1
+> 5
+> 2
+> 1
+> 5
+> 43
+> Incisor Top Choice
+> Incisor Top-5
+> Expert + SkyPilot
+> Other Instances
+
+Fig. 7: Instance costs for the top 5 Incisor-chosen instances compared to the 
+
+Expert + SkyPilot approach. Incisor’s top choice (green +) achieves far lower instance costs than Expert + SkyPilot (purple triangle) on most jobs. 
+
+and overprovision risks when they exceed requirements or choose more capability than necessary. The consequences are asymmetric, as underprovisioning can cause outright failure while overprovisioning wastes resources but the job succeeds. 61% of submissions are mispredicted in some fashion under Ex Ante + No Tools , with a substantial fraction risking underpro-visioning. In this setting, it is trivial to confound the constraint estimator’s CPU count estimates, for example by providing 
+
+OMP_NUM_THREADS=1024 when the job makes no use of OpenMP. Allowing for analysis of submission artifacts in Ex Ante reduces misprediction to 36% and, critically, cuts the underprovision risk rate in half. 
+
+Memory Estimates. Figure 6(b) shows per-application mem-ory high water mark estimates compared against expert-derived ground truth. The shaded regions indicate overpro-vision risk (blue, above ground truth) and underprovision risk (red, below ground truth), respectively. Under Ex Ante + No Tools , the agent frequently defaults to brittle heuristics, in some cases producing estimates that are an order of magnitude above or below the true value. Under Ex Ante , where the agent can access binary analysis tools for compiled applications and the source code of Python applications, estimates tighten substantially toward ground truth. The visible 1 GB estimate floor on the left side of the figure reflects the conservative memory minimums enforced by the constraint estimator and instance recommender (see Section V-C). 
+
+Runtime History. With one prior job run ( 2nd Run ), mis-prediction falls from 36% to 15% (Figure 6(a)), with all risk accruing to the safer direction of overprovisioning rather than more dangerous underprovisioning. Once Incisor’s job record feedback loop surfaces observed runtime behavior alongside new submissions, its future recommendations become both more accurate and more conservative. This shift toward safe overprovisioning reflects the design of Incisor’s prompting and ranking logic, which prefer recoverable overestimation over failure-inducing underestimation. These results show that invocation context alone is insuffi-cient for reliable constraint estimation. Tool-based analysis of submission artifacts is the key enabler, and a single prior run further tightens estimates toward safe overprovisioning. Our initial experiments in supplying source code alongside com-piled binaries (not shown) did not yield measurable improve-ments, suggesting that binary analysis tools already extract the most relevant signals for compiled workloads. This is plausible because the key constraint indicators like allocation sizes, thread counts, and ISA features, are visible in the compiled binary and directly accessible to analysis tools. Source code may offer greater benefit for more complex codebases or when compile-time optimizations obscure program structure, though further experiments in this direction are left as future work. 
+
+D. How well do automatically chosen instances fit the job? 
+
+Figures 7 and 8 show per-application instance costs and run-time normalized to Expert + SkyPilot using Incisor + Opus4.6 with submission artifacts only and no prior runtime history, plotting the top-ranked instance (green +), remaining top-5 choices (green circle), the Expert + SkyPilot baseline (purple triangle), and other feasible instances run during testing (gray diamond) for context. 
+
+Instance Costs. Across the full workload suite, Incisor’s top-ranked instance reduces geometric mean instance costs by 44% relative to Expert + SkyPilot (Figure 7). These improvements astro     
+
+> bezier
+> blackscholes
+> bonds
+> boussinesq3d
+> bt (mpi)
+> bt (omp)
+> bubbles3d
+> cg (mpi)
+> cg (omp)
+> ep (mpi)
+> ep (omp)
+> ft (mpi)
+> ft (omp)
+> genomics
+> hpcg
+> invk2j
+> iozone
+> lammps
+> lu (mpi)
+> lu (omp)
+> lulesh
+> mg (mpi)
+> mg (omp)
+> mnist
+> nms
+> repo
+> seismic
+> sp (mpi)
+> sp (omp)
+> ua (omp)
+> 0.2x
+> 0.4x
+> 0.6x
+> 0.8x
+> 1x
+> 2x
+> 4x
+> 6x
+> 8x
+> 10x
+> Job Runtime (normalized)
+> 531
+> 4
+> 23
+> 1
+> 5
+> 4
+> 2
+> 3
+> 2
+> 4
+> 1
+> 5
+> 5
+> 24
+> 3
+> 1
+> 1
+> 5
+> 3
+> 4
+> 2
+> 2
+> 5
+> 4
+> 3
+> 1
+> 5
+> 4
+> 1
+> 2
+> 331524
+> 1
+> 3
+> 5
+> 4
+> 2
+> 1
+> 5
+> 4
+> 2
+> 3
+> 3
+> 5
+> 2
+> 4
+> 1
+> 4
+> 2
+> 3
+> 5
+> 1
+> 513
+> 2
+> 3245
+> 1
+> 4
+> 2
+> 31
+> 5
+> 35214
+> 35
+> 1
+> 42
+> 1
+> 5
+> 234
+> 2
+> 4
+> 1
+> 3
+> 5
+> 1
+> 3
+> 2
+> 5
+> 4
+> 3
+> 1
+> 4
+> 2
+> 5
+> 5124
+> 3
+> 3
+> 412
+> 5
+> 3
+> 2
+> 4
+> 1
+> 5
+> 314
+> 523
+> 52
+> 41
+> 5
+> 1
+> 2
+> 3
+> 1
+> 45
+> 3
+> 2
+> 2
+> 4
+> 3
+> 15
+> 4
+> 2
+> 3
+> 152
+> 1
+> 5
+> 4
+> 3
+> Incisor Top Choice
+> Incisor Top-5
+> Expert + SkyPilot
+> Other Instances
+
+Fig. 8: Runtime for the top 5 Incisor-selected instances normalized to the 
+
+Expert + SkyPilot approach. Incisor frequently selects instances that are substantially faster in execution time. 
+
+arise because Incisor jointly reasons about feasibility and cost-performance tradeoffs, whereas Expert + SkyPilot simply se-lects the cheapest instance satisfying expert constraints without reasoning about whether different feasible instances would be more cost-effective. Incisor’s ranked preference list also provides fallback options, with multiple alternatives achieving costs near the baseline in most workloads. The few cases where Incisor’s top choice costs more than Expert + SkyPilot 
+
+involve overestimated resource requirements. 
+
+Job Runtime. Incisor’s top-ranked instances achieve 54% lower geometric mean runtime than Expert + SkyPilot (Fig-ure 8), often selecting instances that are both cheaper and faster. This is possible because the baseline optimizes hourly price, not total cost, while Incisor weighs feasibility, perfor-mance, and cost, steering toward newer-generation instance families with better price-performance ratios. These results demonstrate that coarse but grounded reasoning is sufficient to place workloads in the right region of the instance space without requiring precise numerical prediction. 
+
+E. How does choice of the underlying model affect results? 
+
+Figure 9 compares geometric mean instance costs across 6 LLMs and both baselines, normalized to Expert + SkyPi-lot , to understand whether the approach produces consistent results across models. The four coding-specialized models, Opus4.6, Sonnet4.6, Qwen3.5, and Nemotron, are highlighted in Figure 9 as Coding LLMs . The results reveal a clear stratification. The two commercial models achieve the lowest average instance costs, at 0.56 × and 0.74 × of the Expert + SkyPilot baseline, respectively. Qwen3.5 also outperforms the expert baseline at 0.82 ×, though with a higher job failure rate (see Figure 5). Nemotron ends up worse than the baseline at 1.18 ×, despite being a coding-oriented model, suggesting that code specialization is necessary but not sufficient for this task. Llama3.3 and Ministral3 are general purpose and produce geometric mean costs of 1.30 × and 1.58 × the Expert + SkyPilot baseline, respectively. This tells us that model size alone does not guarantee recommendation quality. The 70B parameter Llama3.3 model is outperformed in all respects by the 35B parameter Qwen3.5 model, suggesting that code-Incisor 
+
+> (claude-opus-4-6)
+> Incisor
+> (claude-sonnet-4-6)
+> Incisor
+> (qwen-3-5-35B-A3B)
+> Incisor
+> (nemotron-super-49B-1-5)
+> Incisor
+> (llama-3-3-70B-instruct)
+> Incisor
+> (ministral-3-14B-instruct)
+> Expert + SkyPilot
+> SkyPilot
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> Geometric Mean Cost (normalized)
+> Coding LLMs
+
+Fig. 9: Geometric mean instance costs across Incisor and baselines, normalized to Expert + SkyPilot . The top three coding-specialized LLMs outperform the expert baseline. 
+
+specific training is more dispositive to outcomes than raw parameter count. SkyPilot without expert constraints achieves a geometric mean cost of 1.13 ×, outperforming the weaker LLM-based configurations but substantially underperforming the stronger coding models. The stronger coding models more consistently produce viable, cost-effective instance selections from submission-time artifacts alone, with a single prior run closing the residual gap. Across the board, commercial frontier models outperform open-weight alternatives, consistent with recent coding benchmark results [59]–[61]. VII. F UTURE WORK 
+
+We currently target single-node job submissions using com-piled binaries or Python scripts. Natural extensions include multi-node execution, requiring analysis of MPI communi-cation patterns to recommend per-node instance types, node counts, and cloud-native interconnects; per-stage constraint estimation for DAG structured workflows with heterogeneous resource requirements; support for containerized applications by inspecting Docker or Singularity manifests, layer contents, and embedded binaries; and broader language facilities to support runtimes such as Julia, R or MATLAB. A separate direction concerns the scope of the recommendation itself. Incisor currently selects an instance type given a fixed invoca-tion, yet opportunities may exist to co-optimize the execution environment and invocation alongside the hardware choice. Richer evidence sources such as source code, project doc-umentation and web search could further sharpen constraint estimates. Exposing agent rationale to users and accepting natural language feedback would close a human-in-the-loop feedback path complementary to the automated loop already in place. Finally, supporting user-specified utility functions com-bining cost, runtime, and other objectives with performance modeling would allow Incisor to respond to richer expressions of user priority beyond high level cost and time reduction. VIII. C ONCLUSION 
+
+Incisor addresses the ex ante cloud instance selection via a 2-stage agent-driven solution, each grounded in tool use and independently verifiable by embedding them within an end-to-end system that handles provisioning, monitoring, and automatic fallback when selections prove unsuitable. Across 31 HPC workloads, frontier coding models achieve 100% first-run success while reducing instance costs by 44% and job run-time by 54% relative to expert-derived constraints paired with SkyPilot, substantially outperforming general-purpose models. These results demonstrate that state-of-the-art agentic LLM systems can automate a task traditionally requiring scarce expert judgment, making cost-effective cloud HPC accessible to a broader range of users and workloads. ACKNOWLEDGEMENTS 
+
+Commercial and locally run agentic LLMs are a core component of our system and experimental infrastructure (Section VI-A). Claude, ChatGPT, and Perplexity Pro were also used as “peer reviewers” whose feedback was used to improve the manuscript prior to submission. REFERENCES [1] D. J. Kerbyson, H. J. Alme, A. Hoisie, F. Petrini, H. J. Wasserman, and M. Gittings, “Predictive performance and scalabil-ity modeling of a large-scale application,” in Proceedings of the 2001 ACM/IEEE conference on Supercomputing , 2001, pp. 37–37, https://doi.org/10.1145/582034.582071. [2] A. Snavely, L. Carrington, N. Wolter, J. Labarta, R. Badia, and A. Purkayastha, “A framework for performance modeling and prediction,” in SC’02: Proceedings of the 2002 ACM/IEEE Conference on Supercomputing . IEEE, 2002, pp. 21–21, https://doi.org/10.1109/sc.2002.10004. [3] E. Ipek, B. R. De Supinski, M. Schulz, and S. A. McKee, “An ap-proach to performance prediction for parallel applications,” in European Conference on Parallel Processing . Springer, 2005, pp. 196–205, https://doi.org/10.1007/11549468 24. [4] S. Williams, A. Waterman, and D. Patterson, “Roofline: an in-sightful visual performance model for multicore architectures,” Com-munications of the ACM , vol. 52, no. 4, pp. 65–76, 2009, https://doi.org/10.1145/1498765.1498785. [5] A. Calotoiu, T. Hoefler, M. Poke, and F. Wolf, “Using automated performance modeling to find scalability bugs in complex codes,” in Proceedings of the International Conference on High Perfor-mance Computing, Networking, Storage and Analysis , 2013, pp. 1–12, https://doi.org/10.1145/2503210.2503277. [6] N. R. Tallent and A. Hoisie, “Palm: Easing the burden of an-alytical performance modeling,” in Proceedings of the 28th ACM international conference on Supercomputing , 2014, pp. 221–230, https://doi.org/10.1145/2597652.2597683. [7] S. Venkataraman, Z. Yang, M. Franklin, B. Recht, and I. Stoica, “Ernest: Efficient performance prediction for Large-Scale advanced analytics,” in 13th USENIX Symposium on Networked Systems Design and Im-plementation (NSDI 16) . USENIX Association, 2016, pp. 363–378, https://dl.acm.org/doi/10.5555/2930611.2930635. [8] T.-P. Pham, J. J. Durillo, and T. Fahringer, “Predicting workflow task execution time in the cloud using a two-stage machine learning approach,” IEEE Transactions on Cloud Computing , vol. 8, no. 1, pp. 256–268, 2017, https://doi.org/10.1109/TCC.2017.2732344. [9] O. Alipourfard, H. H. Liu, J. Chen, S. Venkataraman, M. Yu, and M. Zhang, “CherryPick: Adaptively unearthing the best cloud configura-tions for big data analytics,” in 14th USENIX Symposium on Networked Systems Design and Implementation (NSDI 17) . USENIX Association, 2017, pp. 469–482, https://dl.acm.org/doi/10.5555/3154630.3154669. [10] O. Pearce, A. Scott, G. Becker, R. Haque, N. Hanford, S. Brink, D. Jacobsen, H. Poxon, J. Domke, and T. Gamblin, “Towards col-laborative continuous benchmarking for hpc,” in Proceedings of the SC’23 Workshops of The International Conference on High Perfor-mance Computing, Network, Storage, and Analysis , 2023, pp. 627–635, https://doi.org/10.1145/3624062.3624135. [11] S. Cheng, M. A. Laurenzano, B. Strauch, T. A. Ellis, K. Wadhwani, and D. A. B. Hyde, “Adviser: An intuitive multi-cloud platform for scientific and ml workflows,” arXiv preprint arXiv:2603.20941 , 2026, https://doi.org/10.48550/arXiv.2603.20941. [12] Z. Yang, Z. Wu, M. Luo, W.-L. Chiang, R. Bhardwaj, W. Kwon, S. Zhuang, F. S. Luan, G. Mittal, S. Shenker et al. , “SkyPilot: An intercloud broker for sky computing,” in 20th USENIX Symposium on Networked Systems Design and Implementation (NSDI 23) . USENIX Association, 2023, pp. 437–455, https://www.usenix.org/conference/nsdi23/presentation/yang-zongheng. [13] D. H. Bailey, E. Barszcz, J. T. Barton, D. S. Browning, R. L. Carter, L. Dagum, R. A. Fatoohi, P. O. Frederickson, T. A. Lasinski, R. S. Schreiber et al. , “The nas parallel bench-marks—summary and preliminary results,” in Proceedings of the 1991 ACM/IEEE Conference on Supercomputing , 1991, pp. 158–165, https://doi.org/10.1145/125826.125925. [14] H. Li, Y. Hao, Y. Zhai, and Z. Qian, “Assisting static analysis with large language models: A chatgpt experiment,” in Proceedings of the 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering , 2023, pp. 2107–2111, https://doi.org/10.1145/3611643.3613078. [15] A. P. S. Venkatesh, S. Sabu, A. M. Mir, S. Reis, and E. Bod-den, “The emergence of large language models in static anal-ysis: A first look through micro-benchmarks,” in Proceedings of the 2024 IEEE/ACM First International Conference on AI Foundation Models and Software Engineering , 2024, pp. 35–39, https://doi.org/10.1145/3650105.3652288. [16] P. J. Chapman, C. Rubio-Gonz´ alez, and A. V. Thakur, “Interleaving static analysis and llm prompting,” in Proceedings of the 13th ACM SIGPLAN International Workshop on the State Of the Art in Program Analysis , 2024, pp. 9–17, https://doi.org/10.1145/3652588.3663317. [17] C. Wang, W. Zhang, Z. Su, X. Xu, X. Xie, and X. Zhang, “Llmdfa: analyzing dataflow in code with large language models,” Advances in Neural Information Processing Systems , vol. 37, pp. 131 545–131 574, 2024, https://doi.org/10.52202/079017-4181. [18] J. Wang, T. Ni, W.-B. Lee, and Q. Zhao, “A contemporary sur-vey of large language model assisted program analysis,” Transac-tions on Artificial Intelligence , vol. 1, no. 1, pp. 105–129, 2025, https://doi.org/10.53941/tai.2025.100006. [19] G. Bolet, G. Georgakoudis, H. Menon, K. Parasyris, N. Hasabnis, H. Estes, K. Cameron, and G. Oren, “Can large language models predict parallel code performance?” in Proceedings of the 34th International Symposium on High-Performance Parallel and Distributed Computing ,2025, pp. 1–6, https://doi.org/10.1145/3731545.3743645. [20] D. Nichols, A. Marathe, H. Menon, T. Gamblin, and A. Bhatele, “Hpc-coder: Modeling parallel programs using large language mod-els,” in ISC High Performance 2024 Research Paper Proceedings (39th International Conference) . Prometeus GmbH, 2024, pp. 1–12, https://doi.org/10.23919/isc.2024.10528929. [21] B. Cui, T. Ramesh, O. Hernandez, and K. Zhou, “Do large lan-guage models understand performance optimization?” arXiv preprint arXiv:2503.13772 , 2025, https://doi.org/10.48550/arXiv.2503.13772. [22] M.-K. Nguyen-Nhat, H. D. N. Do, H. T. Le, and T. T. Dao, “Llmperf: Gpu performance modeling meets large language models,” in 2024 32nd International Conference on Modeling, Analysis and Simulation of Computer and Telecommunication Systems (MASCOTS) . IEEE, 2024, pp. 1–8, https://doi.org/10.1109/mascots64422.2024.10786558. [23] H. Pei, Y. Gu, Y. Sun, Q. Wang, C. Liu, X. Chen, and L. Cheng, “Llm-based cost-aware task scheduling for cloud computing sys-tems,” Journal of Cloud Computing , vol. 14, no. 1, p. 81, 2025, https://doi.org/10.1186/s13677-025-00822-0. [24] W. Maas and A. Lorenzon, “Exploring cloud instance options for optimal performance-cost efficiency,” Cluster Computing , vol. 28, no. 15, p. 984, 2025, https://doi.org/10.1007/s10586-025-05702-5. [25] W. Maas, F. Rossi, M. Caggiani, P. Navaux, and A. Lorenzon, “Investigating cloud instances to achieve optimal trade-offs between performance-cost efficiency,” Computing , vol. 107, no. 3, p. 82, 2025, https://doi.org/10.1007/s00607-025-01444-9. [26] M. Kumar, G. Kaur, and P. S. Rana, “Robust evaluation of gpu compute instances for hpc and ai in the cloud: a topsis approach with sensitivity, bootstrapping, and non-parametric analysis,” Computing , vol. 106, no. 12, pp. 3987–4014, 2024, https://doi.org/10.1007/s00607-024-01342-6. [27] J. Tharwani, S. Aggarwal, and A. A. Purkayastha, “Evaluating hpc-style cpu performance and cost in virtualized cloud infras-tructures,” in SoutheastCon 2025 . IEEE, 2025, pp. 1239–1244, https://doi.org/10.1109/southeastcon56624.2025.10971705. [28] F. Berman, R. Wolski, H. Casanova, W. Cirne, H. Dail, M. Faer-man, S. Figueira, J. Hayes, G. Obertelli, J. Schopf et al. , “Adap-tive computing on the grid using apples,” IEEE transactions on Par-allel and Distributed Systems , vol. 14, no. 4, pp. 369–382, 2003, https://doi.org/10.1109/tpds.2003.1195409. [29] B. Bethwaite, D. Abramson, F. Bohnert, S. Garic, C. Enticott, and T. Peachey, “Mixing grids and clouds: high-throughput science using the nimrod tool family,” in Cloud computing: principles, systems and applications . Springer, 2010, pp. 219–237, https://doi.org/10.1007/978-1-84996-241-4 13. [30] K. Krauter, R. Buyya, and M. Maheswaran, “A taxonomy and sur-vey of grid resource management systems for distributed computing,” 
+
+Software: Practice and Experience , vol. 32, no. 2, pp. 135–164, 2002, https://doi.org/10.1002/spe.432. [31] E. Deelman, K. Vahi, M. Rynge, R. Mayani, R. Ferreira da Silva, and G. Papadimitriou, “The evolution of the pegasus workflow management software,” Computing in Science & Engineering , vol. 21, no. 4, pp. 22– 36, 2019, https://doi.org/10.1109/MCSE.2019.2919690. [32] G. Juve and E. Deelman, “Scientific workflows and clouds,” XRDS: Crossroads, The ACM Magazine for Students , vol. 16, no. 3, pp. 14–18, 2010, https://doi.org/10.1145/1734160.1734166. [33] M. A. Rodriguez and R. Buyya, “Deadline based resource provisioning and scheduling algorithm for scientific workflows on clouds,” IEEE Transactions on Cloud Computing , vol. 2, no. 2, pp. 222–235, 2014, https://doi.org/10.1109/tcc.2014.2314655. [34] T. Xie, F. Zhou, Z. Cheng, P. Shi, L. Weng, Y. Liu, T. J. Hua, J. Zhao, Q. Liu, C. Liu et al. , “Openagents: An open platform for language agents in the wild,” arXiv preprint arXiv:2310.10634 , 2023, https://doi.org/10.48550/arXiv.2310.10634. [35] H. Yang, S. Yue, and Y. He, “Auto-gpt for online decision making: Benchmarks and additional opinions,” arXiv preprint arXiv:2306.02224 ,2023, https://doi.org/10.48550/arXiv.2306.02224. [36] G. Chen, S. Dong, Y. Shu, G. Zhang, J. Sesay, B. F. Karls-son, J. Fu, and Y. Shi, “Autoagents: A framework for auto-matic agent generation,” arXiv preprint arXiv:2309.17288 , 2023, https://doi.org/10.48550/arXiv.2309.17288. [37] P. Sahoo, A. K. Singh, S. Saha, V. Jain, S. Mondal, and A. Chadha, “A systematic survey of prompt engineering in large language models: Techniques and applications,” arXiv preprint arXiv:2402.07927 , vol. 1, 2024, https://doi.org/10.48550/arXiv.2402.07927. [38] Q. Wu, G. Bansal, J. Zhang, Y. Wu, B. Li, E. Zhu, L. Jiang, X. Zhang, S. Zhang, J. Liu et al. , “Autogen: Enabling next-gen llm applications via multi-agent conversations,” in First conference on language modeling ,2024, https://doi.org/10.48550/arXiv.2308.08155. [39] G. W¨ olflein, D. Ferber, D. Truhn, O. Arandjelovic, and J. N. Kather, “Llm agents making agent tools,” in Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , 2025, pp. 26 092–26 130, https://doi.org/10.18653/v1/2025.acl-long.1266. [40] M. Mohammadi, Y. Li, J. Lo, and W. Yip, “Evaluation and benchmarking of llm agents: A survey,” in Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , 2025, pp. 6129–6139, https://doi.org/10.1145/3711896.3736570. [41] Google, “Agent development kit (ADK),” 2025, framework for building, evaluating, and deploying AI agents. [Online]. Available: https://github.com/google/adk-python [42] D. Zhou, N. Sch¨ arli, L. Hou, J. Wei, N. Scales, X. Wang, D. Schuurmans, C. Cui, O. Bousquet, Q. Le, and E. Chi, “Least-to-most prompting enables complex reasoning in large language models,” arXiv preprint arXiv:2205.10625 , 2022, https://doi.org/10.48550/arXiv.2205.10625. [43] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. R. Narasimhan, and Y. Cao, “React: Synergizing reasoning and acting in language models,” in The eleventh international conference on learning representations ,2022, https://doi.org/10.48550/arXiv.2210.03629. [44] F. Wang and Y. Shoshitaishvili, “Angr-the next generation of binary analysis,” in 2017 IEEE Cybersecurity Development (SecDev) . IEEE, 2017, pp. 8–9, https://doi.org/10.1109/secdev.2017.14. [45] C. Eagle and K. Nance, The Ghidra Book: The Definitive Guide . no starch press, 2020, ISBN-13 978-1718501027. [46] V. Salis, T. Sotiropoulos, P. Louridas, D. Spinellis, and D. Mitropoulos, “Pycg: Practical call graph generation in python,” in 2021 IEEE/ACM 43rd International Conference on Software Engineering (ICSE) . IEEE, 2021, pp. 1646–1657, https://doi.org/10.1109/icse43902.2021.00146. [47] N. Shervashidze, P. Schweitzer, E. J. Van Leeuwen, K. Mehlhorn, and K. M. Borgwardt, “Weisfeiler-lehman graph kernels,” Journal of Machine Learning Research , vol. 12, no. 77, pp. 2539–2561, 2011, https://dl.acm.org/doi/10.5555/1953048.2078187. [48] J. Turnbull, Monitoring with Prometheus . Turnbull Press, 2018, ISBN-13 978-0988820289. [49] “Node exporter,” 2017, prometheus exporter for hardware and OS metrics exposed by *NIX kernels. [Online]. Available: https://github.com/prometheus/node exporter [50] “Nvidia gpu exporter,” 2021, nvidia GPU exporter for Prometheus. [On-line]. Available: https://github.com/utkuozdemir/nvidia gpu exporter [51] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. E. Gonzalez, H. Zhang, and I. Stoica, “Efficient memory management for large language model serving with pagedattention,” in Proceedings of the ACM SIGOPS 29th Symposium on Operating Systems Principles ,2023, pp. 611–626, https://doi.org/10.1145/3600006.3613165. [52] M. A. Heroux, J. Dongarra, and P. Luszczek, “Hpcg benchmark technical specification,” Sandia National Laboratories (SNL-NM), Albuquerque, NM (United States), Tech. Rep., 2013, https://doi.org/10.2172/1113870. [53] W. D. Norcott, “IOzone filesystem benchmark,” 2003, https://www.iozone.org/. [54] Z. Jin and J. S. Vetter, “A benchmark suite for improving per-formance portability of the sycl programming model,” in 2023 IEEE International Symposium on Performance Analysis of Sys-tems and Software (ISPASS) . IEEE, 2023, pp. 325–327, https://doi.org/10.1109/ISPASS57527.2023.00041. [55] A. P. Thompson, H. M. Aktulga, R. Berger, D. S. Bolintineanu, W. M. Brown, P. S. Crozier, P. J. In’t Veld, A. Kohlmeyer, S. G. Moore, T. D. Nguyen et al. , “Lammps-a flexible simulation tool for particle-based materials modeling at the atomic, meso, and continuum scales,” Computer physics communications , vol. 271, p. 108171, 2022, https://doi.org/10.1016/j.cpc.2021.108171. [56] I. Karlin, J. Keasler, and J. R. Neely, “Lulesh 2.0 updates and changes,” Lawrence Livermore National Laboratory (LLNL), Livermore, CA (United States), Tech. Rep., 2013, https://doi.org/10.2172/1090032. [57] J. Latt, O. Malaspinas, D. Kontaxakis, A. Parmigiani, D. La-grava, F. Brogi, M. B. Belgacem, Y. Thorimbert, S. Leclaire, S. Li et al. , “Palabos: parallel lattice boltzmann solver,” Comput-ers & Mathematics with Applications , vol. 81, pp. 334–350, 2021, https://doi.org/10.1016/j.camwa.2020.03.022. [58] S. Grauer-Gray, W. Killian, R. Searles, and J. Cavazos, “Accelerating financial applications on the gpu,” in Proceedings of the 6th Workshop on General Purpose Processor Using Graphics Processing Units , 2013, pp. 127–136, https://dx.doi.org/10.1145/2458523.2458536. [59] N. Jain, K. Han, A. Gu, W.-D. Li, F. Yan, T. Zhang, S. Wang, A. Solar-Lezama, K. Sen, and I. Stoica, “Livecodebench: Holistic and contamination free evaluation of large language models for code,” in 
+
+The Thirteenth International Conference on Learning Representations ,2025, https://doi.org/10.48550/arXiv.2403.07974. [60] T. Y. Zhuo, M. C. Vu, J. Chim, H. Hu, W. Yu, R. Widyasari, I. N. B. Yusuf, H. Zhan, J. He, I. Paul, S. Brunner, C. Gong, J. Hoang, A. R. Zebaze, X. Hong, W.-D. Li, J. Kaddour, M. Xu, Z. Zhang, P. Yadav, N. Jain, A. Gu et al. , “Bigcodebench: Benchmarking code generation with diverse function calls and complex instructions,” in The Thirteenth International Conference on Learning Representations , 2025, https://doi.org/10.48550/arXiv.2406.15877. [61] R. Qiu, W. Zeng, J. Ezick, C. Lott, and H. Tong, “How efficient is llm-generated code? a rigorous & high-standard benchmark,” in The Thirteenth International Conference on Learning Representations , 2025, https://doi.org/10.48550/arXiv.2406.06647.
