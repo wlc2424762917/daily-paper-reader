@@ -1,0 +1,406 @@
+Title: Decoupled Travel Planning with Behavior Forest
+
+URL Source: https://arxiv.org/pdf/2604.21354v1
+
+Published Time: Fri, 24 Apr 2026 00:36:11 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+> ARXIV 1
+
+# Decoupled Travel Planning with Behavior Forest 
+
+Duanyang Yuan †, Sihang Zhou †, Yanning Hou, Xiaoshu Chen, Haoyuan Chen, Ke Liang, Jiyuan Liu, Chuan Ma, Xinwang Liu ∗, Senior Member, IEEE , Jian Huang ∗
+
+Abstract —Behavior sequences, composed of executable steps, serve as the operational foundation for multi-constraint planning problems such as travel planning. In such tasks, each plan-ning step is not only constrained locally but also influenced by global constraints spanning multiple subtasks, leading to a tightly coupled and complex decision process. Existing travel planning methods typically rely on a single decision space that entangles all subtasks and constraints, failing to distinguish between locally acting constraints within a subtask and global constraints that span multiple subtasks. Consequently, the model is forced to jointly reason over local and global constraints at each decision step, increasing the reasoning burden and reducing planning efficiency. To address this problem, we propose the Behavior Forest method. Specifically, our approach structures the decision-making process into a forest of parallel behavior trees, where each behavior tree is responsible for a subtask. A global coordination mechanism is introduced to orchestrate the interactions among these trees, enabling modular and coherent travel planning. Within this framework, large language models (LLMs) are embedded as decision engines within behavior tree nodes, performing localized reasoning conditioned on task-specific constraints to generate candidate subplans and adapt decisions based on coordination feedback. The behavior trees, in turn, provide an explicit control structure that guides LLM generation. This design decouples complex tasks and constraints into manageable subspaces, enabling task-specific reasoning and reducing the cognitive load of LLM. Experimental results show that our method outperforms state-of-the-art methods by 6.67% on the TravelPlanner benchmark and by 11.82% at medium-level difficulty on the ChinaTravel benchmark, demonstrating its effectiveness in increasing LLM performance for complex multi-constraint travel planning 1.
+
+Index Terms —Travel Planning, Behavior Forest, Behavior Sequences, Large Language Models. 
+
+I. I NTRODUCTION 
+
+# BEHAVIOR sequences transform vague instructions into clear and executable steps, providing the operational backbone for complex multi-constraint planning problems. Among such tasks, multi-constraint travel planning [1] is especially challenging, as it involves multiple subtasks and interdependent constraints. While each constraint is specific, 
+
+Duanyang Yuan, Sihang Zhou, Yanning Hou, Haoyuan Chen, Jian Huang are with the College of Intelligence Science and Technology, National University of Defense Technology, Changsha 410073, China. (e-mail: huang jian@nudt.edu.cn) Xiaoshu Chen, Ke Liang and Xinwang Liu are with the College of Com-puter Science and Technology, National University of Defense Technology, Changsha 410073, China. (e-mail: xinwangliu@nudt.edu.cn) Jiyuan Liu is with the College of Systems Engineering, National University of Defense Technology, Changsha 410073, China. Chuan Ma is with the College of Computer Science, Chongqing University, Chongqing 400044, China.  
+
+> ∗
+
+Corresponding Authors 
+
+> †
+
+These authors contributed equally. 
+
+> 1
+
+The code will be released after the paper is published 
+
+Fig. 1. Illustration of the Behavior Forest framework. Behavior Forest organizes complex multi-constraint problems as a forest of parallel behavior trees that are connected through a global coordination mechanism. This framework decouples the task into multiple subtasks and disentangles the constraints into local and global constraints. Each tree in the forest handles a specific subtask, reasoning independently over its local constraints. This reasoning interacts with the LLM to generate executable plans, while global constraints are coordinated across all subtasks. 
+
+satisfying one often affects the feasibility options in others. For example, selecting a hotel room depends on the budget, which in turn is influenced by prior expenses such as transportation and dining. As a result, generating a valid plan within a single decision space is challenging, since all the constraints must be resolved simultaneously. Multi-step reasoning addresses this by progressively managing these dependencies and structuring decisions into coherent behavioral sequences. Existing behavior sequence generation approaches can be generally categorized into traditional and LLM-based approaches. Traditional approaches first formalize natural-language problems as constraint satisfaction problems (CSPs) [2]–[4], such as Boolean satisfiability (SAT) or satisfiability modulo theories (SMT), and then rely on algorithm-based solvers [5], [6] to generate feasible plans. However, these methods usually rely on precise and complete constraint mod-eling and require iterative reformulation to handle complex multi-constraint planning, which limits their practicality [7]. The rapid advancement of LLMs has reshaped this workflow [8]–[10]. LLMs can directly interpret natural-language inputs and generate plans [11], [12], significantly simplifying the pipeline. Mechanisms [13]–[17], such as ReAct [18] and  
+
+> arXiv:2604.21354v1 [cs.LG] 23 Apr 2026 ARXIV 2
+
+Reflection [19], further improve the quality of the plan by interleaving reasoning with action and allowing iterative self-reflection based on feedback, respectively. Recent work further explores the use of intermediate representations in LLM-based planning, such as PDDL [20], signal temporal logic [21], executable semantic objects [22], or executable code [7], [23], from which the final plan is derived. These approaches translate natural-language planning problems into verifiable symbolic or programmatic structures, thereby improving plan-ning accuracy. As research has advances, tree-based structures have become central to guiding complex reasoning [12], [24]. Tree-of-Thought (ToT) [25] models planning as a search over a tree, improving completeness and consistency. Following this approach, Hybrid ToT [26] combines fast and slow reasoning modes to strike a balance between planning efficiency and robustness. The HTP framework [11] further extends the capabilities of Chain-of-Thought (CoT) [27] and ToT [25] by incorporating external rules, allowing LLMs to decompose complex tasks through a hypertree and to generate plans hierarchically. Although recent LLM-based methods have demonstrated strong capabilities, they still suffer from fundamental lim-itations when handling complex multi-constraint planning problems. First, most existing approaches treat planning as a one-shot or implicitly decomposed process, where the LLM is required to generate a complete multi-day plan directly or to internally decompose the task. Consequently, multiple subtasks are presented to the LLM simultaneously, including transportation, accommodation, attractions, and dining. This forces the model to reason within an undifferentiated task space, thereby leading to planning failures. Second, current methods generally fail to distinguish between local constraints that are specific to individual subtasks and global constraints that coordinate multiple subtasks. These local and global constraints are entangled within the same LLM decision space and are injected into the reasoning process at each planning step. As a result, the LLM must consider all the constraints simultaneously, without mechanisms to isolate locally relevant constraints or to maintain global consistency in a structured manner. Third, planning is typically performed step-by-step, where each action relies on increasingly accumulated context embeddings. This design not only prevents parallel reasoning across subtasks but also lengthens the reasoning chain and amplifies error propagation, as mistakes made in early actions can persist and affect subsequent decisions. Even tree-based reasoning methods, while improving search completeness, often require the entire structured task information and con-straints to be fed into the LLM at once, further overloading its reasoning capacity. Overall, these limitations reveal a funda-mental bottleneck in existing LLM-based planning methods: tasks and constraints are tightly coupled within a single and entangled decision space. This coupling substantially increases the cognitive burden on the LLM, leading to missed constraints and repeated corrective actions. As the complexity of the problem increases, these limitations gradually degrade both planning efficiency and execution accuracy. To solve this problem, we propose Behavior Forest, which structures multi-constraint planning as a forest structure of parallel trees connected through a global coordination mech-anism. As shown in Figure 1, Behavior Forest decouples a complex task into multiple manageable subtasks and disen-tangles the constraints into local and global constraints. Each subtask is handled by a dedicated behavior tree that manages its local constraints, while global constraints coordinate the trees to ensure consistency. Candidate solutions that satisfy the constraints are collected through LLM interaction, while violations trigger subtask-level backtracking for coordination. This approach enables the forest to reason concurrently while remaining coordinated. The main contributions of this work are as follows:  
+
+> •
+
+We propose Behavior Forest, a novel paradigm that structures multi-constraint planning as a forest of parallel behavior trees. This design transforms sequential reason-ing into modular and coherent subtask reasoning, while maintaining global consistency through a dedicated coor-dination mechanism, thereby improving overall reasoning efficiency.  
+
+> •
+
+Each subtask is encapsulated within a behavior tree that governs its local constraints. This decoupling of tasks and constraints enables task-specific reasoning, reduces the cognitive load on LLMs, and mitigates error propagation across subtasks.  
+
+> •
+
+Experimental results show that Behavior Forest outper-forms state-of-the-art methods by 6.67% on the Trav-elPlanner benchmark and by 11.82% at the level of medium difficulty on the ChinaTravel benchmark. II. R ELATED WORK 
+
+A. Planning Methods 
+
+Planning aims to generate action sequences that satisfy multiple constraints and achieve specified goals. To address ac-tion sequence generation in multi-constraint complex planning, numerous approaches have been proposed. These approaches differ primarily in how each planning decision is generated. We categorize existing planning methods into two types: solver-based and LLM-based approaches. 
+
+1) Solver-based Planning Methods: To address multi-constraint planning problems such as travel planning, solver-based approaches typically formalize the task as a constraint satisfaction problem (CSP) [2], including formulations based on Boolean satisfiability (SAT) [3] and satisfiability modulo theories (SMT) [4]. These formulations are then solved us-ing algorithm-based solvers [5], [6]. For example, the SMT framework [14] combined with iterative back-prompting is employed to adjust the user input and correct errors. The LLM-based tools are then used for itinerary generation, parsing, and feedback, allowing the prompts to be refined iteratively. The llm-rwplanning [7] leverages LLMs for prompt processing and employs non-LLM SMT solvers together with multiple APIs (CitySearch, FlightSearch, AttractionSearch, Distance-Search, AccommodationSearch, and RestaurantSearch) to col-lect structured information for itinerary planning. However, solver-based methods face several challenges, including steep learning curves and limited ability to extract information from natural-language input accurately. Even when information is ARXIV 3
+
+extracted correctly, users often need to revise their inputs and perform multiple iterations to resolve unsatisfiable queries [7]. 
+
+2) LLM-based Planning Methods: Recent work has demon-strated that LLMs achieve promising performance on planning tasks, benefiting from their rich world knowledge, strong reasoning abilities, and tool-use capabilities [28]–[30]. Ex-isting LLM-based planning methods can be categorized into two types: plan-then-execute and step-by-step approaches. Plan-then-execute methods [8]–[11], [31]–[34] first generate a complete plan for each step or subtask and then execute it. Although simple, they are susceptible to error propagation and uneven constraint allocation, often exceeding the reasoning capacity of LLMs. Step-by-step approaches [13], [15], [35]– [37] alternate between task decomposition and planning while incorporating self-reflection. Although these iterative strategies reduce error accumulation, each iteration addresses only local constraints and lacks a global perspective, which can lead to subtask conflicts and incoherent overall planning. Moreover, repeated cycles introduce significant computational overhead, which reduces planning efficiency. Hybrid methods that com-bine retrieval-augmented generation (RAG) [38] offer external knowledge support, helping to alleviate some conflicts. How-ever, they remain susceptible to reliability issues from noisy retrieval, which can compromise action selection and lead to inaccurate execution. 
+
+B. Behavior Tree 
+
+Behavior trees structure the planning process by hierarchi-cally decomposing tasks, alleviating the burden of considering all the constraints simultaneously. However, traditional be-havior trees are based on manually designed structures and predefined rules, which limit their flexibility and scalability. To address this, LLM-enhanced behavior trees leverage the reasoning and knowledge capabilities of LLMs to dynamically generate tree structures. These LLM-enhanced behavior trees can be classified into three categories: direct generation [39]– [41], reflection-based [42]–[44], and state-based generation methods [45], [46]. The first type refers to LLMs that generate behavior trees in a single step, accounting for all tasks at once. However, these approaches struggle with large-scale reasoning, often producing trees that violate constraints. The second type employs reflection mechanisms, where LLMs first generate draft trees and iteratively refine them through self-reflection. This approach involves frequent backtracking, which signifi-cantly increases the computational cost. The third type adopts state-based generation that involves constructing the behavior tree one action at a time. Although effective in simplifying each decision, these serial paradigms inherently limit the model’s ability to anticipate downstream consequences. These methods lack parallel consideration of interdependent subtasks and still require reasoning over the full constraint space at each decision point. 
+
+C. LLM-powered Multi-Agent Systems 
+
+Single-agent systems suffer from hallucinations and limited contextual capacity, rendering them inadequate for complex real-world tasks. To overcome these issues, researchers have developed multi-agent systems [47], [48]. These systems can be categorized into three main types: decomposition-based approaches [9], [49], [50], hierarchy-based approaches [51], and discussion-based approaches [52], [53]. In decomposition-based approaches, each agent is assigned a subtask, and the results are subsequently integrated. For example, EvoCurr [49] employs a curriculum-learning framework. In this frame-work, a curriculum-generation agent guides a code-generation agent to construct decision trees from simple to complex tasks, improving specialization but requiring a time-consuming training process. Similarly, DPPM [9] divides travel planning into transportation, accommodation, dining, and attraction planning. Each agent handles the constraints relevant to its subtask, but the method lacks global planning across subtasks. The final plan is generated by taking the Cartesian product of all the subtasks, which greatly increases the computation. In addition, as the method operates in a sole-planning stage without considering multiple API calls, it is difficult to apply in real-world scenarios. Hierarchy-based approaches, such as MegaAgent [51], organize task execution through hierarchical decomposition. The BossAgent coordinates the process by assigning tasks to the AdminAgents, each capable of fur-ther delegating responsibilities to subordinate agents. On the other hand, discussion-based approaches focus on cooperation and deliberation among agents. Systems such as Tree-of-Reasoning [52] and mediator-guided collaboration [53] assign function-specific agents to exchange, refine, and reconcile reasoning paths through dialog. Although this improves rea-soning diversity, the results may still be unstable because of inconsistent LLM judgment, and excessive collaboration can paradoxically shift correct answers into incorrect ones. III. M ETHOD 
+
+A. Formalization of Behavior Forest 
+
+Given a natural-language travel query Q, Behavior For-est formulates planning as parallel behavior trees connected through a global coordination mechanism, with the overall procedure consisting of the following steps. 
+
+1) Constraint Extraction: Before planning, the constraint information embedded in Q is explicitly extracted using an LLM. Specifically, the LLM parses the natural-language query into a structured constraint set: 
+
+ψ = LLM-Parser (Q) ⇒ C, (1) where C denotes the set of constraints implied by the query, including both explicit requirements and implicit preferences. LLM-Parser (·) denotes the process of LLM parsing the natural-language query. This transformation enables the sys-tem to convert unstructured natural language into a structured constraint set. 
+
+2) Task-Oriented Constraint Decoupling: After the con-straints are extracted from the query, the planning problem is further decoupled into these tasks and their associated constraints. 
+
+Task Decoupling. An LLM is used to decouple the natural-language travel query Q into a set of planning tasks: 
+
+D(Q) = {τ1, τ 2, . . . , τ m}, (2) ARXIV 4 
+
+> Fig. 2. Overall framework of Behavior Forest. Stage 1 extracts constraint information from natural-language queries using LLMs, such as dates, budgets, user preferences, and other relevant information. Stage 2 decouples the task into four subtasks—transportation, dining, attractions, and accommodation—and disentangles the extracted constraints into local and global constraints. Local constraints are assigned to the subspaces corresponding to the four subtasks. Stage 3 performs parallel planning, where each tree handles one subtask. Each tree interacts with the LLM to generate a constraint-satisfying candidate pool, whose elements are then reranked using heuristic scoring to produce feasible solutions. Global constraints connect the trees to ensure cross-tree consistency, such as by verifying budgets in travel planning, and recording failed plan combinations to avoid regenerating the same infeasible solutions. Finally, Stage 4 integrates the feasible subplans into a complete plan.
+
+where D(Q) denotes the decoupled task set. Each task τi
+
+corresponds to an independent decision dimension. Then, for the decoupled task set D(Q), tasks are assign to each behavior tree as follows: 
+
+F(Q) = {T 1, T2, . . . , Tm}, (3) where each behavior tree Ti is responsible for planning task 
+
+τi. F(Q) represents the set of behavior trees Ti for query Q.
+
+Constraint Decoupling. Given the extracted constraint set 
+
+C from the query Q, the framework further partitions C into task-specific local constraints and global constraints. Formally, the constraint set is decoupled as follows: 
+
+C =
+
+ m[
+
+> i=1
+
+Ci
+
+
+
+∪ Cglobal , (4) where each subset Ci denotes the set of local constraints rele-vant only to task τi, and Cglobal represents global constraints that involve cross-task dependencies. This decoupling allows each behavior tree Ti to focus on the reasoning subspace de-fined by its constraint subset Ci, isolating irrelevant factors and reducing cognitive entanglement. By partitioning the constraint space, Behavior Forest enables parallelized planning, where trees operate concurrently yet remain interconnected through the global coordination constraint. Each behavior tree is then defined as a tuple: 
+
+Ti = ⟨Ni, E i, C i⟩, (5) where Ni denotes the set of decision nodes associated with task τi, Ei ⊆ Ni × Ni represents the hierarchical control-flow structure, and Ci ⊆ C is the set of local constraints assigned to task τi. This constraint assignment is performed after task decoupling, ensuring that each tree reasons only over task-relevant constraints, while global constraints are enforced through the coordination mechanism. 
+
+3) Behavior Forest Parallel Planning: Each behavior tree 
+
+Ti independently performs planning for its assigned task under its associated constraint set Ci. The planning result of each tree is a local subplan: 
+
+plan i = Plan( Ti | Ci), (6) ARXIV 5
+
+where Plan( ·) denotes the behavior tree-based planning pro-cess guided by the LLM, and plan i represents the complete planning result produced by Ti.During planning, the behavior tree does not reason over all nodes or constraints simultaneously. Instead, at each node expansion or decision step, the LLM conditions its reasoning on an activated subset of constraints: 
+
+Cact  
+
+> i
+
+⊆ Ci, (7) where Cact  
+
+> i
+
+contains only the constraints relevant to the current node and planning stage of Ti. This design bounds LLM reasoning to a task-specific decision subspace and mitigates cross-task interference. Given the set of subplans {plan 1, plan 2, . . . , plan m}, Be-havior Forest applies a global coordination mechanism Cglobal 
+
+to iteratively validate their joint feasibility. If a combination of subplans violates any constraint in Cglobal , the corresponding local plans {plan i} are recorded as infeasible to prevent the same invalid combination from regenerating. Moreover, the violation signal is propagated back to the associated behavior trees, triggering plan updates and the generation of new candidate subplans. This iterative process continues until either a feasible set of subplans satisfying all global constraints is found or a maximum number of coordination iterations is reached. 
+
+4) Plan Integration: After each behavior tree has produced its subplan, these subplans are subsequently integrated to form the final travel plan: 
+
+P lan = Integrate  {plan 1, plan 2, . . . , plan m}, (8) where Integrate( ·) assembles these subplans into a coherent end-to-end itinerary. Plan denotes the final plan composed of the local plans. 
+
+B. Travel Planning with Behavior Forest 
+
+We formulate travel planning as a multi-task and multi-constraint planning problem grounded in a natural-language query. Given a user query Q, the goal is to generate a feasible and coherent travel plan P lan that satisfies user-specified constraints. Formally, the problem is defined as follows: 
+
+P = ⟨Q, C, R, O ⟩, (9) where each component is defined as follows. 
+
+Query Q. Represents a natural-language travel request expressed by the user. The query Q is provided in text and im-plicitly contains information such as the origin city, candidate destinations, travel duration, budget limit, number of travel-ers, user preferences, and other constraints. In addition, the overall travel plan consists of multiple interrelated subplans. Accordingly, the task decoupling D(Q) = {τ1, τ 2, . . . , τ m}
+
+instantiates these subplans as task-specific planning dimen-sions, where τi corresponds to transportation, accommodation, dining, or attractions, respectively. 
+
+Constraint Set C. C = {c1, c 2, . . . , c n} denotes the set of constraints extracted from Q, including hard constraints (e.g., budget) and soft constraints (e.g., preferences). C is decoupled into local constraints {Ci} and global constraints 
+
+Cglobal . Cglobal captures cross-task dependencies, such as budget limits. The local constraints {Ci} are assigned to multiple trees in F(Q).
+
+Resource Set R. The planning space is grounded in domain-specific resources: 
+
+R = {RT : transportation options ,RA : accommodation options ,RD : dining options ,RAT : attraction options }.
+
+(10) 
+
+Objective Function O. In Behavior Forest, multiple behav-ior trees are planned in parallel over different decision dimen-sions while sharing a global budget constraint. As each tree 
+
+Ti generates its local plan plan i, it simultaneously contributes to the overall budget consumption, forming a shared budget state across the trees. Formally, let B denote the total budget extracted from the query Q. The cost variation induced by a local plan plan i is represented as follows: 
+
+∆Cost (plan i, B i), (11) where Bi denotes the budget allocation associated with tree 
+
+Ti. ∆Cost (·) captures the budget consumption of Ti under its current planning decision. These cost variations from all the trees are aggregated and synchronously coordinated through the global coordination structure Cglobal :
+
+∆Cost (plan i, B i) ⇒ Update (Bj ), ∀⟨T i, Tj , ω ij ⟩ ∈ Cglobal .
+
+(12) where Bj denotes the budget allocation associated with tree 
+
+Tj . Update (Bj ) represents a synchronous update operation applied to the budget state of another behavior tree Tj ,reflecting the impact of the decision of Ti on the feasible budget space of Tj . The ⟨T i, Tj , ω ij ⟩ specifies a dependency relation between two behavior trees. This budget feedback mechanism enforces global budget consistency by jointly constraining the decisions of all behav-ior trees during parallel planning. In this way, the budget serves as a shared coordination variable that connects independent behavior trees, enabling coordinated reasoning and mutual constraint satisfaction across the trees. The objective of this coordinated planning process is to obtain a globally feasible travel plan Plan that satisfies all extracted constraints C in the given budget B. This objective is defined as follows: 
+
+O = LLM (prompt , Plan , C ), (13) where Plan denotes the final plan composed of the local plans, 
+
+prompt represents the instruction template provided to the LLM, and C denotes the entire constraint set derived from the natural-language query. Through iterative parallel planning, synchronous budget feedback, and global coordination, Behavior Forest progres-sively refines candidate plans toward optimizing the objective 
+
+O while maintaining global feasibility. ARXIV 6
+
+IV. E XPERIMENTS 
+
+A. Experimental Settings 1) Benchmarks: To evaluate the performance of Behavior Forest in multi-constraint travel planning scenarios, we con-duct experiments on the TravelPlanner [1] and ChinaTravel [54] datasets. For the TravelPlanner dataset, we follow both the sole-planning and two-stage settings. In the sole-planning set-ting, LLMs generate plans based on the information provided, without the need for external tools such as databases to retrieve flight departure times. For the ChinaTravel dataset, we conduct experiments at three difficulty levels: easy, medium, and hu-man. Both datasets include diverse travel queries with varying travel durations and complexity. Given user-specified origins, destinations, and personal requirements, agents are tasked with generating travel plans that satisfy multiple constraints. 
+
+2) Baselines: For the TravelPlanner dataset, we compare Behavior Forest with the following two-stage baselines: Re-Act [18], EvoAgent [17], Human-Like [55], Co-Gym [56], Optimizing [57], LLM-Modulo [14], [15], PMC [8], RLP [58], FAFT [59], MIRROR [16], NarrativeGuide [60], HTP [11], ToT [25], Lats [61], One-shot learning, HiAR-ICL [62], RAP [63], and llm-rwplanning [7]. We also compare the following sole-planning baselines: (1) Direct planning method [1] uses LLMs to directly generate travel plans based on the provided reference information. (2) CoT [64] uses chain-of-thought instructions to guide intermediate reasoning steps, enabling systematic task decomposition and planning. (3) ReAct [18] applies a reasoning-and-action framework for each decision. (4) Reflection [19] employs a reasoning-action-reflection framework for decision-making. (5) EvoAgent [17] leverages evolutionary algorithms to scale specialized agents into multi-agent systems. (6) DPPM [9] decomposes complex tasks into subtasks based on constraints. For the ChinaTravel dataset, we compare Behavior Forest with the following baselines: (1) ReAct [18], a widely-adopted reasoning-and-action framework, along with its act-only abla-tion variant. (2) NeSy Planning [65], which integrates LLMs with symbolic solvers to improve logical problem-solving. (3) LLM-Modulo [14], [15], which combines LLM with external verifiers through a tightly coupled bi-directional interaction. 
+
+3) Implementation Details: In our experiments, we limit the maximum number of retries to 3 to prevent infinite remaking of the travel plan. We evaluate our approach using DeepSeek-V3, GPT-3.5, and Mistral-7B, and run the open-source models on 2×4090-24G GPUs. The temperature is fixed at 0.7 for all processes. 
+
+4) Evaluation Metrics: We use the same metrics and set-tings as proposed in TravelPlanner [1]. Delivery Rate: This metric evaluates the agent’s ability to successfully complete a plan within a number of steps. Failure occurs if the agent gets stuck in a loop, encounters multiple unsuccessful attempts, or exceeds the step limit. Commonsense Pass Rate: This metric examines the agent’s ability to integrate commonsense knowledge into the plan without receiving explicit guidance. It consists of eight distinct commonsense dimensions. Hard Pass Rate: This metric assesses whether a plan adheres to all the explicitly defined hard constraints in the given query, testing the agent’s ability to reliably adapt plans to diverse and varying user requirements. Final Pass Rate: This metric reflects the percentage of feasible plans that meet all the aforementioned constraints, indicating the agent’s proficiency in generating plans that adhere to practical standards. Micro Pass Rate: This metric measures the proportion of constraints successfully satisfied across all plans. It is calcu-lated by dividing the total number of constraints met by the total number of constraints applied to the plans. The micro pass rate is as shown in Formula (14). Micro Pass Rate =
+
+P
+
+> p∈P
+
+P 
+
+> c∈Cp
+
+1passed( c,p )
+
+P 
+
+> p∈P
+
+|Cp| . (14) Macro Pass Rate: This metric gauges the percentage of plans that fulfill all their constraints. It is calculated by dividing the number of plans that satisfy all relevant commonsense or hard constraints by the total number of plans tested. The macro pass rate is as shown in formula (15). Macro Pass Rate =
+
+P 
+
+> p∈P
+
+1passed( Cp,p )
+
+|P | . (15) 
+
+B. Main Results 1) Results on the TravelPlanner Dataset: The experimen-tal results in Table I demonstrate the superior performance of Behavior Forest in both evaluation settings. In the two-stage scenario, Behavior Forest consistently outperforms all baselines, with a final pass rate of 91.67%, surpassing the strongest prior method, llm-rwplanning, by 6.67%. The model also improves both micro-level metrics, achieving higher commonsense and hard micro pass rates than llm-rwplanning by 8.40% and 4.05%, respectively. These results collectively demonstrate that Behavior Forest effectively handles complex interdependent constraints. The performance gain stems from the forest-based reasoning architecture. This design decouples constraints across tasks, allowing each behavior tree to operate under task-specific constraints while maintaining global coor-dination. This design prevents constraint interference among trees. Consequently, the LLM produces more coherent multi-stage plans, reducing redundant information and stabilizing the reasoning process across intermediate steps. Compared with serial reasoning frameworks such as ReAct, Behavior Forest yields final pass rates that are more than 90% higher, confirming that explicit constraint decoupling and inter-tree coordination substantially increase planning efficiency. In the sole-planning configuration, Behavior Forest achieves a final pass rate of 94.44%, surpassing DPPM by 17.74%. Compared with other methods such as EvoAgent or Reflec-tion, our method demonstrates superior constraint satisfaction, achieving a 96.11% commonsense macro pass rate and a 94.44% hard macro pass rate. Methods such as CoT fail to generate valid plans under this multi-constraint problem, as the requirement for plan generation directly imposes a high reasoning burden on the model, resulting in plan generation ARXIV 7        
+
+> TABLE I COMPARISON OF THE PERFORMANCE OF STATE -OF -THE -ART METHODS ON THE VALIDATION SET OF THE TRAVEL PLANNER BENCHMARK .∗INDICATES THAT THE RESULTS OF THE CORRESPONDING METHOD ARE REPRODUCED BY OUR WORK UNDER THE SAME EXPERIMENTAL SETTINGS . T HE BEST SCORES IN EACH COLUMN ARE HIGHLIGHTED IN BOLD ,WHILE THE SECOND -BEST SCORES ARE UNDERLINED . O VERALL ,THE BEHAVIOR FOREST METHOD ACHIEVES THE HIGHEST PERFORMANCE ACROSS ALL METRICS .
+
+Method Delivery Rate Commonsense Pass Rate Hard Pass Rate Final Pass Rate Micro Macro Micro Macro 
+
+Two-stage 
+
+ReAct * [18] 85.00 53.40 2.78 2.14 2.78 1.11 MIRROR [16] 100.00 73.20 13.90 27.60 13.30 2.20 Human-Like [55] 100.00 75.10 15.60 15.50 4.40 2.20 ToT [25] 100.00 75.80 16.70 44.00 21.10 3.90 Lats [61] 100.00 78.30 16.70 44.80 21.10 3.90 One-shot [11] 100.00 76.40 17.20 43.30 20.60 3.90 EvoAgent * [17] 100.00 76.25 15.10 38.57 28.42 4.44 HiAR-ICL [62] 100.00 81.20 20.60 47.40 22.80 6.70 RAP [63] 100.00 81.00 20.60 50.50 25.60 6.70 Co-Gym [56] 85.30 - - - - -Optimizing [57] 100.00 84.93 27.22 61.19 42.78 12.78 FAFT [59] 100.00 89.10 59.40 49.80 21.70 13.90 HTP [11] 100.00 87.20 37.80 44.30 32.20 20.00 LLM-Modulo [14], [15] 100.00 89.20 40.60 62.10 39.40 20.60 RLP [58] - 95.30 68.90 62.60 39.40 25.00 PMC * [8] 97.33 86.11 49.44 49.76 50.00 30.00 NarrativeGuide [60] 99.40 94.30 63.90 64.00 43.30 34.40 llm-rwplanning * [7] 90.00 90.00 90.00 85.95 85.00 85.00 
+
+Behavior Forest 100.00 98.40 94.44 90.00 91.67 91.67 Sole-planning 
+
+Cot * [64] 100.00 63.33 0.00 0.00 0.00 0.00 Direct * [1] 100.00 63.26 2.22 2.62 3.33 0.56 Reflection * [19] 76.11 63.05 16.11 32.38 22.22 5.56 ReAct * [18] 85.00 70.07 18.89 47.86 33.89 6.67 EvoAgent * [17] 100.00 84.58 35.00 58.81 62.22 43.33 DPPM [9] 100.00 98.50 89.40 90.70 80.60 76.70 
+
+Behavior Forest 100.00 99.44 96.11 93.81 94.44 94.44 
+
+failures. This improvement stems from the hierarchical behav-ior tree structure, which enables fine-grained constraint track-ing and pruning, reducing cascading reasoning errors. Overall, the results confirm that Behavior Forest retains the efficiency and robust reasoning in the sole-planning setting, confirming the scalability of its constraint-oriented forest architecture for travel planning. 
+
+2) Results on the ChinaTravel Dataset: The experimental results in Table II across different difficulty levels demonstrate the superiority of our method over baseline methods. In the easy setting, our method achieves a final pass rate of 84.95%, outperforming the other baselines, while maintaining high delivery rates above 95%. As the task complexity increases, the final pass rates of our method decrease from 84.95% to 77.82% and 68.84%. However, it consistently maintains significant performance over the SOTA methods. Moreover, our method demonstrates strong macro metrics across all difficulty levels, indicating robust capabilities regardless of task complexity. Notably, both Act and ReAct exhibit near-zero macro scores in commonsense pass rates because the macro metric requires all types of constraints to be simul-taneously satisfied. Each planning query involves multiple interdependent constraints, making it difficult for the models to satisfy all categories simultaneously. Consequently, macro scores remain low, particularly in the human setting. This discrepancy further highlights the robustness of our method in handling complex tasks. 
+
+Summary On the TravelPlanner dataset, Behavior Forest achieves final pass rates of 91.67% and 94.44% under two-stage and sole-planning settings, respectively. On the China-Travel dataset, Behavior Forest achieves final pass rates of 84.95%, 77.82%, and 68.84% at levels of easy, medium, and human difficulty, respectively. These results outperform those of all baseline methods, demonstrating the effectiveness of Behavior Forest. 
+
+C. Performance Analysis Across Different Constraint Types 
+
+Table III shows a detailed performance comparison of the four methods under different commonsense and hard constraints on three difficulty levels. With respect to the commonsense constraints, our method achieves near-perfect satisfaction rates on easy, medium, and hard levels. Specifi-cally, it reaches a perfect 100% on constraints such as Within Sandbox , Within Current City , Reasonable City Route , Diverse Restaurants , and Diverse Attractions at all difficulty levels, demonstrating robust reasoning over context-dependent and ARXIV 8        
+
+> TABLE II COMPARISON OF THE PERFORMANCE OF STATE -OF -THE -ART METHODS ON THE CHINA TRAVEL DATASET .∗INDICATES THAT THE RESULTS OF THE CORRESPONDING METHOD ARE REPRODUCED BY OUR WORK UNDER THE SAME EXPERIMENTAL SETTINGS . T HE DATASET IS DIVIDED INTO THREE DIFFICULTY LEVELS : E ASY , M EDIUM ,AND HUMAN . T HE BEST PERFORMANCE IN EACH COLUMN IS HIGHLIGHTED IN BOLD ,WHILE THE SECOND -BEST SCORES ARE UNDERLINED . A CROSS ALL LEVELS , B EHAVIOR FOREST CONSISTENTLY ACHIEVES THE HIGHEST SCORES .
+
+Delivery Rate Commonsense Pass Rate Hard Pass Rate Final Pass Rate Micro Macro Micro Macro 
+
+Easy 
+
+Act * [18] 86.00 65.40 0.00 65.70 31.67 0.00 ReAct * [18] 90.00 57.71 1.33 82.27 49.00 1.33 LLM-Modulo * [14], [15] 56.33 94.49 3.33 65.29 43.67 3.00 NeSy Planning * [65] 73.00 73.00 73.00 70.23 61.67 61.67 
+
+Behavior Forest 98.89 95.61 88.30 98.28 84.95 84.95 Medium 
+
+Act * [18] 71.10 32.60 0.00 60.30 45.10 0.00 ReAct * [18] 65.33 53.95 0.67 78.64 50.67 0.67 LLM-Modulo * [14], [15] 56.67 92.21 3.33 61.08 22.67 1.33 NeSy Planning * [65] 84.67 84.67 84.67 82.28 66.00 66.00 
+
+Behavior Forest 95.41 93.98 87.23 94.15 77.82 77.82 Human 
+
+Act * [18] 35.34 16.80 0.00 35.74 25.81 0.00 ReAct * [18] 42.21 33.15 0.00 48.91 36.36 0.00 LLM-Modulo * [14], [15] 68.83 90.58 1.3 76.42 45.45 1.30 NeSy Planning * [65] 62.99 62.91 61.04 54.30 41.56 41.56 
+
+Behavior Forest 96.73 90.62 79.97 93.83 68.84 68.84 
+
+routine constraints. In comparison, llm-rwplanning generally ranks second, with slightly lower commonsense pass rates than Behavior Forest. Notably, its commonsense constraint performance remains largely uniform across different con-straint types. This is because llm-rwplanning adopts a hard feasibility enforcement strategy, in which plans are generated only if all commonsense constraints are satisfied. When any commonsense constraint cannot be met, the method fails to produce a feasible plan. As a result, only fully compliant plans are counted, leading to identical satisfaction rates across individual commonsense constraints. While this design en-forces strict feasibility, it limits flexibility in handling partially satisfied constraints and reduces robustness in more complex or interdependent settings. PMC exhibits greater variability across different constraints: under the hard level, the constraint 
+
+Within Sandbox is satisfied at 66.67%, whereas the constraint 
+
+Diverse Attractions achieves 98.33%. For hard constraints, Behavior Forest also demonstrates sub-stantial advantages. It achieves the best performance on most hard constraints, such as Budget (100%, 93.33%, 88.33% for easy, medium, and hard, respectively), and Room Rule (90%, 87.72% for medium and hard, respectively). Llm-rwplanning shows competitive performance on certain hard constraints, e.g., Cuisine reaches 100% and Room Type reaches 83.33% at the medium difficulty level, but generally falls behind the behavior forest at the hard difficulty level. The PMC scores remain low across most hard constraints, highlighting its lim-ited ability to handle multi-step, interdependent planning under strict requirements. The final pass rates further corroborate this trend: Behavior Forest reaches 98.33%, 93.33%, and 83.33% for easy, medium, and hard levels, significantly outperforming both PMC and llm-rwplanning. 
+
+Summary Behavior Forest achieves the highest pass rates across most commonsense and hard constraints at all difficulty levels. Its final pass rates are 98.33%, 93.33%, and 83.33% for easy, medium, and hard tasks, respectively, while llm-rwplanning generally ranks second and PMC performs sub-stantially lower. 
+
+D. Performance Analysis Across Different Difficulty Levels 
+
+Based on the experimental results presented in Table IV, Behavior Forest consistently achieves the highest final pass rates across all difficulty levels, outperforming all baseline methods. At the easy level, Behavior Forest achieves a final pass rate of 98.33%, surpassing llm-rwplanning (85%), PMC (43.33%), EvoAgent (6.67%), and ReAct (1.67%). Behavior Forest also maintains the highest delivery rate (100%) and near-perfect commonsense pass rates as well as perfect hard pass rates, demonstrating its effectiveness in satisfying both commonsense and hard constraints. At the medium level, Behavior Forest maintains clear ad-vantages, with a final pass rate of 93.33%, outperforming llm-rwplanning (90%), PMC (20%), EvoAgent (3.33%), and ReAct (1.67%). Although the performance of most methods declines compared with easy tasks, Behavior Forest maintains high commonsense pass rates and hard constraint satisfaction. The difference in performance between our method and the baselines increases, highlighting the ability of the framework to handle interdependent constraints as the task difficulty increases. At the hard level, Behavior Forest still leads, achieving a final pass rate of 83.33%, while ReAct falls to 0%. Although ARXIV 9
+
+TABLE III PERFORMANCE COMPARISON ACROSS DIFFERENT METHODS UNDER VARIOUS COMMONSENSE AND HARD CONSTRAINTS . T HE BEST PERFORMANCE FOR EACH DIFFICULTY LEVEL IS HIGHLIGHTED IN BOLD , WHILE THE SECOND -BEST SCORES ARE UNDERLINED USING UNDERLINE . B EHAVIOR FOREST ACHIEVES THE HIGHEST SCORES ACROSS MOST CONSTRAINT TYPES .Constraint Types Behavior Forest PMC [8] llm-rwplanning [7] Easy Medium Hard Easy Medium Hard Easy Medium Hard Commonsense Constraint Within Sandbox 100.00 100.00 100.00 65.00 76.67 66.67 93.33 91.67 85.00 Complete Information 100.00 96.67 93.33 80.00 68.33 70.00 93.33 91.67 85.00 Within Current City 100.00 100.00 100.00 88.33 91.67 93.33 93.33 91.67 85.00 Reasonable City Route 100.00 100.00 100.00 96.67 86.67 95.00 93.33 91.67 85.00 Diverse Restaurants 100.00 100.00 100.00 83.33 88.33 91.67 93.33 91.67 85.00 Diverse Attractions 100.00 100.00 100.00 86.67 98.33 98.33 93.33 91.67 85.00 Non-conf. Transportation 100.00 98.33 95.00 81.67 96.67 96.67 93.33 91.67 85.00 Minimum Nights Stay 98.33 93.33 86.67 90.00 86.67 90.00 93.33 91.67 85.00 Hard Constraint Budget 100.00 93.33 88.33 46.67 38.33 43.33 85.00 90.00 80.00 Room Rule - 90.00 87.72 - 50.00 59.65 - 90.00 84.21 Cuisine - 81.82 84.62 - 45.45 61.54 - 100.00 84.62 
+
+Room Type - 83.33 86.96 - 38.89 54.35 - 83.33 84.78 Transportation - - 90.20 - - 58.82 - - 86.27 Final Pass Rate Final Pass Rate 98.33 93.33 83.33 43.33 20.00 26.67 85.00 90.00 80.00 TABLE IV PERFORMANCE COMPARISON OF DIFFERENT PLANNING METHODS ACROSS VARYING DIFFICULTY LEVELS . T HE BEST RESULTS WITHIN EACH DIFFICULTY LEVEL ARE HIGHLIGHTED IN BOLD , WHILE THE SECOND -BEST SCORES ARE UNDERLINED USING UNDERLINE .Methods Delivery Rate Commonsense Pass Rate Hard Pass Rate Final Pass Rate Micro Macro Micro Macro Easy ReAct [18] 96.67 60.42 5.00 5.00 5.00 1.67 EvoAgent [17] 100.00 97.08 18.53 66.67 66.67 6.67 PMC [8] 100.00 83.96 65.00 46.67 48.33 43.33 llm-rwplanning [7] 93.33 93.33 93.33 85.00 85.00 85.00 
+
+Behavior Forest 100.00 99.79 98.33 100.00 98.33 98.33 
+
+Medium ReAct [18] 91.67 50.42 3.33 2.50 3.33 1.67 EvoAgent [17] 100.00 76.25 16.67 53.33 15.26 3.33 PMC [8] 96.00 86.67 25.00 41.67 61.67 20.00 llm-rwplanning [7] 91.67 91.67 91.67 90.83 90.00 90.00 
+
+Behavior Forest 100.00 98.54 95.00 89.17 93.33 93.33 
+
+Hard ReAct [18] 66.67 49.38 0.00 1.25 0.00 0.00 EvoAgent [17] 100.00 55.42 10.10 24.17 3.33 3.33 PMC [8] 96.00 87.71 58.33 54.58 40.00 26.67 llm-rwplanning [7] 85.00 85.00 85.00 83.75 80.00 80.00 
+
+Behavior Forest 100.00 96.88 90.00 87.92 83.33 83.33 
+
+the performance declines for all methods under maximum dif-ficulty, Behavior Forest maintains superior satisfaction across both commonsense and hard constraints, demonstrating that parallel decoupling and hierarchical planning effectively re-duce cascading errors and constraint interference even in the most challenging multi-constraint settings. 
+
+Summary Behavior Forest achieves the highest final pass rates across all difficulty levels (98.33% for easy, 93.33% for medium, and 83.33% for hard tasks), outperforming other baselines, while maintaining a 100% delivery rate. 
+
+E. Analysis of Error Types 
+
+The numbers of constraint violations for Behavior For-est, llm-rwplanning, and PMC at the easy task level are shown in Figure 3. PMC has the most violations in most constraint types, such as Budget , and Within Sandbox . The llm-rwplanning performs better than PMC but worse than Behavior Forest in terms of the constraints. Behavior Forest consistently shows the lowest violation across all constraint types, demonstrating its better constraint adherence. At the medium task level (Figure 4), the performance gap among the methods becomes more pronounced. PMC shows a substantial number of violations, especially for the Budget 
+
+constraint. The increase in these violations as constraint in-terdependencies grow suggests that PMC’s performance dete-riorates under more complex conditions. The llm-rwplanning experiences a moderate rise in violations but remains clearly more controlled than PMC. Behavior Forest demonstrates the strongest robustness, with only small increments across a few constraints despite the increased task complexity. ARXIV 10 
+
+> Fig. 3. Violations for different constraint types across three methods (Behavior Forest, llm-rwplanning, and PMC) at the easy difficulty level.
+> Fig. 4. Violations for different constraint types across three methods (Behavior Forest, llm-rwplanning, and PMC) at the medium difficulty level.
+> Fig. 5. Violations for different constraint types across three methods (Behavior Forest, llm-rwplanning, and PMC) at the hard difficulty level.
+
+At the hard task level (Figure 5), PMC exhibits extensive violations across some constraint types, such as Budget , Room Rule , and Room Type . The llm-rwplanning exhibits modest violation growth, remaining clearly less affected than PMC. Behavior Forest demonstrates strong stability, allowing only small increases and maintaining the lowest levels despite the increased task difficulty. 
+
+Summary Behavior Forest exhibits the fewest constraint violations across all difficulty levels, demonstrating stronger constraint adherence and robustness than the other baselines. 
+
+F. Ablation Study 
+
+The ablation study in Table V demonstrates the contri-bution of each core component to Behavior Forest. Across all the metrics, the full framework consistently outperforms its ablated variants. Removing the coordination mechanism leads to the largest performance drop, with the final pass rate decreasing from 91.67% to 75.56%. In addition, the commonsense macro pass rate and hard macro pass rate decrease from 94.44% to 76.67% and from 91.67% to 75.56%, respectively. This significant decrease is primarily due to the removal of the coordination mechanism, which ensures that the plans generated by all behavior trees satisfy the global constraints. Without this mechanism, it becomes difficult to guarantee global consistency, causing multiple violations and reducing overall performance. Excluding the candidate solution reranking mechanism re-sults in moderate reductions, with the final pass rate falling to 77.78%, and corresponding decreases in micro/macro met-rics for both commonsense and hard constraints. Similarly, removing heuristic scoring reduces the final pass rate to 80.56%. These declines can be attributed to the role of both components in guiding the selection within the candidate solution pool. Without them, the framework randomly selects from the candidate solutions, making it difficult to choose solutions that satisfy current requirements, thereby lowering overall planning performance. 
+
+Summary The ablation study demonstrates that each com-ponent—coordination mechanism, candidate solution rerank-ing, and heuristic scoring—significantly contributes to overall performance. Their removal leads to a decline across all met-rics, confirming the synergistic effect of all three components. 
+
+G. Performance Comparison with Different LLMs 
+
+The results in Table VI demonstrate that Behavior Forest consistently outperforms all baseline methods for different LLMs. With respect to the DeepSeek-V3 model, Behavior Forest achieves a final pass rate of 91.67%, substantially higher than that of other methods. Similarly, with GPT-3.5, Behavior Forest reaches 76.11%, while llm-rwplanning reaches 75.56% and PMC reaches 28.89%. Even with the smaller Mistral-7B model, Behavior Forest achieves a final pass rate of 34.44%, while Direct and CoT methods fail to produce plans, highlighting the robustness of our method. Behavior Forest maintains a perfect delivery rate (100%) in all LLMs, demonstrating reliable plan generation regardless ARXIV 11         
+
+> TABLE V ABLATION STUDY OF BEHAVIOR FOREST ON THE TRAVEL PLANNER BENCHMARK ,EVALUATING THE CONTRIBUTIONS OF THE COORDINATION MECHANISM ,CANDIDATE SOLUTION RERANKING (R ERANK ), AND HEURISTIC SCORING . T HE BEST SCORES IN EACH COLUMN ARE HIGHLIGHTED IN
+> BOLD ,WHILE THE SECOND -BEST SCORES ARE UNDERLINED USING UNDERLINE .
+
+Method Delivery Rate Commonsense Pass Rate Hard Pass Rate Final Pass Rate Micro Macro Micro Macro w/o coordination mechanism 100.00 83.96 76.67 73.57 75.56 75.56 w/o Rerank 100.00 92.43 85.56 82.62 77.78 77.78 w/o Heuristic scoring 100.00 95.28 87.22 86.19 80.56 80.56 
+
+Behavior Forest 100.00 98.40 94.44 90.00 91.67 91.67            
+
+> TABLE VI PERFORMANCE COMPARISON OF BEHAVIOR FOREST AND BASELINE METHODS ACROSS DIFFERENT LLM S(M ISTRAL -7B, GPT-3.5, AND
+> DEEP SEEK -V3) ON THE TRAVEL PLANNER BENCHMARK .BOLD VALUES DENOTE THE BEST PERFORMANCE IN EACH COLUMN FOR THE CORRESPONDING LLM S,WHILE THE SECOND -BEST SCORES ARE UNDERLINED USING UNDERLINE .
+
+Model Method Delivery Rate Commonsense Pass Rate Hard Pass Rate Final Pass Rate Micro Macro Micro Macro Mistral-7B Direct [1] 100.00 55.56 1.67 1.19 0.00 0.00 CoT [64] 100.00 53.47 0.00 2.38 0.00 0.00 PMC [8] 77.78 42.08 21.67 24.29 19.44 13.89 llm-rwplanning [7] 56.67 56.67 56.67 33.81 33.33 33.33 
+
+Behavior Forest 100.00 62.92 58.89 34.76 34.44 34.44 
+
+GPT-3.5 Direct [1] 100.00 48.61 2.78 8.81 2.78 0.00 CoT [64] 100.00 50.21 1.67 7.62 1.67 0.00 PMC [8] 91.67 78.89 41.67 39.76 40.00 28.89 llm-rwplanning [7] 77.78 77.78 77.78 76.19 75.56 75.56 
+
+Behavior Forest 100.00 89.31 85.56 79.29 80.56 76.11 
+
+DeepSeek-V3 Direct [1] 100.00 72.78 14.44 15.95 8.89 1.67 CoT [64] 100.00 68.40 8.33 13.57 9.44 1.11 PMC [8] 97.33 86.11 49.44 49.76 50.00 30.00 llm-rwplanning [7] 90.00 90.00 90.00 85.95 85.00 85.00 
+
+Behavior Forest 100.00 98.40 94.44 90.00 91.67 91.67 
+
+of model size. Compared with the strongest baseline, llm-rwplanning, Behavior Forest achieves higher pass rates on both commonsense and hard constraints, indicating its superior capability in complex multi-constraint reasoning. Moreover, its performance advantage is evident not only on micro-level metrics but also on macro-level evaluation, confirming that Behavior Forest effectively balances different constraint types and generalizes well across LLM configurations. 
+
+Summary Behavior Forest achieves higher final pass rates across all LLMs (91.67% with DeepSeek-V3, 76.11% with GPT-3.5, and 34.44% with Mistral-7B) than baseline methods, and also outperforms the baselines on other key metrics, demonstrating the method’s robustness and effectiveness. 
+
+H. Case Studies 
+
+To further demonstrate the advantages of Behavior Forest, we conduct a case study, as illustrated in Figure 6. Among them, ReAct represents parameterized-knowledge methods, whereas CoT and EvoAgent are prior-augmented approaches. As shown in Figure 6(a), ReAct generates a travel plan based on internal knowledge of LLM, but reveals a clear inconsistency between reasoning and execution. Although the LLM correctly recognizes the need for suitable accommoda-tion in Reno for children under 10, the final plan contradicts this reasoning by selecting Sunny and large (No children under 10). Furthermore, critical elements such as dinner and accommodation on Day 2 are missing, indicating unstable alignment between internal reasoning and external planning. The plan produced by CoT is shown in Figure 6(b). Although it benefits from few-shot reasoning, its excessive reliance on exemplars limits adaptability. For example, flight F3767722 arrives in Reno the following day, rendering the breakfast and attraction arrangements invalid. In addition, omissions in Day 2’s meal planning suggest that CoT inherits contextual biases from demonstrations, ultimately causing planning failures. As shown in Figure 6(c), EvoAgent employs multi-agent evolution to generate plans, mitigating the incompleteness issues found in previous methods. However, excessive pursuit of diversity causes constraint violations. The generated plan exceeds the budget. It schedules a flight on Day 3, which con-flicts with subsequent restaurant and attraction arrangements. The results show that EvoAgent struggles to simultaneously achieve diverse exploration and satisfy constraints. As shown in Figure 6(d), Behavior Forest generates avalid plan that meets user requirements, including budget and accommodation suitability. By leveraging the forest structure, Behavior Forest decouples complex multi-constraint reasoning into structured and manageable subspaces, enabling each sub-task to operate within its respective constraint domain. This structured decoupling effectively reduces the reasoning burden of LLMs and ensures inter-constraint consistency, leading to ARXIV 12 
+
+Fig. 6. Case study comparing Behavior Forest with three representative baselines: ReAct, CoT, and EvoAgent. ReAct suffers from inconsistency between reasoning and execution, whereas CoT’s exemplar dependence leads to planning errors and omissions. EvoAgent alleviates incompleteness but introduces constraint violations due to excessive diversity exploration. In contrast, Behavior Forest achieves valid plans by decoupling multi-constraint reasoning into structured subspaces, demonstrating superior reliability in travel planning. TABLE VII COMPARISON OF RUNTIME , TOKEN CONSUMPTION , AND FINAL PASS RATE 
+
+(%) FOR BEHAVIOR FOREST AND BASELINE METHODS ON THE 
+
+TRAVEL PLANNER BENCHMARK . BF-S EQ IS OUR METHOD WITHOUT PARALLEL PLANNING , IN WHICH SUBTASKS ARE EXECUTED SEQUENTIALLY . BOLD INDICATES THE BEST PERFORMANCE IN EACH COLUMN , WHILE THE SECOND -BEST SCORES ARE UNDERLINED USING UNDERLINE .Method Runtime(s) Token consumption Final Pass Rate Direct [1] 231.46 768 / 635 1.67 CoT [64] 305.71 4562 / 1127 1.11 PMC [8] 451.02 5632 / 2856 30.00 llm-rwplanning [7] 395.73 14039 / 6383 85.00 BF-Seq 428.25 - -   
+
+> Behavior Forest 122.13 3210 / 1586 91.67
+
+a more reliable planning process. 
+
+Summary The case study demonstrates that Behavior Forest effectively alleviates the reasoning–execution inconsistencies and constraint violations observed in existing methods. By leveraging the forest structure, it decouples multi-constraint planning into structured and independent subtasks, allowing each to operate within its specific constraint domain. This de-coupling reduces the reasoning burden of LLMs and enhances the validity of planning. 
+
+I. Analysis of Runtime 
+
+The results in Table VII demonstrate the clear advantages of Behavior Forest in balancing runtime, token consumption, and final pass rate. Among all the methods, Behavior Forest achieves the shortest runtime of 122.13 s, making it the fastest approach overall, while simultaneously obtaining the highest final pass rate of 91.67%. In terms of token consumption, Be-havior Forest uses 3210 input tokens and 1586 output tokens, which is substantially lower than llm-rwplanning and PMC but achieves significantly better performance. Although Direct and CoT consume fewer tokens, their final pass rates remain ex-tremely low (1.67% and 1.11%, respectively). Compared with llm-rwplanning, Behavior Forest not only improves the final pass rate from 85.00% to 91.67%, but also reduces runtime and decreases token consumption. PMC, while achieving a moderate final pass rate of 30.00%, requires a substantially longer runtime and higher token usage, reflecting inefficien-cies in constraint handling. The sequential variant BF-Seq, which removes parallel planning and executes behavior trees sequentially, requires 428.25 s, confirming that the speedup of Behavior Forest primarily stems from its parallel execution design. This comparison highlights the critical role of parallel planning in accelerating reasoning without sacrificing solution quality. 
+
+Summary With its parallel design, Behavior Forest achieves the best overall balance among the final pass rate, runtime, and token consumption. It delivers the highest final pass rate of 91.67% while completing in only 122.13 s with 3210/1586 tokens. In contrast, the sequential variant BF-Seq requires 428.25 s, clearly demonstrating that the parallel architecture accelerates the reasoning process. V. L IMITATIONS AND FUTURE WORK 
+
+Limitations Despite its effectiveness, Behavior Forest has several limitations. First, the framework relies on underlying databases as its information source. As a result, mechanisms ARXIV 13 
+
+for detecting unsafe or incorrect information are lacking. This limitation may lead to the generation of potentially risky plans when unreliable data are present. Second, our method is evaluated in two travel planning scenarios. Although these tasks are representative, the framework has not yet been validated in other multi-constraint domains, such as meeting planning, where constraints related to time, budget, and partic-ipant availability must be simultaneously considered. Finally, while our experiments demonstrate practical feasibility, the framework has not yet been deployed or evaluated in real-world data settings. 
+
+Future Work Our work offers several promising directions for future research. First, the current coordination mechanism of Behavior Forest is primarily based on budget-based inter-actions among behavior trees. Future work will explore more flexible coordination strategies that enable multiple rounds of negotiation and trade-off reasoning, allowing the system to bet-ter optimize global plan quality and user satisfaction. Second, owing to its integration of backtracking, Behavior Forest is well-positioned for extension to real-world applications, such as meeting scheduling. Future work will evaluate the frame-work in these domains. Finally, future research may investigate how Behavior Forest can be used to equip end-to-end agents with structured reasoning capabilities, enabling scalable and systematic decision-making in complex environments. VI. C ONCLUSION 
+
+In this work, we propose Behavior Forest, the core idea of which is to use a forest architecture to decouple complex planning tasks into parallel behavior trees, with each tree managing a subset of interdependent constraints. The forest architecture allows the LLM to reason concurrently across dimensions, while a global coordination mechanism ensures coordination among trees. Behavior Forest is evaluated on two benchmarks, TravelPlanner and ChinaTravel. It achieves a final pass rate of 94.44% on the TravelPlanner dataset under the sole-planning setting, representing an improvement over the best existing method, llm-rwplanning (85%). On the ChinaTravel dataset, it outperforms NeSy Planning by 27.28% at the human level. REFERENCES [1] J. Xie, K. Zhang, J. Chen, T. Zhu, R. Lou, Y. Tian, Y. Xiao, and Y. Su, “Travelplanner: a benchmark for real-world planning with language agents,” in Proceedings of the 41st International Conference on Machine Learning , 2024, pp. 54 590–54 613. [2] T. Lozano-P´ erez and L. P. Kaelbling, “A constraint-based method for solving sequential manipulation planning problems,” in 2014 IEEE/RSJ International Conference on Intelligent Robots and Systems . IEEE, 2014, pp. 3684–3691. [3] J. Rintanen, “Planning as satisfiability: Heuristics,” Artificial intelli-gence , vol. 193, pp. 45–86, 2012. [4] N. T. Dantam, Z. K. Kingston, S. Chaudhuri, and L. E. Kavraki, “Incremental task and motion planning: A constraint-based approach.” in Robotics: Science and systems , vol. 12. Ann Arbor, MI, USA, 2016, p. 00052. [5] L. De Moura and N. Bjørner, “Z3: An efficient smt solver,” in Inter-national conference on Tools and Algorithms for the Construction and Analysis of Systems . Springer, 2008, pp. 337–340. [6] B. Dutertre and L. De Moura, “A fast linear-arithmetic solver for dpll (t),” in International Conference on Computer Aided Verification .Springer, 2006, pp. 81–94. [7] Y. Hao, Y. Chen, Y. Zhang, and C. Fan, “Large language models can solve real-world planning rigorously with formal verification tools,” in 
+
+Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , 2025, pp. 3434–3483. [8] C. Zhang, X. D. Goh, D. Li, H. Zhang, and Y. Liu, “Planning with multi-constraints via collaborative language agents,” in Proceedings of the 31st International Conference on Computational Linguistics , 2025, pp. 10 054–10 082. [9] Z. Lu, W. Lu, Y. Tao, Y. Dai, Z. Chen, H. Zhuang, C. Chen, H. Peng, and Z. Zeng, “Decompose, plan in parallel, and merge: A novel paradigm for large language models based planning with multiple constraints,” 
+
+arXiv preprint arXiv:2506.02683 , 2025. [10] L. Wang, W. Xu, Y. Lan, Z. Hu, Y. Lan, R. K.-W. Lee, and E.-P. Lim, “Plan-and-solve prompting: Improving zero-shot chain-of-thought reasoning by large language models,” in The 61st Annual Meeting Of The Association For Computational Linguistics , 2023. [11] R. Gui, Z. Wang, J. Wang, C. Ma, H. Zhen, M. Yuan, J. HAO, D. Lian, E. Chen, and F. Wu, “Hypertree planning: Enhancing llm reasoning via hierarchical thinking,” in Forty-second International Conference on Machine Learning .[12] Z. Gu, X. Zhu, Y. Cai, H. Shen, X. Chen, Q. Wang, J. Li, X. Shi, H. Guo, W. Huang et al. , “Agentgroupchat-v2: Divide-and-conquer is what llm-based multi-agent system need,” arXiv preprint arXiv:2506.15451 , 2025. [13] J. Li, Z. Sun et al. , “Closed-loop long-horizon robotic planning via equi-librium sequence modeling,” in Forty-second International Conference on Machine Learning .[14] A. Gundawar, M. Verma, L. Guan, K. Valmeekam, S. Bhambri, and S. Kambhampati, “Robust planning with llm-modulo framework: Case study in travel planning,” arXiv preprint arXiv:2405.20625 , 2024. [15] S. Kambhampati, K. Valmeekam, L. Guan, M. Verma, K. Stechly, S. Bhambri, L. P. Saldyt, and A. B. Murthy, “Position: Llms can’t plan, but can help planning in llm-modulo frameworks,” in Forty-first International Conference on Machine Learning , 2024. [16] Z. Guo, B. Xu, X. Wang, and Z. Mao, “Mirror: Multi-agent intra-and inter-reflection for optimized reasoning in tool learning,” arXiv preprint arXiv:2505.20670 , 2025. [17] S. Yuan, K. Song, J. Chen, X. Tan, D. Li, and D. Yang, “Evoagent: Towards automatic multi-agent generation via evolutionary algorithms,” in Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , 2025, pp. 6192–6217. [18] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, and Y. Cao, “React: Synergizing reasoning and acting in language models,” in 
+
+International Conference on Learning Representations (ICLR) , 2023. [19] N. Shinn, F. Cassano, A. Gopinath, K. Narasimhan, and S. Yao, “Reflex-ion: Language agents with verbal reinforcement learning,” Advances in Neural Information Processing Systems , vol. 36, pp. 8634–8652, 2023. [20] B. Liu, Y. Jiang, X. Zhang, Q. Liu, S. Zhang, J. Biswas, and P. Stone, “Llm+ p: Empowering large language models with optimal planning proficiency,” arXiv preprint arXiv:2304.11477 , 2023. [21] Y. Chen, J. Arkin, C. Dawson, Y. Zhang, N. Roy, and C. Fan, “Autotamp: Autoregressive task and motion planning with llms as translators and checkers,” in 2024 IEEE International conference on robotics and automation (ICRA) . IEEE, 2024, pp. 6695–6702. [22] H. Chang, K. Gao, K. Boyalakuntla, A. Lee, B. Huang, J. Yu, and A. Boularias, “Lgmcts: Language-guided monte-carlo tree search for executable semantic object rearrangement,” in 2024 IEEE/RSJ Interna-tional Conference on Intelligent Robots and Systems (IROS) . IEEE, 2024, pp. 13 607–13 612. [23] V. Hsiao, M. Fine-Morris, M. Roberts, L. N. Smith, and L. M. Hiatt, “A critical assessment of llms for solving multi-step problems: Preliminary results,” in AAAI 2025 Workshop LM4Plan .[24] Z. Bi, K. Han, C. Liu, Y. Tang, and Y. Wang, “Forest-of-thought: Scaling test-time compute for enhancing llm reasoning,” in Forty-second International Conference on Machine Learning .[25] S. Yao, D. Yu, J. Zhao, I. Shafran, T. Griffiths, Y. Cao, and K. Narasimhan, “Tree of thoughts: Deliberate problem solving with large language models,” Advances in neural information processing systems ,vol. 36, pp. 11 809–11 822, 2023. [26] P. Hu, J. Qi, X. Li, H. Li, X. Wang, B. Quan, R. Wang, and Y. Zhou, “Tree-of-mixed-thought: Combining fast and slow thinking for multi-hop visual reasoning,” arXiv preprint arXiv:2308.09658 , 2023. [27] X. Chen, S. Zhou, K. Liang, D. Yuan, H. Chen, X. Sun, L. Meng, and X. Liu, “Putting on the thinking hats: A survey on chain of thought fine-tuning from the perspective of human reasoning mechanism,” arXiv preprint arXiv:2510.13170 , 2025. ARXIV 14 
+
+[28] Y. Zhang, F. Feng, J. Zhang, K. Bao, Q. Wang, and X. He, “Collm: Integrating collaborative embeddings into large language models for recommendation,” IEEE Transactions on Knowledge and Data Engi-neering , 2025. [29] Y. Xu, L. Li, M. Zhang, Z. Xu, and X. Zhou, “Global optimal travel planning for massive travel queries in road networks,” IEEE Transactions on Knowledge and Data Engineering , 2024. [30] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sastry, A. Askell et al. , “Language mod-els are few-shot learners,” Advances in neural information processing systems , vol. 33, pp. 1877–1901, 2020. [31] Z. R. Sprague, F. Yin, J. D. Rodriguez, D. Jiang, M. Wadhwa, P. Singhal, X. Zhao, X. Ye, K. Mahowald, and G. Durrett, “To cot or not to cot? chain-of-thought helps mainly on math and symbolic reasoning,” in The Thirteenth International Conference on Learning Representations .[32] S. Chen and B. Li, “Toward adaptive reasoning in large language models with thought rollback,” in Proceedings of the 41st International Conference on Machine Learning , 2024, pp. 7033–7056. [33] X. Wang, T. Ban, L. Chen, D. Lyu, Q. Zhu, and H. Chen, “Large-scale hierarchical causal discovery via weak prior knowledge,” IEEE Transactions on Knowledge and Data Engineering , 2025. [34] Y. Shen, K. Song, X. Tan, D. Li, W. Lu, and Y. Zhuang, “Hugginggpt: Solving ai tasks with chatgpt and its friends in hugging face,” Advances in Neural Information Processing Systems , vol. 36, pp. 38 154–38 180, 2023. [35] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V. Le, D. Zhou et al. , “Chain-of-thought prompting elicits reasoning in large language models,” Advances in neural information processing systems ,vol. 35, pp. 24 824–24 837, 2022. [36] L. Gao, A. Madaan, S. Zhou, U. Alon, P. Liu, Y. Yang, J. Callan, and G. Neubig, “Pal: Program-aided language models,” in International Conference on Machine Learning . PMLR, 2023, pp. 10 764–10 799. [37] H. Liu, L. Jing, J. Yu, and M. K. Ng, “Learning hierarchical preferences for recommendation with mixture intention neural stochastic processes,” 
+
+IEEE Transactions on Knowledge and Data Engineering , vol. 36, no. 7, pp. 3237–3251, 2024. [38] N. Verma and M. Bharadwaj, “Leap & lean: Look-ahead planning and agile navigation for llm agents,” in Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 6: Industry Track) , 2025, pp. 896–933. [39] Z. Huang, G. Shi, Y. Wu, V. Kumar, and G. S. Sukhatme, “Compositional coordination for multi-robot teams with large language models,” arXiv preprint arXiv:2507.16068 , 2025. [40] R. Ito and J. Takahashi, “Game agent driven by free-form text command: Using llm-based code generation and behavior branch,” arXiv preprint arXiv:2402.07442 , 2024. [41] Y. Cai, X. Chen, Z. Cai, Y. Mao, M. Li, W. Yang, and J. Wang, “Mrbtp: Efficient multi-robot behavior tree planning and collaboration,” in Proceedings of the AAAI Conference on Artificial Intelligence , vol. 39, no. 14, 2025, pp. 14 548–14 557. [42] X. Chen, Y. Cai, Y. Mao, M. Li, W. Yang, W. Xu, and J. Wang, “Integrating intent understanding and optimal behavior planning for behavior tree generation from human instructions,” in IJCAI , 2024. [43] D. Zhang, X. Zhang, J. Li, T. Long, X. Dai, Y. Fu, J. Zhang, J. Ren, and Y. Zhang, “Llm-driven self-refinement for embodied drone task planning,” arXiv preprint arXiv:2508.15501 , 2025. [44] Y. Cai, X. Chen, Y. Mao, M. Li, S. Yang, W. Yang, and J. Wang, “Hbtp: Heuristic behavior tree planning with large language model reasoning,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2025, pp. 13 706–13 713. [45] W. Ma, D. Xu, S. Lin, H. Zhang, and J. Wang, “Adaptive command: Real-time policy adjustment via language models in starcraft ii,” in 
+
+Proceedings of the 2024 6th International Conference on Distributed Artificial Intelligences , 2024, pp. 22–30. [46] J. Styrud, M. Iovino, M. Norrl¨ of, M. Bj¨ orkman, and C. Smith, “Au-tomatic behavior tree expansion with llms for robotic manipulation,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2025, pp. 1225–1232. [47] W. Cai, J. Jiang, F. Wang, J. Tang, S. Kim, and J. Huang, “A survey on mixture of experts in large language models,” IEEE Transactions on Knowledge and Data Engineering , 2025. [48] J. Sun, H. Jin, Z. Yang, and L. Su, “Optimizing long-term efficiency and fairness in ride-hailing under budget constraint via joint order dispatching and driver repositioning,” IEEE Transactions on Knowledge and Data Engineering , vol. 36, no. 7, pp. 3348–3362, 2024. [49] Y. Cheng, Z. Wang, W. Ma, W. Zhu, Y. Deng, and J. Zhao, “Evocurr: Self-evolving curriculum with behavior code generation for complex decision-making,” arXiv preprint arXiv:2508.09586 , 2025. [50] X. Yi, Z. Zhou, C. Cao, Q. Niu, T. Liu, and B. Han, “From debate to equilibrium: Belief-driven multi-agent llm reasoning via bayesian nash equilibrium,” in Forty-second International Conference on Machine Learning .[51] Q. Wang, T. Wang, Z. Tang, Q. Li, N. Chen, J. Liang, and B. He, “Megaagent: A large-scale autonomous llm-based multi-agent system without predefined sops,” in Findings of the Association for Computa-tional Linguistics: ACL 2025 , 2025, pp. 4998–5036. [52] Q. Peng, J. Cui, J. Xie, Y. Cai, and Q. Li, “Tree-of-reasoning: Towards complex medical diagnosis via multi-agent reasoning with evidence tree,” arXiv preprint arXiv:2508.03038 , 2025. [53] K. Chen, M. Liu, D. Zong, C. Ding, S. Rui, Y. Jiang, M. Zhou, and X. Wang, “Mediator-guided multi-agent collaboration among open-source models for medical decision-making,” arXiv preprint arXiv:2508.05996 , 2025. [54] J.-J. Shao, B.-W. Zhang, X.-W. Yang, B. Chen, S.-Y. Han, W.-D. Wei, G. Cai, Z. Dong, L.-Z. Guo, and Y.-f. Li, “Chinatravel: An open-ended benchmark for language agents in chinese travel planning,” arXiv preprint arXiv:2412.13682 , 2024. [55] C. Xie and D. Zou, “A human-like reasoning framework for multi-phases planning task with large language models,” in ICML 2024 Workshop on LLMs and Cognition .[56] Y. Shao, V. Samuel, Y. Jiang, J. Yang, and D. Yang, “Collaborative gym: A framework for enabling and evaluating human-agent collaboration,” 
+
+arXiv preprint arXiv:2412.15701 , 2024. [57] T. Wei, A. Miin, and A. Miin, “Optimizing large language models for dynamic constraints through human-in-the-loop discriminators,” arXiv preprint arXiv:2410.15163 , 2024. [58] J. Xie, K. Zhang, J. Chen, S. Yuan, K. Zhang, Y. Zhang, L. Li, and Y. Xiao, “Revealing the barriers of language agents in planning,” in 
+
+Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , 2025, pp. 1872–1888. [59] Y. Chen, A. Pesaranghader, T. Sadhu, and D. H. Yi, “Can we rely on llm agents to draft long-horizon plans? let’s take travelplanner as an example,” arXiv preprint arXiv:2408.06318 , 2024. [60] Z. Zhang, R. Ding, Y. Zhu, Z. Kong, and P. Xu, “Narrative-driven travel planning: Geoculturally-grounded script generation with evolutionary itinerary optimization,” arXiv preprint arXiv:2502.14456 , 2025. [61] A. Zhou, K. Yan, M. Shlapentokh-Rothman, H. Wang, and Y.-X. Wang, “Language agent tree search unifies reasoning, acting, and planning in language models,” in Proceedings of the 41st International Conference on Machine Learning , 2024, pp. 62 138–62 160. [62] J. Wu, M. Feng, S. Zhang, F. Che, Z. Wen, C. Liao, and J. Tao, “Beyond examples: High-level automated reasoning paradigm in in-context learning via mcts,” arXiv preprint arXiv:2411.18478 , 2024. [63] S. Hao, Y. Gu, H. Ma, J. Hong, Z. Wang, D. Z. Wang, and Z. Hu, “Reasoning with language model is planning with world model,” in 
+
+NeurIPS 2023 Workshop on Generalization in Planning .[64] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V. Le, D. Zhou et al. , “Chain-of-thought prompting elicits reasoning in large language models,” Advances in neural information processing systems ,vol. 35, pp. 24 824–24 837, 2022. [65] L. Pan, A. Albalak, X. Wang, and W. Wang, “Logic-lm: Empowering large language models with symbolic solvers for faithful logical rea-soning,” in Findings of the Association for Computational Linguistics: EMNLP 2023 , 2023, pp. 3806–3824. 
+
+Duanyang Yuan is currently pursuing a Ph.D. de-gree at the National University of Defense Technol-ogy (NUDT). Her research interests include knowl-edge graphs, large language models, information retrieval, and retrieval-augmented generation. She has published several papers in AAAI, Frontiers in Physiology, etc. ARXIV 15 
+
+Sihang Zhou received his PhD degree from School of Computer, National University of Defense Tech-nology (NUDT), China. He is now an associate professor at the College of Intelligence Science and Technology, NUDT. His current research interests include machine learning, knowledge graph, and medical image analysis. Dr. Zhou has published 40+ peer-reviewed papers, including IEEE T-IP, IEEE T-NNLS, IEEE T-MI, Medical Image Analysis, AAAI, MICCAI, etc. 
+
+Yanning Hou is currently pursuing a Master’s de-gree at the National University of Defense Tech-nology (NUDT). His research interests include knowledge graphs, large language models, retrieval-augmented generation, and multimodal learning. He has published papers in international conferences such as IJCAI and PRCV, focusing on intelligent reasoning and knowledge-enhanced representation learning. 
+
+Xiaoshu Chen is currently pursuing a Ph.D. degree at the National University of Defense Technology (NUDT). Before joining NUDT, he got his MSc degree at WuHan University (WHU) and BSc de-gree at China University of Mining and Technol-ogy (CUMT). His research interests include large language models, knowledge graph, information re-trieval and semantic segmentation. He has published several papers in AAAI, IEEE TGRS and Neuro-computing, etc. 
+
+Haoyuan Chen is currently pursuing a Ph.D. degree at the National University of Defense Technology (NUDT). His research interests include large lan-guage models, retrieval-augmented generation, and multi-agent systems. 
+
+Ke Liang received his Ph.D. degree at the National University of Defense Technology (NUDT). He got his BSc degree at Beihang University (BUAA) and received his MSc degree from the Pennsylvania State University (PSU). His current research inter-ests include knowledge graphs, graph learning, and healthcare AI. He has published several papers in highly regarded journals and conferences such as SIGIR, AAAI, ICML, ACM MM, IEEE TNNLS, IEEE TKDE, etc. 
+
+Jiyuan Liu is a lecturer with the College of Sys-tems Engineering, National University of Defense Technology (NUDT), China. He received the Ph.D. degree from the NUDT in 2022. Previously, he was an undergraduate of QianxueSen Class (QXSC) at NUDT from 2013 to 2017, an visiting student of Jiangchuan Liu’s lab with the support from China Scholarship Council (CSC) from 2016 to 2017. His research interest is theory and algorithms of statisti-cal machine learning and its applications, especially in multi-view learning, federated learning, anomaly detection and contrastive learning. He has published several papers in highly regarded journals and conferences such as TPAMI, TCSVT, ICML, AAAI, NeurIPS, IEEE TNNLS, etc. 
+
+Chuan Ma is an Associate Professor with the School of Computer Science, Chongqing University, China, and serves as the Secretary-General of the IEEE International Standard Committee on Trusted Data Sharing. He received the B.Sc. degree from Beijing University of Posts and Telecommunications in 2013 and the Ph.D. degree from the University of Sydney in 2018. His research interests lie in machine learning, stochastic optimization, and artificial intel-ligence. He has published over 40 papers in related fields, including more than 20 SCI-indexed journal papers and 2 ESI highly cited papers, with publications in top venues such as Nature Machine Intelligence. 
+
+Xinwang Liu received his PhD degree from Na-tional University of Defense Technology (NUDT), China. He is now Professor of School of Com-puter, NUDT. His current research interests include kernel learning and unsupervised feature learning. Dr. Liu has published 60+ peer-reviewed papers, including those in highly regarded journals and conferences such as IEEE T-PAMI, IEEE T-KDE, IEEE T-IP, IEEE T-NNLS, IEEE T-MM, IEEE T-IFS, ICML, NeurIPS, ICCV, CVPR, AAAI, IJCAI, etc. He serves as the associated editor of T-NNLS, T-CYB and Information Fusion Journal. More information can be found at https://xinwangliu.github.io/. 
+
+Jian Huang received the Ph.D. degree from the College of Mechatronics and Automation, National University of Defense Technology, Changsha, China, in 2000. She is now a professor at the College of Intelligence Science, National University of Defense Technology, China. Her current research interests include system simulation and artificial intelligence.
