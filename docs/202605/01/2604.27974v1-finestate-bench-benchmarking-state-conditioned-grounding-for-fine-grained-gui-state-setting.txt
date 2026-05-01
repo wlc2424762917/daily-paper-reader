@@ -1,0 +1,896 @@
+Title: FineState-Bench: Benchmarking State-Conditioned Grounding for Fine-grained GUI State Setting
+
+URL Source: https://arxiv.org/pdf/2604.27974v1
+
+Published Time: Fri, 01 May 2026 01:20:30 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+## FineState-Bench: Benchmarking State-Conditioned Grounding for Fine-grained GUI State Setting 
+
+Fengxian Ji 1,2 ∗, Jingpu Yang 2∗, Zirui Song 1∗, Yuanxi Wang 2,Zhexuan Cui 2, Yuke Li 2, Qian Jiang 2, Xiuying Chen 1† 1MBZUAI, United Arab Emirates 
+
+> 2
+
+Northeastern University, China 
+
+{fengxian.ji, zirui.song, xiuying.chen}@mbzuai.ac.ae {jingpuyang290, yuanxiwang89}@gmail.com 202219047@stu.neuq.edu.cn,202316187@stu.neu.edu.cn,llylykykk@outlook.com 
+
+Abstract 
+
+Despite the rapid progress of large vision-language models (LVLMs), fine-grained, state-conditioned GUI interaction remains challeng-ing. Current evaluations offer limited cov-erage, imprecise target-state definitions, and an overreliance on final-task success, obscur-ing where and why agents fail. To address this gap, we introduce FineState-Bench , a benchmark that evaluates whether an agent can correctly ground an instruction to the in-tended UI control and reach the exact target state. FineState-Bench comprises 2,209 in-stances across desktop, web, and mobile plat-forms, spanning four interaction families and 23 UI component types, with each instance explicitly specifying an exact target state for fine-grained state setting. We further pro-pose FineState-Metrics , a four-stage diagnos-tic pipeline with stage-wise success rates: Lo-calization Success Rate (SR@Loc), Interac-tion Success Rate (SR@Int), Exact State Suc-cess Rate at Locate (ES-SR@Loc), and Exact State Success Rate at Interact (ES-SR@Int), and a plug-and-play Visual Diagnostic Assis-tant (VDA) that generates a Description and a bounding-box Localization Hint to diagnose visual grounding reason via controlled w/ vs. w/o comparisons. On FineState-Bench, exact goal-state success remains low: ES-SR@Int peaks at 32.8% on Web and 22.8% on av-erage across platforms. With VDA localiza-tion hints, Gemini-2.5-Flash gains +14.9 ES-SR@Int points, suggesting substantial head-room from improved visual grounding, yet overall accuracy is still insufficient for reli-able fine-grained state-conditioned interaction Github. 
+
+1 Introduction 
+
+Recent advances in LVLMs have enabled a new class of GUI agents that can execute natural-
+
+> ∗These authors contributed equally.
+> †Corresponding author.
+
+language instructions on real-world software in-terfaces (Nguyen, 2024; Wen et al., 2024). By integrating visual understanding with language-conditioned decision making, such agents have shown promising capability in operating complex applications across desktop, web, and mobile en-vironments. Representative systems such as Co-gAgent (Hong et al., 2024) and AppAgent fur-ther demonstrate the potential of this paradigm for practical human computer interaction. To sup-port systematic progress, prior benchmarks includ-ing AITW (Gur et al., 2024; Ma et al., 2026) and ScreenSpot (You et al., 2024; Qin et al., 2025) have provided standardized testbeds for evaluation. Despite rapid progress in LVLM-based GUI agents (Zhang et al., 2025b; Ma et al., 2026), achieving fine-grained state-conditioned interac-tion remains challenging in practice. In many real applications, a single instruction requires setting a UI control to an exact target state using only the agent’s first predicted interaction point, such as ad-justing a slider to a precise value, selecting an exact date/time, or choosing a specific color. However, agents that perform strongly under coarse success criteria or standard grounding benchmarks such as ScreenSpot/SeeClick (Cheng et al., 2024), An-droid in the Wild (Rawles et al., 2023), and Visual-WebArena (Koh et al., 2024) can still fail to reliably reach precise target states. A key limitation lies in current evaluation prac-tices. First, at the benchmark and task-definition level, existing evaluations for GUI and web/mo-bile agents predominantly focus on end-to-end task completion or click-level grounding. This design under-represents state-conditioned interaction sce-narios, and the target specifications are often insuf-ficiently precise to enable unambiguous verifica-tion of intermediate or final target states (Rawles et al., 2023; Deng et al., 2023; Zhou et al., 2023; Koh et al., 2024; Lu et al., 2024; Zeng et al., 2025; Cao et al., 2026). Second, at the evaluation-
+
+> arXiv:2604.27974v1 [cs.CV] 30 Apr 2026 Category: Option
+> Coordinate: Click[0.19, 0.15]
+> Category: Range
+> Coordinate: Click[0.29, 0.18]
+> Category: Specific Data
+> Coordinate: Click[0.19, 0.15]
+> Category: Table Column
+> Coordinate: Click[0.49, 0.45]
+
+GUI Element 
+
+A-1. Slider A-5. Chart Point B-4. Tabs C-2. Color Picker D-1. Drag Reorder 
+
+A-2. Knob B-1. Switch B-5. Segmented C-3. Date Picker D-2. Zoom Pan 
+
+A-3. Steeper B-2. Check Box B-6. Accordion C-4. Time Picker …
+
+A-4. Seek Bar B-3. Radio Group C-1. Rating C-5. List Box D-7. Table Column 
+
+Visual 
+
+Diagnosis 
+
+VDA Improve 
+
+> Correct Border:
+> [0.53, 0.31,0.55,0.33]
+> Correct Border:
+> [0.30, 0.15,0.34,0.22]
+> Correct Border:
+> [0.30, 0.15,0.34,0.22]
+> Correct Border:
+> [0.50, 0.45,0.54,0.52]
+
+Static Data Creation Process      
+
+> 1
+> 3
+> 2
+> 45Manual Verification
+> Human Annotation
+> Filtering from
+> Dataset Manual Screenshot
+> LLM Generation
+> Pipeline
+> Instruction I
+> Screenshot x
+
+Input 
+
+> Execute
+> Action
+
+(a) (b) 
+
+(c) 
+
+(d) 
+
+> VDA Model
+> (structured
+> description d)
+> (TargetBB ox
+> B=[x1.y1,x2.y2])
+
+Output w/ Description w/o Localization Hint  
+
+> Describe Locate
+
+Figure 1: FineState-Bench overview and VDA. (a) Static data creation pipeline (filtering, supplementation, anno-tation, instruction/state drafting, verification). (b) VDA-assisted evaluation that appends target-region localization hints for controlled comparisons. (c) Fine-grained interaction taxonomy with four families and 23 UI component types. (d) Example instances with precise target boxes and normalized interaction points. 
+
+protocol and metric level, many studies primarily report aggregate outcomes such as final task suc-cess or overall accuracy. Such coarse metrics col-lapse the entire perception–grounding–interaction pipeline into a single score, obscuring where fail-ures occur and preventing fine-grained diagnostic analysis and failure attribution (Koh et al., 2024; Xue et al., 2025; Liang and Zhang, 2025a; Liang and Zhou, 2025; Yang et al., 2025a). As a conse-quence, prior work may arrive at inconsistent con-clusions regarding failure sources. To address these limitations, we introduce FineState-Bench, a cross-platform benchmark of 2,209 instances for single-step, fine-grained state-conditioned GUI exact state setting with exact goal-state verification. Rather than modeling full in-teractive trajectories, FineState-Bench focuses on a controlled static single-step setting to isolate fine-grained state-conditioned grounding and ex-act state-setting ability. Agents are evaluated un-der a single-step, point-based protocol, as illus-trated in Figure 1 and Figure 4. Unlike proxy-based evaluations, each instance provides exact goal-state labels and dual-region annotations (a control-extent locate box and an interactable-core box) under current/target configurations, enabling unambiguous verification of exact goal-state at-tainment. Built on these annotations, we pro-pose FineState-Metrics, a stage-wise diagnostic pipeline (SR@Loc, SR@Int, ES-SR@Loc, ES-SR@Int) that decomposes performance from com-ponent grounding to interactable-core grounding and point precision, and finally exact goal-state at-tainment. To further quantify the grounding er-rors, we introduce a plug-and-play Visual Diagnos-tic Assistant (VDA) that optionally appends a De-scription and/or a Localization Hint; experiments show that while current agents exhibit a low suc-cess floor, VDA yields substantial gains, indicating insufficient accuracy for broad fine-grained state-conditioned interactions. Our main contributions are: (1) We define and study fine-grained, state-conditioned GUI state set-ting with explicit goal-state labels and exact verifi-cation in desktop/web/mobile platforms. (2) We build and release FineState-Bench featuring dual-region annotations under current/target configura-tions for component localization and interactable-core precision, enabling fine-grained, reproducible evaluation. (3) We introduce FineState-Metrics and VDA to decompose failures and perform con-trolled input-augmentation analysis, and we bench-mark 8 representative agents to quantify how much performance is limited by interactable-core local-ization and point precision. 
+
+2 Related Work 
+
+GUI Agents. GUI agents have advanced rapidly with large vision-language and multimodal models (Zhang et al., 2024a; Nguyen et al., 2024). Early studies often relied on general-purpose models for GUI operation (Yang et al., 2023; Adept AI, 2024; Zheng et al., 2024a), while later work increasingly builds GUI-specialized agents and UI grounding models (Hong et al., 2024; Wang et al., 2024b; Lin et al., 2024; Wu et al., 2024; Li et al., 2025; Gou et al., 2025; Chen et al., 2024a; Qin et al., 2023). These systems span mobile and desktop platforms (Wang et al., 2024a; Nong et al., 2024; Jiang et al., 2025; Liu et al., 2025; Fu et al., 2024; Zhang et al., 2025a; Yang et al., 2025b, 2026), yet reliably achieving state-conditioned exact state set-ting remains challenging. In practice, small exe-cution errors can accumulate into user-visible fail-ures, especially for precise controls such as sliders, pickers, and professional UI widgets, motivating evaluations that stress fine-grained state manipula-tion rather than only task completion. 
+
+GUI Agent Evaluation. Existing evaluations in-clude interactive end-to-end benchmarks (Zhou et al., 2023; Koh et al., 2024; Rawles et al., 2024; Xie et al., 2024; Zhang et al., 2024d; Chen et al., 2025; Zhang et al., 2024b) and offline grounding benchmarks on screenshots or professional soft-ware (Deng et al., 2023; Zhao et al., 2024; Qian et al., 2024; Dardouri et al., 2024). While these benchmarks improve realism or grounding assess-ment, they often under-cover state-conditioned in-teraction scenarios and lack precise target-state specifications for unambiguous verification. More-over, many protocols emphasize aggregate success rates, limiting deeper analysis (Zheng et al., 2024b; Zhang et al., 2024c). Recent benchmarks probe ro-bustness or distribution shifts, but they typically do not isolate failures from mis-perception, mis-localization, or incorrect state outcomes when ex-act goal-state attainment is required. 
+
+Diagnosis and Failure Attribution. Recent work highlights that coarse metrics can obscure bottlenecks and yield divergent conclusions about failure sources (Shlomov et al., 2024). Related ef-forts improve grounding or data coverage (Chen et al., 2024b) or analyze reliability issues (Liu et al., 2024b; Liang and Zhang, 2025b), but controlled diagnosis for disentangling visual grounding from non-visual interaction and state-control factors re-mains limited. 
+
+3 FineState-Bench 
+
+3.1 Problem Definition 
+
+FineState-Bench targets fine-grained, state-conditioned GUI state setting with exact goal states. Given a screenshot x and two instructions 
+
+(I0, I 1), an agent predicts two points (p0, p 1):
+
+p0 indicates the target control’s location in the current UI, and p1 indicates the operation location required to reach the intended fine-grained goal state. Specifically, p0 corresponds to the current instruction I0 for locating the target control, whereas p1 corresponds to the target instruction 
+
+I1 for specifying the operation location toward the intended goal state. Each instance is defined as τ = (x, I 0, I 1, c ∗, s goal , B 0
+
+> loc
+
+, B 0
+
+> int
+
+, B 1
+
+> loc
+
+, B 1
+
+> int
+
+),where c∗ is the target control and sgoal is the desired goal state. All boxes are axis-aligned rectangles in normalized screen coordinates, each parame-terized by (xmin , y min , x max , y max ) ∈ [0 , 1] 4; for trajectory-based actions, we define pt (t ∈ { 0, 1})as the final release (action-commit) point, since it determines the resulting state in typical GUI systems. 
+
+B0 
+
+> loc
+
+denotes the locate box covering the current visible extent of c∗, while B0 
+
+> int
+
+denotes the box of the operation-relevant element/region in the cur-rent configuration for reaching sgoal . To account for controls whose position or size may change dur-ing the intended operation, we additionally anno-tate target-configuration boxes: B1 
+
+> loc
+
+denotes the lo-cate box of c∗ in the target configuration, and B1
+
+> int
+
+denotes the corresponding box of the operation-relevant element/region in the target configuration for reaching sgoal . We write p ∈ B when a pre-dicted point p falls inside box B; we compare 
+
+p0 against (B0
+
+> loc
+
+, B 1
+
+> loc
+
+) and p1 against (B0
+
+> int
+
+, B 1
+
+> int
+
+).This enables evaluation under both the current ( ·0)and target ( ·1) configurations, capturing potential layout changes during the intended operation. Each control c has a precise, quantifiable state (a) Word Cloud Numeric    
+
+> Range View
+> Manipilation
+> Toggle
+> Option
+> Specific
+> Data
+> Numeric
+> Range
+> View
+> Manipilation
+> Toggle
+> Option
+> Specific
+> Data
+> Numeric
+> Range
+> View
+> Manipilation
+> Toggle
+> Option
+> Specific
+> Data
+> 153 208
+> 128
+> 222
+> 186
+> 176
+> 213
+> 193
+> 182
+> 221
+> 147
+> 180
+> Mobile
+> Desktop
+> Web
+> Static
+
+(b) Task Type Distribution Figure 2: Visualization of instruction keywords and task type composition in FineState-Bench. 
+
+s(c), such as a slider value, toggle status, selected option. This two-point design decouples locating the target control in the current UI ( p0) from speci-fying the goal-directed operation location ( p1), re-ducing interference from multi-step interactions and enabling fine-grained diagnosis of localization versus operation. 
+
+3.2 Dataset Construction and Annotation Benchmark Composition. FineState-Bench contains 2,209 high-quality static GUI state-setting instances collected from three platforms: Desktop (810), Web (701), and Mobile (698), with data sourcing and quality control detailed in Appendix A. Each instance includes: (i) a screenshot x, (ii) two instructions (I0, I 1) for current localization and target operation specifi-cation, (iii) an exact goal-state label sgoal with fine-grained state annotations for the target control, and (iv) four geometric annotations for the target control in the current and target configurations 
+
+(B0
+
+> loc
+
+, B 0
+
+> int
+
+, B 1
+
+> loc
+
+, B 1
+
+> int
+
+). We further verify the reliability of the fine-grained state and geometric annotations through a double-annotation study; details are provided in Appendix D. 
+
+Interaction Taxonomy. To ensure systematic coverage, we group instances into four interaction families: (1) Numerical and Range Adjustment; (2) State Toggling and Option Selection; (3) Spe-cific Data-Type Selection; and (4) Content Organi-zation and View Manipulation. 
+
+Instruction Statistics. Figure 2(a) summarizes instruction keywords, highlighting common inter-action verbs such as select, click, drag, and adjust, alongside state-related entities including volume, brightness, time, and color. Figure 2(b) reports the task-type distribution across the benchmark. 
+
+3.3 FineState-Metrics 
+
+While overall task success provides a coarse mea-sure of agent capability, it offers limited insight into where fine-grained state control fails along the perception-to-interaction pipeline. FineState-Bench is designed not only to score overall success, but also to attribute failures to specific capability factors in fine-grained state control. As defined in §3.1, we evaluate each instance using the two predicted points (p0, p 1) and the resulting (record-ed/annotated) target state s1(c∗).We introduce four diagnostic Success Rates aligned with the four pipeline stages of Percep-tion, Localization, Interaction, and State Cor-rectness. Perception Success Rate measures in-struction understanding and goal identification by checking whether the agent correctly identifies the target control and intended goal state from the in-puts (I0, I 1), independent of any point prediction. Localization Success Rate (SR@Loc) measures coarse component grounding (control by check-ing whether the predicted control-location point p0
+
+falls inside the locate box of the target control in the current configuration, i.e., p0 ∈ B0
+
+> loc
+
+, while Interaction Success Rate (SR@Int) measures fine-grained interactable-core grounding and point pre-cision by checking whether the predicted operation point p1 falls inside the operation-relevant (state-changing) region in the current configuration, i.e., 
+
+p1 ∈ B0
+
+> int
+
+. Exact State Success Rate (ES-SR) measures exact goal-state attainment by checking whether the resulting (recorded/annotated) state of the target control reaches the exact goal state, 
+
+s1(c∗) = sgoal . Accordingly, Exact State Suc-cess Rate at Locate (ES-SR@Loc) and Exact State Success Rate at Interact (ES-SR@Int) measure exact goal-state success conditioned on p0 ∈
+
+B1 
+
+> loc
+
+and p1 ∈ B1
+
+> int
+
+, respectively, i.e., under the target-configuration locate/interact boxes (see Ap-pendix F for interpretation and failure-attribution rules):                     
+
+> 
+> SR@Loc = 1
+> N
+> N∑
+> i=1
+> I
+> [
+> p(i)0∈B(i)
+> loc 0]
+> ,
+> SR@Int = 1
+> N
+> N∑
+> i=1
+> I
+> [
+> p(i)1∈B(i)
+> int 0]
+> ,
+> ES-SR@Loc = 1
+> N
+> N∑
+> i=1
+> I
+> [
+> p(i)0∈B(i)
+> loc 1∧s(i)1
+> (
+> c∗(i))
+> =s(i)
+> goal
+> ]
+> ,
+> ES-SR@Int = 1
+> N
+> N∑
+> i=1
+> I
+> [
+> p(i)1∈B(i)
+> int 1∧s(i)1
+> (
+> c∗(i))
+> =s(i)
+> goal
+> ]
+> .
+
+(1) Here N is the number of instances, (i) indexes an instance, I(·) is the indicator function, and ∧ de-Benchmark Platform State-Control Evaluation Properties Number                                                              
+
+> Desktop Mobile Website Target State Labels Bloc /Bint Stage-wise Diag ScreenSpot (Cheng et al., 2024) Yes Yes Yes No No No 1272 ScreenSpot-v2 (Wu et al., 2024) Yes Yes Yes No No No 1272 ScreenSpot-Pro (Zhao et al., 2024) Yes ––No No No 1581 WebClick (Andreux et al., 2025) ––Yes No No No 1639 VisualWebBench (Liu et al., 2024a) ––Yes No No No 1536 UI-Vision (Nayak et al., 2025) Yes ––No No No 1464 OSWorld-G (Xie et al., 2025) Yes ––No No Yes 564 FineState-Bench Yes Yes Yes Yes Yes Yes 2209
+
+Table 1: Comparison of FineState-Bench with representative static GUI benchmarks in terms of evaluation metrics and diagnostic capabilities. We summarize whether each benchmark supports Target State Labels verification, dual-region geometric supervision ( Bloc /Bint ), and stage-wise diagnostic metrics that disentangle localization accuracy, point-level precision, and exact state attainment. VDA -Augmented Pipeline         
+
+> Instruction I
+> Screenshot x
+> Input
+> Execute
+> Grouding
+> (b)
+> (structured
+> description d) (B=[x1.y1,x2.y2])
+> VDA Model
+> Original Pipeline (a)
+> GUI Agent
+> Instruction I
+> Screenshot x
+> Input
+> Perception Execute
+> Grouding
+> Grounding
+> Success
+> Fails
+> Correct
+> Grouding
+> Incorrect
+> Grouding
+> GUI Agent + VDA Hint
+> Input VDA Hint
+> (w/o)
+> Description
+> (w/o)
+> Localization Hint
+> COMPONENT
+> INFORMATION.
+> Bounding Box: [0.310,
+> 0.286, 0.669, 0.714]
+> Coordinates are
+> normalized to 0 -1
+> range.
+> Component Center:
+> (0.489, 0.500)
+
+Figure 3: Baseline and VDA-augmented pipelines for the target instruction I1. VDA (GPT-4o) first produces a structured Description of the target UI element and then a Localization Hint ˆB1, which is appended to the agent input when predicting p1. The performance gap in ES-SR@Int quantifies the visual grounding bottleneck for goal-directed operation. 
+
+notes conjunction. For example, in Fig.4 (D5), SR@Loc is counted as success if p0 lands within the TreeView’s cur-rent visible extent ( B0
+
+> loc
+
+), whereas SR@Int requires 
+
+p1 to hit the current operation-relevant region ( B0
+
+> int
+
+)that can trigger the intended state change. If the agent hits B1 
+
+> int
+
+but the resulting state still differs from sgoal , ES-SR@Int remains unsuccessful, in-dicating a state-setting error beyond location/oper-ation prediction. 
+
+3.4 Visual Diagnostic Assistant Diagnostic Use of VDA. To conduct an in-depth study of the factors influencing errors in fine-grained operations, we introduce the Visual Diag-nostic Assistant (VDA) as a diagnostic tool for con-trolled comparisons. We use w/ and w/o to de-note with and without VDA. VDA evaluates the same agent with and without an explicit Localiza-tion Hint under the target instruction I1, isolating whether failures arise from inaccurate grounding of the goal-directed operation region or from visual perception factors. As shown in Figure 3, VDA produces a structured Description and a Localiza-tion Hint (a target-region bounding box) for I1; ei-ther the Description, the Localization Hint, or both are appended to the agent input. Concretely, given (x, I 1), VDA predicts ˆB1 ∈
+
+[0 , 1] 4 as the Localization Hint: ˆB1 = L(x, I 1),where L is instantiated with GPT-4o. Using ES-SR@Int under I1, we quantify the visual ground-ing bottleneck via the w/ vs. w/o VDA gap: 
+
+∆vis = ES-SR@Int (w/ VDA ) − ES-SR@Int (w/o VDA ). (2) 
+
+∆vis estimates the performance recoverable from improved visual grounding under this Localization Hint interface. 
+
+VDA Design. VDA follows a two-step describe-then-localize procedure under I1 to produce a high-fidelity Localization Hint. First, given (x, I 1),VDA generates a Description of the target UI el-ement, including its functional role or state, dis-criminative visual cues, and spatial relations to an-chors. This Description is used for disambiguation and is optionally provided to the agent. Then, con-ditioned on the screenshot, the instruction I1, and the generated Description, VDA predicts ˆB1 in nor-malized coordinates as the Localization Hint. 
+
+Plug-and-Play Integration of VDA. For each instance, when predicting p1 under I1, the evalu-ated agent receives its standard inputs optionally augmented with the VDA-predicted Localization Hint ˆB1. Importantly, the intervention can be the Description, the Localization Hint, or both. This design enables controlled ablations that isolate the effect of the Localization Hint from textual disam-biguation. 
+
+4 Benchmark Characteristics and Analysis 
+
+Table 1 shows that representative offline/static GUI benchmarks mainly test whether an agent can iden-tify and click the intended element, or respond to higher-level prompts, without requiring verifiable post-interaction state changes. As a result, models may score well even if the interaction is not pre-cise enough to reach an exact target state. More-over, they often lack a clear distinction between a control’s visible extent and the operation-relevant region that changes its state, making failures hard to interpret whether the model mis-grounded the control, clicked an ineffective region, or failed to set the correct state. FineState-Bench addresses this gap by evaluat-ing whether an agent can set a target control to an exact goal state with a single-step, single-point in-teraction. Each instance provides a goal state and dual bounding-box supervision, as shown in Fig-ure 4: the locate box covers the control’s extent, while the interact box marks the state-changing core region. This design enables clear attribution in a single interaction: missing the locate box indi-cates grounding failure; hitting locate but missing interact suggests insufficient point precision; and hitting interact but not reaching the goal state indi-cates a state-setting error beyond localization. 
+
+5 Experiments and Analysis 
+
+5.1 Baselines 
+
+We benchmark 8 representative GUI agents on FineState-Static. For a balanced comparison, we include 3 closed-source LVLMs (GPT-4o (Ope-nAI, 2024), Claude-3.5-Sonnet (Anthropic, 2024), Gemini-2.5-Flash (Google, 2024)) as strong general-purpose multimodal baselines, and 5open-source GUI agents (OS-Atlas-7B (Wu et al., 2024), CogAgent-9B (Hong et al., 2024), UGround-7B (Gou et al., 2025), Jedi-7B-1080p (Fu et al., 2024), ShowUI-2B (Lin et al., 2024)) that emphasize GUI grounding and action prediction. We evaluate all agents under the single-point protocol, using ES-SR@Int as the primary metric for exact goal-state attainment, and leveraging the stage-wise success rates (SR@Loc, SR@Int, ES-SR@Loc) for diagnosis and bottleneck attribution. 
+
+5.2 Main Result 
+
+Table 2 shows consistently low success for ex-act state setting, with ES-SR@Int as the pri-mary metric (see Appendix F for metric interpre-tation and rule-based failure attribution). Even the strongest model, UGround-7B, reaches only 32.8% ES-SR@Int on Web and 22.8% on average. Per-formance can also collapse on specific platforms despite reasonable localization (e.g., Gemini-2.5-Flash: 17.6% on Mobile vs. 0.7% on Desktop), indicating that robust fine-grained state setting re-mains difficult even on static screenshots. FineState-Metrics attributes most errors to the transition from coarse component grounding to interactable-core grounding. Across models, SR@Loc is substantially higher than SR@Int, sug-gesting that agents often localize the correct con-trol ( p0! ∈!B0
+
+> loc
+
+) but miss the state-changing core when executing ( p1! / ∈!B0
+
+> int
+
+). Moreover, SR@Int is typically close to ES-SR@Int, implying that once the predicted point hits the interactable core, the ex-act goal state is usually achieved. This stage-wise degradation is visualized in Fig. 5, highlighting interactable-core grounding as the dominant bottle-neck for broad fine-grained, state-conditioned in-teraction. 
+
+5.3 Component-Level Diagnosis of Interactable-Core Grounding 
+
+As shown in Figure 6, we break down SR@Loc and SR@Int by UI component to diagnose which interaction types contribute most to the drop from coarse localization to interactable-core grounding. We find that precision-sensitive, continuous con-trols exhibit the largest gaps: on sliders, mod-els often achieve reasonable SR@Loc but much lower SR@Int, and on seek bars SR@Int can even collapse despite strong localization. In con-trast, discrete controls are more tractable, with steppers showing a much smaller gap between SR@Loc and SR@Int. Overall, these component-wise results suggest that the dominant bottleneck in broad fine-grained interactions is the transition from coarse component localization ( p0! ∈!B0
+
+> loc
+
+)to interactable-core grounding ( p1! ∈!B0
+
+> int
+
+); see Ta-ble 7 for full numbers. Interact: Values of rows to be reduced by the stepr. Interact: Help me point out where the markers in the progress bar are. Locate: Gives the location of the current reconciliation column step forwards. locate: [0.63,0.08,0.99,0.14] locatebbox: [0.93,0.09,0.95,0.12] interact: [0.63,0.08,0.99,0.14] interactbbox: [0.96,0.10,0.97,0.13] 
+
+Locate: Help me find where this music is playing right now. locate: [0.00,0.90,1.00,0.93] locatebbox:[0.00,0.89,0.02,0.93] interact: [0.00,0.90,1.0,0.93] interactbbox: [0.54,0.89,0.56,0.93] Interact: Reconciling the B-button of the fourth sound adjuster from left to right to right to right 105 degrees. Locate: Position the current value of the B-rotton from left to right fourth sound adjuster. 
+
+Locate: Give the Samp2 cross-axis to 4 points. Interact: Drag to 40 vertical axis. 
+
+locate: [0.0, 0.01, 0.97, 1.0] locatebbox: [0.5, 0.12, 0.54, 0.17] interact: [0.0, 0.01, 0.97, 1.0] interactbbox: [0.51, 0.32, 0.54, 0.36] 
+
+Locate: Please give the switch position for the automatic time zone. Interact: Turn on the switch in the automatic time zone. 
+
+Locate: Could you give us the frame position of the 'Find whole words only' option? Interact: Check 'Find whole words only. locate: [0.0, 0.14, 0.16, 0.24] locatebbox: [0.01, 0.17, 0.02, 0.20] interact: [0.0, 0.14, 0.16, 0.24] interactbbox: [0.01, 0.17, 0.02, 0.19] 
+
+B2-Checkbox 
+
+Locate: Please give the frame position for the first theme of the personalization device. Interact: Switch to Fourth Theme. 
+
+B3-RadioGroup 
+
+locate: [0.05, 0.37, 0.9, 0.78], locatebbox: [0.05, 0.4, 0.21, 0.57], interact: [0.05, 0.37, 0.9, 0.78], interactbbox: [0.53, 0.39, 0.69, 0.58] 
+
+A5-Chart Point B6-Accordion 
+
+Locate: Please find the button to withdraw the 'Text Direction' option. Interact: Please take back the list of 'Text Division' options. locate: [0.3, 0.04, 0.38, 0.31] locatebbox: [0.31, 0.04, 0.35, 0.06] interact: [0.3, 0.04, 0.38, 0.31] interactbbox: [0.31, 0.05, 0.35, 0.06] 
+
+C1-Rating 
+
+locate: Please locate the star rating position. Interact: Rating the stars to five stars. locate: [0.5, 0.39, 0.62, 0.43] locatebbox: [0.5, 0.38, 0.62, 0.43] interact: [0.5, 0.39, 0.62, 0.43] interactbbox: [0.6, 0.38, 0.61, 0.42] 
+
+C4-TimePicker 
+
+Interact: Click finish time 3:30. Locate: Positioning end time selector. 
+
+C5-ListboxDropdown 
+
+locate: [0.25, 0.43, 0.36, 0.65] locatebbox: [0.25, 0.44, 0.35, 0.49] interact: [0.25, 0.43, 0.36, 0.65] interactbbox: [0.25, 0.54, 0.35, 0.58] 
+
+Locate: Positioning to a drop-down menu with a character size. Interact: Remove the word size and pull the menu down. locate: [0.36, 0.1, 0.42, 0.93] locatebbox: [0.35, 0.09, 0.4, 0.13] interact: [0.36, 0.1, 0.42, 0.93] interactbbox: [0.36, 0.1, 0.4, 0.14] 
+
+A1-Slider A2-Knob A3-Stepper A4-Seek Bar 
+
+locate: [0.01, 0.04, 0.06, 0.89] locatebbox: [0.0, 0.79, 0.05, 0.89] interact: [0.0, 0.04, 0.05, 0.89] interactbbox: [0.0, 0.31, 0.05, 0.35] 
+
+D2-ZoomPan 
+
+Locate: Click the bottom right corner of the slide. 
+
+locate: [0.16, 0.11, 0.87, 0.83] lo ca tebbox: [0.83, 0.75, 0.87, 0.82] interact: [0.16, 0.11, 0.7, 0.62] interactbbox": [0.64, 0.53, 0.7, 0.63] 
+
+D3-ResizablePane 
+
+Locate: Click the bottom left corner of the window Interact: Reduction in length to 61 per cent and in height to 70 percent locate: [0.11, 0.24, 0.83, 0.73] locatebbox: [0.11, 0.69, 0.14, 0.73] interact: [0.39, 0.25, 0.83, 0.58] interactbbox: [0.39, 0.55, 0.42, 0.58] 
+
+D4-Carousel 
+
+Interact: Please switch to the previous picture." Locate: Please give the frame position for the change of the picture. 
+
+locate: [0.0, 0.0, 1.0, 1.0] locatebbox: [0.0, 0.0, 1.0, 1.0] interact: [0.0, 0.44, 0.03, 0.54] interactbbox: [0.01, 0.45, 0.03, 0.54] 
+
+Locate: Gives the position of the last icon in the left sidebar. Interact: Drag it to the fourth. 
+
+Interact: Reduce page lengths to 77 per cent and high to 71 percent. 
+
+D1-DragReorder D7-TableColumn 
+
+locate: Select the D-E line boundary. Interact: Move to 70% of column B horizontal direction. locate: [0.34, 0.28, 0.41, 1.0] locatebbox: [0.34, 0.27, 0.36, 1.0] interact: [0.19, 0.28, 0.41, 1.0] interactbbox: [0.18, 0.27, 0.21, 1.0] 
+
+D6-Splitter 
+
+Locate: Select Left of the Comments Bar. Interact: Move to between AK and AL. locate: [0.85, 0.14, 0.86, 0.95] locatebbox: [0.85, 0.14, 0.86, 0.95] interact: [0.7, 0.14, 0.72, 0.94] interactbbox: [0.7, 0.14, 0.71, 0.94] 
+
+D5-TreeView 
+
+Locate: Please find the button to withdraw the 'level_grounding'option. 
+
+Interact: Please withdraw the 'level_grounding' options. locate: [0.03, 0.21, 0.21, 0.34] locatebbox: [0.05, 0.21, 0.06, 0.23] interact: [0.05, 0.21, 0.15, 0.23] interactbbox: [0.05, 0.21, 0.07, 0.23] 
+
+Locate the currently selected item in the left vertical column. 
+
+Interaction Coordinates:[0.230, 0.220]. 
+
+locate: [0.00,0.89,1.00,0.93], locatebbox: [0.00,0.89,0.02,0.92] interact: [0.00,0.89,1.00,0.93] interactbbox: [0.54,0.89,0.56,0.93] Locate: Help me find where this music is playing right now. 
+
+Interact: Please drag the slider to 74% of the maximum value for a rolling line. 
+
+locate: [0.58, 0.68, 0.60, 0.74] locatebbox: [0.58, 0.72, 0.59, 0.73] interact: [0.58, 0.68, 0.60, 0.74] interactbbox: [0.58, 0.70, 0.59, 0.71] locate: [0.44, 0.11, 0.68, 0.15] locatebbox: [0.65, 0.11, 0.68, 0.15] interact: [0.44, 0.11, 0.68, 0.15] interactbbox: [0.65, 0.11, 0.68, 0.14] 
+
+B4-Tabs 
+
+Interact: Click on the \" Layout Toolbox \" tab in the OfficePLUS panel" Locate: Click on the \" Layout Toolbox \" tab in the OfficePLUS area. 
+
+locate: [0.38, 0.41, 0.58, 0.48] locatebbox: [0.38, 0.41, 0.45, 0.48] interact: [0.38, 0.41, 0.58, 0.48] interactbbox: [0.45, 0.41, 0.58, 0.48] 
+
+B5-Segmented 
+
+Interact: Click on the 11th slide. Locate: Gives the position of the eighth slide in the left preview map. 
+
+locate: [0.03, 0.01, 0.22, 0.97] locatebbox: [0.02, 0.33, 0.21, 0.48] interact: [0.03, 0.01, 0.22, 0.97] interactbbox: [0.03, 0.81, 0.20, 0.97] 
+
+C2-ColorPicker 
+
+Locate: Position to Bottom Colour Selection. Interact: "Press the red button. locate: [0.36, 0.94, 0.57, 0.98] locatebbox: [0.48, 0.94, 0.5, 0.97] interact: [0.36, 0.94, 0.57, 0.98] interactbbox: [0.44, 0.94, 0.45, 0.97] 
+
+C3-DatePicker 
+
+Interact: Click 25 to select date. Locate: The date frame on the right of the location date", locate: [0.54, 0.17, 0.75, 0.58] locatebbox: [0.58, 0.32, 0.6, 0.35] interact: [0.54, 0.17, 0.75, 0.58] interactbbox: [0.65, 0.41, 0.68, 0.45] Interact: Click the 'BNB' item in the left vertical column. 
+
+Interaction Coordinates: [0.207, 0.583]. 
+
+B1-Switch 
+
+🔴 red - locate 🟡 yellow - locatebbox 🟢 green - interact 🔵 blue - interactbbox Figure 4: Representative instances from FineState-Bench, covering all 23 UI component types. For each control, we annotate four normalized bounding boxes. 
+
+Model Name Mobile Web Desktop AVG 
+
+Closed-source Models 
+
+GPT-4o 31.0/6.2/9.1/6.2 22.8/4.5/7.0/4.5 20.6/2.2/4.4/2.2 24.8/4.3/6.8/4.3 Claude-3.5-Sonnet 31.7/11.5/13.7/11.5 15.2/1.9/4.6/1.9 22.0/3.4/5.4/3.4 23.0/5.6/7.9/5.6 Gemini-2.5-Flash 49.4/17.6/21.1/17.6 47.0/11.8/16.8/11.8 12.7/0.7/3.8/0.7 36.4/10.0/13.9/10.0 
+
+Open-source Models 
+
+OS-Atlas-7B (Wu et al., 2024) 47.5/12.8/18.7/12.8 33.2/7.5/9.2/7.5 45.3/9.8/15.2/9.8 42.0/10.0/14.4/10.0 CogAgent-9B (Hong et al., 2024) 17.7/1.8/2.5/1.8 24.1/6.4/13.7/6.4 29.4/2.3/3.5/1.2 23.7/3.5/6.6/3.1 UGround-7B (Gou et al., 2025) 50.7/19.6/22.4/19.6 62.0/32.8/62.0/32.8 46.3/16.0/25.4/16.0 53.0/22.8/36.6/22.8 Jedi-7B-1080p (Fu et al., 2024) 13.3/1.6/3.1/1.5 12.7/8.3/12.7/8.3 12.2/0.8/1.5/0.8 12.7/3.6/5.8/3.5 ShowUI-2B (Lin et al., 2024) 20.3/5.2/6.7/5.2 26.7/5.3/26.7/5.3 30.3/3.2/9.1/3.2 25.8/4.6/14.2/4.6 
+
+Table 2: Baseline evaluation on FineState-Static. Under the single-point protocol, we report four diagnostic metrics: SR@Loc ( p0 ∈ B0
+
+loc ) / SR@Int ( p1 ∈ B0
+
+int ) / ES-SR@Loc ( p0 ∈ B1
+
+loc ) / ES-SR@Int ( p1 ∈ B1
+
+int ) (%). 
+
+5.4 Diagnosis of Performance Bottlenecks 
+
+To attribute failures, we run a controlled com-parison with VDA, which injects full VDA hints consisting of a Description and a Localization Hint, while keeping the evaluated agent unchanged (same parameters/decoding and the same point-based interaction interface). To attribute failures, we run a controlled comparison with VDA, which SR@Loc SR@Int ES-SR@Loc ES-SR@Int 
+
+> FineState Metrics
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Success Rate (%)
+> GPT-4o
+> Claude-3.5-Sonnet
+> Gemini-2.5-Flash
+> OS-Atlas-7B
+> CogAgent-9B
+> UGround-7B
+> Jedi-7B-1080p
+> ShowUI-2B
+
+Figure 5: Performance degradation on FineState-Static. 
+
+injects full VDA hint, consisting of the Description and the Localization Hint, while keeping the evalu-ated agent unchanged (same parameters/decoding and the same point-based interaction interface). As shown in Table 3, VDA-generated localiza-tion hints substantially improve ES-SR@Int, with the largest gain observed on Gemini-2.5-Flash (+14.9% on average). These recoverable gains in-dicate that a major portion of failures stems primar-ily from inaccurate grounding/localization of the goal-directed operation region, with visual percep-tion factors playing a secondary role, while overall accuracy still remains insufficient for broad fine-grained interactions.                               
+
+> Model Mobile Web Desktop
+> Gemini-2.5-Flash 17.6 11.8 0.7 ShowUI-2B 5.2 5.3 3.2 OS-Atlas-7B 12.8 7.5 9.8 Gemini-2.5-Flash(VDA-Gemini-2.5-Flash) 29.8 27.2 15.4 ShowUI-2B(VDA-Gemini-2.5-Flash) 5.8 12.3 7.5 OS-Atlas-7B(VDA-Gemini-2.5-Flash) 18.9 18.2 19.1 Gemini-2.5-Flash(VDA-GPT4o) 29.8 26.6 20.9 ShowUI-2B(VDA-GPT4o) 7.3 7.2 9.5 OS-Atlas-7B(VDA-GPT4o) 15.9 14.2 13.1
+
+Table 3: Overall impact of VDA on ES-SR@Int (%). We report baseline and VDA-augmented performance under identical agent settings; improvements reflect er-ror recoverable by better visual grounding. 
+
+5.5 Ablation Study of VDA 
+
+We conduct an ablation study on Gemini-2.5-Flash in Table 4 to each VDA component / input cue / hint type under the single-point protocol. Using w/ Description but w/o localization hint yields no measurable improvement over w/o VDA, with ES-SR@Int remaining nearly unchanged across plat-forms. By contrast, using w/ Localization Hint pro-duces a pronounced increase in ES-SR@Int across all platforms, indicating that localization quality is a major driver of the overall gain. The the full vari-ant (w/ Description and w/ Localization Hint) (w/ Description and w/ Localization Hint) performs best, consistent with the description providing con-textual disambiguation that improves the reliability of subsequent localization.                
+
+> VDA Configuration Mobile Web Desktop
+> w/o VDA 17.6 11.8 0.7 w/ Description, w/o Localization Hint 17.9 11.9 0.8 w/o Description, w/ Localization Hint 26.1 24.7 13.1 w/ Description, w/ Localization Hint 29.8 27.2 15.4
+
+Table 4: Ablation study of VDA-Flash on Gemini-2.5-Flash. We measure ES-SR@Int (%) under the single-point protocol. 
+
+We provide qualitative failure cases and w/ VDA comparisons in Appendix E of the Supplementary materials to illustrate typical error modes, such as missing the interactable core due to imprecise point placement. 
+
+6 Conclusion 
+
+We present FineState-Bench, an open-source benchmark and diagnostic framework for fine-grained, state-conditioned GUI state setting with exact goal-state verification across desktop, web, and mobile platforms. Our study highlights a key gap in current GUI agent evaluation: existing benchmarks rarely support exact goal-state verifi-cation and controlled, stage-wise diagnosis, mak-ing it difficult to attribute failures in fine-grained state-conditioned interactions. We hope FineState-Bench, together with FineState-Metrics and VDA-based analysis, will enable precise evaluation and accelerate progress toward reliable, state-aware GUI agents, enabling attribution analysis. 
+
+Limitation 
+
+Our study has several limitations. First, FineState-Bench is designed to isolate fine-grained, state-conditioned state setting under static screenshots and a single-point interaction setting. This con-trolled setup prioritizes precise state verification and diagnostic clarity, rather than modeling long-horizon reasoning or multi-step corrective behav-iors, which are complementary directions explored by existing interactive benchmarks. Second, VDA is designed as a diagnostic tool rather than a de-ployable component, and its localization hints rely on high-quality visual cues in the screenshot; ex-tending this analysis to fully end-to-end or real-time interactive settings remains an open chal-CAROUSEL 
+
+> Search Suggest
+> Data Display
+> Chart Point
+> List
+> Calendar
+> TEXT_INPUT_FIELD
+> Video Player
+> INPUT_FIELD
+> Resizable Panel
+> Radio Button
+> Text Input
+> Seek Bar
+> Knob
+> DATE_INPUT
+> Date Picker
+> Time selection
+> Time Picker
+> Radio Button Group
+> Navigation
+> Single Button Group
+> Tabs
+> COLOR_SELECTOR
+
+Component Type                           
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Success Rate (%)
+> 5.3% 5.1% 3.5% 3.7% 4.0% 0.3% 2.2% 4.3% 4.4% 2.3%
+> Δ86% Δ79% Δ79%
+> Δ68%
+> Δ58% Δ57%
+> Δ50% Δ47% Δ46%
+> Δ40% Δ40% Δ39% Δ38% Δ38% Δ38% Δ37% Δ36% Δ36% Δ34% Δ34%
+> Δ32% Δ31% Δ31%
+> SR@Loc
+> SR@Int
+
+Figure 6: Component-level localization vs. interactable-core grounding on FineState-Static. 
+
+lenge. Third, while the benchmark covers a broad range of platforms and UI components, it does not exhaustively represent all application domains or accessibility-driven interface variations, which may exhibit different grounding and state-control characteristics. 
+
+Acknowledgements 
+
+We thank the anonymous reviewers and the area chair for their constructive comments. We also thank our mentors and colleagues from MBZUAI for their support and help. 
+
+References 
+
+Adept AI. 2024. Apt: A general-purpose multimodal agent for vision-language-action tasks. arXiv preprint ,arXiv:2407.01735. Mathieu Andreux, Breno Baldas Skuk, Hamza Benchekroun, Emilien Biré, Antoine Bonnet, Riaz Bordie, Nathan Bout, Matthias Brunel, Pierre-Louis Cedoz, Antoine Chassang, and 1 others. 2025. Surfer-H meets Holo-1: Cost-efficient web agent powered by open weights. arXiv preprint ,arXiv:2506.02865. Anthropic. 2024. Introducing Claude 3.5 Sonnet. Jinghan Cao, Yu Ma, Xinjin Li, Qingyang Ren, and Xiangyun Chen. 2026. Task-specific efficiency analysis: When small language models outperform large language models. arXiv preprint , arXiv:2603.21389. Jingxuan Chen, Derek Yuen, Bin Xie, Yuhao Yang, Gong-wei Chen, Zhihao Wu, Li Yixing, Xurui Zhou, Weiwen Liu, Shuai Wang, Kaiwen Zhou, Rui Shao, Liqiang Nie, Yasheng Wang, Jianye Hao, Jun Wang, and Kun Shao. 2025. SPA-Bench: A comprehensive benchmark for smartphone agent evaluation. In Proceedings of the Inter-national Conference on Learning Representations .Wentong Chen, Junbo Cui, Jinyi Hu, Yujia Qin, Junjie Fang, Yue Zhao, Chongyi Wang, Jun Liu, Guirong Chen, Yupeng Huo, and 1 others. 2024a. GuiCourse: From general vision language models to versatile GUI agents. arXiv preprint ,arXiv:2406.11317. Xuetian Chen, Hangcheng Li, Jiaqing Liang, Sihang Jiang, and Deqing Yang. 2024b. EDGE: Enhanced grounded GUI understanding with enriched multi-granularity syn-thetic data. arXiv preprint , arXiv:2410.19461. Accepted at TheWebConf 2025. Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Yan-tao Li, Jianbing Zhang, and Zhiyong Wu. 2024. SeeClick: Harnessing GUI grounding for advanced visual GUI agents. arXiv preprint , arXiv:2401.10935. Tassnim Dardouri, Laura Minkova, Jessica López Espejel, Walid Dahhane, and El Hassane Ettifouri. 2024. Visual grounding for desktop graphical user interfaces. arXiv preprint , arXiv:2407.01558. Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su. 2023. Mind2Web: Towards a generalist agent for the web. In 
+
+Advances in Neural Information Processing Systems .Bin Fu, Chen Wang, Xin Chen, Yucheng Han, Chi Zhang, Ze-biao Huang, Yanda Li, Jiaxuan Liu, Zhao Yang, Furu Wei, and Gang Yu. 2024. Jedi: A generalist agent for desktop interface. arXiv preprint , arXiv:2410.19830. Google. 2024. Highlights from Google I/O 2024. Boyu Gou, Ruohan Wang, Boyuan Zheng, Yanan Xie, Cheng Chang, Yiheng Shu, Huan Sun, and Yu Su. 2025. Nav-igating the digital world as humans do: Universal visual grounding for GUI agents. In Proceedings of the Interna-tional Conference on Learning Representations .Izzeddin Gur, Hao Zhu, Frank F. Xu, Shuyan Zhou, Hiroki Furuta, Po-Yu Huang, Yonatan Bisk, Daniel Fried, Rus-lan Salakhutdinov, and Graham Neubig. 2024. AITW: A large-scale, time-aware, and real-world benchmark for web agents. arXiv preprint , arXiv:2406.13465. Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wen-meng Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, and 1 others. 2024. CogAgent: A visual language model for GUI agents. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition .Wenjia Jiang, Yangyang Zhuang, Chenxi Song, Xu Yang, and Chi Zhang. 2025. AppAgentX: Evolving GUI agents as proficient smartphone users. arXiv preprint ,arXiv:2503.02268. Jing Yu Koh, Robert Lo, Lawrence Jang, Vikram Duvvur, Ming Lim, Po-Yu Huang, Graham Neubig, Shuyan Zhou, Russ Salakhutdinov, and Daniel Fried. 2024. VisualWe-bArena: Evaluating multimodal agents on realistic visual web tasks. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics .Zhangheng Li, Keen You, Haotian Zhang, Di Feng, Harsh Agrawal, Xiujun Li, Mohana Prasad Sathya Moorthy, Jeff Nichols, Yinfei Yang, and Zhe Gan. 2025. Ferret-UI 2: Mastering universal user interface understanding across platforms. In Proceedings of the International Con-ference on Learning Representations . Accepted paper; arXiv:2410.18967v2. Junhong Liang and Bojun Zhang. 2025a. Vision language models are not (yet) spelling correctors. arXiv preprint ,arXiv:2509.17418. Junhong Liang and Bojun Zhang. 2025b. Vision language models are not (yet) spelling correctors. arXiv preprint ,arXiv:2509.17418. Junhong Liang and Yu Zhou. 2025. RAIR: Retrieval-augmented iterative refinement for chinese spelling correc-tion. arXiv preprint , arXiv:2504.18938. Kevin Qinghong Lin, Linjie Li, Difei Gao, Zhengyuan Yang, Shiwei Wu, Zechen Bai, Weixian Lei, Lijuan Wang, and Mike Zheng Shou. 2024. ShowUI: One vision-language-action model for GUI visual agent. arXiv preprint ,arXiv:2411.17465. Haowei Liu, Xi Zhang, Haiyang Xu, Yuyang Wanyan, Jun-yang Wang, Ming Yan, Ji Zhang, Chunfeng Yuan, Chang-sheng Xu, Weiming Hu, and Fei Huang. 2025. PC-Agent: A hierarchical multi-agent collaboration frame-work for complex task automation on PC. arXiv preprint ,arXiv:2502.14282. Junpeng Liu, Yifan Song, Bill Yuchen Lin, Wai Lam, Gra-ham Neubig, Yuanzhi Li, and Xiang Yue. 2024a. Visu-alWebBench: How far have multimodal LLMs evolved in web page understanding and grounding? arXiv preprint ,arXiv:2404.05955. Xingwei Liu, Zihan Ye, Jingfeng Zhang, Tianlin Li, Haoming Lu, Yuchen Zhou, Yuji Gao, Dongfang Liu, and DaCheng Tao. 2024b. Agent-Smith: A black-box attack on LLM-based agents. arXiv preprint , arXiv:2405.01957. Yadong Lu, Jianwei Yang, Yelong Shen, and Ahmed Awadal-lah. 2024. OmniParser for pure vision-based GUI agent. 
+
+arXiv preprint , arXiv:2408.00203. Siqi Ma, Jiajie Huang, Fan Zhang, Jinlin Wu, Yue Shen, Guo-hui Fan, Zhu Zhang, and Zelin Zang. 2026. MedLA: A logic-driven multi-agent framework for complex medical reasoning with large language models. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 40, pages 845–853. Shravan Nayak, Xiangru Jian, Kevin Qinghong Lin, Juan A Rodriguez, Montek Kalsi, Rabiul Awal, Nicolas Chapados, M Tamer Özsu, Aishwarya Agrawal, David Vazquez, and 1 others. 2025. UI-Vision: A desktop-centric GUI bench-mark for visual perception and interaction. arXiv preprint ,arXiv:2503.15661. Anthony Nguyen. 2024. Improved GUI grounding via itera-tive narrowing. arXiv preprint , arXiv:2411.13591. Dang Nguyen and 1 others. 2024. GUI agents: A survey. 
+
+arXiv preprint , arXiv:2412.04538. Songqin Nong, Jiali Zhu, Rui Wu, Jiongchao Jin, Shuo Shan, Xiutian Huang, and Wenhao Xu. 2024. MobileFlow: A multimodal LLM for mobile GUI agent. arXiv preprint ,arXiv:2407.04346. CC BY 4.0 License. OpenAI. 2024. GPT-4o. Technical report. Yijun Qian, Yujie Lu, Alexander G Hauptmann, and Oriana Riva. 2024. Visual grounding for user interfaces. In Pro-ceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies .Yujia Qin, Yining Ye, Junjie Fang, and Haoming Wang. 2025. UI-TARS: Pioneering automated GUI interaction with na-tive agents. arXiv preprint , arXiv:2501.12326. Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shi-hao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shu-Tao Xia, Yong-Dong Zhang, and Jie Tang. 2023. Rethinking agent design: From top-down work-flows to bottom-up skill evolution. arXiv preprint ,arXiv:2307.07924. Christopher Rawles, Sarah Clinckemaillie, Yifan Chang, Jonathan Waltz, Gabrielle Lau, Marybeth Fair, Alice Li, William Bishop, Wei Li, Folawiyo Campbell-Ajala, Daniel Toyama, Timothy Lillicrap, and Oriana Riva. 2024. An-droidWorld: A dynamic benchmarking environment for autonomous agents. arXiv preprint , arXiv:2405.14573. Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana Riva, and Timothy Lillicrap. 2023. Android in the wild: A large-scale dataset for android device control. In Advances in Neural Information Processing Systems .Segev Shlomov, Ben Wiesel, Aviad Sela, Ido Levy, Liane Galanti, and Roy Abitbol. 2024. From grounding to plan-ning: Benchmarking bottlenecks in web agents. arXiv preprint , arXiv:2409.01927. Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen, Ji Zhang, Fei Huang, and Jitao Sang. 2024a. Mobile-Agent: Autonomous multi-modal mobile device agent with visual perception. arXiv preprint , arXiv:2401.16158. Philipp Wang, Mandi Wang, Yifan Jiang, Ari Holtzman, Caiming Xiong, and Victor Zhong. 2024b. ScreenAgent: A vision-language model-based agent for human-computer interaction. arXiv preprint , arXiv:2406.05459. Hao Wen, Yuanchun Li, Guohong Liu, Shanhui Zhao, Tao Yu, Toby Jia-Jun Li, Shiqi Jiang, Yunhao Liu, Yaqin Zhang, and Yunxin Liu. 2024. AutoDroid: LLM-powered task automation in android. arXiv preprint , arXiv:2308.15272. Zhiwei Wu, Zekun Qi, Zhaofeng He, Yushi Hu, Junkai Wang, Zhaoyang Zhang, Yining-Gu, Hongcheng-Guo, Hangyu-Li, Zixuan-Chen, Yao-Mu, Yuzhong-Chen, Jiacheng-Liu, Wen-Guang, Chen, Yujia-Qin, Zhoujun-Cheng, Yidong-Wang, Jindong-Wang, and 8 others. 2024. OS-ATLAS: A foundation action model for generalist GUI agents. arXiv preprint , arXiv:2410.23218. Tianbao Xie, Jiaqi Deng, Xiaochuan Li, Junlin Yang, Haoyuan Wu, Jixuan Chen, Wenjing Hu, Xinyuan Wang, Yuhui Xu, Zekun Wang, Yiheng Xu, Junli Wang, Doyen Sahoo, Tao Yu, and Caiming Xiong. 2025. Scaling computer-use grounding via user interface decomposition and synthesis. arXiv preprint , arXiv:2505.13227. Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan Li, Siheng Zhao, Ruisheng Cao, Toh J Hua, Zhoujun Cheng, Dongchan Shin, Fangyu Lei, and 1 others. 2024. OSWorld: Benchmarking multimodal agents for open-ended tasks in real computer environments. Advances in Neural Informa-tion Processing Systems , 37:52040–52094. Tianci Xue, Weijian Qi, Tianneng Shi, Chan Hee Song, Boyu Gou, Dawn Song, Huan Sun, and Yu Su. 2025. An illu-sion of progress? assessing the current state of web agents. 
+
+arXiv preprint , arXiv:2504.01382. Jianwei Yang, Hao Zhang, Feng Li, Xueyan Zou, Chunyuan Li, and Jianfeng Gao. 2023. Set-of-mark prompting un-leashes extraordinary visual grounding in GPT-4v. arXiv preprint , arXiv:2310.11441. Jingpu Yang, Mingxuan Cui, Hang Zhang, Fengxian Ji, Zhengzhao Lai, and Yufeng Wang. 2025a. Agent-based anti-jamming techniques for UAV communications in ad-versarial environments: A comprehensive survey. arXiv preprint , arXiv:2508.11687. Jingpu Yang, Hang Zhang, Fengxian Ji, Yufeng Wang, Mingjie Wang, Yizhe Luo, and Wenrui Ding. 2025b. Frequency point game environment for UAVs via expert knowledge and large language model. arXiv preprint ,arXiv:2508.02757. Jingpu Yang, Hang Zhang, Fengxian Ji, Yufeng Wang, Mingjie Wang, Yizhe Luo, and Wenrui Ding. 2026. Fre-quency point game environment for UAVs via expert knowl-edge and large language model. Drones , 10(2):147. Keen You, Haotian Zhang, Eldon Schoop, Floris Weers, Amanda Swearngin, Jeffrey Nichols, Yinfei Yang, and Zhe Gan. 2024. Ferret-UI: Grounded mobile UI un-derstanding with multimodal LLMs. arXiv preprint ,arXiv:2404.05719. Yiming Zeng, Wanhao Yu, Zexin Li, Tao Ren, Yu Ma, Jing-han Cao, Xiyan Chen, and Tingting Yu. 2025. Bridging the editing gap in LLMs: FineEdit for precise and targeted text modifications. In Findings of the Association for Com-putational Linguistics: EMNLP 2025 , pages 2193–2206, Suzhou, China. Association for Computational Linguis-tics. Chaoyun Zhang, Shilin He, Jiaxu Qian, Bowen Li, Liqun Li, Si Qin, Yu Kang, Minghua Ma, Guyue Liu, Qingwei Lin, and 1 others. 2024a. Large language model-brained GUI agents: A survey. arXiv preprint , arXiv:2411.18279. Chaoyun Zhang, Liqun Li, Shilin He, Xu Zhang, Bo Qiao, Si Qin, Minghua Ma, Yu Kang, Qingwei Lin, Saravan Ra-jmohan, and 1 others. 2025a. UFO: A UI-focused agent for windows OS interaction. In Proceedings of the 2025 Conference of the North American Chapter of the Asso-ciation for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 597–622. Chi Zhang, Zhao Yang, Jiaxuan Liu, Yanda Li, Yucheng Han, Xin Chen, Zebiao Huang, Bin Fu, and Gang Yu. 2025b. AppAgent: Multimodal agents as smartphone users. In 
+
+Proceedings of the 2025 CHI Conference on Human Fac-tors in Computing Systems .Li Zhang, Shihe Wang, Xianqing Jia, Zhihan Zheng, Yunhe Yan, Longxi Gao, Yuanchun Li, and Mengwei Xu. 2024b. LlamaTouch: A faithful and scalable testbed for mobile UI task automation. arXiv preprint , arXiv:2404.16054. Yushi Zhang, Zhiwei Zhang, Zekun Qi, Yining Gu, Yining Li, Hongcheng Guo, Yujia Qin, Zhaofeng He, Yidong Wang, Zhoujun Cheng, Jindong Wang, Taro Watanabe, Yutaka Sasaki, Ruoyu Sun, Wei Xue, Tat-Seng Chua, and Xing Xie. 2024c. WorldGUI: A benchmark for evaluating gen-eralist GUI agents on real-world and unseen tasks. arXiv preprint , arXiv:2407.13329. Zhiwei Zhang, Zekun Qi, Yining Gu, Zhaofeng He, Yushi Hu, Yining Li, Hongcheng Guo, Jiacheng Liu, Yujia Qin, Yi-dong Wang, Zhoujun Cheng, Jindong Wang, Gang Wang, Yutaka Sasaki, Taro Watanabe, Ruoyu Sun, Wei Xue, Tat-Seng Chua, Rui Zhao, and Xing Xie. 2024d. A-STAR: A benchmark for any-scale task automation on real-world software. arXiv preprint , arXiv:2407.14725. Jing-Yi Zhao, Hong-Quankreston Tran, Yining Li, Tianbao Xie, Zixuan Li, Jia-Qi Li, Xin-Yu Dai, Yujia Qin, Rui-Zhao, and Zhiyong-Wu. 2024. ScreenSpot-Pro: A bench-mark for fine-grained GUI grounding in professional soft-ware. arXiv preprint , arXiv:2407.02078. Boyuan Zheng, Boyu Gou, Jinyi Zheng, Huan Wang, Cheng Wang, Weixin Yao, Mengjiao Wang, Kaixin Zheng, Huan Sun, and Yu Su. 2024a. GPT-4v(ision) is a generalist web agent, if grounded. In Proceedings of the International Conference on Machine Learning .Yatong Zheng, Zixuan Li, Ruixiang Zhang, Hong-Quankreston Tran, Haoxuan You, Xiao-Yong Wei, Yujia Qin, Xin-Yu Dai, Shwai He, Rui-Zhao, Yidong-Wang, Xing-Xie, and Zhiyong-Wu. 2024b. GUI-Robust: A benchmark for evaluating GUI agents’ robustness. 
+
+arXiv preprint , arXiv:2407.03901. Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Yonatan Bisk, Daniel Fried, Uri Alon, and 1 others. 2023. WebArena: A realistic web environment for building autonomous agents. arXiv preprint , arXiv:2307.13854. 
+
+A Data Collection and Quality Control 
+
+Benchmark Composition. FineState-Bench (FineState-Static) contains 2,209 instances across Desktop (810), Web (701), and Mobile (698). Each instance includes a screenshot, an instruction that specifies an exact target state, fine-grained state labels, and geometric annotations (dual bounding boxes). All coordinates are normalized to [0 , 1] .
+
+Construction Pipeline. We curate the bench-mark through LVLM-based pre-filtering and man-ual verification, following a five-step pipeline: (1) Filtering from dataset: use an LVLM to pre-filter candidates with non-trivial state changes from OS-Atlas; (2) Manual screenshot supplementation: add missing but representative interaction patterns to ensure coverage of all component types; (3) Hu-man annotation: annotate dual bounding boxes and state labels; (4) LLM-assisted drafting: draft can-didate instruction–state pairs, then refine them to enforce exact target states; (5) Manual verification: validate instruction state consistency and bounding box quality, and remove ambiguous or noisy cases. 
+
+Interaction Taxonomy: 23 Component Types. 
+
+We group all tasks into four interaction families, covering 23 UI component subtypes (IDs follow the main paper taxonomy). A. Numerical and Range Adjustment (5). A1 Slider: drag along a track to reach a numeric value; A2 Knob: rotate to adjust a scalar value; A3 Step-per: click +/- to change a discrete value; A4 Seek Bar: scrub progress/time to a precise position; A5 Chart Point: select a specific point/value on a chart. B. Toggle and Option Selection (6). B1 Switch: binary on/off toggle; B2 Check Box: checked/unchecked (often multi-select); B3 Ra-dio Group: choose exactly one option; B4 Tabs: switch active tab; B5 Segmented: choose a seg-ment in a segmented control; B6 Accordion: ex-pand/collapse a section. C. Specific Data-type Selection (5). C1 Rating: pick an ordinal rating (e.g., stars); C2 Color Picker: select an exact color (RGB/hex); C3 Date Picker: choose a specific date; C4 Time Picker: choose a specific time; C5 List Box: select an item from a list/dropdown. D. Content Organization and View Manipulation (7). D1 Drag Reorder: drag items to change order-ing; D2 Zoom Pan: zoom/pan a canvas/map to a target view; D3 Resizable Pane: drag a pane edge to resize; D4 Carousel: switch the active card/page by swiping/scrolling; D5 Tree View: expand/col-lapse/select hierarchical nodes; D6 Splitter: drag a divider to adjust layout ratio; D7 Table Column: operate on columns (e.g., reorder/resize/sort). 
+
+Component Type Distribution. Figure 9 re-ports the number of tasks for each of the 23 com-ponent subtypes. The distribution is long-tailed: A1 Slider is the most frequent (291), followed by C5 List Box/Dropdown (138) and B1 Switch (129). Precise selection/adjustment interactions such as A5 Chart Point (115) and C3 Date Picker (115) are also well represented, along with B2 Check-box (112) and B3 Radio Button (108). Meanwhile, rarer interactions such as D4 Carousel (40), B5 Segmented (47), and D6 Splitter (53) are intention-ally included to ensure coverage across the full tax-onomy. 0 50 100 150 200 250 300 
+
+Number of Tasks 
+
+> A1Slider100
+> C5ListboxDropdown60
+> B1Switch40
+> A5ChartPoint40
+> C3DatePicker40
+> B2Checkbox40
+> B3RadioGroup40
+> C2ColorPicker40
+> D1DragReorder30
+> A3Stepper30
+> D2ZoomPan30
+> D3ResizablePane25
+> A2Knob30
+> B4Tabs30
+> C4TimePicker30
+> C1Rating30
+> D7TableColumn15
+> B6Accordion25
+> A4SeekBar40
+> D5TreeView20
+> D6Splitter15
+> B5Segmented25
+> D4Carousel25
+> 291
+> 138
+> 129
+> 115
+> 115
+> 112
+> 108
+> 97
+> 91
+> 89
+> 89
+> 89
+> 87
+> 86
+> 81
+> 80
+> 78
+> 77
+> 60
+> 57
+> 53
+> 47
+> 40
+
+Figure 7: Task distribution over the 23 UI component subtypes in FineState-Bench. 
+
+B System Prompts 
+
+Placeholders and Conventions. In all prompts below, placeholders in curly braces instruction are runtime-filled fields. IMAGE] denotes the screen-shot input. All coordinates are normalized to [0 , 1] .
+
+B.1 Base System Prompts B.1.1 General GUI Agent Prompt 
+
+You are a GUI automation agent. Input: one screenshot [IMAGE] and one instruction. Task: return the first interaction point on the target UI control. Rules: - Exact target-state matching (no approximation). - No iterative trial-and-error or multi-step refinement. Output only one point: [x, y] (normalized to [0, 1]) B.1.2 Enhanced Prompt with Component Information 
+
+You are a GUI agent for fine-grained state setting. Instruction: {instruction} Target component: {component_name} Component type: {component_type} Current state: {current_state} Target state: {target_state} Output only: [x, y] 
+
+B.2 Model-Specific Prompts B.2.1 Shared user template (default) 
+
+[IMAGE] Instruction: {instruction} Target: change {component_name} from {current_state} to {target_state} Return only: [x, y] 
+
+B.2.2 Closed-Source Models GPT-4o. 
+
+SYSTEM_PROMPT = """ You are GPT-4o for GUI automation. Given [IMAGE] and an instruction, return the first interaction point [x, y] in [0, 1]. Output only: [x, y] """ 
+
+Claude-3.5-Sonnet. 
+
+SYSTEM_PROMPT = """ You are Claude for precise GUI interaction. Given [IMAGE] and an instruction, return the first interaction point [x, y] in [0, 1]. Output only: [x, y] """ 
+
+Gemini-2.5-Flash. 
+
+SYSTEM_PROMPT = """ You are Gemini for GUI automation. Given [IMAGE] and an instruction, return the first interaction point [x, y] in [0, 1]. Constraint: exact target-state matching. Output only: [x, y] """ 
+
+B.2.3 Open-Source Models OS-Atlas-7B. 
+
+SYSTEM_PROMPT = """ You are OS-Atlas, a GUI-specialized vision-language model. Given [IMAGE] and an instruction, return the first interaction point [x, y] in [0, 1] to satisfy the exact state requirement. Output only: [x, y] """ 
+
+ShowUI-2B. 
+
+SYSTEM_PROMPT = """ You are ShowUI for GUI interaction. Focus: accurate UI grounding under a single-point protocol. Output only: [x, y] """ 
+
+B.3 VDA-Enhanced Prompts and Additional Analyses VDA in FineState-Bench. VDA follows the two-step describe-then-localize procedure under the tar-get instruction I1: The Describe step generates a structured Description of the target UI element for internal disambiguation; The Localize step pre-dicts a tight Localization Hint ˆB1 ∈ [0 , 1] 4 in nor-malized coordinates, and only ˆB1 is appended to the agent input when predicting p1.
+
+B.3.1 Describe Step: Description Generation 
+
+VDA_DESCRIPTION_PROMPT = """ Analyze [IMAGE] and describe the target UI control. Instruction: {instruction} Include: 1) Functional role + visible state (if present) 2) Discriminative visual cues 3) Spatial relations to nearby anchors Return a short description. """ 
+
+B.3.2 Localize Step: Localization Hint Prediction (BBox Output) 
+
+VDA_LOCALIZATION_PROMPT = """ Predict a tight bounding box for the interactable core. Instruction: {instruction} Description: {description} Target state: {target_state} Output only: [x1, y1, x2, y2] (normalized to [0, 1]) """ 
+
+B.3.3 Three Cross-Platform Examples Example 1 (Desktop, A1 Slider). Instruction: Adjust the volume slider to 77.7%. Current -> Target: 45.2% -> 77.7% Stage-1 (description): Horizontal slider labeled "Volume"; knob on the track. Stage-2 (bbox_int): [0.727, 0.550, 0.749, 0.583] Final click point (bbox center): [0.738, 0.567] 
+
+Example 2 (Web, C3 Date Picker). 
+
+Instruction: Select December 25, 2024 from the date picker. Current -> Target: 2024-11-30 -> 2024-12-25 Stage-1 (description): Calendar widget; target is the day cell "25" in Dec 2024. Stage-2 (bbox_int): [0.456, 0.345, 0.478, 0.378] Final click point (bbox center): [0.467, 0.361] 
+
+Example 3 (Mobile, B1 Switch). 
+
+Instruction: Turn on notifications. Current -> Target: OFF -> ON Stage-1 (description): A switch control on the right of the "Notifications" row. Stage-2 (bbox_int): [0.156, 0.478, 0.189, 0.512] Final click point (bbox center): [0.172, 0.495] 
+
+C Supplementary Results for Fig. 6: Locate vs. IntLoc 
+
+Table 7 provides the component-level numbers un-derlying the aggregate trends in Fig. 6. For each UI component category, we report Locate ( p1 ∈ Bloc )and Interact ( p1 ∈ Bint and s1(c∗) = sgoal ) suc-cess rates under the single-point protocol, enabling direct comparison of per-component difficulty and cross-model variation. Overall, Interact remains consistently lower than Locate across component types, with the largest gaps concentrated in precision-sensitive or continuous-value interactions (e.g., sliders/knob-s/seek bars and view manipulation such as zoom/-pan or splitters). Discrete selection primitives (e.g., steppers, switches, radio groups, and tabs) are comparatively more tractable and yield non-trivial Interact performance for several models. Notably, the near-zero Interact results on the C-type data selection family (rating/color/date/time/-dropdown) highlight a persistent weakness in exact data-type selection under exact-state verification. Locate: Show the position on the line chart for September.       
+
+> "Locate box": [0.27,0.19,0.91,0.93]
+> Interact: Drag it to the vertical axis value of approximately 55.
+> "Interact box": [0.68,0.36,0.71,0.40]
+> 1. Component Description: A point on a line graph showing the value 48 in September,
+> marked with an orange dot and yellow indicator
+> 2. Interaction Coordinates: [0.792, 0.183]
+> 3. Reasoning: The x-coordinate of 0.792 represents September's position on the timeline,
+> while the y-coordinate of 0.183 represents the height of the 48-unit point relative to the
+> graph's scale. "
+> 1. Component Description: A line graph showing monthly water and electricity expenses,
+> with interactive data points along the line.
+> 2. Interaction Coordinates: [0.750, 0.167]
+> 3. Reasoning: I've calculated the position at approximately 0.750 horizontally (around
+> September position) and 0.167 vertically (55 units from bottom on a 60-unit scale) ."
+
+Figure 8: Representative failure cases and diagnostic analysis on FineState-Static. 
+
+D Annotation Reliability 
+
+To improve reproducibility, we provide additional details on how exact state is measured and recorded for each component family, as well as the qual-ity control procedures used during annotation, in-cluding spot checks, re-annotation, and adjudica-tion. To quantify annotation reliability, we con-ducted a small-scale double-annotation study. We randomly sampled a stratified subset of N = 200 
+
+SR@Loc SR@Int Diagnosis 
+
+0 0/1 Control grounding failure : the agent fails to identify the target control in the current UI. 1 0 Interactable-core miss (precision failure) : the agent finds the right control but places p1 outside the state-changing core. 1 1 Check exact state : if ES-SR@Int = 0 , it is a 
+
+state-setting error beyond core localization ; if ES-SR@Int = 1 , the exact goal state is achieved. 
+
+Table 5: Rule-of-thumb diagnosis using FineState-Metrics. Metric Result 
+
+Box agreement (IoU, median) locate box 83.5% Box agreement (IoU, median) interactable-core box 68.0% Goal-state agreement (exact match) overall 97.5% Goal-state agreement categorical components 93.0% Goal-state agreement numeric components 88.5% Disagreement rate requiring adjudication 6.7% 
+
+Table 6: Double-annotation reliability results on a strat-ified subset of 200 instances. 
+
+instances across platforms and component types. Two annotators independently labeled the locate box, interactable-core box, and goal-state label. The results are summarized in Table 6. These re-sults provide direct evidence that the fine-grained annotations are sufficiently reliable for evaluation and diagnostic analysis. 
+
+E Failure Cases 
+
+Failures in FineState-Bench primarily occur dur-ing the transition from coarse localization to interactable-core grounding, where agents success-fully identify the target component but miss the pre-cise state-changing region. As illustrated in Fig. 9 and Fig. 8, even a minor coordinate offset on dense professional interfaces can prevent the agent from reaching the exact target state. Locate: Locate the currently selected item in the left vertical column .     
+
+> 1. Component Description: The "SUMMARY" item in the left vertical column,
+> which appears to be the currently selected item.
+> 2. Interaction Coordinates: [0.230, 0.220].
+> 3. Reasoning: The instruction asks to locate the currently selected item in
+> the left vertical column. "SUMMARY" is highlighted with a blue background,
+> indicating it is the selected item. The coordinates point to the approximate
+> center of this highlighted element.
+> “Locate box": [0.19,0.28,0.32,0.95]
+> Interact: Click the 'BNB' item in the left vertical column.
+> 1. Component Description: The 'BNB' stock ticker item in the left-hand column.
+> 2. Interaction Coordinates: [0.207, 0.583].
+> 3. Reasoning: This coordinate targets the center of the 'BNB' text and its
+> associated data within the vertical list of suggested stocks.
+> “Interact box": [0.20,0.53,0.32,0.57]
+
+Figure 9: Representative failure cases and diagnostic analysis on FineState-Static. 
+
+F Metric Interpretation and Failure Attribution Rules 
+
+What each metric measures. SR@Loc mea-sures component-level grounding: whether the agent identifies the target control in the current UI by placing p0 inside the control’s visible ex-tent B0
+
+loc . SR@Int measures interactable-core grounding and point precision: whether the goal-directed operation point p1 hits the state-changing core region B0
+
+int , which is particularly critical for precision-sensitive continuous controls (e.g., slid-ers, seek bars, and pickers). ES-SR@Loc and ES-SR@Int additionally require exact goal-state attain-ment ( s1(c∗) = sgoal ). Importantly, ES-SR@Loc conditions on the target-configuration locate box (B1
+
+loc ) to check control identity consistency un-der potential layout changes, whereas ES-SR@Int conditions on the target-configuration interact box (B1
+
+int ) to check goal-directed core grounding for ex-act state setting. Component Claude-3.5-Sonnet ShowUI-2B UGround-V1-7B OS-Atlas-Base-7B SR@Loc SR@Int SR@Loc SR@Int SR@Loc SR@Int SR@Loc SR@Int 
+
+A. Numerical and Range Adjustment 
+
+A1 Slider 23.2 3.2 3.2 0.0 82.1 0.0 49.5 2.1 A2 Knob 31.0 0.0 55.2 0.0 65.5 0.0 69.0 6.9 A3 Stepper 16.7 0.0 20.0 6.7 96.7 80.0 76.7 33.3 A4 SeekBar 0.0 0.0 0.0 0.0 25.0 0.0 62.5 0.0 A5 ChartPoint 84.2 0.0 68.4 0.0 73.7 0.0 78.9 2.6 
+
+B. Toggle and Option Selection 
+
+B1 Switch 10.3 12.8 17.9 12.8 64.1 71.8 71.8 48.7 B2 Checkbox 25.0 0.0 36.1 0.0 72.2 30.6 66.7 13.9 B3 RadioGroup 67.6 23.5 35.3 14.7 67.6 61.8 70.6 52.9 B4 Tabs 30.0 10.0 46.7 36.7 66.7 80.0 76.7 60.0 B5 Segmented 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 B6 Accordion 17.4 0.0 8.7 0.0 95.7 4.3 69.6 4.3 
+
+C. Specific Data-type Selection 
+
+C1 Rating 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C2 ColorPicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C3 DatePicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C4 TimePicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C5 Dropdown 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 
+
+D. Content Organization and View Manipulation 
+
+D1 DragReorder 46.7 16.7 33.3 0.0 73.3 6.7 80.0 0.0 D2 ZoomPan 25.0 14.3 17.9 21.4 35.7 35.7 64.3 17.9 D3 ResizablePane 36.0 0.0 28.0 0.0 28.0 0.0 8.0 0.0 D4 Carousel 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 D5 TreeView 11.8 6.2 29.4 6.2 88.2 6.2 52.9 12.5 D6 Splitter 46.7 6.7 13.3 20.0 40.0 6.7 20.0 0.0 D7 TableColumn 26.7 33.3 40.0 0.0 13.3 0.0 46.7 0.0 (a) Closed-source / vision GUI baselines. Component Gemini-2.5-Flash GPT-4o CogAgent-9B MobileVLM-V2-7B SR@Loc SR@Int SR@Loc SR@Int SR@Loc SR@Int SR@Loc SR@Int 
+
+A. Numerical and Range Adjustment 
+
+A1 Slider 54.7 11.6 34.7 4.2 5.3 0.0 0.0 0.0 A2 Knob 65.5 0.0 34.5 0.0 44.8 0.0 44.8 0.0 A3 Stepper 80.0 70.0 16.7 0.0 10.0 0.0 16.7 0.0 A4 SeekBar 68.8 0.0 18.8 0.0 0.0 0.0 0.0 0.0 A5 ChartPoint 81.6 2.6 78.9 0.0 57.9 0.0 76.3 0.0 
+
+B. Toggle and Option Selection 
+
+B1 Switch 66.7 53.8 17.9 10.3 10.3 0.0 12.8 0.0 B2 Checkbox 69.4 22.2 41.7 8.3 2.8 0.0 11.1 0.0 B3 RadioGroup 91.2 67.6 64.7 11.8 50.0 2.9 32.4 5.9 B4 Tabs 93.3 56.7 93.3 40.0 0.0 0.0 0.0 0.0 B5 Segmented 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 B6 Accordion 52.2 4.3 30.4 8.7 13.0 0.0 4.3 0.0 
+
+C. Specific Data-type Selection 
+
+C1 Rating 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C2 ColorPicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C3 DatePicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C4 TimePicker 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 C5 Dropdown 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 
+
+D. Content Organization and View Manipulation 
+
+D1 DragReorder 70.0 3.3 46.7 10.0 40.0 3.3 43.3 0.0 D2 ZoomPan 42.9 32.1 28.6 17.9 17.9 14.3 10.7 25.0 D3 ResizablePane 32.0 0.0 32.0 0.0 52.0 0.0 44.0 0.0 D4 Carousel 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 D5 TreeView 41.2 6.2 35.3 12.5 0.0 0.0 0.0 0.0 D6 Splitter 46.7 0.0 33.3 6.7 46.7 0.0 26.7 20.0 D7 TableColumn 40.0 0.0 0.0 0.0 66.7 6.7 53.3 0.0 (b) Additional baselines. 
+
+Table 7: Component-wise SR@Loc vs. SR@Int success rates (%).
