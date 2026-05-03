@@ -1,0 +1,749 @@
+Title: AgentEconomist: An End-to-end Agentic System Translating Economic Intuitions into Executable Computational Experiments
+
+URL Source: https://arxiv.org/pdf/2604.27725v1
+
+Published Time: Fri, 01 May 2026 00:50:10 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# AgentEconomist: An End-to-end Agentic System Translating Economic Intuitions into Executable Computational Experiments 
+
+# Jiaju Chen ∗
+
+cjj01@mail.ustc.edu.cn Zhongguancun Academy Beijing, China University of Science and Technology of China Hefei, China 
+
+# Jinghua Piao ∗
+
+pjh22@mails.tsinghua.edu.cn Zhongguancun Academy Beijing, China Department of Electronic Engineering, Tsinghua University Beijing, China 
+
+# Xia Xu 
+
+s-xx25@bza.edu.cn Zhongguancun Academy Beijing, China 
+
+# Songwei Li 
+
+lisw21@mails.tsinghua.edu.cn Zhongguancun Academy Beijing, China Department of Electronic Engineering, Tsinghua University Beijing, China 
+
+# Tong Xia 
+
+Tongxia@tsinghua.edu.cn Zhongguancun Academy Beijing, China Vanke School of Public Health, Tsinghua University Beijing, China 
+
+# Xiangnan He †
+
+xiangnanhe@gmail.com Zhongguancun Academy Beijing, China University of Science and Technology of China Hefei, China 
+
+# Yong Li †
+
+liyong07@tsinghua.edu.cn Zhongguancun Academy Beijing, China Department of Electronic Engineering, Tsinghua University Beijing, China 
+
+## Abstract 
+
+A long-standing challenge in economics lies not in the lack of in-tuition, but in the difficulty of translating intuitive insights into verifiable research. To address this challenge, we introduce Agen-tEconomist , an end-to-end interactive system designed to trans-late abstract intuitions into executable computational experiments. Grounded in a domain-specific knowledge base covering over 13,000 high-quality academic papers, the system employs a modular multi-stage architecture. Specifically, the Idea Development Stage gener-ates literature-grounded hypotheses, the Experimental Design Stage configures simulator-aligned experimental parameters and proto-cols, and the Experimental Execution Stage runs experiments and returns structured analyses. Together, these stages form a human-in-the-loop, iterative workflow that translates economic intuitions 
+
+> ∗
+
+Equal contribution. 
+
+> †
+
+Corresponding authors. Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org. 
+
+Conference acronym ’XX, Woodstock, NY 
+
+© 2018 Copyright held by the owner/author(s). Publication rights licensed to ACM. ACM ISBN 978-1-4503-XXXX-X/2018/06 https://doi.org/XXXXXXX.XXXXXXX 
+
+into executable computational experiments. Through extensive ex-periments involving human expert evaluation and large language models (LLMs) as judges, we show that the system generates re-search ideas with stronger literature grounding and higher novelty and insight than state-of-the-art generic LLMs. Overall, AgentE-conomist adopts a human-AI collaboration paradigm that enables researchers to focus on high-level intuitions, while delegating the labor-intensive processes of translation and computational execu-tion to agents. 
+
+## CCS Concepts 
+
+• Human-centered computing → Interactive systems and tools ; Empirical studies in HCI .
+
+## Keywords 
+
+human-AI collaboration, AI-assisted research, LLM agents, interac-tive systems, economic simulation 
+
+ACM Reference Format: 
+
+Jiaju Chen, Jinghua Piao, Xia Xu, Songwei Li, Tong Xia, Xiangnan He, and Yong Li. 2018. AgentEconomist: An End-to-end Agentic System Trans-lating Economic Intuitions into Executable Computational Experiments. In 
+
+Proceedings of Make sure to enter the correct conference title from your rights confirmation email (Conference acronym ’XX). ACM, New York, NY, USA, 15 pages. https://doi.org/XXXXXXX.XXXXXXX  
+
+> arXiv:2604.27725v1 [cs.HC] 30 Apr 2026 Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. ~minutes
+> ~minutes
+
+(a) Traditional Research Workflow 
+
+(b) AgentEconomist Workflow     
+
+> ~days ~months
+> Intuition Idea
+> Development
+> Pilot
+> Experiments
+> ~minutes ~hours
+> Intuition Idea
+> Development
+> ABM -based
+> Simulation
+
+Figure 1: Comparison of economic research workflows. (a) In traditional workflows, translating intuition into pilot exper-iments involves slow and resource-intensive idea develop-ment and experimentation cycles. (b) AgentEconomist short-ens the intuition-to-simulation loop by supporting rapid idea development and agent-based simulation, enabling faster hy-pothesis verification. 
+
+## 1 Introduction 
+
+Scientific research often begins with a spark of intuition, a pre-formal, qualitative understanding of how underlying mechanisms in the world function, which serves as the starting point of any formal ideas and hypotheses [ 20 , 21 ]. In economics, such intuitions typically concern how agents respond to incentives [ 2], how in-stitutions shape behavior [ 19 ], and how these interactions give rise to macro-level outcomes [ 25 ]. To move beyond mere conjec-ture, economists traditionally rely on theoretical derivation [ 24 ]or field experiments [ 4, 11 ]. However, as illustrated in Figure 1, this traditional workflow is inherently slow and resource-intensive, thereby limiting the scope of ideas a researcher can explore. Com-putational experiments, based on agent-based modeling (ABM), are a well-established methodology in economics and finance for simulation-based analysis [ 6, 15 , 31 ] and are frequently employed in teaching to convey complex economic mechanisms [ 5, 23 , 32 ]. Yet, while such simulation environments provide a powerful medium for verifying economic insights, their inherent complexity often hinders their practical feasibility in research workflows [1]. This barrier between intuition and computational experiments manifests in three distinct dimensions in traditional modeling work-flows. First, the process of idea development is often implicit. Novices struggle to systematize their intuition into concrete modeling choices because key methodological knowledge—such as selecting plausi-ble mechanisms or assumptions—remains “tacit knowledge” locked in the minds of experts, rarely explicit in textbooks. Second, turn-ing an idea into a computational experiment is itself challenging. Even when a researcher possesses a clear idea, translating it into an executable simulation experiments involves navigating complex codebases, creating a friction that slows down hypothesis testing. Third, and perhaps most critically, the research process lacks sys-tematic experience accumulation. Scientific discovery is an iterative path of refinement, yet the rationale behind specific iterations, why a parameter was tweaked or a hypothesis rejected, is poorly orga-nized alongside the simulation experiments. This loss of epistemic context forces researchers to rely on fragmented memory rather than a structured history of inquiry, making it difficult to learn from past failures or incrementally refine ideas. Recent advances in leveraging LLM agents for autonomous knowledge discovery have attempted to streamline scientific work-flows, yet they reveal substantial limitations when assisting re-searchers in such complex domains. First, existing efforts often target isolated stages, e.g., optimizing either hypothesis genera-tion [ 9] or code execution [ 30 ], rather than supporting the seamless workflow required to link literature to simulation. Second, holistic frameworks like The AI Scientist [ 17 ] tend to prioritize “outcome automation” (e.g., generating a final manuscript) over “process sup-port”. By treating research as a black box to be automated, they neglect the critical need for sense-making : helping researchers struc-ture their thinking and understand the “why” behind modeling de-cisions. Finally, current systems largely pursue generic applicability at the expense of domain depth, lacking the specific grounding re-quired for economics, where research is deeply rooted in theoretical frameworks and institutional constraints. To address these challenges, we focus on economics as a repre-sentative domain and introduce AgentEconomist , an end-to-end interactive research copilot for economic simulation. Built on top of AgentEconomy, a comprehensive agent-based economic simu-lator, AgentEconomist is designed to support the entire intuition-to-experiment workflow rather than replacing the researcher. Cru-cially, the system grounds idea development in a large-scale corpus of economic literature, leveraging over 13,000 academic papers from top-tier journals to make tacit theoretical knowledge explicit and accessible. The workflow is decomposed into three specialized stages. The Idea Development Stage supports literature-grounded sense-making by retrieving relevant economic studies and synthe-sizing mechanisms, assumptions, and variables. The Experimental Design Stage formalizes these ideas into testable hypotheses and executable experiment specifications. The Experimental Execution Stage operationalizes the design by running simulations and return-ing structured results. To support continuity and reliable execution, we introduce a Structured Memory module that preserves theoreti-cal context, experimental decisions, and outcomes across iterations, and an MCP-based toolbox that standardizes simulator interaction for configuration, execution, and result collection. Evaluating such open-ended research assistants presents a unique challenge, as standard benchmarks cannot capture the nuance of sci-entific reasoning. Therefore, we design a rigorous mixed-methods evaluation protocol . First, to assess the quality of Idea Genera-tion, we employ a dual-evaluation framework where both advanced LLMs and human experts score generated hypotheses across eight distinct dimensions (e.g., economic soundness, novelty, and feasibil-ity). Second, to validate the system’s utility in real-world workflows, we conduct a holistic user study. Through questionnaires and semi-structured interviews, we gather qualitative feedback on the re-searchers’ experience, focusing on how the system affects their cog-nitive load, sense of agency, and overall research efficiency. Third, to validate end-to-end scientific usefulness, we report a real-session case study showing that the system can generate interpretable, mechanism-consistent findings from user-posed intuitions. Across these protocols, our results show that AgentEconomist consistently outperforms strong baselines on the core dimensions of hypothesis novelty and literature grounding, while also producing hypotheses AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+that are more readily operationalizable in simulation-based settings. We have released our code. 1 The primary contributions of this work include: 
+
+• A human-AI collaboration workflow for bridging the intuition-execution gap. We conceptualize the translation of economic in-tuition into computational experiments as a collaborative process. By explicitly modeling the transition from implicit sense-making to operational execution, we provide a structured workflow that lowers the technical barriers for economic modeling. 
+
+• An end-to-end system architecture for grounded experi-mentation. We introduce AgentEconomist , a unified system that integrates a retrieval-augmented knowledge base with special-ized agents. This design ensures that generated hypotheses are theoretically sound and that designed experiments are executable, forming a closed loop for iterative discovery. 
+
+• Empirical validation via mixed-methods assessment and case study evidence. We conduct quantitative evaluations across 8 quality dimensions, qualitative user interviews, and an end-to-end real-session case study, demonstrating that AgentEconomist effectively produces higher-quality research ideas, reveals inter-pretable scientific phenomena, and significantly streamlines the research workflow. 
+
+## 2 Related Works 2.1 Task-Specific Scientific Assistants 
+
+Recent research has focused on augmenting specific stages of the research lifecycle. In the realm of data management and deep re-search [ 14 ], specific systems like ChatPD [35 ] and SciSciGPT [27 ]have emerged to automate dataset discovery and literature analy-sis, though benchmarks like DATASETRESEARCH [ 16 ] reveal that current agents still struggle significantly with out-of-distribution dataset demands. For ideation, methods have evolved from iterative prompting [ 9 ] to multi-agent frameworks like VIRSCI [ 29 ], which simulate team collaboration to enhance idea novelty. In the evalu-ation phase, approaches vary by technical architecture: ReviewRL 
+
+[ 37 ] employs reinforcement learning to optimize feedback quality, while ReviewAgents [ 8] and DeepReview [ 38 ] utilize multi-agent collaboration and chain-of-thought reasoning to bridge the gap with human peer reviews. Crucially, however, assessments like Ide-aBench [ 10 ] expose a paradox: while LLMs generate highly novel ideas, they often lack practical feasibility. This highlights a limi-tation of such “open-loop” tools: they produce concepts without the agency to validate them. In contrast, AgentEconomist bridges this gap by coupling literature-grounded ideation with an execu-tion toolbox, ensuring abstract intuitions are operationalized into testable simulations. More specifically, unlike general-purpose as-sistants that rely on broad web-scale retrieval or generic priors, our framework grounds hypothesis formulation and experiment design in a curated, indexed economics corpus. 
+
+## 2.2 Autonomous Research Systems 
+
+A parallel stream of work aims to replicate the full role of a hu-man researcher through end-to-end automation [ 13 ]. Building on the code-generation capabilities of The AI Scientist [17 ], recent 
+
+> 1https://github.com/Jiaju-Chen/AgentEconomist
+
+systems have achieved significant breakthroughs: CycleResearcher 
+
+[ 33 ] introduced a closed-loop “research-review-revise” mechanism, while DeepScientist [34 ] incorporated Bayesian optimization for long-term discovery. To support these autonomous agents, infras-tructure like ToolUniverse [7] has emerged to standardize tool us-age. Furthermore, recognizing the complexity of scientific inquiry, frameworks like OmniScientist [26 ] and MirrorMind [ 36 ] have ex-panded this vision by integrating diverse agents to model profes-sional research workflows and collaborative reasoning. However, critical gaps remain when applying these generalist systems to economic inquiry. Existing models often function as black boxes that prioritize outcome automation over process support, denying novices the opportunity for sense-making. Moreover, they lack the deep domain grounding required to map theoretical constructs to high-dimensional simulation parameters. To address this, AgentE-conomist positions itself as an interactive co-pilot grounded in a spe-cialized knowledge base of over 13k academic papers. By coupling domain depth with rigorous execution, it ensures that scientific discovery remains a transparent, human-aligned process. Crucially, our primary differentiator is tight coupling to an executable simu-lation substrate: the system maps hypotheses to concrete simulator parameters, checks feasibility constraints before plan finalization, executes controlled runs, and returns comparable outcomes rather than stopping at ideation or draft plans. In addition, we maintain a manifest-based structured memory that records retrieved paper IDs, parameter choices, configuration artifacts, and execution outputs, enabling traceable multi-round refinement beyond unstructured conversational context. 
+
+## 3 Method 3.1 Design Rationale: Human–Agent Complementarity 
+
+Economic research involves heterogeneous cognitive demands. Hu-man researchers excel at forming high-level intuitions, exercising normative judgment, and deciding when an explanation or result is sufficient. In contrast, transforming these intuitions into executable experiments requires systematic literature grounding, formal speci-fication, and reliable execution—tasks that are labor-intensive and error-prone when performed manually. AgentEconomist is designed around this complementarity. The system assigns abstraction, judgment, and goal-setting to the hu-man researcher, while delegating literature-grounded sense-making, experiment formalization, and execution management to automated components. This separation allows each part of the workflow to be handled by the entity best suited for it, while preserving human control over research direction and interpretation. 
+
+## 3.2 The AgentEconomist Framework 
+
+Building on the design rationale above, we introduce the Agen-tEconomist framework shown in Figure 2. The framework opera-tionalizes the intuition-to-experiment workflow through a modular multi-stage architecture, supported by a shared infrastructure layer. 
+
+3.2.1 Agent Core. The cognitive workflow is decomposed into three specialized stages corresponding to key phases of economic research: Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. Experimental 
+
+Design 
+
+Experimental 
+
+Execution 
+
+Agent Economy  
+
+> get_parameter_info reset_config
+
+MCP -based Toolbox 
+
+> Experiment
+> Specification
+> Tool Calling
+> Execution
+
+Human 
+
+Researcher 
+
+Real -World Knowledge 
+
+> Science Nature
+> QJE AER
+
+Structured Memory Module          
+
+> ØTheoretical Context
+> ØExperiment Specifications
+> ØExecution Trace
+> ØSynthesized Insights
+> run_simulation analyze_results
+> Knowledge Retrieval Write /Read
+
+Idea 
+
+Development 
+
+> Research
+> Concept
+> Feedback
+> Commands
+> Human -in -the -loop Interaction
+> Primary Agent Workflow
+> Tool Calling / Data Passing
+
+## AgentEconomist 
+
+Figure 2: Overview of the AgentEconomist framework. The system structures the intuition-to-experiment process into three stages: literature-grounded idea development, experimental design formalization, and experimental execution. These stages are handled by specialized designs that coordinate through a structured memory module and interact with the simulator via an MCP-based toolbox, while keeping the human researcher in the loop. 
+
+• Idea Development Stage. This stage starts from a user-provided coarse intuition and performs literature-grounded sense-making with feasibility awareness. It retrieves relevant evidence via retrieval-augmented generation (RAG), proposes candidate hypotheses, and checks executable simulation parameters from AgentEcon-omy to assess operationalizability. To enforce methodological va-lidity, hypothesis generation is constrained by a capability bound-ary: all claims must be expressible through simulator-supported variables and interventions. We adopt a parameter-first strategy in this stage, requiring the agent to map intuition into imple-mentable parameter candidates before forming causal hypoth-esis statements. The stage then yields either a refined, testable hypothesis with mechanism-consistent expected outcomes, or a structured feasibility diagnosis that highlights violated con-straints and guides user revision. If no executable hypothesis can be produced under current simulator constraints, the agent must explicitly report why generation fails (e.g., missing vari-ables, unsupported interventions, or inconsistent assumptions) and provide a minimal, clearly labeled proxy direction for user revision. 
+
+• Experimental Design Stage. Building on the validated hypoth-esis, this stage formalizes the study into simulator-ready spec-ifications. It maps hypotheses to concrete configurations, de-fines experiment structures (e.g., control/treatment groups, multi-condition settings, and hyperparameter sweeps), and aligns eval-uation metrics with simulation semantics. To preserve identifia-bility, each experimental condition is constrained to modify only the minimum necessary variables, reducing multi-mechanism confounding across groups. The stage also enforces metric align-ment: each hypothesized dependent variable must be mapped to explicitly computable simulator metrics rather than qualitative or generic statements. The resulting design specifies parameter settings, group structure, run plans, and metric definitions for downstream execution. 
+
+• Experimental Execution Stage. Given the formalized design, this stage operationalizes experiments through the MCP-based toolbox over AgentEconomy. It handles configuration, execution-state management, and run-time trace collection, and returns structured logs together with metric-aligned visualized outputs. For reproducibility, executions use fixed random seeds, and each result artifact is bound to its versioned configuration. For trace-ability, the stage records input configurations, execution states, error categories, and result summaries as structured logs. To pre-vent over-interpretation, reporting is restricted to pre-registered metrics and does not extend to subjective policy narratives. These AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+artifacts support direct interpretation and iterative follow-up in subsequent research cycles. 
+
+3.2.2 Agent Infrastructure. The agent core is supported by three foundational infrastructure components that ensure grounding, continuity, and reliable execution: 
+
+• Real-World Knowledge Base. To support literature-grounded reasoning, we construct a domain-specific RAG pipeline over a vector database containing over 13,000 academic papers from top-tier economics and interdisciplinary journals. For each paper, we chunk the abstract and introduction, encode chunks with citation-informed SPECTER2 embeddings[ 28 ] (768 dimensions), and index them using cosine similarity retrieval. We further apply metadata filtering (e.g., publication year and venue) and maintain manifest logs of retrieved paper IDs to ensure traceability and reproducibility. Retrieved evidence supports both idea develop-ment and experimental design by making relevant mechanisms, assumptions, and empirical precedents explicit. 
+
+• Structured Memory Module. Unlike embedding-centric mem-ory systems that primarily store interaction history as dense vectors for semantic recall (e.g., Mem0 [ 3]), our setting requires precise localization of assumptions, parameter constraints, and decision rationales. Therefore, we maintain a structured textual memory that explicitly records theoretical context, experiment specifications, execution traces, and synthesized outcomes. This design supports context-preserving iteration and cumulative rea-soning across research cycles while allowing agents to directly reference exact prior decisions instead of approximate nearest-neighbor recalls. 
+
+• MCP-based Toolbox. AgentEconomist interacts with the sim-ulator through a standardized toolbox built on the Model Con-text Protocol (MCP), which provides a stable interface between language agents and executable simulation tools. The toolbox abstracts low-level simulator APIs into high-level semantic ac-tions, including parameter inspection, environment initialization, experiment configuration, job execution, status polling, log collec-tion, and result export. This abstraction reduces implementation complexity for agent planning, enforces consistent invocation patterns across iterations, and improves reliability by making execution states observable and recoverable. In addition, by stan-dardizing tool calls and returned artifacts, the MCP layer supports reproducible reruns and simplifies downstream analysis and au-diting. 
+
+## 3.3 Simulation Substrate: AgentEconomy 
+
+To support the execution and evaluation of experiments specified by AgentEconomist, we develop AgentEconomy as a computational laboratory for rapid hypothesis verification. Unlike toy models that isolate specific sectors, AgentEconomy provides a comprehensive and flexible agent-based environment designed to capture the ripple effects of economic interventions across interacting components. 
+
+Comprehensive Economic Ecosystem. The environment models a closed-loop economic system comprising four core entity types: households, firms, a government, and a bank. These entities interact through two explicitly modeled markets grounded in real-world data: 
+
+• Labor Market: Matches household skills to firm job require-ments, allowing wages and employment to emerge endogenously from supply–demand dynamics. 
+
+• Product Market: Facilitates the exchange of goods, where con-sumption is driven by heterogeneous preferences rather than stylized aggregate functions. This comprehensive coverage enables AgentEconomist to test hy-potheses involving multi-stage transmission channels, such as how policy interventions affect household outcomes through firm-level and labor-market adjustments. 
+
+Flexible LLM-Driven Behavior. Crucially, agents in AgentEcon-omy do not rely on rigid, hard-coded heuristics. Instead, they op-erate through a hybrid mechanism that combines LLM-based rea-soning with empirical grounding. Initialized with microdata (e.g., PSID profiles) to ensure realism, agents reason adaptively about decisions such as labor supply and pricing in response to changing incentives. This flexibility allows the system to simulate plausible responses to novel policy shocks (e.g., AI regulation, universal basic income) that are difficult to encode using fixed behavioral rules. 
+
+Testbed for Rapid Experimentation. By combining structural com-pleteness with behavioral flexibility, AgentEconomy functions as a high-fidelity testbed for hypothesis-driven experimentation. It exposes a rich set of tunable parameters (policy levers) and ob-servable metrics (macro-level outcomes), enabling AgentEconomist to translate abstract intuitions into concrete simulation runs and receive immediate feedback on validity and emergent phenomena. 
+
+## 3.4 Human–Agent Interaction 
+
+Figure 3 first presents the detailed page layout of the interface. The right-side Copilot panel is used for human–agent dialogue, while the left-side research canvas provides a structured view of current experiment progress; workflow tabs allow users to switch across stages. Within this layout, three core views support practical research operations: 
+
+• Experimental Ideas. This view organizes retrieved literature from the RAG pipeline together with the current research ques-tion, candidate hypotheses, and expected outcomes. 
+
+• Experimental Configuration. This view supports side-by-side parameter comparison across experiment groups (e.g., treatment vs. control), making group-level design differences explicit. 
+
+• Experimental Results. This view visualizes simulation outputs according to the selected metrics and presents corresponding numerical values in structured panels for inspection. After clarifying the page-level components, Figure 4 shows the end-to-end interaction workflow. Users enter from the homepage, provide an initial idea for idea development, and confirm a reason-able hypothesis. The system then conducts experimental design by constructing multiple experiment groups and assigning parameters to each group, followed by simulation execution and metric-based visualization. Finally, the system performs hypothesis testing: if cur-rent evidence is insufficient, it proposes new directions for iterative refinement; if the hypothesis is adequately supported, the workflow is concluded and the task is marked as complete. Throughout this process, the researcher remains in control, using the interface to guide, assess, and iterate on the inquiry. Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. Research Canvas 
+
+## Copilot Panel 
+
+Workflow Tabs 
+
+Experimental Ideas Experimental Configuration Experimental Results 
+
+Figure 3: Detailed front-end component view. The interface combines a research canvas with workflow tabs, a copilot panel for human–agent interaction, and dedicated views for experimental ideas, configuration, and results. 
+
+## 3.5 Computational Cost and Scalability 
+
+We report computational cost along two dimensions: wall-clock runtime and token consumption. For runtime, retrieval latency and LLM planning/design latency are relatively small in our implemen-tation. Retrieval relies on local vector similarity search (Qdrant with cosine), and these two stages are typically minute-level (around one minute each in common runs). Simulation is the dominant contributor to end-to-end runtime. Its duration is mainly determined by the number of households and the simulation horizon (months), and in our iterative workflow it also increases with the number of experimental iterations. For usage cost, token consumption is dominated by the Agen-tEconomy simulation engine rather than by AgentEconomist’s or-chestration turns. In our setting, AgentEconomist itself contributes relatively limited token overhead, while most tokens are consumed during simulation-time agent interactions inside AgentEconomy. Under a representative setting (5 households and 5 experimental iterations), one full workflow takes about 20 minutes, and the re-ported 500K tokens primarily correspond to AgentEconomy-side simulation consumption. In our current implementation, both run-time and total token usage scale approximately linearly with house-hold count and iteration count, indicating predictable cost growth as workload increases. AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY (a) Home Page (b) Idea Development 
+
+(c) Hypothesis Formulation (d) Experimental Design 
+
+(e) Experimental Visualization (f) Hypothesis Testing 
+
+Figure 4: The interactive research workflow of AgentEconomist, illustrating the end-to-end process from intuition input and ideation to experimental configuration, execution, visualization and hypothesis verification. 
+
+## 4 Experiments 
+
+We evaluate AgentEconomist as an end-to-end research copilot for economic simulation, focusing on whether it improves the intuition-to-experiment workflow . Our evaluation is guided by three research questions: 
+
+• RQ1: Can the system translate abstract economic intuitions into well-scoped, testable research ideas? 
+
+• RQ2: Does the system effectively ground these hypotheses in rel-evant economic literature and coherent economic mechanisms? 
+
+• RQ3: Can the system support end-to-end research workflows for user-posed questions, from intuition formulation and hypothesis refinement to executable experimentation and iterative analysis? These questions cannot be adequately evaluated using static datasets or fixed benchmarks. Economic research assistance is in-herently interactive, open-ended, and path-dependent: the quality Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. 
+
+of an experiment depends on how intuitions are refined, grounded, and operationalized over multiple turns, rather than on a single correct output. Accordingly, we adopt a mixed-methods evaluation design that combines controlled comparisons against strong LLM baselines with human-in-the-loop assessments based on real user interactions. We first describe the experimental setup and data collection pro-cedure (§4.1), then report quantitative results on hypothesis quality across multiple economic dimensions (§4.2), present a qualitative analysis of user feedback to characterize perceived trust, work-flow support, and usability limitations (§4.3), and finally provide an end-to-end case study demonstrating that the system can sur-face interpretable scientific phenomena from user-posed intuitions (§4.4). 
+
+## 4.1 Experimental Setup 
+
+Baselines. We evaluate AgentEconomist against strong general-purpose LLM baselines commonly used as standalone research assistants. Participants were allowed to use the model they con-sidered strongest for their own workflow (primarily GPT-5.2 and Gemini 3-Pro). These baselines are already highly capable and in-clude strong retrieval and information-management abilities (e.g., web retrieval and long-context memory). To reduce procedural bias, both baseline and AgentEconomist conditions were run under the same user-provided intuition and recorded with full interaction traces, following the paired protocol in Appendix §B. 
+
+Evaluation Metrics. For idea generation quality and ground-ing (RQ1/RQ2), we evaluate eight dimensions: Clarity & Structure ,
+
+Literature Grounding , Economic Logic , Mechanism Completeness ,
+
+Hypothesis Specificity , Novelty & Insight , Relevance & Significance ,and Simulation Feasibility (Appendix §A.1). For qualitative user experience analysis (RQ3), we use four dimensions: Perceived Ad-vantages , Trust and Credibility , Pain Points and Limitations , and 
+
+Role Perception (Appendix §A.3). All quality dimensions are scored with a 5-point Likert protocol (1=Very poor, 3=Acceptable, 5=Excel-lent); detailed scoring instructions are provided in Appendix §A.2. The user-side evaluation form is summarized in Appendix §B (Fig-ure 7). Consistent with the appendix rubric, quantitative scoring is explicitly restricted to hypothesis-generation content only , exclud-ing downstream plots, policy discussion, and stylistic fluency. For LLM-as-a-judge, we use the anonymous referee prompt in Appen-dix §B (Figure 8), including order-invariance, model-blindness, and a mandatory scope-compliance check. 
+
+Participants. We recruited 15 participants with backgrounds in economics, public policy, or related social science fields. This sample size is consistent with prior expert-oriented ACL/CHI eval-uations (typically around 15–20 participants) where tasks require domain expertise and extended interaction time [ 12 , 18 , 22 ]. Each participant interacted with the system by providing an economic intuition of their own choosing. The study uses a paired within-subject design: each participant evaluates both conditions under matched scenarios, improving statistical power for direct compar-ison. All participants completed a structured questionnaire; how-ever, due to incomplete submissions, only 14 participants provided full and usable interaction logs for hypothesis-level comparisons. Following the appendix protocol, required records include base-line/AgentEconomist logs, the completed 8-dimension scoring table for both systems, and open-ended responses used for grounded-theory coding. 
+
+## 4.2 Idea Quality and Grounding (RQ1 & RQ2) 
+
+This section evaluates whether AgentEconomist improves the qual-ity of generated hypotheses and their grounding in economic liter-ature. 
+
+Evaluation Protocol. To isolate hypothesis-level quality from downstream execution variability, we conduct controlled compar-isons at the hypothesis generation stage. Both AgentEconomist and baseline LLMs are prompted with identical user intuitions. Generated hypotheses are evaluated along eight dimensions cap-turing economic rigor, insight, and implementability, using both an LLM-based anonymous referee and human judgments. LLM judging follows the referee template summarized in Section B (Figure 8). For statistical testing, we use a paired, two-sided Wilcoxon signed-rank test across dimensions, which is appropriate for our within-subject design and the ordinal nature of Likert-scale ratings. 
+
+Results. Figure 5 summarizes the evaluation results. To make the comparison explicit, we jointly report score improvements and statistical significance for the two primary dimensions below. 
+
+Literature Grounding. This dimension measures whether cited theories and references are factual and contextually appropriate, whether they directly support the hypothesis, and whether hallu-cinated or weakly related citations are avoided. Under LLM-based judging, the score improves from 3.36 to 4.93, with a significant difference ( 𝑝 = 0.00195 < 0.01 ). Under human evaluation, the score improves from 3.11 to 4.50, also with a significant difference (𝑝 = 0.0117 < 0.05 ). We attribute this large gain to three system-level mechanisms: (1) retrieval-augmented generation (RAG) over a curated economics corpus, which provides concrete and domain-relevant evidence before hypothesis drafting; (2) parameter-first hypothesis construction, which forces links between literature mechanisms and simulator-executable variables; and (3) structured memory, which preserves prior rationale and reduces drift across iterations. Together, these constraints make hypotheses not only better cited, but also better anchored to the exact economic mecha-nism being tested. 
+
+Novelty & Insight. In our metric definition, this dimension evaluates whether a hypothesis goes beyond common claims and offers non-trivial, potentially counter-intuitive, or underexplored economic insight. Under LLM-based judging, the score improves from 3.00 to 4.43, with a significant difference ( 𝑝 = 0.0039 < 0.01 ). Under human evaluation, the score improves from 3.12 to 4.05, with a significant difference ( 𝑝 = 0.0185 < 0.05 ). The improvement is consistent with AgentEconomist’s interaction design: users be-gin from coarse intuitions, while the system expands candidate mechanisms through literature synthesis, then filters them with feasibility and identifiability constraints. This workflow suppresses generic “safe” statements and encourages hypotheses that are simul-taneously original and testable in simulation. In contrast, baseline models more often produce fluent but conventional hypotheses, AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Baseline Agent Economist 
+
+1
+
+2
+
+3
+
+4
+
+5
+
+> LLM Score, higher is better
+
+Clarity & Structure  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Literature Grounding  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Economic Logic  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Mechanism Completeness  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+> LLM Score, higher is better
+
+Hypothesis Specificity  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Novelty & Insight  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Relevance & Significance  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Feasibility for Modeling Baseline Agent Economist 
+
+1
+
+2
+
+3
+
+4
+
+5
+
+> User Survey Score, higher is better
+
+Clarity & Structure  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Literature Grounding  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Economic Logic  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Mechanism Completeness  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+> User Survey Score, higher is better
+
+Hypothesis Specificity  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Novelty & Insight  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Relevance & Significance  
+
+> Baseline Agent Economist
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Simulation Feasibility 
+
+Figure 5: Distribution of hypothesis quality scores across eight evaluation dimensions. Top: LLM-based anonymous referee evaluation. Bottom: Human evaluation by study participants. Each subplot corresponds to one dimension. Across both judging protocols, AgentEconomist consistently outperforms the baseline, with the largest margins observed in Literature Grounding 
+
+and Novelty & Insight .
+
+which are easier to write but less likely to expose genuinely new mechanism-level insights. These results directly support our core objective: translating vague economic intuitions into hypotheses that are both literature-grounded and non-trivial, rather than merely improving rhetorical fluency. Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. 
+
+Human–LLM Evaluation Differences. A systematic divergence arises in the Clarity & Structure dimension. While the LLM-based referee slightly favors the baseline, human evaluators rate Agen-tEconomist comparably or higher. We attribute this difference to distinct evaluation priorities. Baseline outputs tend to be shorter and rhetorically streamlined, whereas AgentEconomist produces denser hypotheses that explicitly articulate mechanisms, assump-tions, and literature connections. Although this additional structure may reduce surface-level clarity for automated judges, it aligns more closely with human researchers’ needs when developing grounded and novel economic hypotheses. 
+
+## 4.3 End-to-End User Experience Analysis (RQ3) 
+
+To examine how users perceive AgentEconomist as an end-to-end research framework, we conduct a formative qualitative analysis of open-ended questionnaire responses. The questionnaire consists of five prompts: Q1 (Perceived Advantages), Q2 (Trust and Credi-bility), Q3 (Pain Points and Limitations), Q4 (Role Perception), and Q5 (Other Open Feedback). Methodological details for RQ3 are summarized in Appendix §A.3 Not all participants answered every prompt (Q1: 𝑛 = 8, Q2–Q4: 
+
+𝑛 = 7, Q5: 𝑛 = 3). Accordingly, our analysis focuses on recurring themes supported by multiple responses rather than estimating population-level prevalence. 
+
+Method. We apply an LLM-assisted grounded-theory workflow using the thematic-analysis template described in Section B.3 (Fig-ure 9). For each analysis round, we instantiate the template with ag-gregated, anonymized participant responses and require structured outputs including core themes, concise summaries, and support-ing verbatim excerpts. The coding procedure follows an iterative open-coding-to-grouping process: we first extract candidate con-cepts from response segments, then merge semantically related concepts into higher-level themes, and finally retain only themes supported by multiple participants. To reduce over-interpretation, we treat qualitative outputs as hypothesis-generating evidence of user experience, not as objective performance measurements. Ac-cordingly, we report only patterns that are directly traceable to textual evidence and use quotes/excerpts as grounding anchors for each reported theme. The thematic template specification is summarized in Appendix B.3. 
+
+Findings. Participants consistently emphasized grounded trust, attributing increased confidence to literature-backed reasoning enabled by the RAG module. A second dominant theme is opera-tionalization support: users valued the system’s ability to translate vague intuitions into simulator-aligned experimental configura-tions. Third, respondents highlighted mechanistic scaffolding, not-ing that AgentEconomist more explicitly articulated causal and behavioral chains than generic LLM outputs. Together, these fac-tors contributed to a perceived role shift from a conversational assistant toward a research assistant or collaborative expert span-ning hypothesis formulation and experiment setup. 
+
+Pain Points and Implications. Feedback also revealed usability bot-tlenecks, including execution latency, limited process transparency, and occasional instruction-following drift over long interactions. 1 2 3 4 5            
+
+> Month
+> 1500
+> 2000
+> 2500
+> 3000
+> 3500
+> 4000
+> Monthly Income (USD)
+> (a) Monthly Income
+> Control
+> Treatment
+> 12345
+> Month
+> 2500
+> 5000
+> 7500
+> 10000
+> 12500
+> 15000
+> 17500
+> Cumulative Income (USD)
+> +37.4%
+> (b) Cumulative Income
+> Control
+> Treatment
+> 12345
+> Month
+> 2600
+> 2700
+> 2800
+> 2900
+> 3000
+> 3100
+> Monthly Consumption (USD)
+> (c) Monthly Consumption
+> Control
+> Treatment
+> 12345
+> Month
+> 4000
+> 6000
+> 8000
+> 10000
+> 12000
+> 14000
+> Cumulative Consumption (USD)
+> +4.3%
+> (d) Cumulative Consumption
+> Control
+> Treatment
+
+Figure 6: Income and consumption dynamics under innovation-support policies. 
+
+These observations suggest that future work should prioritize im-proving responsiveness, exposing interpretable intermediate states, and strengthening long-horizon intent preservation. 
+
+## 4.4 Case Study (RQ3) 
+
+To strengthen empirical realism beyond architectural description, we provide a detailed end-to-end case study based on a real user session. The researcher began with a high-level intuition: whether government support for innovation increases household consumption .AgentEconomist first grounded this intuition by retrieving and synthesizing relevant economic literature on innovation incentives, firm productivity, and income–consumption linkages. Based on this context, the system formulated a concrete research hypothesis and automatically designed a controlled experiment by toggling a policy variable that enables government support for innovation, while keeping market structure fixed. A treatment group with innovation support is compared against a control group without such support, and key outcome metrics are tracked over time. When the innovation-support parameter is activated, the treat-ment condition exhibits higher cumulative household consumption (+4.3%), substantially higher income (+27.9%) and wealth (+21.7%), a higher savings rate, and slightly increased inequality. Figure 6 shows the resulting income and consumption trajecto-ries. These outcomes are directionally consistent with established economic mechanisms: productivity-enhancing innovation policies increase firm output and income, which propagate to households through wage and profit channels, thereby raising consumption and wealth accumulation. The slight increase in inequality is also the-oretically plausible under innovation-driven growth, where gains may be distributed unevenly across agents. Importantly, the purpose of this case study is not to claim that the simulator discovers new economic laws. Rather, it demonstrates that (i) the system produces theoretically coherent and interpretable AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+outcomes, (ii) effect magnitudes are explicit and quantifiable, and (iii) users retain control over parameterization so that assumptions can be inspected and adjusted. In settings where theoretical con-straints are critical (e.g., policy interventions with trade-offs or negative externalities), the system relies on literature grounding during hypothesis generation and supports iterative refinement of assumptions and parameters. Overall, this case demonstrates that AgentEconomist enables an interpretable end-to-end research workflow—from intuition ground-ing and experimental design to simulation and mechanism-level analysis. 
+
+## 5 Conclusion 
+
+We presented AgentEconomist, an end-to-end agentic system that supports economic research by translating abstract intuitions into executable computational experiments. The system adopts a human-in-the-loop design that decomposes the intuition-to-experiment workflow into literature-grounded idea development, experiment formalization, and execution, implemented by specialized agents. Empirical evaluation shows that AgentEconomist improves hypoth-esis quality on the dimensions most critical to economic inquiry, particularly literature grounding and novelty of insight, while re-maining effective in interactive research settings. Throughout this process, the system remains controllable through executions and iterations explicitly mediated by the user, mitigating potential risks associated with autonomous behavior. More broadly, this work highlights the importance of epistemic scaffolding in scientific AI systems, where supporting theory-grounded reasoning and itera-tive sense-making is often more valuable than end-to-end automa-tion. Our findings also suggest a practical design implication for scientific copilots: domain grounding and executable-constraint awareness should be treated as first-class components, not optional post-processing steps. By explicitly coupling hypothesis generation with simulation feasibility checks and traceable iteration records, AgentEconomist helps users move from plausible ideas to verifiable experimental artifacts with less hidden trial-and-error. We therefore view this system not as a replacement for researchers, but as an infrastructure layer for faster and more transparent scientific explo-ration in economics. We hope this perspective informs future work on domain-grounded, interactive agents for scientific discovery. 
+
+## Limitations 
+
+This work has several limitations. First, our evaluation focuses on the intuition-to-experiment workflow in an agent-based economic simulation, and does not assess performance on real-world policy deployment or empirical data analysis. Second, while the user study provides evidence of the system’s usefulness in interactive research settings, the number of participants is limited and may not capture the full diversity of economic research practices. Third, the effec-tiveness of AgentEconomist depends on the coverage and quality of the underlying literature corpus and simulation environment; domains or research questions that fall outside these resources may be less well supported. Finally, although the system maintains structured memory across interactions, long-horizon alignment and execution efficiency remain constrained by current LLM capabilities and system latency. Future work may address these limitations by expanding empirical evaluation settings, incorporating larger and more diverse user populations, and improving system robustness and scalability. 
+
+## References 
+
+[1] Robert L Axtell and J Doyne Farmer. 2025. Agent-based modeling in economics and finance: Past, present, and future. Journal of Economic Literature 63, 1 (2025), 197–287. [2] Gary S Becker. 1976. The economic approach to human behavior . Vol. 803. Univer-sity of Chicago press. [3] Prateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Ya-dav. 2025. Mem0: Building production-ready ai agents with scalable long-term memory. arXiv preprint arXiv:2504.19413 (2025). [4] Esther Duflo and Abhijit Banerjee. 2011. Poor economics . Vol. 619. PublicAffairs New York. [5] Joshua M Epstein and Robert Axtell. 1996. Growing artificial societies: social science from the bottom up . Brookings Institution Press. [6] J Doyne Farmer and Duncan Foley. 2009. The economy needs agent-based modelling. Nature 460, 7256 (2009), 685–686. [7] Shanghua Gao, Richard Zhu, Pengwei Sui, Zhenglun Kong, Sufian Aldogom, Yepeng Huang, Ayush Noori, Reza Shamji, Krishna Parvataneni, Theodoros Tsiligkaridis, et al . 2025. Democratizing AI scientists using ToolUniverse. arXiv preprint arXiv:2509.23426 (2025). [8] Xian Gao, Jiacheng Ruan, Zongyun Zhang, Jingsheng Gao, Ting Liu, and Yuzhuo Fu. 2025. Reviewagents: Bridging the gap between human and ai-generated paper reviews. arXiv preprint arXiv:2503.08506 (2025). [9] Juraj Gottweis, Wei-Hung Weng, Alexander Daryin, Tao Tu, Anil Palepu, Petar Sirkovic, Artiom Myaskovsky, Felix Weissenberger, Keran Rong, Ryutaro Tanno, et al. 2025. Towards an AI co-scientist. arXiv preprint arXiv:2502.18864 (2025). [10] Sikun Guo, Amir Hassan Shariatmadari, Guangzhi Xiong, Albert Huang, Myles Kim, Corey M Williams, Stefan Bekiranov, and Aidong Zhang. 2025. Ideabench: Benchmarking large language models for research idea generation. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2. 5888–5899. [11] Glenn W Harrison and John A List. 2004. Field experiments. Journal of Economic literature 42, 4 (2004), 1009–1055. [12] Jiale Hong, Hongqiu Wu, and Hai Zhao. 2025. Game Development as Human-LLM Interaction. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 4333–4354. [13] Ming Hu, Chenglong Ma, Wei Li, Wanghan Xu, Jiamin Wu, Jucheng Hu, Tianbin Li, Guohang Zhuang, Jiaqi Liu, Yingzhou Lu, et al . 2025. A survey of scientific large language models: From data foundations to agent frontiers. arXiv preprint arXiv:2508.21148 (2025). [14] Yuxuan Huang, Yihang Chen, Haozheng Zhang, Kang Li, Huichi Zhou, Meng Fang, Linyi Yang, Xiaoguang Li, Lifeng Shang, Songcen Xu, et al . 2025. Deep research agents: A systematic examination and roadmap. arXiv preprint arXiv:2506.18096 (2025). [15] Blake LeBaron. 2006. Agent-based computational finance. Handbook of computa-tional economics 2 (2006), 1187–1233. [16] Keyu Li, Mohan Jiang, Dayuan Fu, Yunze Wu, Xiangkun Hu, Dequan Wang, and Pengfei Liu. 2025. Datasetresearch: Benchmarking agent systems for demand-driven dataset discovery. arXiv preprint arXiv:2508.06960 (2025). [17] Chris Lu, Cong Lu, Robert Tjarko Lange, Jakob Foerster, Jeff Clune, and David Ha. 2024. The ai scientist: Towards fully automated open-ended scientific discovery. 
+
+arXiv preprint arXiv:2408.06292 (2024). [18] Junting Lu, Zhiyang Zhang, Fangkai Yang, Jue Zhang, Lu Wang, Chao Du, Qing-wei Lin, Saravan Rajmohan, Dongmei Zhang, and Qi Zhang. 2025. Axis: Efficient human-agent-computer interaction with api-first llm-based agents. In Proceed-ings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 7711–7743. [19] Douglass C North. 1990. Institutions, institutional change and economic perfor-mance . Cambridge university press. [20] Michael Polanyi. 2009. The tacit dimension. In Knowledge in organisations .Routledge, 135–146. [21] Karl Popper. 2005. The logic of scientific discovery . Routledge. [22] Kevin Pu, KJ Kevin Feng, Tovi Grossman, Tom Hope, Bhavana Dalvi Mishra, Matt Latzke, Jonathan Bragg, Joseph Chee Chang, and Pao Siangliulue. 2025. Ideasynth: Iterative research idea development through evolving and composing idea facets with literature-grounded feedback. In Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems . 1–31. [23] Steven F Railsback and Volker Grimm. 2019. Agent-based and individual-based modeling: a practical introduction . Princeton university press. [24] Paul Anthony Samuelson. 1948. Foundations of economic analysis. Science and Society 13, 1 (1948). [25] Thomas C Schelling. 2006. Micromotives and macrobehavior . WW Norton & Company. Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al.                                          
+
+> [26] Chenyang Shao, Dehao Huang, Yu Li, Keyu Zhao, Weiquan Lin, Yining Zhang, Qingbin Zeng, Zhiyu Chen, Tianxing Li, Yifei Huang, et al .2025. OmniScientist: Toward a Co-evolving Ecosystem of Human and AI Scientists. arXiv preprint arXiv:2511.16931 (2025). [27] Erzhuo Shao, Yifang Wang, Yifan Qian, Zhenyu Pan, Han Liu, and Dashun Wang. 2025. SciSciGPT: advancing human–AI collaboration in the science of science.
+> Nature Computational Science (2025), 1–15. [28] Amanpreet Singh, Mike D’Arcy, Arman Cohan, Doug Downey, and Sergey Feld-man. 2022. SciRepEval: A Multi-Format Benchmark for Scientific Document Representations. In Conference on Empirical Methods in Natural Language Pro-cessing .[29] Haoyang Su, Renqi Chen, Shixiang Tang, Zhenfei Yin, Xinzhe Zheng, Jinzhe Li, Biqing Qi, Qi Wu, Hui Li, Wanli Ouyang, et al .2025. Many heads are better than one: Improved scientific idea generation by a llm-based multi-agent system. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 28201–28240. [30] Kyle Swanson, Wesley Wu, Nash L Bulaong, John E Pak, and James Zou. 2025. The Virtual Lab of AI agents designs new SARS-CoV-2 nanobodies. Nature 646, 8085 (2025), 716–723. [31] Leigh Tesfatsion. 2006. Agent-based computational economics: A constructive approach to economic theory. Handbook of computational economics 2 (2006), 831–880. [32] Seth Tisue, Uri Wilensky, et al .2004. Netlogo: A simple environment for modeling complexity. In International conference on complex systems , Vol. 21. Boston, MA, 16–21. [33] Yixuan Weng, Minjun Zhu, Guangsheng Bao, Hongbo Zhang, Jindong Wang, Yue Zhang, and Linyi Yang. 2024. Cycleresearcher: Improving automated research via automated review. arXiv preprint arXiv:2411.00816 (2024). [34] Yixuan Weng, Minjun Zhu, Qiujie Xie, Qiyao Sun, Zhen Lin, Sifan Liu, and Yue Zhang. 2025. Deepscientist: Advancing frontier-pushing scientific findings progressively. arXiv preprint arXiv:2509.26603 (2025). [35] Anjie Xu, Ruiqing Ding, and Leye Wang. 2025. ChatPD: An LLM-driven Paper-Dataset Networking System. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 . 5106–5116. [36] Qingbin Zeng, Bingbing Fan, Zhiyu Chen, Sijian Ren, Zhilun Zhou, Xuhua Zhang, Yuanyi Zhen, Fengli Xu, Yong Li, and Tie-Yan Liu. 2025. MirrorMind: Empowering OmniScientist with the Expert Perspectives and Collective Knowledge of Human Scientists. arXiv preprint arXiv:2511.16997 (2025). [37] Sihang Zeng, Kai Tian, Kaiyan Zhang, Yuru Wang, Junqi Gao, Runze Liu, Sa Yang, Jingxuan Li, Xinwei Long, Jiaheng Ma, et al .2025. ReviewRL: Towards Automated Scientific Review with RL. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing . 16942–16954. [38] Minjun Zhu, Yixuan Weng, Linyi Yang, and Yue Zhang. 2025. Deepreview: Improving llm-based paper review with human-like deep thinking process. arXiv preprint arXiv:2503.08569 (2025).
+
+## A Experiment Details A.1 Hypothesis Quality Dimensions 
+
+Participants were asked to evaluate each generated hypothesis along the following eight dimensions. For each dimension, partic-ipants were instructed to provide an independent score based on their own judgment, focusing on the hypothesis content rather than writing style or presentation. 
+
+• Clarity & Structure: Is the hypothesis logically organized and free of ambiguous or vague claims? High-score criterion: pro-fessional language, explicit A →B logic, and minimal rhetorical ambiguity. 
+
+• Literature Grounding: Are referenced theories and studies real, correctly cited, and contextually appropriate (RAG grounding)? 
+
+High-score criterion: accurate citation usage, no hallucinated ref-erences, and clear evidential support for the hypothesis. 
+
+• Economic Logic/Soundness: Does the proposed mechanism align with core economic principles (e.g., supply–demand consis-tency, rational behavior, budget constraints)? High-score criterion: 
+
+internally coherent economic logic that does not violate basic principles without explicit justification. 
+
+• Mechanism Completeness: Does the hypothesis specify a com-plete transmission chain from treatment/intervention to out-comes? High-score criterion: not only states outcome shifts, but also explains how micro-level agent behaviors generate macro-level effects. 
+
+• Hypothesis Specificity: Is the hypothesis concrete and quantifi-able rather than generic? High-score criterion: specifies direction, magnitude, agents, or conditions (e.g., low-skill wages decrease by 5–10% under substitution effects). 
+
+• Novelty & Insight: Does the idea provide non-trivial perspec-tives beyond well-known claims? High-score criterion: introduces comparatively underexplored or counter-intuitive insights, po-tentially linked to contemporary contexts (e.g., AI, UBI). 
+
+• Relevance & Significance: Is the research question economi-cally and policy relevant? High-score criterion: addresses substan-tively important societal or policy problems rather than marginal scenarios. 
+
+• Simulation Feasibility: Can the hypothesis be implemented within the current agent-based simulation framework? High-score criterion: relies on programmable variables and available simu-lator parameters, without unobservable or non-implementable "magic" variables. 
+
+## A.2 Scoring Protocol 
+
+Each dimension is scored on a 5-point Likert scale: 1 = Very poor, 3 = Acceptable, 5 = Excellent. Judges are instructed to base scores solely on the hypothesis-generation content and to ignore writing style, verbosity, or downstream analysis. 
+
+## A.3 Qualitative User Experience Analysis Protocol 
+
+This qualitative evaluation is designed as a formative assessment to capture participants’ subjective experiences when interacting with AgentEconomist as a research framework. Participants are asked to provide free-text responses based on their own interaction trajectories, without assuming complete task coverage or uniform interaction length. 
+
+Evaluation Dimensions. Open-ended questions are organized around four aspects of user experience: 
+
+• Perceived Advantages: Key differences compared to using a general-purpose LLM. 
+
+• Trust and Credibility: Factors influencing confidence in gener-ated hypotheses and experimental designs. 
+
+• Pain Points and Limitations: Usability issues, missing features, or interaction difficulties. 
+
+• Role Perception: How users conceptualize the system (e.g., search engine, research assistant, collaborative expert). 
+
+## A.4 Participant Background and Compensation 
+
+All participants in the user study were doctoral students actively working in the area of economic modeling or simulation-based economic research. Each participant had at least six months of prior research experience related to economic simulation or com-putational economics, ensuring sufficient domain knowledge to meaningfully evaluate the system. AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Participants were compensated for their time at a rate commen-surate with their academic background and local standards. We consider the payment to be adequate given the participants’ demo-graphic and level of expertise, and the study involved no deceptive practices or sensitive data collection. All participants provided in-formed consent prior to participation and were explicitly informed about how their interaction data would be used for research and evaluation purposes. 
+
+## B Prompt Processing and Templates 
+
+To improve transparency and reproducibility, we report the exact templates used in our evaluation pipeline and specify how place-holders are instantiated. 
+
+## B.1 User Study Questionnaire Template 
+
+To standardize user-side evaluation across systems, we provide a questionnaire template used in our study. The full protocol com-bines baseline-vs-ours comparison, mixed quantitative/qualitative reporting, and open-ended reflections. The concrete template is shown in Figure 7. 
+
+## B.2 LLM-as-a-Judge Template 
+
+For hypothesis-quality scoring, we use an anonymous economics-referee template. Its placeholders are filled with paired hypothesis-generation outputs under matched user intuitions. Specifically, {N} and {M} denote the number of pages for System A and System B materials, and the content slots are populated with anonymized hypothesis excerpts produced by each system. All instantiated prompts and retrieved materials are logged for traceability. The concrete template is shown in Figure 8. 
+
+## B.3 Thematic Analysis Template 
+
+For qualitative analysis, we use a grounded-theory template to code participants’ open-ended feedback. Its placeholder is filled with aggregated and anonymized response text (e.g., participant-level excerpts such as P1, P2, ...), derived from post-study questionnaires and interviews. The instantiated prompts are then used to pro-duce structured theme summaries for downstream comparison and reporting. The concrete template is shown in Figure 9. 
+
+## C AI Assistance Disclosure 
+
+AI-based tools were used in the preparation of this work for code development assistance and for grammatical and stylistic editing of the manuscript. All scientific content, experimental design, results, and conclusions were conceived, implemented, and verified by the authors. 
+
+> Received 20 February 2007; revised 12 March 2009; accepted 5 June 2009
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Chen et al. 
+
+User Study Questionnaire Template Objective: Compare AgentEconomist against a strong general-purpose LLM baseline for end-to-end economic simulation research support (hypothesis generation, experiment design, execution, and analysis). 
+
+Task Scenarios (choose one or self-define) 
+
+(A) Policy intervention: UBI effects on labor supply and consumption. (B) Structural change: technology progress, wage structure, and sectoral shifts. (C) System calibration: monetary-policy intervention under abnormal inflation. 
+
+Procedure 
+
+1) Baseline phase (e.g., GPT-5.2 / equivalent): run the same task and record the full interaction. 2) AgentEconomist phase: run the same task and record retrieval outputs, hypothesis updates, configuration steps, execution feedback, and final summaries. 
+
+[Critical Scope Restriction for Quantitative Scoring] 
+
+Score only hypothesis-generation content . Do not score downstream simulation plots, policy discussion, writing style, verbosity, or rhetorical confidence. 
+
+Quantitative Scoring Form (1–5 Likert; 1=Very poor, 3=Acceptable, 5=Excellent) 
+
+Metric Name Definition Criteria for High Score GPT Economist 
+
+Clarity & Structure Is the hypothesis logically organized and unambiguous? Professional language; clear A→B logic; minimal vague claims. Literature Grounding Are cited theories/references real and contextually appropriate? Accurate citations, no hallucination, and references directly support the hypothesis. Economic Logic/Soundness Does the mechanism follow core economic principles (incentives, constraints, rationality)? Economically coherent and does not violate common-sense logic without justification. Mechanism Completeness Is the treatment-to-outcome transmission mechanism explicitly described? Explains how micro-level agent behavior produces macro-level outcomes. Hypothesis Specificity Is the hypothesis concrete and quantifiable rather than generic? Includes specific direction/magnitude/conditions (e.g., low-skill wages decrease by 5–10%). Novelty & Insight Does the idea provide non-trivial or counter-intuitive insight? Goes beyond common claims and introduces underexplored perspectives (e.g., AI/UBI-related mechanisms). Relevance & Significance Is the question policy-relevant and practically important? Targets economically meaningful issues rather than marginal topics. Simulation Feasibility Can the idea be implemented in the current agent-based simulation environment? Uses implementable variables/parameters; no unprogrammable "magic variables." 
+
+Qualitative Questions (open-ended) 
+
+Q1 Core difference: compared with the baseline, what is AgentEconomist’s main advantage in your workflow? Q2 Trust and credibility: which system do you trust more for experiment design, and why? Q3 Pain points and limitations: what difficulties or missing features did you encounter? Q4 Role perception: does AgentEconomist feel like a search engine, junior assistant, or collaborative expert? Why? Q5 Optional additional comments. 
+
+Required Records 
+
+- Baseline and AgentEconomist interaction logs (text/screenshots/exported PDF) - Final quantitative table (8 dimensions, both systems) - Qualitative responses (Q1–Q5) 
+
+Figure 7: Template of the user study questionnaire used for quantitative and qualitative evaluation, including scoring scope constraints and required reporting fields. AgentEconomist: End-to-End Economic Intuition Translation Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Role: Anonymous Economics Referee (LLM-as-a-Judge) 
+
+You are acting as an anonymous, neutral, and rigorous economics referee. Your task is to evaluate and compare the quality of hypothesis-generation content 
+
+produced by two systems in response to the same economic question. 
+
+[Critical Scope Restriction] 
+
+Evaluate ONLY the generated hypotheses themselves . Do NOT consider: - downstream analysis, simulations, policy discussion, extensions, or follow-up content. 
+
+[Evaluation Materials] 
+
+- Materials are provided as images or PDF pages. - First {N} pages belong to System A; following {M} pages belong to System B. - Output order does NOT imply priority. Ignore system identity. 
+
+[Evaluation Principles] 
+
+1) Content-only evaluation: ignore style, verbosity, tone, or rhetorical confidence. 2) Order invariance: do not favor earlier or later materials. 3) Model blindness: do not infer system identity or sophistication. 4) Referee-level standards: judge as if reviewing an economics paper’s hypotheses. 
+
+[Dimensions: score each 1–5 (integer)] 
+
+(1) Clarity & Structure (2) Literature Grounding & Factual Plausibility (3) Economic Logic / Soundness (4) Mechanism Completeness (at hypothesis level) (5) Hypothesis Specificity (6) Novelty & Insight (7) Relevance & Significance (8) Feasibility for Modeling or Simulation 
+
+[Required Output Format: Markdown Only] 
+
+- A dimension-wise score table comparing System A vs System B with brief justification. - Overall assessment ( ≤ 200 words). - Bias & scope compliance check: a) evaluated hypotheses only? (Yes/No) b) ignored identity and order? (Yes/No) c) any dimensions hard to score due to insufficient detail? 
+
+Figure 8: Prompt template for LLM-based hypothesis-quality judging (anonymous economics referee). 
+
+Role: Social Science Researcher (Grounded Theory) 
+
+You are a social science researcher familiar with qualitative methods. Please use grounded theory (Grounded Theory) to conduct a systematic thematic analysis on the following interview materials. 
+
+[Methodological Constraint] 
+
+Remain highly sensitive to the data and avoid pre-set theoretical assumptions. Ensure conclusions are grounded in the interview materials themselves. 
+
+[Required Output Structure] 
+
+- Core themes - Theme summary - Verbatim example sentences 
+
+[Interview Materials] 
+
+{Aggregated anonymized responses, e.g., P1:, P2:, ...} 
+
+Figure 9: Prompt template for LLM-assisted grounded-theory thematic analysis of participants’ open-ended feedback.
