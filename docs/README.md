@@ -6,85 +6,97 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-03
-- 运行时间：2026-05-03 19:34:20 UTC
+- 最新运行日期：2026-05-04
+- 运行时间：2026-05-04 19:53:57 UTC
 - 运行状态：成功
-- 本次总论文数：21
-- 精读区：8
+- 本次总论文数：25
+- 精读区：12
 - 速读区：13
 
 ### 今日简报（AI）
-今日深度解析 21 篇论文，聚焦 AI Agent 在跨模态故障诊断与软件漏洞检测领域的实战突破。
-重点推荐 CUJBench 基准与 FGDM 框架，展示了多智能体协同及 CoT/ToT 推理在提升系统鲁棒性上的巨大潜力。
-建议关注 Agent 组织中的知识演化与安全治理，探索如何构建更安全、可进化的自动化执行环境。
-- 详情：[/202605/03/README](/202605/03/README)
+今日深度解析 25 篇 AI 论文，重点聚焦 LLM 工作流的自动化诱导与 GUI 智能体的高效观察重构。
+满分成果 FlowBot 实现了基于文本梯度的双层优化，而 A11y-Compressor 则通过视觉冗余消除显著提升了智能体效率。
+建议优先研读智能体在边缘机器人安全及代码评测防作弊领域的实战案例。
+- 详情：[/202605/04/README](/202605/04/README)
 
 ### 精读区论文标签
-1. [CUJBench: Benchmarking LLM-Agent on Cross-Modal Failure Diagnosis from Browser to Backend](/202605/03/2604.23455v1-cujbench-benchmarking-llm-agent-on-cross-modal-failure-diagnosis-from-browser-to-backend)  
+1. [FlowBot: Inducing LLM Workflows with Bilevel Optimization and Textual Gradients](/202605/04/2604.26258v2-flowbot-inducing-llm-workflows-with-bilevel-optimization-and-textual-gradients)  
+   标签：评分：10.0/10、query:agent
+   evidence：自动诱导大模型工作流
+2. [A11y-Compressor: A Framework for Enhancing the Efficiency of GUI Agent Observations through Visual Context Reconstruction and Redundancy Reduction](/202605/04/2605.00551v1-a11y-compressor-a-framework-for-enhancing-the-efficiency-of-gui-agent-observations-through-visual-context-reconstruction-and-redundancy-reduction)  
+   标签：评分：10.0/10、query:guiagt
+   evidence：提高GUI智能体观测效率
+3. [Learn where to Click from Yourself: On-Policy Self-Distillation for GUI Grounding](/202605/04/2605.00642v1-learn-where-to-click-from-yourself-on-policy-self-distillation-for-gui-grounding)  
+   标签：评分：10.0/10、query:guiagt
+   evidence：自主智能体 GUI 定位的策略内自蒸馏
+4. [To Call or Not to Call: A Framework to Assess and Optimize LLM Tool Calling](/202605/04/2605.00737v1-to-call-or-not-to-call-a-framework-to-assess-and-optimize-llm-tool-calling)  
+   标签：评分：10.0/10、query:agent
+   evidence：评估和优化LLM网页搜索工具调用决策的框架
+5. [CUJBench: Benchmarking LLM-Agent on Cross-Modal Failure Diagnosis from Browser to Backend](/202605/04/2604.23455v2-cujbench-benchmarking-llm-agent-on-cross-modal-failure-diagnosis-from-browser-to-backend)  
    标签：评分：9.0/10、query:guiagt
-   evidence：评估大模型智能体从浏览器到后端的跨模态故障诊断基准
-2. [FGDM: Reasoning Aware Multi-Agentic Framework for Software Bug Detection using Chain of Thought and Tree of Thought Prompting](/202605/03/2604.24831v1-fgdm-reasoning-aware-multi-agentic-framework-for-software-bug-detection-using-chain-of-thought-and-tree-of-thought-prompting)  
+   evidence：在浏览器可见故障诊断上对大模型智能体进行基准测试
+6. [Claw-Eval-Live: A Live Agent Benchmark for Evolving Real-World Workflows](/202605/04/2604.28139v2-claw-eval-live-a-live-agent-benchmark-for-evolving-real-world-workflows)  
+   标签：评分：9.0/10、query:opclw
+   evidence：使用 ClawHub 技能的真实世界工作流实时智能体基准测试
+7. [SiriusHelper: An LLM Agent-Based Operations Assistant for Big Data Platforms](/202605/04/2605.00043v1-siriushelper-an-llm-agent-based-operations-assistant-for-big-data-platforms)  
    标签：评分：9.0/10、query:agent
-   evidence：使用思维链和思维树的多智能体软件缺陷检测框架
-3. [FlowBot: Inducing LLM Workflows with Bilevel Optimization and Textual Gradients](/202605/03/2604.26258v1-flowbot-inducing-llm-workflows-with-bilevel-optimization-and-textual-gradients)  
+   evidence：基于大模型智能体的大数据平台运维助手
+8. [Are Tools All We Need? Unveiling the Tool-Use Tax in LLM Agents](/202605/04/2605.00136v1-are-tools-all-we-need-unveiling-the-tool-use-tax-in-llm-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：通过双层优化自动诱导和优化大模型工作流
-4. [Think it, Run it: Autonomous ML pipeline generation via self-healing multi-agent AI](/202605/03/2604.27096v1-think-it-run-it-autonomous-ml-pipeline-generation-via-self-healing-multi-agent-ai)  
+   evidence：大模型智能体工具调用协议开销与性能分析
+9. [Semia: Auditing Agent Skills via Constraint-Guided Representation Synthesis](/202605/04/2605.00314v1-semia-auditing-agent-skills-via-constraint-guided-representation-synthesis)  
    标签：评分：9.0/10、query:agent
-   evidence：通过自愈多智能体AI自动生成机器学习流水线
-5. [Learning When to Remember: Risk-Sensitive Contextual Bandits for Abstention-Aware Memory Retrieval in LLM-Based Coding Agents](/202605/03/2604.27283v1-learning-when-to-remember-risk-sensitive-contextual-bandits-for-abstention-aware-memory-retrieval-in-llm-based-coding-agents)  
+   evidence：审计大模型驱动的智能体技能和可执行接口
+10. [AgentFloor: How Far Up the tool use Ladder Can Small Open-Weight Models Go?](/202605/04/2605.00334v1-agentfloor-how-far-up-the-tool-use-ladder-can-small-open-weight-models-go)  
    标签：评分：9.0/10、query:agent
-   evidence：专注于基于大语言模型的编程智能体的记忆检索机制
-6. [AgentEconomist: An End-to-end Agentic System Translating Economic Intuitions into Executable Computational Experiments](/202605/03/2604.27725v1-agenteconomist-an-end-to-end-agentic-system-translating-economic-intuitions-into-executable-computational-experiments)  
+   evidence：针对不同规模模型的工具使用和规划能力的基准测试
+11. [Agent Capsules: Quality-Gated Granularity Control for Multi-Agent LLM Pipelines](/202605/04/2605.00410v1-agent-capsules-quality-gated-granularity-control-for-multi-agent-llm-pipelines)  
    标签：评分：9.0/10、query:agent
-   evidence：用于计算实验的端到端智能体系统
-7. [CastFlow: Learning Role-Specialized Agentic Workflows for Time Series Forecasting](/202605/03/2604.27840v1-castflow-learning-role-specialized-agentic-workflows-for-time-series-forecasting)  
+   evidence：多智能体流水线的自适应执行运行时
+12. [RunAgent: Interpreting Natural-Language Plans with Constraint-Guided Execution](/202605/04/2605.00798v1-runagent-interpreting-natural-language-plans-with-constraint-guided-execution)  
    标签：评分：9.0/10、query:agent
-   evidence：动态智能体预测框架
-8. [Code Broker: A Multi-Agent System for Automated Code Quality Assessment](/202605/03/2604.23088v1-code-broker-a-multi-agent-system-for-automated-code-quality-assessment)  
-   标签：评分：8.0/10、query:agent
-   evidence：用于代码评估的分层多智能体架构
+   evidence：通过多智能体执行解释自然语言计划
 
 ### 速读区论文标签
-1. [An AI Agent Execution Environment to Safeguard User Data](/202605/03/2604.19657v1-an-ai-agent-execution-environment-to-safeguard-user-data)  
+1. [An Agentic Approach to Metadata Reasoning](/202605/04/2604.20144v1-an-agentic-approach-to-metadata-reasoning)  
    标签：评分：8.0/10、query:agent
-   evidence：保护AI智能体数据的执行环境
-2. [Beyond Task Success: An Evidence-Synthesis Framework for Evaluating, Governing, and Orchestrating Agentic AI](/202605/03/2604.19818v1-beyond-task-success-an-evidence-synthesis-framework-for-evaluating-governing-and-orchestrating-agentic-ai)  
+   evidence：元数据推理与数据发现的智能体方法
+2. [LLM-Guided Safety Agent for Edge Robotics with an ISO-Compliant Perception-Compute-Control Architecture](/202605/04/2604.20193v1-llm-guided-safety-agent-for-edge-robotics-with-an-iso-compliant-perception-compute-control-architecture)  
    标签：评分：8.0/10、query:agent
-   evidence：评估和编排智能体AI工作流的框架
-3. [Forage V2: Knowledge Evolution and Transfer in Autonomous Agent Organizations](/202605/03/2604.19837v1-forage-v2-knowledge-evolution-and-transfer-in-autonomous-agent-organizations)  
+   evidence：大模型引导的机器人安全智能体
+3. [Chasing the Public Score: User Pressure and Evaluation Exploitation in Coding Agent Workflows](/202605/04/2604.20200v1-chasing-the-public-score-user-pressure-and-evaluation-exploitation-in-coding-agent-workflows)  
    标签：评分：8.0/10、query:agent
-   evidence：具有知识演化和迁移能力的自主智能体组织
-4. [From Recall to Forgetting: Benchmarking Long-Term Memory for Personalized Agents](/202605/03/2604.20006v1-from-recall-to-forgetting-benchmarking-long-term-memory-for-personalized-agents)  
+   evidence：代码智能体工作流中的评估利用
+4. [Memory-Augmented LLM-based Multi-Agent System for Automated Feature Generation on Tabular Data](/202605/04/2604.20261v1-memory-augmented-llm-based-multi-agent-system-for-automated-feature-generation-on-tabular-data)  
    标签：评分：8.0/10、query:agent
-   evidence：个性化智能体的长期记忆基准测试
-5. [To Know is to Construct: Schema-Constrained Generation for Agent Memory](/202605/03/2604.20117v1-to-know-is-to-construct-schema-constrained-generation-for-agent-memory)  
+   evidence：用于自动特征生成的多智能体系统
+5. [FSFM: A Biologically-Inspired Framework for Selective Forgetting of Agent Memory](/202605/04/2604.20300v1-fsfm-a-biologically-inspired-framework-for-selective-forgetting-of-agent-memory)  
    标签：评分：8.0/10、query:agent
-   evidence：智能体记忆系统的模式约束生成
-6. [A Systematic Approach for Large Language Models Debugging](/202605/03/2604.23027v1-a-systematic-approach-for-large-language-models-debugging)  
+   evidence：大模型智能体的记忆管理框架
+6. [Agentic Adversarial Rewriting Exposes Architectural Vulnerabilities in Black-Box NLP Pipelines](/202605/04/2604.23483v1-agentic-adversarial-rewriting-exposes-architectural-vulnerabilities-in-black-box-nlp-pipelines)  
    标签：评分：7.0/10、query:agent
-   evidence：在复杂智能体推理中调试大模型的系统方法
-7. [Towards Automated Ontology Generation from Unstructured Text: A Multi-Agent LLM Approach](/202605/03/2604.23090v1-towards-automated-ontology-generation-from-unstructured-text-a-multi-agent-llm-approach)  
+   evidence：NLP 流水线中用于对抗性重写的双智能体框架
+7. [MetaGAI: A Large-Scale and High-Quality Benchmark for Generative AI Model and Data Card Generation](/202605/04/2604.23539v1-metagai-a-large-scale-and-high-quality-benchmark-for-generative-ai-model-and-data-card-generation)  
    标签：评分：7.0/10、query:agent
-   evidence：用于自动本体生成的模型多智能体方法
-8. [AI Identity: Standards, Gaps, and Research Directions for AI Agents](/202605/03/2604.23280v1-ai-identity-standards-gaps-and-research-directions-for-ai-agents)  
+   evidence：包含检索、生成和编辑代理的专业多智能体框架
+8. [Vibe Medicine: Redefining Biomedical Research Through Human-AI Co-Work](/202605/04/2604.23674v1-vibe-medicine-redefining-biomedical-research-through-human-ai-co-work)  
    标签：评分：7.0/10、query:agent
-   evidence：AI智能体身份识别与验证的标准与研究方向
-9. [An Agentic Framework for Intent Co-Creation in 6G NaaS: Architecture and Open-Source Model Evaluation](/202605/03/2604.23288v1-an-agentic-framework-for-intent-co-creation-in-6g-naas-architecture-and-open-source-model-evaluation)  
+   evidence：用于生物医学工作流的技能增强型 AI 智能体
+9. [Prism-Reranker: Beyond Relevance Scoring -- Jointly Producing Contributions and Evidence for Agentic Retrieval](/202605/04/2604.23734v1-prism-reranker-beyond-relevance-scoring----jointly-producing-contributions-and-evidence-for-agentic-retrieval)  
    标签：评分：7.0/10、query:agent
-   evidence：认知与执行解耦的智能体编排框架
-10. [SeaEvo: Advancing Algorithm Discovery with Strategy Space Evolution](/202605/03/2604.24372v1-seaevo-advancing-algorithm-discovery-with-strategy-space-evolution)  
+   evidence：具有贡献和证据生成的智能体检索
+10. [Intention-Aware Semantic Agent Communications for AI Glasses](/202605/04/2604.23691v1-intention-aware-semantic-agent-communications-for-ai-glasses)  
    标签：评分：6.0/10、query:agent
-   evidence：大模型引导的算法发现与策略规划演化搜索
-11. [Semantic Layers for Reliable LLM-Powered Data Analytics: A Paired Benchmark of Accuracy and Hallucination Across Three Frontier Models](/202605/03/2604.25149v1-semantic-layers-for-reliable-llm-powered-data-analytics-a-paired-benchmark-of-accuracy-and-hallucination-across-three-frontier-models)  
+   evidence：用于高级认知和推理的意图感知语义智能体通信
+11. [Evaluation of LLM-Based Software Engineering Tools: Practices, Challenges, and Future Directions](/202605/04/2604.24621v1-evaluation-of-llm-based-software-engineering-tools-practices-challenges-and-future-directions)  
    标签：评分：6.0/10、query:agent
-   evidence：前沿模型在LLM驱动数据分析上的基准测试
-12. [KinDER: A Physical Reasoning Benchmark for Robot Learning and Planning](/202605/03/2604.25788v1-kinder-a-physical-reasoning-benchmark-for-robot-learning-and-planning)  
-   标签：评分：6.0/10、query:guiagt
-   evidence：针对机器人学习和基础模型规划的物理推理基准测试
-13. [RESTestBench: A Benchmark for Evaluating the Effectiveness of LLM-Generated REST API Test Cases from NL Requirements](/202605/03/2604.25862v1-restestbench-a-benchmark-for-evaluating-the-effectiveness-of-llm-generated-rest-api-test-cases-from-nl-requirements)  
+   evidence：软件工程背景下基于大模型的工具评估
+12. [Where Did It Go Wrong? Capability-Oriented Failure Attribution for Vision-and-Language Navigation Agents](/202605/04/2604.25161v1-where-did-it-go-wrong-capability-oriented-failure-attribution-for-vision-and-language-navigation-agents)  
    标签：评分：6.0/10、query:agent
-   evidence：LLM生成的REST API测试用例基准
+   evidence：视觉语言导航智能体的故障归因
+13. [LLM-Assisted Empirical Software Engineering: Systematic Literature Review and Research Agenda](/202605/04/2604.26192v1-llm-assisted-empirical-software-engineering-systematic-literature-review-and-research-agenda)  
+   标签：评分：6.0/10、query:agent
+   evidence：LLM 在经验软件工程工作流中的系统综述
 
 
 <div class="dpr-home-promo-card">
