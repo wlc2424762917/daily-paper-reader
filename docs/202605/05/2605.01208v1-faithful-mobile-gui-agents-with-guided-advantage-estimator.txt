@@ -1,0 +1,1010 @@
+Title: Faithful Mobile GUI Agents with Guided Advantage Estimator
+
+URL Source: https://arxiv.org/pdf/2605.01208v1
+
+Published Time: Tue, 05 May 2026 00:28:21 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Haowen Hu * 1 Pengzhou Cheng * 1 Zheng Wu 1 Lingzhong Dong 1 Gongshen Liu † 1 Zhuosheng Zhang † 1 
+
+# Abstract 
+
+Vision-language model based graphical user in-terface (GUI) agents have shown strong interac-tion capabilities. However, they often behave un-faithfully, relying on memorized shortcuts rather than grounding actions in displayed screen evi-dence or user instructions. To address this, we pro-pose Faithful-Agent , a faithfulness-first frame-work that reformulates GUI interaction to pri-oritize evidence groundedness and internal con-sistency. Faithful-Agent employs a two-stage pipeline: (i) a faithfulness-oriented SFT stage to instill abstainment behaviors under evidence perturbations; (ii) an RFT stage that further am-plifies faithfulness by introducing the guided ad-vantage estimator (GuAE), an anchor-based and variance-adaptive advantage tempering mecha-nism built upon GRPO. GuAE prevents advan-tage collapse in low-variance rollout groups un-der sparse GUI rewards, and with a thought-action consistency reward, Faithful-Agent (Stage II) ele-vates the Trap SR from 13.88% to 80.21% rel-ative to the baseline, while preserving robust general instruction-following performance. Our code is available at https://github.com/ Dreamer777hhw/Faithful-Agent .
+
+# 1. Introduction 
+
+Agents based on Vision–language models (VLMs) have recently demonstrated remarkable proficiency in graphi-cal user interface (GUI) interaction and instruction follow-ing, enabling end-to-end automation across mobile, web, and desktop environments (Nguyen et al., 2025; Wang et al., 2024). Taking both visual observations and textual instructions as input, these agents can either generate in-termediate reasoning traces and then output executable ac-tions (Bai et al., 2025a; Ye et al., 2025; Wang et al., 2025), 
+
+> *
+
+Equal contribution 1Shanghai Jiao Tong University. Corre-spondence to: Gongshen Liu <lgshen@sjtu.edu.cn >, Zhuosheng Zhang <zhangzs@sjtu.edu.cn >.
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). A. Ungrounded Interaction            
+
+> Instruction: Reset account password.
+> GT Action:
+> Click ‘Reset password’
+> Used memorized path rather than UI
+> evidence
+> Still Click Here
+> B. Instruction Deviation
+> Instruction: Buy iphone 17 on Amazon.
+> （a）Unfaithful GUI Agent
+> In Apple Music interface instead of
+> Amazon
+> Wrong Interface Apple
+> Music
+> (b) Faithful -Agent
+> Faithful Action:
+> Press Home
+> A. Faithful Thought: UI occluded
+> Faithful Action :
+> Press Back
+> Faithful Action:
+> Click ‘Reset password’
+> Faithful Action:
+> Swipe left
+> B. Faithful Thought: Instruction
+> Contradiction
+> Faithfulness Dataset Faithfulness GRPO
+
+Figure 1. GUI agents in perturbed cases: (a) Base, where the agent takes ungrounded actions under occlusion or instruction-UI mis-match; (b) Faithful-Agent, where the agent exhibits abstainment behavior, recovers relevant states when key evidence is missing. 
+
+or directly predict executable actions (Wu et al., 2024). Such capabilities have been significantly bolstered by re-cent advances in large-scale multimodal pre-training and reinforcement fine-tuning (RFT) (Yu et al., 2025; Lu et al., 2025a), leading to substantial improvements in visual per-ception, language comprehension, and multi-step decision-making (Hong et al., 2024; Cheng et al., 2024). However, recent research suggests that GUI agents can be-have unfaithfully (Farquhar et al., 2024; Liu et al., 2025; Janiak et al., 2025; Bang et al., 2025). As illustrated in Fig-ure 1(a), we summarize these failures into two categories. One category is weak faithfulness to the given evidence ,where the agent does not fully condition on its inputs and instead relies on memorized shortcuts or superficial pat-terns (Ma et al., 2025; Cheng et al., 2025). This weakness typically manifests as (i) Ungrounded Interaction , where the agent proceeds without grounding decisions in the visi-ble interface state and may take answer-like actions without verifying what is shown (Ma et al., 2025; Sun et al., 2024), and (ii) Instruction Deviation , where the agent deviates from what the user explicitly asks for and drifts into unrelated interfaces, particularly when the instruction conflicts with the current step of the task (Zhang et al., 2025c). The other category is internal inconsistency (Xu et al., 2025b; Zhang 1
+
+> arXiv:2605.01208v1 [cs.AI] 2 May 2026 Faithful Mobile GUI Agents with Guided Advantage Estimator
+
+et al., 2025a; Barez et al., 2025; Dong et al., 2025), where the agent’s reasoning implies one intent but its executed ac-tion follows another, leading to reasoning-action mismatch and occasionally erratic interactions. Motivated by these observations, we reformulate GUI in-teraction as a faithfulness-first problem . Specifically, faith-fulness has two core requirements, evidence groundedness and internal consistency. First, the agent’s outputs should be supported by the interface evidence and the instruction (Sun et al., 2024). Second, the policy should remain internally consistent so the executed action follows what the reasoning commits to (Xu et al., 2025b). When requirements cannot be satisfied, a faithful agent should avoid speculative exe-cution and take abstainment decisions such as terminate or pressing the back button (Feng et al., 2024; Hu et al., 2025). Based on these principles, we introduce Faithful-Agent (Fig-ure 1(b)), which abstains when evidence is missing or con-flicting by removing occlusions, returning to relevant states, or terminating the task when necessary. To this end, we employ a two-stage training pipeline, where SFT instills ab-stainment behaviors while preserving general performance, and group relative policy optimization (GRPO)-based RFT further reinforces step-wise faithfulness. During RFT, improving faithfulness is challenging under sparse GUI rewards, since faithful behavior under missing or conflicting evidence often relies on discrete enumerated abstaining actions (e.g., SYSTEM BUTTON , TERMINATE ). Thus, rollouts under the same input become difficult to dif-ferentiate within the group and often form low-variance groups. We formalize this bottleneck as advantage col-lapse : within-group normalization drives advantages to-ward zero in low-variance groups, weakening reward-driven updates. To address this, we introduce guided advantage es-timator (GuAE), an anchor-based, variance-adaptive temper-ing design for base GRPO. It keeps advantages non-trivial for near-constant groups while avoiding over-scaling when variance is high, thereby preventing advantage collapse in low-variance rollout groups and enabling the policy to re-fine faithful actions under sparse rewards. We further add a thought-action consistency reward to better align stated intent with executed actions. Together, these designs re-inforce step-wise faithfulness without sacrificing general instruction-following ability. Contributions are as follows. (1) We define step-wise faithfulness as evidence-grounded decisions conditioned on the current interface and instruc-tion, together with internal consistency, and specify abstain-ment when key evidence is missing or conflicting. (2) We propose a two-stage training recipe for Faithful-Agent that first uses SFT to instill abstainment behaviors, then applies GRPO with GuAE, an anchor-based, variance-adaptive tempering mechanism. The second stage prevents advantage collapse and strengthens step-wise faithfulness through action-matching and thought-action consistency rewards under sparse GUI rewards. (3) Experiments show that Faithful-Agent (Stage II) elevates the Trap SR from 13.88% to 80.21% relative to the base-line, while preserving robust general instruction-following capabilities and achieving a 71.67% overall success rate. 
+
+# 2. Related Work 
+
+2.1. GUI Agents and Reinforcement Fine-Tuning 
+
+Recently, VLM-based GUI agents have moved beyond grounding-centric modeling (You et al., 2024; Li et al., 2025; Gou et al., 2025) to end-to-end action policies (Lin et al., 2025; Zhang et al., 2025d). Several representative systems have been proposed, including large-scale cross-platform grounding (Wu et al., 2024), native end-to-end interaction from screenshots to actions (Seed, 2025; Wang et al., 2025), and scalable training for interactive learning (Ye et al., 2025), further strengthened by capable multimodal backbones such as Bai et al. (2025b) and Bai et al. (2025a). GRPO (Guo et al., 2025) enables critic-free group-relative optimization, driving RFT as a primary post-training paradigm while subsequent variants improve stability for long-horizon rea-soning, e.g., DAPO (Yu et al., 2025) and GSPO (Zheng et al., 2025a). Building on these optimizers, GUI-specific RFT methods further boost perception and action prediction across GUI benchmarks (Lu et al., 2025b; Luo et al., 2025; Lu et al., 2025a). More broadly, reasoning-oriented RFT models and objectives (He et al., 2025; Kan et al., 2025; Wei et al., 2025) offer reusable post-training ingredients for multi-step decision making that are increasingly adopted in GUI automation. We take GRPO-style post-training as our backbone. While prior RL recipes largely aim at max-imizing task performance, we instead optimize step-wise faithfulness of GUI agents, yielding consistently better over-all results in our evaluations. 
+
+2.2. Faithfulness in Multimodal Models and GUI Agents 
+
+Beyond performance, faithfulness has attracted growing interest in practical VLM applications. Prior work stud-ies faithfulness under explicit constraints and cognition-oriented perspectives (Xu et al., 2025a; Yin et al., 2025; Kargupta et al., 2025), and also frames unfaithfulness as multimodal hallucination and factual misalignment, includ-ing surveys, grounding-based control, and factually aug-mented alignment pipelines (Favero et al., 2024; Sun et al., 2024). Reasoning traces themselves can be unreliable in-dicators of faithfulness, since chain-of-thought is not nec-essarily explainability (Barez et al., 2025). In GUI agents, these issues are amplified by the tight coupling of percep-tion, reasoning, and execution, where agents may form un-2Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+grounded interface assumptions (Ma et al., 2025; Cheng et al., 2025) or exhibit words-deeds inconsistencies (Xu et al., 2025b; Dong et al., 2025). Recent work examines faithfulness under interaction hazards such as pop-up dis-traction and environment injection (Zhang et al., 2025b; Chen et al., 2025), proposes protocols emphasizing faithful state transitions over static action matching (Zhang et al., 2024b), and reassesses whether chain-of-thought prompt-ing improves mobile GUI agents faithfulness (Zhang et al., 2025a). Complementary directions encourage abstainment under insufficient evidence via uncertainty and clarification, explicit abstention, or reflection-based trajectory reconstruc-tion (Feng et al., 2024; Hu et al., 2025). However, existing methods focus on assessing or eliciting faithfulness, rather than training GUI agents to be faithful to the underlying evidence. We thus bridge this gap by introducing a two-stage training pipeline that prioritizes faithfulness, enabling step-wise faithful interactions. 
+
+# 3. Preliminaries 
+
+We first introduce the problem setting in Section 3.1. Then we discuss step-wise faithfulness (Section 3.2) and advan-tage collapse in low-variance rollout groups (Section 3.3). 
+
+3.1. Problem Statement 
+
+VLM-based GUI agents interact with a mobile interface to accomplish a user instruction. At step t, the agent receives an input xt consisting of the instruction and the displayed interface observation (e.g., a screenshot). A policy πθ (· | xt)
+
+samples a response ot = ( zt, ˆat), where zt is an intermedi-ate reasoning trace and ˆat is an executable action. We repre-sent a GUI action as ˆat = ( τt, args t), where τt denotes the action type and args t are its arguments. Different backbones expose slightly different action sets; throughout this work we adopt a unified tool call schema (Bai et al., 2025a;b). We categorize actions by how action-match is evaluated, grouping them into coordinate-based (e.g., CLICK ), text-or-gesture (e.g., TYPE , SWIPE ), and discrete enumerated actions (e.g., SYSTEM BUTTON , TERMINATE ), respectively. With the notations defined above, we optimize the policy 
+
+πθ through the following objectives. Given step inputs xt,SFT trains the policy πθ (· | xt) to imitate expert responses 
+
+ot = ( zt, ˆat) from annotated trajectories. To move beyond imitation and encourage exploration among alternative step responses under the same interface evidence, we further optimize πθ with outcome-supervised RFT. Specifically, for each xt, we sample a rollout group of K responses 
+
+{oi,t }Ki=1 ∼ πθ (· | xt), where each oi,t = ( zi,t , ˆai,t ). Each response is then assigned a reward ri,t = R(oi,t , x t) ∈
+
+[0 , 1] , collected in rt = {ri,t }Ki=1 . We then employ GRPO to optimize the policy via within-group relative comparisons over these rewards. In this process, as our guiding principle,    
+
+> Figure 2. Action-match reward distributions by action type.
+> Coordinate-based actions have the broadest rewards, while discrete one-of-Nactions are near-binary (concentrated near 0/1).
+
+faithfulness requires oi,t to be grounded in xt, and the action 
+
+ˆai,t to be internally consistent with zi,t .
+
+3.2. Challenges in Faithful GUI Agents 
+
+Building on the preliminaries in Section 3.1, we formally define step-wise faithfulness as a twofold requirement: (i) evidence groundedness, where the response ot is strictly conditioned on the interface and instruction xt; (ii) internal consistency, where the executed action ˆat aligns with the intent committed in the reasoning trace zt. Unfaithful be-haviors arise when either requirement is violated, such as acting without verifying the interface (e.g., clicking under occlusion or conflicting cues), or generating a reasoning trace zt yet executing a contradictory action. Under missing or conflicting evidence, a faithful policy should abstain via safe actions like SYSTEM BUTTON (B ACK /H OME ) or TER -
+
+> MINATE
+
+, explicitly prioritizing backtracking or stopping until reliable cues emerge over speculative execution. While outcome-supervised RFT with rollout groups is ex-pected to rectify such failures, standard GRPO encounters a fundamental bottleneck in faithfulness-critical regimes. GUI interaction rewards, particularly for discrete enumer-ated actions (e.g., SYSTEM BUTTON or TERMINATE ), are inherently sparse or thresholded. This granularity results in an uneven reward landscape where candidate responses within a rollout group {oi,t = ( zi,t , ˆai,t )}Ki=1 often receive nearly identical scalar rewards ( r1,t ≈ · · · ≈ rK,t ). In such low-variance scenarios, within-group preference informa-tion vanishes. We formalize this bottleneck as advantage collapse , which will be elaborated in the subsequent section. 
+
+3.3. Advantage Collapse in Faithful Agent RFT 
+
+In faithfulness-critical GUI steps, the preferred behav-ior is often abstainment via discrete enumerated actions. Each sampled response oi,t is scored by a scalar reward 
+
+ri,t = R(oi,t , x t) ∈ [0 , 1] , and action-match uses action-3Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+type-specific rules. Reward structures vary significantly across action types. Coordinate-based actions allow for smooth shaping via distance-based rewards (Tang et al., 2026; Yuan et al., 2025). Meanwhile, text-or-gesture ac-tions are typically graded by heuristic match functions. In contrast, discrete enumerated actions rely on thresholded cri-teria, which yield near-binary outcomes and create a much sparser reward landscape. For clarity, we denote the i-th pre-dicted action as ˆai,t = (ˆ τi,t , dargs i,t ) and its corresponding reference as at(xt) = ( τt, args t). For discrete enumerated actions, a minimal action-match rule is defined as: 
+
+ri,t =
+
+
+
+1, ˆai,t = at(xt),ρ, ˆτi,t = τt,
+
+0, otherwise ,ρ ∈ (0 , 1) . (1) which yields only a few discrete reward levels and thus sparse outcomes. This action-type dependence is evident in Figure 2, where coordinate-based rewards are spread out, whereas discrete one-of-N decisions concentrate near 0 and 
+
+1. Consequently, when rewards are collected into GRPO rollout groups rt = {ri,t }Ki=1 under the same input xt,responses become difficult to differentiate and within-group variation is frequently small (even all-equal), especially as the policy becomes more deterministic during training. We formalize this effect under the standard GRPO advantage computation. GRPO computes advantages via within-group normalization. Given a rollout group reward vector rt =
+
+{ri,t }Ki=1 , the standard estimator is 
+
+Ai,t = ri,t − μ(rt)
+
+σ(rt) + ε , rt = {ri,t }Ki=1 , (2) where μ(r) and σ(r) are group mean and standard deviation. With advantages {Ai,t }Ki=1 , GRPO updates πθ by maximiz-ing a KL-regularized objective against a frozen reference policy πref , a fixed snapshot of the policy at the start of RFT: 
+
+JGRPO (θ) = 1
+
+K
+
+> K
+
+X
+
+> i=1
+
+
+
+Ai,t · log πθ (oi | xt)
+
+−β DKL 
+
+ πθ (· | xt) ∥ πref (· | xt)
+
+,
+
+(3) where β controls the KL strength. Since Ai,t directly scales the policy-gradient term, advantages that concentrate near 0
+
+lead to weak updates and ineffective learning signals. A key limitation of Eq. (2) is that it becomes uninformative when rollout groups are constant. In an all-equal group where ri = r for all i, we have μ(r) = r and therefore 
+
+ri − μ(r) = 0 ⇒ Ai,t = 0 . (4) Substituting Eq. (4) into Eq. (3) , the policy-gradient term vanishes and the objective reduces to 
+
+JGRPO (θ) = −β DKL 
+
+ πθ (· | xt) ∥ πref (· | xt). (5)          
+
+> Figure 3. Advantage histograms under standard GRPO at the start and later stages of RFT. The distribution progressively concentrates near zero, with P(|A|<0.01) increasing from 0.14 to 0.48 .
+
+Thus the maximizer is attained when πθ (· | xt) = πref (· | 
+
+xt), meaning that the update degenerates into pure regular-ization without learning from rewards. Equivalently, the gradient becomes 
+
+∇θ JGRPO (θ) = −β ∇θ DKL 
+
+ πθ (· | xt) ∥ πref (· | xt), (6) so the optimization is driven toward the reference policy. More generally, when σ(r) is so small that the denominator is dominated by ε, the normalization can suppress within-group variation, pushing a substantial fraction of advantages toward 0 so that reward-driven updates become weak. To quantify this effect, we use the near-zero mass 
+
+P  |A| < δ , (7) which measures the fraction of rollouts that contribute neg-ligible learning signal. Figure 3 shows that, as training pro-ceeds, a larger fraction of advantages cluster tightly around zero, implying that updates become weak or ineffective. Importantly, the issue is not that rewards are binary per se. Rather, as training proceeds, the policy often becomes increasingly deterministic on many states, making all-zero and all-one rollout groups common. In these groups, coarse outcome rewards provide no within-group preference signal to rank rollouts, so the update contains no reward-driven direction that favors a less-bad action among failures or a more robust action among successes. As a result, the learning signal can become weakest precisely in faithfulness-critical regimes, which can become a bottleneck and limit the effectiveness of GRPO in later-stage optimization. In Section 4, we maintain the standard GRPO objective and refine advantage estimator under advantage collapse and accommodate faithfulness-oriented reward shaping. 
+
+# 4. Method 
+
+To address this challenge, we propose Faithful-Agent. As illustrated in Figure 4, we first establish a faithful cold start (Stage I), followed by faithfulness-oriented RFT designed to mitigate advantage collapse (Stage II). 4Faithful Mobile GUI Agents with Guided Advantage Estimator 0       
+
+> |A|
+> collapsed to 0 0
+> |A|
+> stable scale
+> Faithful Dataset
+> General (67%) Trap (33%)
+> Stage I: Faithful SFT
+> Stage II: Faithful RFT
+> Faithful Cold Start Learn abstain policy
+> Input :Instruction +Screenshot
+
+... 
+
+> Rollout
+> Reward Function
+> Action Match + T -A Consistency
+> Advantage Estimator
+> Guided Advantage Estimator
+> Update
+> Model
+> Action: Click ‘Reset’
+> Action: Click ‘Later’
+> Faithful -Agent
+> Anchor regularization
+> Variance -Adaptive Tempering
+
+Figure 4. Overview of Faithful-Agent. We train Faithful-Agent with a two-stage pipeline: Stage I uses SFT as cold start for step-wise faithful behavior, and Stage II applies GRPO-based RFT with an action match reward and a thought-action consistency reward. During RFT, GRPO+GuAE stabilizes updates under sparse rewards and mitigates advantage collapse. 
+
+4.1. Stage I: Cold Start with Faithfulness-Oriented SFT 
+
+The goal of Stage I is to instill abstainment behaviors under missing or conflicting evidence. The SFT data supervises the agent to avoid speculative execution and instead take abstaining actions that recover evidence or exit (e.g., SYS -
+
+> TEM BUTTON
+
+(B ACK /H OME ) or TERMINATE ) when key cues are occluded or inconsistent. This cold start stabilizes RFT by reducing unfaithful exploration and providing a faithful initialization under sparse outcome rewards. 
+
+4.2. Stage II: GRPO with Faithfulness-Oriented Designs 
+
+In Stage II, we optimize πθ via GRPO, introducing a faithfulness-first reward to enhance alignment and GuAE to mitigate advantage collapse. 4.2.1. F AITHFULNESS -FIRST REWARD 
+
+For each sample, we define the reward as a convex combi-nation of action correctness and thought-action alignment: 
+
+ri,t = λ R AM (oi,t ) + (1 − λ) RCons (oi,t ), λ ∈ [0 , 1] .
+
+(8) This ensures ri,t ∈ [0 , 1] .
+
+Action-match reward. RAM measures whether the pre-dicted action matches the reference action, while allowing partial credit for continuous arguments. 
+
+RAM (oi,t ) = 1[TYPE (ˆ ai,t ) = TYPE (at)] · ϕ ˆai,t , a t
+
+,
+
+(9) where ˆai,t is the parsed predicted action and at is the ground-truth action. The indicator enforces type validity and ϕ(ˆ ai,t , a t) ∈ [0 , 1] scores argument similarity (e.g., dis-tance for coordinate actions, similarity for text actions, and exact match for discrete enumerate actions). Full per-action definitions of ϕ are provided in Appendix C.2. 
+
+Thought-action consistency reward. We encourage the executed action to match the intent expressed in the in-termediate reasoning. Let s(zi,t , ˆai,t ) ∈ [−1, 1] denote a rule-based alignment score, which we rescale to [0 , 1] :
+
+RCons (oi,t ) = s(zi,t , ˆai,t ) + 1 2 . (10) This penalizes thought-action inconsistency and comple-ments outcome rewards by reducing speculative actions. Vacuous, generic, or underspecified intermediate reasoning receives a neutral score, avoiding misleading signals. See Appendix C.3 for definition and examples of s(·, ·).However, as the reward function is inherently sparse and near-binary (Section 3.3), a more robust estimator is neces-sitated to translate ri,t into stable advantages Ai,t .4.2.2. G UIDED ADVANTAGE ESTIMATOR (G UAE) To address sparse-reward and low-variance rollout bottle-necks in faithfulness-critical GUI data, we propose the Guided Advantage Estimator (GuAE) to prevent advan-tage collapse and preserve usable learning signals. GuAE consists of two core components: anchor regularization, which restores non-zero directional signal in fully-collapsed groups, and variance-adaptive tempering (VAT), which scales the advantage according to group dispersion to stabi-lize learning across diverse input steps. 
+
+Anchor regularization. Let rt = {ri,t }Ki=1 denote the rewards of a rollout group of size K, where ri,t is defined in Eq. (8). We augment the empirical reward set with two static anchor points {0, 1} representing the bounds of the reward space 
+
+rext ,t = {r1,t , . . . , r K,t , 0, 1}. (11) We then compute anchor-regularized group statistics: 
+
+μext ,t = 1
+
+K + 2 
+
+X
+
+> r∈rext ,t
+
+r, σ2ext ,t = 1
+
+K + 2 
+
+X
+
+> r∈rext ,t
+
+ r − μext ,t 
+
+2.
+
+(12) 5Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Table 1. Main results on step-wise faithfulness on our faithfulness-oriented dataset. We compare zero-shot base GUI agent models with our Faithful-Agent (Stage I and Stage II). Best and second-best results in each column are bolded and underlined, respectively.                                                                   
+
+> Models Overall Trap General Type ↑Grounding ↑SR ↑Type ↑SR ↑Type ↑Grounding ↑SR ↑
+> GUI-Owl-7B (Ye et al., 2025) 59.04 52.27 29.49 26.00 12.11 82.49 52.55 41.82 UI-TARS-1.5-7B (Seed, 2025) 56.10 27.78 26.85 38.40 26.88 68.66 27.78 26.86 OS-Atlas-Pro-7B (Wu et al., 2024) 54.81 71.09 39.30 9.16 3.99 87.21 71.09 64.36 Qwen2.5-VL-7B-Instruct (Bai et al., 2025b) 59.29 48.86 29.00 30.58 14.77 79.66 48.86 39.10 Qwen3-VL-8B-Instruct (Bai et al., 2025a) 63.64 71.13 41.08 36.63 13.88 82.81 70.93 60.38
+> Faithful-Agent (Stage I) 80.87 75.05 64.99 82.27 71.20 79.87 74.85 60.59
+> Faithful-Agent (Stage II) 88.04 75.86 71.67 91.29 80.21 85.74 75.68 65.62
+
+This construction yields a strictly positive normalization scale even when empirical rewards are constant. Moreover, 
+
+σext ,t admits a deterministic lower bound: 
+
+σ2ext ,t ≥ (0 − μext ,t )2 + (1 − μext ,t )2
+
+K + 2 ≥ 12( K + 2) ,
+
+⇒ σext ,t ≥ 1
+
+p2( K + 2) .
+
+(13) In the fully-collapsed cases ri,t ≡ c with c ∈ { 0, 1}, we have μext ,t = Kc +1  
+
+> K+2
+
+, and thus 
+
+ri,t − μext ,t = c − Kc + 1 
+
+K + 2 =
+
+( 1 
+
+> K+2
+
+, c = 1 ,
+
+− 1 
+
+> K+2
+
+, c = 0 . (14) In particular, |ri,t −μext ,t | = 1
+
+> K+2
+
+̸ = 0 , yielding a non-zero directional signal. While anchor regularization ensures a non-zero signal in collapsed groups, it does not account for the varying volatility across different input steps xt, which we address via Variance-Adaptive Tempering. 
+
+Variance-Adaptive Tempering (VAT). While anchors en-sure signal existence, reward volatility can vary significantly across tasks, leading to signal-scale mismatch. To address this, we apply a variance-adaptive non-linear scaling. First, we set σ0 = 1 /√12 , the standard deviation of U(0 , 1) ,serving as a non-informative reference volatility for bounded rewards (See Appendix B.4 for derivation). Then we define a normalized deviation δt that measures how far the group dispersion σext ,t departs from the reference baseline σ0:
+
+δt = σext ,t − σ0
+
+σ0 + ε , gt = sigmoid  τ · δt
+
+ ∈ (0 , 1) , (15) where τ > 0 and ε is a small constant. The gating factor gt
+
+interpolates a tempering exponent pt between low-variance sharpening plow and high-variance dampening phigh :
+
+pt = plow +gt(phigh −plow ), plow > 1, p high < 1. (16) Tempered advantage for each sample is finally computed as: 
+
+Ai,t = ri,t − μext ,t 
+
+σpt 
+
+> ext ,t
+
++ ε . (17) Here, plow > 1 sharpens subtle signals in high-consensus groups, while phigh < 1 dampens noisy updates in high-variance groups. 
+
+# 5. Experiments 
+
+In this section, we evaluate Faithful-Agent by comparing it with strong open-source agents and VLM backbones, followed by analyses of our training recipes, GuAE, and reward design. We further present additional ablations and transfer results to assess robustness and generalization. 
+
+5.1. Implementation Details Experimental Setup. We build our faithfulness-first agent based on Qwen3-VL-8B-Instruct (Bai et al., 2025a) and adopt the LLaMa-Factory (Zheng et al., 2024) framework for Stage I, and EasyR1 (Zheng et al., 2025b) framework for Stage II. Our dataset is cross-scenario, consisting of correct General trajectories (General) and controlled Trap perturba-tions (Trap) such as occlusion, content tampering, and goal shifts. Trap examples are derived from original steps with controlled instruction and UI perturbations, and invalid or low-quality perturbations are filtered via automatic annota-tion and human quality control. In Trap cases, the original step is no longer justified by the current observation and thus requires evidence-conditioned abstainment. Details of the dataset are in Appendix A.2. Unless stated otherwise, Stage I and Stage II are trained on the same training split; the test split is strictly held out and never used in training. 
+
+Baselines. We compare Faithful-Agent with representative open-source GUI agent foundation models and strong VLM instruction models. We include OS-Atlas-Pro-7B (Wu et al., 2024), UI-TARS-1.5-7B (Seed, 2025), GUI-Owl-7B (Ye et al., 2025), Qwen2.5-VL-7B-Instruct (Bai et al., 2025b) and Qwen3-VL-8B-Instruct (Bai et al., 2025a) as repre-6Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+(a) P (|A| < 0.1) over steps (b) Late-stage |A| distribution (c) Gradient norm over steps 
+
+Figure 5. GRPO+GuAE preserves advantage contrast and stabilizes Stage II training. (a) Base GRPO yields an increasing near-zero advantage ratio, while GRPO+GuAE keeps it low. (b) At a representative late stage, GRPO+GuAE shifts mass away from zero and suppresses extreme magnitudes. (c) The resulting optimization is more stable, reflected by smoother gradient norms. 
+
+Table 2. Impact of GRPO variant and reward design in Stage II.                                
+
+> Reward RGRPO variant Trap General Type ↑SR ↑Type ↑SR ↑
+> RAM Base GRPO 87.89 76.81 85.53 66.14
+> RAM +RCons Base GRPO 89.51 78.29 85.43 64.36
+> RAM GRPO+GuAE 89.36 78.58 86.27 66.35
+> RAM +RCons GRPO+GuAE 91.29 80.21 85.74 65.62
+
+sentative open-source GUI agents and widely used VLM instruction backbones. All baselines are evaluated using the same task prompts and observation inputs. 
+
+Metrics. We evaluate on our test split across three cate-gories, Overall, General, and Trap. Following common practice in prior GUI agents evaluations (Wu et al., 2024), we use three metrics: Type, Grounding, and SR. Type mea-sures the exact-match accuracy of the predicted action type. Grounding evaluates the correctness of action arguments, such as coordinate grounding for clicks or the required pa-rameters for other actions. SR denotes the step-wise success rate, where a step is counted as successful only if both the action type and its arguments are correct. We report metrics separately on General and Trap, and also provide Overall results aggregated over the full test set. 
+
+5.2. Main Results Findings 1: Faithfulness improves without hurting gen-eral performance. From Table 1, zero-shot models achieve consistently low success rates on Trap (Type-1). This sug-gests that faithfulness-critical states remain challenging for current GUI agents, where they tend to rely on heuristic shortcuts rather than conditioning on the current screen evi-dence and instruction. Our Stage I substantially improves Trap performance while keeping General stable, indicating that faithfulness behaviors can be learned without sacrific-ing broad GUI ability. Stage II further strengthens faith-fulness beyond imitation by preventing advantage collapse under sparse, near-binary rewards and translating mean-
+
+Table 3. Impact of advantage estimator components. Improve-ments are reported w.r.t. Base GRPO.                                  
+
+> GRPO variant Trap General Type ↑SR ↑Type ↑SR ↑
+> Base GRPO 89.51 78.29 85.43 64.36 + Anchor (only) 90.55 (+1.04) 79.32 (+1.03) 83.86 (-1.57) 63.84 (-0.52)
+> + VAT (only) 84.34 (-5.17) 72.67 (-5.62) 85.22 (-0.21) 65.41 (+1.05)
+> GRPO+GuAE 91.29 (+1.78) 80.21 (+1.92) 85.74 (+0.31) 65.62 (+1.26)
+
+ingful learning signals into additional Trap gains, while maintaining strong General performance. We further break down Trap into instruction perturbations and UI perturbations. The results are provided in Ap-pendix D.8. The base model is particularly vulnerable un-der UI perturbations, consistent with weak interface-state grounding. Our two-stage training markedly improves ro-bustness on UI perturbations and also yields clear gains under instruction perturbations. Moreover, results in Ap-pendix D.1 shows that increasing the Stage II budget consis-tently improves both Trap and General, while varying the Trap and General mix mainly adjusts the balance between higher Trap robustness and stronger General performance. 
+
+Findings 2: GRPO+GuAE preserves learning signal and stabilizes GRPO. In the ablation study of Table 2 with re-ward fixed to RAM , GRPO+GuAE outperforms Base GRPO on both Trap and General, indicating gains beyond reward design from a more stable policy-gradient signal, while mitigating advantage collapse in low-variance groups. Fig-ure 5 provides diagnostics. Base GRPO shows an increas-ing near-zero advantage ratio P (|A| < 0.1) over steps, whereas GRPO+GuAE keeps it low and shifts advantage mass away from zero at a representative late stage, resulting in smoother gradient norms. In Appendix D.2 we vary VAT hyper-parameters, and results are stable across a reason-able range, suggesting GRPO+GuAE shows robustness to hyperparameter variations. Table 3 isolates the two components. Anchor improves Trap 7Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Figure 6. Confidence is computed from action token log prob-abilities and calibrated to [0 , 1] for visualization, where higher calibrated confidence indicates more certain action generation. Dashed lines mark the mean confidence with and without RCons .
+
+Table 4. Training Faithful-Agent without Trap data.                  
+
+> Training data Trap General Type ↑SR ↑Type ↑SR ↑
+> General-only 29.99 16.84 86.58 67.09 Trap+General 91.29 (+61.30) 80.21 (+63.37) 85.74 (-0.84) 65.62 (-1.47)
+
+by preventing advantage collapse in low-variance groups and preserving meaningful learning signal, but it can be slightly conservative on General. VAT provides adaptive gain control across groups, yet without anchors it may overly amplify noisy near-binary fluctuations, hurting Trap while slightly improving General. These trends are also reflected in Figure 7. GRPO+GuAE exhibits a clearer separation be-tween General and Trap samples and more compact clusters than Base GRPO, with a higher silhouette score in the same reduced space. This is consistent with improved training stability under sparse, near-binary rewards. 
+
+Findings 3: Reward design balances correctness and faithfulness. Building on Table 1 and Table 2, we study how reward design shapes Stage II. RAM grounds task cor-rectness by rewarding executed actions that match the tar-get outcome, but under Trap perturbations it may still per-mit thought-action drift (e.g., intending to terminate but clicking). We therefore add RCons as an auxiliary shaping signal that rewards only intent-consistent actions and pe-nalizes contradictory thought-action pairs, while avoiding credit for vague thoughts. Table 2 shows consistent Trap gains when adding RCons to RAM for both Base GRPO and GRPO+GuAE, with the best overall results achieved by GRPO+GuAE under RAM +RCons . General performance remains largely stable, indicating a reasonable trade-off that 
+
+RAM ensures execution accuracy, while RCons improves faithfulness under misleading cues. Figure 6 further shows a more concentrated, upward-shifted confidence distribution, consistent with suppressing specu-lative execution. In Appendix D.5 we confirm RCons works best as an auxiliary reward with moderate CLICK tolerance. 
+
+(a) Base GRPO (b) GRPO+GuAE 
+
+Figure 7. Visualization of dimensionality-reduced output feature vector under GRPO variants 
+
+Table 5. Cross-dataset generalization (AC ↔ AITZ).                                    
+
+> Stage AITZ →AC AC →AITZ Trap General Trap General Type ↑SR ↑Type ↑SR ↑Type ↑SR ↑Type ↑SR ↑
+> Backbone 40.55 16.76 85.66 61.53 30.91 7.54 72.60 53.27 Stage I 65.42 45.27 66.76 46.38 82.55 70.18 50.00 32.69 Stage II 67.16 51.74 68.23 50.67 85.09 76.73 58.65 35.10
+
+5.3. Analysis Experiments Impact of Trap data. Table 4 shows that General-only training fails on Trap. Adding Trap data sharply improves Trap performance with minimal General impact, confirming that Trap supervision is vital for faithfulness. 
+
+Cross-dataset generalization. We evaluate cross-dataset transfer between AC and AITZ (Table 5). In both transfers, Stage II improves over Stage I on Trap and General, suggest-ing that mixing a small amount of instruction/UI-perturbed cases into general trajectories, coupled with the two-stage pipeline, is a transferable recipe for training more reliable GUI foundation models rather than dataset-specific tuning. 
+
+Impact of RFT algorithms and advantage normaliza-tion. Table 9 compares GRPO+GuAE with GRPO and its variants (DAPO/GSPO), plus a critic-free baseline with global advantage normalization (REINFORCE++). GRPO is strong and DAPO/GSPO are similar but slightly weaker, especially on Trap. In contrast, GRPO+GuAE achieves the best Type and SR on both splits. A more stable advan-tage signal improves faithful credit assignment: it preserves non-degenerate learning signal in low-variance groups, miti-gating advantage collapse and reducing speculative behavior on Trap without hurting General performance. 
+
+Extended Analysis. Detailed ablation and sensitivity stud-ies (Appendix D) reveal that (i) λ mainly sets the Trap– General trade-off, while τclick has little effect (Table 11); (ii) a moderate rollout group size K is most reliable (Ta-ble 12); (iii) Stage I provides a faithful cold start by teach-ing abstainment (Table 13); (iv) Stage II gains concentrate on UI perturbation Traps as the base model’s main failure type (Table 14); (v) RFT recalibrates abstainment, reducing 8Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+under-abstain without increasing over-abstain (Table 15). 
+
+# 6. Conclusion 
+
+In this paper, we define step-wise faithfulness for GUI agents with evidence groundedness and internal consistency, and specify abstainment when key evidence is missing or conflicting. We then propose Faithful-Agent that uses SFT to teach abstainment under evidence perturbations and ap-plies GRPO with GuAE plus a thought-action consistency reward. Experiments show substantial faithfulness gains while maintaining strong general performance. 
+
+# Impact Statement 
+
+Faithful-Agent aims to make mobile GUI agents more reli-able by improving step-wise faithfulness under missing or conflicting interface evidence, reducing speculative actions through abstainment training and stabilized learning under sparse, near-binary rewards. However, more capable GUI agents can also be misused to automate harmful workflows (e.g., phishing, unauthorized account actions, or privacy-invasive navigation). Since GUI observations may contain sensitive information, privacy risks may arise when storing interaction traces or sending prompts to external services. We recommend running the agent in a sandboxed environment (e.g., container or VM) with least-privilege permissions, requiring confirmation for sensitive actions, and avoiding transmission of sensitive UI content to third-party APIs. 
+
+# References 
+
+Bai, S., Cai, Y., Chen, R., Chen, K., Chen, X., Cheng, Z., Deng, L., Ding, W., Gao, C., Ge, C., Ge, W., Guo, Z., Huang, Q., Huang, J., Huang, F., Hui, B., Jiang, S., Li, Z., Li, M., Li, M., Li, K., Lin, Z., Lin, J., Liu, X., Liu, J., Liu, C., Liu, Y., Liu, D., Liu, S., Lu, D., Luo, R., Lv, C., Men, R., Meng, L., Ren, X., Ren, X., Song, S., Sun, Y., Tang, J., Tu, J., Wan, J., Wang, P., Wang, P., Wang, Q., Wang, Y., Xie, T., Xu, Y., Xu, H., Xu, J., Yang, Z., Yang, M., Yang, J., Yang, A., Yu, B., Zhang, F., Zhang, H., Zhang, X., Zheng, B., Zhong, H., Zhou, J., Zhou, F., Zhou, J., Zhu, Y., and Zhu, K. Qwen3-vl technical report. 
+
+arXiv preprint arXiv:2511.21631 , 2025a. Bai, S., Chen, K., Liu, X., Wang, J., Ge, W., Song, S., Dang, K., Wang, P., Wang, S., Tang, J., Zhong, H., Zhu, Y., Yang, M., Li, Z., Wan, J., Wang, P., Ding, W., Fu, Z., Xu, Y., Ye, J., Zhang, X., Xie, T., Cheng, Z., Zhang, H., Yang, Z., Xu, H., and Lin, J. Qwen2.5-vl technical report. arXiv preprint arXiv:2502.13923 , 2025b. Bang, Y., Ji, Z., Schelten, A., Hartshorn, A., Fowler, T., Zhang, C., Cancedda, N., and Fung, P. HalluLens: LLM hallucination benchmark. In Che, W., Nabende, J., Shutova, E., and Pilehvar, M. T. (eds.), Proceedings of the 63rd Annual Meeting of the Association for Computa-tional Linguistics (Volume 1: Long Papers) , Vienna, Aus-tria, July 2025. Association for Computational Linguis-tics. URL https://aclanthology.org/2025. acl-long.1176/ .Barez, F., Wu, T.-Y., Arcuschin, I., Lan, M., Wang, V., Siegel, N., Collignon, N., Neo, C., Lee, I., Paren, A., et al. Chain-of-thought is not explainability. Preprint, alphaXiv , pp. v1, 2025. Chen, Y., Hu, X., Yin, K., Li, J., and Zhang, S. Evaluat-ing the robustness of multimodal agents against active environmental injection attacks. In Proceedings of the 33rd ACM International Conference on Multimedia , pp. 11648–11656, 2025. Cheng, K., Sun, Q., Chu, Y., Xu, F., YanTao, L., Zhang, J., and Wu, Z. Seeclick: Harnessing gui grounding for advanced visual gui agents. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 9313–9332, 2024. Cheng, P., Dong, L., Wu, Z., Wu, Z., Tang, X., Qin, C., Zhang, Z., and Liu, G. Agent-scankit: Unraveling mem-ory and reasoning of multimodal agents via sensitivity perturbations. arXiv preprint arXiv:2510.00496 , 2025. Dong, L., Zhou, Z., Yang, S., Sheng, H., Cheng, P., Wu, Z., Wu, Z., Liu, G., and Zhang, Z. Say one thing, do another? diagnosing reasoning-execution gaps in vlm-powered mobile-use agents. arXiv preprint arXiv:2510.02204 ,2025. Farquhar, S., Kossen, J., Kuhn, L., and Gal, Y. Detecting hallucinations in large language models using semantic entropy. Nature , 630(8017):625–630, 2024. Favero, A., Zancato, L., Trager, M., Choudhary, S., Perera, P., Achille, A., Swaminathan, A., and Soatto, S. Multi-modal hallucination control by visual information ground-ing. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pp. 14303–14312, 2024. Feng, S., Shi, W., Wang, Y., Ding, W., Balachandran, V., and Tsvetkov, Y. Don’t hallucinate, abstain: Identifying llm knowledge gaps via multi-llm collaboration. In Pro-ceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) ,pp. 14664–14690, 2024. 9Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Gou, B., Wang, R., Zheng, B., Xie, Y., Chang, C., Shu, Y., Sun, H., and Su, Y. Navigating the digital world as humans do: Universal visual grounding for gui agents. In The Thirteenth International Conference on Learning Representations , 2025. Guo, D., Yang, D., Zhang, H., Song, J., Zhang, R., Xu, R., Zhu, Q., Ma, S., Wang, P., Bi, X., et al. Deepseek-r1: In-centivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 , 2025. He, J., Liu, J., Liu, C. Y., Yan, R., Wang, C., Cheng, P., Zhang, X., Zhang, F., Xu, J., Shen, W., et al. Sky-work open reasoner 1 technical report. arXiv preprint arXiv:2505.22312 , 2025. Hong, W., Wang, W., Lv, Q., Xu, J., Yu, W., Ji, J., Wang, Y., Wang, Z., Dong, Y., Ding, M., et al. Cogagent: A visual language model for gui agents. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 14281–14290, 2024. Hu, M., Fang, T., Zhang, J., Ma, J.-Y., Zhang, Z., Zhou, J., Zhang, H., Mi, H., Yu, D., and King, I. WebCoT: Enhancing web agent reasoning by reconstructing chain-of-thought in reflection, branching, and rollback. In Christodoulopoulos, C., Chakraborty, T., Rose, C., and Peng, V. (eds.), Findings of the Association for Com-putational Linguistics: EMNLP 2025 , pp. 5155–5173, Suzhou, China, November 2025. Association for Compu-tational Linguistics. URL https://aclanthology. org/2025.findings-emnlp.276/ .Janiak, D., Binkowski, J., Sawczyn, A., Gabrys, B., Shwartz-Ziv, R., and Kajdanowicz, T. J. The illusion of progress: Re-evaluating hallucination detection in LLMs. In Christodoulopoulos, C., Chakraborty, T., Rose, C., and Peng, V. (eds.), Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing ,Suzhou, China, November 2025. Association for Compu-tational Linguistics. URL https://aclanthology. org/2025.emnlp-main.1761/ .Kan, Z., Liu, Y., Yin, K., Jiang, X., Li, X., Cao, H., Liu, Y., Jiang, D., Sun, X., Liao, Q., et al. Taco: Think-answer consistency for optimized long-chain reasoning and efficient data learning via reinforcement learning in lvlms. arXiv preprint arXiv:2505.20777 , 2025. Kargupta, P., Li, S. S., Wang, H., Lee, J., Chen, S., Ahia, O., Light, D., Griffiths, T. L., Kleiman-Weiner, M., Han, J., et al. Cognitive foundations for reasoning and their manifestation in llms. arXiv preprint arXiv:2511.16660 ,2025. Langley, P. Crafting papers on machine learning. In Langley, P. (ed.), Proceedings of the 17th International Conference on Machine Learning (ICML 2000) , pp. 1207–1216, Stan-ford, CA, 2000. Morgan Kaufmann. Li, H., Chen, J., Su, J., Chen, Y., Qing, L., and Zhang, Z. Autogui: Scaling gui grounding with automatic function-ality annotations from llms. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 10323–10358, 2025. Li, W., Bishop, W., Li, A., Rawles, C., Campbell-Ajala, F., Tyamagundlu, D., and Riva, O. On the effects of data scale on ui control agents. In Proceedings of the 38th International Conference on Neural Information Processing Systems , pp. 92130–92154, 2024. Lin, K. Q., Li, L., Gao, D., Yang, Z., Wu, S., Bai, Z., Lei, S. W., Wang, L., and Shou, M. Z. Showui: One vision-language-action model for gui visual agent. In 
+
+Proceedings of the Computer Vision and Pattern Recog-nition Conference , pp. 19498–19508, 2025. Liu, J., Fu, Y., Xie, R., Xie, R., Sun, X., Lian, F., Kang, Z., and Li, X. Phd: A chatgpt-prompted visual hallucination evaluation dataset. In Proceedings of the Computer Vision and Pattern Recognition Conference , pp. 19857–19866, 2025. Lu, F., Zhong, Z., Liu, S., Fu, C.-W., and Jia, J. Arpo: End-to-end policy optimization for gui agents with experience replay. arXiv preprint arXiv:2505.16282 , 2025a. Lu, Z., Chai, Y., Guo, Y., Yin, X., Liu, L., Wang, H., Xiao, H., Ren, S., Xiong, G., and Li, H. Ui-r1: Enhancing efficient action prediction of gui agents by reinforcement learning. arXiv preprint arXiv:2503.21620 , 2025b. Luo, R., Wang, L., He, W., Chen, L., Li, J., and Xia, X. Gui-r1: A generalist r1-style vision-language action model for gui agents. arXiv preprint arXiv:2504.10458 , 2025. Ma, X., Wang, Y., Yao, Y., Yuan, T., Zhang, A., Zhang, Z., and Zhao, H. Caution for the environment: Multimodal llm agents are susceptible to environmental distractions. In Proceedings of the 63rd Annual Meeting of the Asso-ciation for Computational Linguistics (Volume 1: Long Papers) , pp. 22324–22339, 2025. Nguyen, D., Chen, J., Wang, Y., Wu, G., Park, N., Hu, Z., Lyu, H., Wu, J., Aponte, R., Xia, Y., et al. Gui agents: A survey. In Findings of the Association for Computational Linguistics: ACL 2025 , pp. 22522–22538, 2025. Seed, B. Ui-tars-1.5. https://seed-tars.com/1.5 ,2025. 10 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Sun, Z., Shen, S., Cao, S., Liu, H., Li, C., Shen, Y., Gan, C., Gui, L., Wang, Y.-X., Yang, Y., et al. Aligning large multi-modal models with factually augmented rlhf. In Findings of the Association for Computational Linguistics: ACL 2024 , pp. 13088–13110, 2024. Tang, F., Gu, Z., Lu, Z., Liu, X., Shen, S., Meng, C., Wang, W., Zhang, W., Shen, Y., Lu, W., et al. Gui-g 2: Gaussian reward modeling for gui grounding. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 40, pp. 33214–33222, 2026. Wang, H., Zou, H., Song, H., Feng, J., Fang, J., Lu, J., Liu, L., Luo, Q., Liang, S., Huang, S., et al. Ui-tars-2 technical report: Advancing gui agent with multi-turn reinforcement learning. arXiv preprint arXiv:2509.02544 ,2025. Wang, S., Liu, W., Chen, J., Zhou, Y., Gan, W., Zeng, X., Che, Y., Yu, S., Hao, X., Shao, K., et al. Gui agents with foundation models: A comprehensive survey. arXiv preprint arXiv:2411.04890 , 2024. Wei, Y., Duchenne, O., Copet, J., Carbonneaux, Q., Zhang, L., Fried, D., Synnaeve, G., Singh, R., and Wang, S. I. Swe-rl: Advancing llm reasoning via reinforcement learning on open software evolution. arXiv preprint arXiv:2502.18449 , 2025. Wu, Z., Wu, Z., Xu, F., Wang, Y., Sun, Q., Jia, C., Cheng, K., Ding, Z., Chen, L., Liang, P. P., et al. Os-atlas: Foun-dation action model for generalist gui agents. In The Thirteenth International Conference on Learning Repre-sentations , 2024. Xu, J., Fei, H., Zhang, Y., Pan, L., Huang, Q., Liu, Q., Nakov, P., Kan, M.-Y., Wang, W. Y., Lee, M.-L., et al. Muslr: Multimodal symbolic logical reasoning. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025a. Xu, R., Lin, H., Han, X., Zheng, J., Zhou, W., Sun, L., and Sun, Y. Large language models often say one thing and do another. In The Thirteenth International Conference on Learning Representations , 2025b. Ye, J., Zhang, X., Xu, H., Liu, H., Wang, J., Zhu, Z., Zheng, Z., Gao, F., Cao, J., Lu, Z., et al. Mobile-agent-v3: Fundamental agents for gui automation. arXiv preprint arXiv:2508.15144 , 2025. Yin, Y., Hu, Z., Xu, X., Yu, C., Wu, X., Fan, W., and Shi, Y. Tasksense: Cognitive chain modeling and difficulty esti-mation for gui tasks. arXiv preprint arXiv:2511.09309 ,2025. You, K., Zhang, H., Schoop, E., Weers, F., Swearngin, A., Nichols, J., Yang, Y., and Gan, Z. Ferret-ui: Grounded mobile ui understanding with multimodal llms. In Eu-ropean Conference on Computer Vision , pp. 240–255. Springer, 2024. Yu, Q., Zhang, Z., Zhu, R., Yuan, Y., Zuo, X., Yue, Y., Dai, W., Fan, T., Liu, G., Liu, L., et al. Dapo: An open-source llm reinforcement learning system at scale. arXiv preprint arXiv:2503.14476 , 2025. Yuan, X., Zhang, J., Li, K., Cai, Z., Yao, L., Chen, J., Wang, E., Hou, Q., Chen, J., Jiang, P.-T., and Li, B. Enhanc-ing visual grounding for gui agents via self-evolutionary reinforcement learning, 2025. URL https://arxiv. org/abs/2505.12370 .Zhang, J., Wu, J., Yihua, T., Liao, M., Xu, N., Xiao, X., Wei, Z., and Tang, D. Android in the zoo: Chain-of-action-thought for gui agents. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pp. 12016– 12031, 2024a. Zhang, L., Wang, S., Jia, X., Zheng, Z., Yan, Y., Gao, L., Li, Y., and Xu, M. Llamatouch: A faithful and scalable testbed for mobile ui task automation. In Proceedings of the 37th Annual ACM Symposium on User Interface Software and Technology , pp. 1–13, 2024b. Zhang, L., Gao, L., and Xu, M. Does chain-of-thought reasoning help mobile gui agent? an empirical study. 
+
+arXiv preprint arXiv:2503.16788 , 2025a. Zhang, Y., Yu, T., and Yang, D. Attacking vision-language computer agents via pop-ups. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 8387–8401, 2025b. Zhang, Z., Li, S., Zhang, Z., Liu, X., Jiang, H., Tang, X., Gao, Y., Li, Z., Wang, H., Tan, Z., Li, Y., Yin, Q., Yin, B., and Jiang, M. IHEval: Evaluating language models on following the instruction hierarchy. In Pro-ceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pp. 8374–8398, Albuquerque, New Mex-ico, April 2025c. Association for Computational Linguis-tics. URL https://aclanthology.org/2025. naacl-long.425/ .Zhang, Z., Lu, Y., Fu, Y., Huo, Y., Yang, S., Wu, Y., Si, H., Cong, X., Chen, H., Lin, Y., et al. Agentcpm-gui: Build-ing mobile-use agents with reinforcement fine-tuning. 
+
+arXiv preprint arXiv:2506.01391 , 2025d. 11 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Zheng, C., Liu, S., Li, M., Chen, X.-H., Yu, B., Gao, C., Dang, K., Liu, Y., Men, R., Yang, A., et al. Group sequence policy optimization. arXiv preprint arXiv:2507.18071 , 2025a. Zheng, Y., Zhang, R., Zhang, J., Ye, Y., Luo, Z., Feng, Z., and Ma, Y. Llamafactory: Unified efficient fine-tuning of 100+ language models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Lin-guistics (Volume 3: System Demonstrations) , Bangkok, Thailand, 2024. Association for Computational Linguis-tics. Zheng, Y., Lu, J., Wang, S., Feng, Z., Kuang, D., and Xiong, Y. Easyr1: An efficient, scalable, multi-modality rl train-ing framework. https://github.com/hiyouga/ EasyR1 , 2025b. 12 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+# Appendix Overview 
+
+This appendix provides additional implementation details, analyses, and results that complement the main paper. Section A details the Faithful-Agent training framework and dataset construction. Section B analyzes low-variance rollout groups and advantage collapse in GUI agent GRPO. Section C specifies the faithfulness-first reward definitions and implementation details. Section D presents additional results and case studies. 
+
+# A. Details of Faithful-Agent Training Framework 
+
+In this section, we detail the two-stage training framework of Faithful-Agent and the dataset used throughout the paper. Our pipeline consists of (i) a supervised fine-tuning (SFT) stage on our faithfulness-oriented dataset, which establishes step-wise faithfulness together with strong general instruction-following ability, and (ii) a GRPO-based reinforcement fine-tuning (RFT) stage, which further strengthens step-wise faithfulness under interactive, sparse, and often near-binary GUI rewards. In the RFT stage, we optimize an outcome reward that combines action match with a thought-action consistency term, and adopt GuAE, an anchor regularized and variance-adaptive tempering design to mitigate advantage collapse in low-variance rollout groups. Importantly, we use the same split, test never used in training, for both SFT and RFT to keep the data distribution consistent and enable fair comparisons across training stages. 
+
+A.1. Action Space Mapping 
+
+First of all, we parameterize the action space A to capture common touchscreen interactions in mobile GUI environments. Concretely, we define a finite set of structured actions: 
+
+A =
+
+n
+
+CLICK (x, y ), SWIPE (x, y, x ′, y ′), TYPE (t), SYSTEM BUTTON (b), TERMINATE (s)
+
+o
+
+. (18) where • C LICK (x, y ) clicks the screen at (x, y ).• S WIPE (x, y, x ′, y ′) swipes from (x, y ) to (x′, y ′).• T YPE (t) inputs a text string t ∈ V ∗.• S YSTEM BUTTON (b) presses a system button b ∈ { BACK , HOME }.• T ERMINATE (s) terminates the episode with status s ∈ { SUCCESS , FAILURE }.
+
+Coordinate convention. All touch coordinates use a normalized 999 × 999 screen space, where (x, y ) denotes pixels from the left and top edges. When executing on a real device with resolution (W, H ), we rescale coordinates by xpix =round( x/ 999 · W ), y pix = round( y/ 999 · H). This parameterization covers both spatially grounded actions (e.g., C LICK ,SWIPE ) and semantic actions (e.g., T YPE ), enabling a unified and reproducible action interface across mobile environments. 
+
+A.2. Details of the Dataset 
+
+We summarize the source breakdown in Table 6. Consistent with our discussion that GUI agents RL exhibits an inherently uneven reward landscape, we group actions into three categories (Figure 8): (i) coordinate-based actions such as CLICK , (ii) text or gesture actions such as TYPE and SWIPE , and (iii) discrete one-of-N enumerated actions such as SYSTEM BUTTON ,and TERMINATE . The dataset includes general data, which contains general interaction trajectories with mixed action types, and trap data, which focuses on system-level decision-only trajectories dominated by enumerated control actions. In trap instances, key evidence is intentionally missing or conflicting, so continuing with the original step is unsupported; the desired behavior is to abstain via safe resolutions rather than speculate with alternative UI-level actions. For UI perturbations, we include both masking-based occlusion and inpainting-based corruption to avoid shortcut learning from mask artifacts. Overall, general data spans diverse GUI behaviors and is dominated by CLICK actions, with substantial portions of SWIPE 
+
+and TYPE . In contrast, trap data consists exclusively of SYSTEM BUTTON actions, capturing cases where the agent must select from a small set of enumerated system controls. This composition reinforces the challenge discussed above: learning 13 Faithful Mobile GUI Agents with Guided Advantage Estimator                      
+
+> Table 6. Dataset source statistics. Source distribution by split and data type.
+> Split Dataset Data Type Count
+> Test AndroidControl (Li et al., 2024) General 746 AndroidControl Trap 402 AITZ Trap 275 AITZ (Zhang et al., 2024a) General 208 Train AndroidControl (Li et al., 2024) General 3,168 AndroidControl Trap 1,207 AITZ (Zhang et al., 2024a) General 832 AITZ Trap 740
+
+Algorithm 1 Automatic step-wise annotation                               
+
+> Input: UI observation and instruction xt, action history ht, data type d, ground-truth action agt
+> t; if d=TRAP also include original UI
+> xorig
+> tand reference action aref
+> t
+> Output: Completion otwith T HOUGHT and tool-call A CTION
+> if d=GENERAL then
+> Prompt the model to follow agt
+> tstrictly and output T HOUGHT + tool-call
+> else
+> Prompt the model to compare xtwith (xorig
+> t, a ref
+> t)and output an abstainment action when evidence is missing or conflicting
+> end if
+> Parse the final tool-call and discard ill-formed outputs
+> return ot
+
+must reconcile heterogeneous reward characteristics—smoother, distance-based signals for coordinate actions versus noisy, hand-crafted rewards for “type/swipe”, and naturally near-binary outcomes for one-of-N enumerated decisions—which can produce an uneven reward landscape during reinforcement fine-tuning. 
+
+A.3. Post-Processing for Automatic Dataset Construction 
+
+Our backbone follows the default Qwen3-VL generation format, which outputs natural-language T HOUGHT together with a structured tool-call A CTION . We leverage this format to construct step-wise supervision. In practice, we use prompt-based automatic annotation for both the General and Trap subsets. For brevity, we omit the full prompts in the appendix and refer readers to our released code for the exact prompt templates and decoding settings. We then apply a lightweight post-processing procedure to (i) validate the tool-call schema (action type and required arguments), (ii) normalize it into our unified action space, and (iii) filter invalid outputs (e.g., missing fields, out-of-range coordinates, or unsupported action types). For UI-perturbed trap instances, we additionally perform an amount of human filtering to remove cases with visually implausible masking/inpainting or ineffective perturbations, ensuring that the resulting supervision reflects genuine evidence-missing and conflicting scenarios rather than artifacts. Overall, we discard roughly one third of automatically constructed candidates during post-processing and human filtering, mainly due to low-quality UI perturbations or ill-formed tool-calls. Algorithm 1 summarizes the annotation logic used in our pipeline. 
+
+A.4. Training Environment 
+
+All experiments are conducted on 8× NVIDIA H800 GPUs (80GB per GPU), with NVIDIA driver 550.144.03 and CUDA 12.4 . We use PyTorch 2.8.0 and Transformers 5.0.0.dev0 .
+
+A.5. SFT Configuration 
+
+We first perform SFT on Qwen3-VL-8B-Instruct with full-parameter fine-tuning. We train for 3 epochs using the AdamW optimizer with a peak learning rate of 1.0 × 10 −5, cosine learning-rate scheduling, and a warmup ratio of 0.1. We enable 
+
+bf16 training. The maximum sequence length is set to 8192 tokens to accommodate long GUI observations and responses. 14 Faithful Mobile GUI Agents with Guided Advantage Estimator    
+
+> Figure 8. Action-type frequency in our faithfulness-oriented dataset. The most common actions are coordinate-based and discrete one-of-Nactions, while text and gesture actions appear less frequently.
+> Figure 9. Evolution of near-constant rollout groups during RFT. Both the low-std ratio and the all-equal ratio increase over training, indicating reduced advantage contrast in more rollout groups.
+
+Unless otherwise stated, all remaining SFT hyperparameters follow the default settings of LLaMA-Factory. 
+
+A.6. RFT Configuration 
+
+We then conduct RFT using GRPO-style updates. We sample n = 8 rollouts per prompt with temperature 1.0 and top p 
+
+= 1 .0, and apply a KL regularization term with coefficient 1.0 × 10 −2 against a frozen reference policy to stabilize policy updates. The actor is optimized with AdamW using a learning rate of 1.0 × 10 −6 and weight decay 1.0 × 10 −2, with gradient norm clipped at 1.0. We set the maximum prompt and response lengths to 6144 and 2048 tokens, respectively, and use a global update minibatch size of 192 with micro-batches of 2 per device for updates. For advantage estimation, we use our modified estimator, which extends within-group normalization with anchor aug-mentation and variance-adaptive scaling to prevent signal collapse under near-binary reward groups. The outcome reward combines an action-correctness term with an auxiliary thought-action consistency term: we weight action match by 0.85 and consistency by 0.15 . For coordinate-based CLICK actions, we employ a continuous distance-shaped reward with threshold 
+
+140 pixels and decay parameter τ = 60 to provide smoother learning signals, while enumerated actions naturally induce near-binary outcomes. All RFT runs are performed for 3 epochs, and we use the same train and test split as in SFT. 
+
+# B. From Advantage Collapse to GuAE Design 
+
+This section diagnoses a core optimization pathology in GUI agents RFT. Under sparse and near-binary outcome rewards, GRPO rollout groups frequently become low-variance or even all-equal, making within-group normalization in Eq. (2) uninformative and yielding weak learning signals. We contrast Base GRPO (Eq. (2) ) with our GRPO+GuAE (Eq. (17) ). Importantly, GRPO+GuAE changes only the advantage geometry rather than the reward, by keeping advantages non-trivial and better scaled in the collapsed regime. 
+
+B.1. GUI Rewards Are Often Near-Binary 
+
+As discussed in Section 3.3, outcome rewards in GUI agents RFT are often computed by matching the predicted action to a reference action or a task condition. For discrete one-of-N decisions, action matching typically admits little meaningful partial credit, so the reward is effectively 0/1, especially for abstainment and recovery actions such as SYSTEM BUTTON and 
+
+> TERMINATE
+
+. For continuous actions, practical matching rules commonly rely on tolerances and string matching heuristics, which quantize the reward into only a few levels. Consequently, many faithfulness-critical steps fall into a near-binary reward regime, making low-variance rollout groups common rather than exceptional. 
+
+B.2. Rollout Groups Collapse During Training 
+
+Consider a rollout group of size K with rewards rt = {ri,t }Ki=1 and advantages computed by within-group normalization in Eq. (2) . If a group collapses to a constant reward, then ri = μ(r) for all i, so advantages vanish as shown in Eq. (4) .Substituting this case into the GRPO objective in Eq. (3) yields the KL-only form in Eq. (5) , meaning that the update does not express any preference among rollouts within the group. 15 Faithful Mobile GUI Agents with Guided Advantage Estimator          
+
+> (a) SFT (b) SFT+Base GRPO
+> Figure 10. Scatter of within-group reward variability under vanilla GRPO before vs. after RFT. Each point is one rollout group from a training step, plotted by its mean reward (x-axis) and within-group reward standard deviation σ(r)(y-axis, log-scale); the dashed line marks the threshold σ(r) = 0 .01 .
+
+A closely related weak-signal regime occurs when the group variance is very small. When σ(r) is small enough that the denominator in Eq. (2) is dominated by ε, many advantages shrink toward 0 and reward-driven updates become weak. We quantify this effect using the near-zero mass in Eq. (7). Importantly, collapse is not caused by rewards being binary per se. Instead, it is promoted when outcome rewards are coarse and the policy becomes increasingly deterministic during training. Once the policy is consistently correct or consistently wrong on subsets of prompts, rollout groups naturally become all-success or all-failure, repeatedly triggering the degenerate behavior above. Empirically, Figure 9 shows that the low-std ratio and the all-equal ratio persist throughout training and tend to increase, indicating that collapsed groups are a dominant operating regime under GUI rewards. 
+
+B.3. Diagnostics for Advantage Collapse 
+
+Collapsed groups remove within-group preference information, so GRPO receives little or no reward-driven learning signal. We monitor this phenomenon using the near-zero mass P (|A| < δ ) in Eq. (7) , with δ = 0 .1 in our experiments. A higher near-zero mass indicates that a larger fraction of rollouts contribute negligible reward-driven updates. Our observations match this diagnostic. Figure 3 shows that advantages under Base GRPO progressively concentrate near zero during RFT, indicating systematic advantage collapse. We further diagnose collapse at the group level using the scatter in Figure 10, where each point represents one input x and its K rollout rewards. Before training, groups spread over a wide range of reward means and standard deviations, indicating non-trivial within-group variation. After training, points concentrate near and below the low-variance threshold, showing that low-std groups become a dominant regime. Notably, the most severe concentration occurs near mean reward close to 1,suggesting that all-success groups are especially prone to collapsing variance once the policy becomes nearly deterministic. 
+
+B.4. Maximum-Entropy Calibration of the Variance Threshold 
+
+Our variance-gated tempering requires a reference scale σ0 to decide whether a rollout group should be amplified or dampened. We show that, under a minimal and axiomatic “support-only” assumption, the choice σ0 = p1/12 is uniquely determined by a maximum-entropy calibration principle. 
+
+Setup. Let r ∈ [0 , 1] denote the (normalized) scalar reward used for group-level advantage normalization. For a rollout group, we compute an (anchor-extended) empirical standard deviation ˆσext ,t and define a signed, dimensionless deviation 
+
+d = ˆσext ,t − σ0
+
+σ0 + ε , (19) which is then mapped to a soft gate via a sigmoid, g = σ(τ d ). The key question is how to choose the reference scale σ0
+
+without injecting unnecessary priors. 16 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Axioms. We adopt the following minimal assumptions. (i) Support-only information : without additional prior knowledge, the only admissible information about r is its support r ∈ [0 , 1] . (ii) Neutrality : the reference distribution should be the least informative one consistent with the support constraint. (iii) Calibration : the gate should be centered at neutrality (e.g., 
+
+g ≈ 0.5) when the group statistics match the neutral reference. Under these axioms, the neutral reference distribution is given by the maximum-entropy solution on [0 , 1] .
+
+Maximum-entropy reference as a convex program. Consider the set of probability density functions on [0 , 1] , P = {p :[0 , 1] → R≥0 | R 10 p(r) dr = 1 }. We define neutrality as maximizing the (differential) entropy 
+
+max  
+
+> p∈P
+
+H(p) = max 
+
+> p∈P
+
+
+
+−
+
+Z 10
+
+p(r) log p(r) dr 
+
+
+
+. (20) Equivalently, this is the convex minimization of negative entropy, 
+
+min 
+
+> p∈P
+
+Z 10
+
+p(r) log p(r) dr, (21) since the functional R p log p is convex over P and the constraint set is affine. 
+
+Solution via KKT in function space. Introducing a Lagrange multiplier λ for normalization yields 
+
+L(p, λ ) = 
+
+Z 10
+
+p(r) log p(r) dr + λ
+
+Z 10
+
+p(r) dr − 1
+
+
+
+. (22) Taking the variational derivative and setting it to zero gives 
+
+δL
+
+δp (r) = log p(r) + 1 + λ = 0 ⇒ p(r) = exp( −1 − λ) = const . (23) Enforcing R 10 p(r) dr = 1 implies the unique maximizer 
+
+p⋆(r) = 1 , r ∈ [0 , 1] , (24) which is the uniform distribution Unif(0 , 1) . Therefore, under support-only information, the maximum-entropy principle selects Unif(0 , 1) as the unique bias-free reference. 
+
+The uniquely induced reference scale. Given a unique neutral reference distribution, its statistical scale is uniquely determined. For r ∼ Unif(0 , 1) , we have 
+
+E[r] = 12 , Var( r) = 
+
+Z 10
+
+
+
+r − 12
+
+2
+
+dr = 112 , σ0 = pVar( r) = 
+
+r 112 . (25) This establishes σ0 = p1/12 ≈ 0.288675 as the canonical, bias-free calibration point under the axioms above. 
+
+Interpretation of the deviation sign. The deviation in Eq. (19) is meaningful. When ˆσext ,t < σ 0 (negative deviation), the reward mass is more concentrated than the neutral maximum-entropy reference, indicating a collapsed or highly structured regime where the effective update signal can vanish under standard normalization. When ˆσext ,t > σ 0 (positive deviation), the reward values are more dispersed than the uniform baseline. Importantly, this does not imply higher entropy (uniform is already maximum entropy); instead, it indicates that probability mass shifts toward the extremes, a polarization effect that can lead to overly aggressive updates if not dampened. As a sanity check, for any r ∈ [0 , 1] , Popoviciu’s inequality gives 
+
+Var( r) ≤ (1 − 0) 2
+
+4 = 14 , σ(r) ≤ 12 , (26) so σ0 = p1/12 lies strictly between the collapsed regime ( σ ≈ 0) and the maximal polarization bound ( σ = 1 /2). 17 Faithful Mobile GUI Agents with Guided Advantage Estimator              
+
+> (a) Collapsed-group prevalence. (b) Reward vs. group std. (c) Mean |A|over steps.
+> Figure 11. Diagnosing low-variance regimes under GUI rewards. Under vanilla GRPO, collapsed rollout groups become prevalent over training (a) and reward gains can coincide with shrinking within-group variance (b). Panel (c) compares vanilla GRPO with GRPO+GuAE, showing that GRPO+GuAE maintains larger advantage magnitudes throughout training.
+
+Why anchor extension is necessary. The maximum-entropy calibration is meaningful only when the statistics are measured on a consistent support. In practice, raw rollout scores can occupy a narrow sub-interval of [0 , 1] (or even drift across training), making ˆσ incomparable across groups. To enforce a globally consistent scale, we extend each group with anchor points at the boundaries, rext ,t = {ri}Ki=1 ∪ { 0, 1}, and compute ˆσext ,t from rext ,t . This aligns all groups to the same support and makes the dimensionless deviation in Eq. (19) well-defined. 
+
+Generalization to arbitrary bounded ranges. If rewards are supported on [a, b ] rather than [0 , 1] , the maximum-entropy reference remains uniform on [a, b ] and induces 
+
+σ0 = b − a
+
+√12 . (27) Therefore, using p1/12 assumes that the reward used for gating has been normalized to [0 , 1] , which is consistent with outcome-style rewards and with our anchor-based support alignment. 
+
+B.5. How GRPO+GuAE Preserves Informative and Well-Scaled Advantages 
+
+GRPO+GuAE only changes the advantage computation while keeping the GRPO objective unchanged. It addresses two practical breakdowns observed in GUI agents RFT, advantage collapse under low-variance rollout groups and signal-scale mismatch across groups with different volatility. In particular, collapsed groups can remove within-group preference information, and heterogeneous group variance can distort update scales. 
+
+Anchor extension prevents degeneration and restores a directional signal. We compute anchor-extended statistics in Eq. (12) . The extension yields a strictly positive normalization scale with a deterministic lower bound in Eq. (13) , so the denominator cannot collapse even when empirical rewards are constant. More importantly, it restores a non-zero direction in fully collapsed groups. When ri ≡ c with c ∈ { 0, 1}, Eq. (14) gives 
+
+|ri − μext ,t | = 1
+
+K + 2 ̸ = 0 , (28) so collapsed groups no longer become no-ops as in Eq. (4) . This turns all-success and all-failure groups into consistent signed training signals, enabling improvement even after the policy becomes nearly deterministic on subsets of prompts. 
+
+Variance tempering controls the gain across heterogeneous groups. Across prompts and action types, rollout groups exhibit sharply different dispersion. A fixed mean and std normalization can mis-scale updates, where volatile groups receive overly aggressive steps while stable groups receive overly conservative steps. VAT tempers the normalization scale using the smooth gate in Eq. (15) and the interpolated exponent in Eq. (16) . Since rewards are bounded, the extended standard deviation is also bounded and typically stays well below 1. For σext ,t ∈ (0 , 1) , the mapping p 7 → σ p 
+
+> ext ,t
+
+is decreasing. With 
+
+plow > 1 and phigh < 1, the effective denominator becomes smaller for stable groups and larger for volatile groups, which behaves as a variance-conditioned gain control and reduces scale mismatch. 18 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Evidence from training diagnostics. Figure 11 characterizes the operating regime of vanilla GRPO. In (a), the prevalence of collapsed (near-constant) rollout groups increases steadily over training. In (b), reward improvements can occur alongside shrinking within-group variance, i.e., the regime where standard GRPO normalization tends to wash out preference information. Panel (c) then compares vanilla GRPO against our GRPO+GuAE, showing that GRPO+GuAE maintains larger advantage magnitudes across steps, indicating a recovered reward-driven learning signal under low-variance groups. 
+
+B.6. Optimization Stability 
+
+GRPO+GuAE improves optimization stability by removing abrupt changes in effective normalization. Under Base GRPO, small fluctuations of σ(r) around degenerate regimes can cause large relative changes in the normalization scale, leading to occasional sharp gradient spikes. Anchor extension provides a lower-bounded scale, and VAT further smooths the gain using the variance-conditioned gate, so the effective scaling varies continuously with group dispersion. As a result, optimization becomes smoother with fewer gradient-norm spikes in Figure 5c, which is consistent with stabilized advantage magnitudes in Figure 11(c) and the reduced dominance of near-threshold std groups in Figure 10b. 
+
+# C. Faithfulness-First Reward 
+
+This appendix provides the concrete definitions used to compute the two reward components in Design I: the action-match reward RAM (Eq. 9) and the thought-action consistency reward RCons (Eq. 10). We emphasize that the main text focuses on the design principles; here we detail the deterministic rules used to obtain stable, reproducible supervision. 
+
+C.1. Action Parsing and Canonicalization 
+
+Given a model completion o, we parse it into a structured action tuple ˆa following the unified tool-call schema used by our agent (action type plus arguments). If the completion is ill-formed (e.g., missing required keys, unparsable JSON, or empty arguments for required fields), we treat the action as invalid and set RAM (o) = 0 . We canonicalize both predicted and ground-truth actions into the same representation (normalized action names; normalized coordinate system; normalized text fields) before matching. 
+
+C.2. Action-Match Reward RAM 
+
+Recall Eq. 9: 
+
+RAM (o) = 1[TYPE (ˆ a) = TYPE (a)] · ϕ(ˆ a, a ),
+
+where ϕ(ˆ a, a ) ∈ [0 , 1] is an argument similarity score. We define ϕ by action category to provide smoother feedback for continuous actions while preserving near-binary behavior for discrete actions. 
+
+Coordinate actions ( CLICK ). We measure Euclidean distance d between predicted and ground-truth coordinates in the same normalized screen space, and use an exponential decay: 
+
+ϕ(ˆ a, a ) = exp( −d/τ ),
+
+so small coordinate errors still receive partial credit while large deviations rapidly decay toward zero. 
+
+Text actions ( TYPE , ANSWER ). We compare the predicted string ˆx with the target string x using an edit-distance similarity: 
+
+ϕ(ˆ a, a ) = 1 − EditDist norm (ˆ x, x ),
+
+which yields dense supervision even when text differs by minor typos or spacing. 
+
+Swipe actions ( SWIPE ). Swipe execution requires both direction and magnitude (or span) to be reasonable. We first enforce direction validity; if the direction mismatches, we set ϕ(ˆ a, a ) = 0 . Otherwise, we grant partial credit by combining a direction term with a magnitude similarity term: 
+
+ϕ(ˆ a, a ) = 12 + 12 · ψ( ˆ m, m ),
+
+where ψ(·, ·) ∈ [0 , 1] measures the similarity of swipe magnitude (e.g., relative span). 19 Faithful Mobile GUI Agents with Guided Advantage Estimator                                        
+
+> Table 7. RFT data sensitivity. (i) RFT data amount. (ii)Trap-to-General mixing ratio under a fixed total RFT budget of 3k samples.
+> Setting RFT Trap General Type ↑SR ↑Type ↑SR ↑
+> Amount 1k 83.75 72.82 81.76 63.10 2k 87.00 76.51 83.86 64.36 4k 89.07 77.55 84.17 65.30 6k 91.29 80.21 85.74 65.62
+> Ratio 10:1 74.00 61.00 86.16 66.25
+> 5:1 82.13 70.01 84.70 65.72 2:1 88.21 77.01 84.03 64.89 1:1 91.43 79.62 81.87 62.26
+
+Discrete enumerate actions ( SYSTEM BUTTON , TERMINATE ). For one-of-N actions that represent discrete safe resolutions, the arguments are categorical and therefore matched exactly: 
+
+ϕ(ˆ a, a ) = 1[ARG (ˆ a) = ARG (a)] .
+
+This preserves the near-binary nature of abstainment-related decisions while keeping the overall reward bounded. 
+
+C.3. Thought-Action Consistency Reward RCons 
+
+We compute a Thought-Action Consistency score s(Thought , ˆa) ∈ [−1, 1] that evaluates whether the predicted action faithfully instantiates the intent stated in the intermediate reasoning ( Thought ). We then map it to [0 , 1] as in Eq. 10: 
+
+RCons (o) = s(Thought , ˆa) + 1 2 .
+
+Intent extraction. We extract intent cues from the Thought , such as whether the plan indicates TYPING /INPUT ,
+
+> CLICK
+
+/TAP /PRESS , SCROLL /SWIPE , or SYSTEM BUTTON /TERMINATE . We also extract lightweight argument cues when present (e.g., the string to be typed, swipe direction, or whether the thought implies a discrete system action). 
+
+Alignment scoring. The score s(Thought , ˆa) follows a rule-based rule: • Consistent (s > 0): the predicted action type agrees with the intent cues, and any critical arguments mentioned in the thought (e.g., intended input text or swipe direction) are compatible with the action arguments. • Neutral (s ≈ 0): the thought is underspecified, ambiguous, or does not provide checkable intent cues; we neither strongly reward nor penalize. • Contradictory (s < 0): the predicted action clearly violates the stated intent (e.g., thought says “type” but the action clicks; thought says “go back” but the action types), or required cues conflict with the action arguments. In all cases, s is clipped to [−1, 1] to keep RCons bounded and stable. While our consistency reward RCons relies on rule-based keyword extraction, its primary role is to act as a regularization term rather than a complex semantic evaluator. By penalizing instances where the action drifts from the explicit intent stated in the reasoning chain, RCons constrains the agent’s search space toward logically coherent trajectories. Our ablation study (Table 10, Table 15) and manual audit confirm that this simple yet effective signal is sufficient to suppress ’hallucinated actions’ without necessitating expensive LLM-based evaluators during training. 
+
+# D. More Results and Case Study 
+
+This section reports additional ablations and sensitivity analyses that do not fit in the main paper. Unless otherwise stated, all results are evaluated on the Trap and General subsets using the same metrics as in the main paper. 20 Faithful Mobile GUI Agents with Guided Advantage Estimator 
+
+Table 8. Hyper-parameter sensitivity of VAT in GuAE. Unless otherwise specified, we use the default setting σ0=0 .2887 , τ =5 , plow =1 .5,and phigh =0 .8. Each block varies one factor while keeping the others fixed, reporting Type and SR on Trap and General. 
+
+(a) (σ0, τ ) in variance-based scaling. We vary (i) the uniform standard deviation σ0 and (ii) the temperature τ .                              
+
+> Setting Value Trap General Type ↑SR ↑Type ↑SR ↑
+> σ0
+> 0.2000 90.10 78.73 85.32 64.78 0.2887 91.29 80.21 85.74 65.62
+> 0.3500 90.10 78.58 84.59 64.26
+> τ
+> 290.10 79.03 85.22 65.09 591.29 80.21 85.74 65.62
+> 10 89.51 78.58 84.91 65.51
+
+(b) (plow , p high ) in VAT exponent bounds. We vary (iii) the low-variance exponent plow and (iv) the high-variance exponent phigh ,where plow > 1 sharpens low-variance groups and phigh < 1 damps high-variance groups.                               
+
+> Setting Value Trap General Type ↑SR ↑Type ↑SR ↑
+> plow
+> 1.2 91.14 79.03 85.12 63.73 1.5 91.29 80.21 85.74 65.62
+> 2.0 90.82 78.76 85.26 65.11
+> phigh
+> 0.6 90.99 78.88 85.85 65.09 0.8 91.29 80.21 85.74 65.62
+> 0.9 91.05 79.03 85.31 64.89
+
+Table 9. Impact of RFT algorithms and advantage normalization. (RFT without RCons )                         
+
+> Optimizer Trap General Type ↑SR ↑Type ↑SR ↑
+> REINFORCE++ 81.68 69.57 83.75 63.21 GRPO 87.89 76.81 85.53 66.14 DAPO 87.59 76.07 85.64 64.88 GSPO 86.71 74.59 85.22 65.62 GRPO+GuAE (Ours) 89.36 78.58 86.27 66.35
+
+D.1. RFT Data Sensitivity 
+
+Table 7 studies the effect of RFT data amount and the Trap-to-General mixing ratio. Increasing the RFT budget from 1k to 6k yields consistent gains, with larger improvements on Trap, indicating that faithfulness-critical behaviors benefit more from additional RFT signal. Under a fixed total budget of 3k samples, changing the mixing ratio reveals a clear trade-off. Allocating more budget to Trap improves Trap performance but reduces General performance, while allocating too little Trap data weakens Trap robustness. The intermediate ratios provide a more balanced outcome, suggesting that Trap samples are essential but should not dominate the RFT mixture. 
+
+D.2. Hyper-Parameter Sensitivity of Our GRPO Variant 
+
+Unless stated otherwise, we use σ0 = 1√12 , τ = 5 , plow = 1 .5, and phigh = 0 .8. Table 8 varies key hyper-parameters in GRPO+GuAE, including the uniform standard deviation σ0 and temperature τ in variance-based scaling, as well as the exponent bounds (plow , p high ) that constrain VAT tempering. Performance remains stable across reasonable ranges of all parameters, and the default setting achieves the best or near-best results on both Trap and General. This indicates that the advantage estimator does not rely on fragile tuning and admits a robust operating region. In particular, setting σ0 to a moderate value avoids overly aggressive scaling at small std and overly conservative scaling at large std, while varying 
+
+(plow , p high ) only causes minor changes, confirming that VAT is not sensitive to the exact bound choices. 
+
+D.3. Impact of RFT Algorithms and Advantage Normalization 
+
+Table 9 compares representative group-based RFT optimizers (GRPO (Guo et al., 2025) and its variants DAPO (Yu et al., 2025) and GSPO (Zheng et al., 2025a)) against REINFORCE++, a normalization-based baseline. Across both splits, standard GRPO is already strong, while DAPO and GSPO are comparable but slightly weaker overall, with more noticeable drops on Trap. In contrast, GRPO+GuAE consistently achieves the best Type and SR on both Trap and General, improving over vanilla GRPO by +1 .47 Type and +1 .77 SR on Trap and by +0 .74 Type and +0 .21 SR on General. REINFORCE++ performs substantially worse, suggesting that applying a different normalization alone is insufficient under sparse, near-21 Faithful Mobile GUI Agents with Guided Advantage Estimator  
+
+> Table 10. Thought-action consistency under our rule.
+
+Stage GRPO variant Reward Consistency Consistent ↑ Neutral Contradictory ↓ Avg. score ↑
+
+Base model – – 40.10 0.61 59.29 0.4490 Stage I – – 71.00 1.41 27.59 0.6952 Stage II Base GRPO – 71.74 1.59 26.67 0.7039 Base GRPO +RCons 82.71 0.98 16.31 0.7861 
+
+GRPO+GuAE – 74.49 2.51 22.99 0.7287 GRPO+GuAE +RCons 80.44 2.39 17.17 0.7747                                            
+
+> Table 11. Sensitivity to reward scaling and the click-distance threshold. We vary the reward weight λand the click threshold τclick and report Type and SR on Trap and General.
+> Setting Value Trap General Type ↑SR ↑Type ↑SR ↑
+> λ
+> 1.00 89.36 78.58 86.27 66.35
+> 0.85 91.29 80.21 85.74 65.62 0.50 93.65 82.27 79.98 60.38 0.00 98.23 77.40 5.97 5.66
+> τclick
+> 090.69 79.17 84.91 64.47 60 91.29 80.21 85.74 65.62
+> 100 90.55 78.88 84.80 64.05 140 90.25 79.03 84.70 64.78
+
+binary GUI outcomes. Overall, these results indicate that GuAE provides a more reliable policy-gradient signal than swapping the optimizer variant (DAPO/GSPO) or replacing normalization (REINFORCE++), yielding robust gains without sacrificing general performance. 
+
+D.4. Thought-Action Consistency 
+
+Our evaluation rule is aligned with the consistency reward design in Appendix C.3, judging whether the generated thought is 
+
+consistent with the executed action under the same criteria used by RCons . Table 10 shows that explicitly adding RCons 
+
+reliably increases the consistent portion while reducing contradictory cases, confirming that the rule is reward-aligned and that the shaping signal is effective. Note that the rule-based consistency score is not perfectly aligned with the main task metrics; Base GRPO+RCons can be slightly higher on this auxiliary statistic. Interestingly, even without RCons ,GRPO+GuAE also improves the rule outcomes over the vanilla estimator, suggesting that thought-action consistency is not an isolated metric but is positively correlated with standard GUI optimization signals in Appendix C.2. Combining GRPO+GuAE with RCons maintains the improvements, yet does not consistently surpass the vanilla estimator with RCons 
+
+under the averaged score breakdown, indicating diminishing returns and a non-trivial interaction between estimator design and consistency shaping. 
+
+Per-type breakdown. For Type-0, the avg. score is 0.7162 (Base GRPO+ RCons ) versus 0.6991 (GRPO+GuAE+ RCons ); for Type-2, the corresponding avg. scores are 0.8846 versus 0.8812 . This explains the gap mainly comes from Type-0, where behaviors are more diverse and rule consistency is not perfectly aligned with the optimization bias introduced by GRPO+GuAE. For Type-2, scores are near-saturated, so the combined method shows little additional headroom. 
+
+D.5. Sensitivity to Reward Scaling and Click-Distance Threshold 
+
+Table 11 varies the reward scaling weight λ and the click-distance threshold τclick . For λ, smaller values can substantially improve Trap scores but can also degrade General performance, indicating that overly strong reliance on the auxiliary reward may bias optimization toward Trap-style signals and harm generalization. The default λ provides a better balance, while 22 Faithful Mobile GUI Agents with Guided Advantage Estimator                                                               
+
+> Table 12. Sensitivity to rollout group size Kin RFT.
+> KTrap General Type ↑SR ↑Type ↑SR ↑
+> 491.58 80.21 83.23 63.10 891.29 80.21 85.74 65.62
+> 16 87.89 76.66 86.37 64.99
+> Table 13. Impact of training stages.
+> Setting Trap General Type ↑SR ↑Type ↑SR ↑
+> Base (zero-shot) 36.63 13.88 82.81 60.38 Stage I 82.27 71.20 79.87 60.59 RFT only 45.79 35.45 84.38 65.83
+> Stage II 91.29 80.21 85.74 65.62
+> Table 14. Trap subset breakdown. We decompose the Trap subset into instruction perturbations and UI perturbations, and report Type and SR on each subset.
+> Models Instruction-Trap UI-Trap Type ↑SR ↑Type ↑SR ↑
+> Qwen3-VL-8B-Instruct 75.09 28.30 10.44 5.10
+> Faithful-Agent (Stage I) 93.58 67.17 73.79 71.84
+> Faithful-Agent (Stage II) 97.36 69.06 85.68 83.50
+
+setting λ = 0 causes a collapse on General, showing that the reward term is necessary for learning meaningful behaviors. For τclick , the results suggest an intermediate threshold is preferred, as overly strict or overly permissive matching degrades both Trap and General due to mis-specified partial credit for coordinate actions. 
+
+D.6. Sensitivity to Rollout Group Size 
+
+Table 12 evaluates the effect of the rollout group size K in RFT. We observe that K = 8 yields the best overall performance, while a smaller K reduces General performance and a larger K hurts Trap without bringing clear benefits on General. This suggests diminishing returns from increasing within-group comparisons, and is consistent with the fact that larger groups increase the chance of low-variance outcomes under coarse rewards, reducing the fraction of informative rollouts. 
+
+D.7. Impact of training stages 
+
+Table 13 shows a clear stage-wise pattern. Starting from the base model, SFT provides a crucial cold start for step-wise faithfulness: it teaches the agent to reliably trigger abstainment when evidence is missing or the UI state conflicts with the instruction, yielding a substantial improvement on Trap. In contrast, RFT alone improves overall optimization and general-task performance but offers limited gains on Trap without the correct abstainment priors. Combining them, SFT+RFT 
+
+achieves the best results on both subsets, indicating that SFT establishes the necessary behavior primitives while RFT further strengthens and stabilizes them under sparse, near-binary rewards. 
+
+D.8. Trap Subset Breakdown 
+
+Table 14 decomposes Trap into instruction perturbations and UI perturbations. The base model performs poorly on UI-Trap, highlighting the difficulty of maintaining reliable behavior when UI evidence is missing or conflicting. Faithful-Agent trained with SFT improves both subsets substantially, indicating that the faithfulness-oriented data already teaches robust abstainment and recovery behaviors. Adding RFT further improves both subsets, with particularly substantial gains on 23 Faithful Mobile GUI Agents with Guided Advantage Estimator                          
+
+> Table 15. Abstainment error rates. Over-abstain is computed on eligible General cases where GT is non-terminate. Under-abstain is computed on eligible Trap cases where GT requires terminate.
+> Stage GRPO variant Reward Abstainment errors Over-abstain ↓Under-abstain ↓
+> Base model ––5.24% 57.75% Stage I ––10.36% 17.87% Stage II Base GRPO –5.24% 12.26% Base GRPO +RCons 4.78% 10.25% GRPO+GuAE –4.78% 10.19% GRPO+GuAE +RCons 5.15% 8.86%
+
+UI-Trap, showing that our RFT stage reinforces stable decisions under visually perturbed conditions. 
+
+D.9. Abstainment Calibration 
+
+Table 15 illustrates the evolution of decision boundaries across training stages. The base model exhibits an overconfident under-abstainment bias, characterized by severe under-abstainment on Trap cases. While SFT mitigates this, it inadvertently triggers a ”conservative-shift,” leading to increased over-abstainment as the model overfits to termination patterns. RFT re-calibrates vanilla GRPO, restoring efficiency on General while preserving Trap gains. Notably, the integration of stabilized guided advantage estimator and consistency shaping ( RCons ) yields synergistic effects. This combination suppresses speculative behaviors without inducing over-caution, achieving an optimal equilibrium where the agent learns to terminate only when logically necessitated by insufficient evidence. 
+
+D.10. Case Study 
+
+24 Faithful Mobile GUI Agents with Guided Advantage Estimator Thought: The user has already entered '15' in the FROM UNIT field and the 
+
+conversion to km/h is displayed as 0.015. To complete the conversion, the 
+
+remaining digits '00' need to be entered to make it '1500 m/h’. 
+
+Action: "Click at (278, 823);“ 
+
+<tool_call> 
+
+{"name": "mobile_use", "arguments": {"action": "click", "coordinate": [278, 823]}} 
+
+</tool_call> 
+
+Instruction: 
+
+In the Calculator Unit Converter app and convert 1500 m/h into km/h units under the Speed tab. 
+
+Unfaithful GUI Agent 
+
+Faithful -Agent 
+
+Thought: The user has already entered '15' in the FROM UNIT field and the 
+
+conversion to km/h is displayed as 0.015. To complete the conversion, the 
+
+remaining digits '00' need to be entered to make it '1500 m/h’. 
+
+Action: "Click at (375, 926);“ 
+
+<tool_call> 
+
+{"name": "mobile_use", "arguments": {"action": "click", "coordinate": [375, 926]}} 
+
+</tool_call> 
+
+Figure 12. Thought–action mismatch in numeric entry. Both agents infer that “1500 m/h” requires appending “00”, but the unfaithful agent clicks an incorrect keypad location while Faithful-Agent clicks the correct digit area to complete the input. 
+
+25 Faithful Mobile GUI Agents with Guided Advantage Estimator Origin Instruction: 
+
+In the The Hindu App Get the first news result from world category and 
+
+first news result from Business category 
+
+Current Instruction: 
+
+In the Spotify App, create a new playlist titled "Morning Vibes“. 
+
+Current Interface 
+
+Current Interface 
+
+CLICK: [798, 145] 
+
+SYSTEM_BUTTON: 
+
+Home 
+
+Thought: The current screen is not relevant 
+
+to the Spotify app, and the task cannot be 
+
+completed here. 
+
+Action: Press Home to return to the home 
+
+screen and navigate to the Spotify app. 
+
+<tool_call> 
+
+{"name": "mobile_use", "arguments": 
+
+{"action": "system_button", "button": "Home"}} 
+
+</tool_call> 
+
+Thought: The user wants to get the first 
+
+news result from both the World and Business 
+
+categories. Currently, the World category is 
+
+selected, and the first news item is visible. 
+
+The next step is to navigate to the Business 
+
+category to fetch its first news result. 
+
+Action: "Click on the 'Business' tab to switch 
+
+to the Business category.“ 
+
+<tool_call> 
+
+{"name": "mobile_use", "arguments": 
+
+{"action": "click", "coordinate": [798, 145]}} 
+
+</tool_call>", 
+
+Unfaithful GUI Agent 
+
+Faithful -Agent 
+
+Figure 13. Handling instruction drift under a fixed interface. When the current instruction switches to Spotify while the screen remains in The Hindu app, the unfaithful agent continues task execution on the irrelevant UI, whereas Faithful-Agent detects irrelevance and returns Home before re-navigation. 
+
+26 Faithful Mobile GUI Agents with Guided Advantage Estimator Instruction: 
+
+Open app "Microsoft Outlook" (install if not already installed) and go to login screen 
+
+Thought: The "Install" 
+
+button for Microsoft Outlook 
+
+is missing , indicating the app 
+
+might already be installed or 
+
+the screen is altered. 
+
+Action: Press the Back 
+
+button to return to the 
+
+previous screen and check if 
+
+the app is installed. 
+
+<tool_call> 
+
+{"name": "mobile_use", 
+
+"arguments": 
+
+{"action": "system_button", 
+
+"button": "Back"}} 
+
+</tool_call> 
+
+Thought: The goal is to open 
+
+Microsoft Outlook and reach 
+
+the login screen. Since the app 
+
+is not yet installed, I need to 
+
+click the "Install" button to 
+
+download and install it. 
+
+Action: "Click the 'Install' 
+
+button to begin installing 
+
+Microsoft Outlook.“ 
+
+<tool_call> 
+
+{"name": "mobile_use", 
+
+"arguments": {"action": "click", 
+
+"coordinate": [891, 113]}} 
+
+</tool_call> 
+
+## Unfaithful GUI Agent 
+
+## Faithful -Agent 
+
+Figure 14. Abstaining under missing UI evidence. If the expected “Install” button is absent, the unfaithful agent still clicks the presumed location, while Faithful-Agent treats the missing element as a faithfulness warning and presses Back to verify the app state before proceeding. 
+
+27

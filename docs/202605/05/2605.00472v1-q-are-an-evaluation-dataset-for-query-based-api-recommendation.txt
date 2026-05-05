@@ -1,0 +1,263 @@
+Title: Q-ARE: An Evaluation Dataset for Query Based API Recommendation
+
+URL Source: https://arxiv.org/pdf/2605.00472v1
+
+Published Time: Mon, 04 May 2026 00:44:09 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Q-ARE: An Evaluation Dataset for Query Based API Recommendation 
+
+# Shenglong Wu 
+
+College of Computer Science and Technology, National University of Defense Technology Changsha, Hunan, China State Key Laboratory of Complex & Critical Software Environment Changsha, Hunan, China wushenglong23@nudt.edu.cn 
+
+# Xunhui Zhang 
+
+College of Computer Science and Technology, National University of Defense Technology Changsha, Hunan, China State Key Laboratory of Complex & Critical Software Environment Changsha, Hunan, China zhangxunhui@nudt.edu.cn 
+
+# Tao Wang ∗
+
+College of Computer Science and Technology, National University of Defense Technology Changsha, Hunan, China State Key Laboratory of Complex & Critical Software Environment Changsha, Hunan, China taowang2005@outlook.com 
+
+## Abstract 
+
+As software systems grow in scale, developers face increasing difficulty in selecting appropriate Application Programming Inter-faces (APIs) from numerous options. Efficiently identifying APIs that satisfy functional requirements has become a key challenge. To evaluate the semantic understanding of existing query-based API recommendation methods, this paper constructs Q-ARE (Query-based API Recommendation Evaluation) , a dataset based on open-source Java projects from GitHub. Methods and their invoca-tion chains are analyzed to identify third-party APIs directly or in-directly invoked by target methods, recursively expanding multi-level invocations to unify hierarchical call structures into API rec-ommendation target sets. Furthermore, we introduce two metrics: 
+
+API Call Depth , measuring the invocation distance between a query method and a target API, and Invocation Density, quanti-fying the proportion of code lines associated with the target API in the invocation chain. Based on Q-ARE , we systematically evalu-ate several query-based API recommendation methods and general 
+
+Large Language Models (LLMs) . Results show that performance drops significantly as API Call Depth increases and invocation density decreases, indicating that existing methods still struggle with multi-level method invocation structures . Q-ARE and its metrics provide a new benchmark for assessing semantic under-standing in API recommendation and offer insights for improving future algorithms. 
+
+## CCS Concepts 
+
+• Software and its engineering → Software libraries and repos-itories .
+
+## Keywords 
+
+Query-based API Recommendation, Evaluation Dataset, API Sug-gestion 
+
+## 1 Introduction 
+
+Application Programming Interfaces (APIs) are a fundamental com-ponent of modern software development. By invoking APIs, de-velopers can reuse existing software functionalities without imple-menting complex system modules from scratch, thereby improv-ing development efficiency and software quality [18]. For example, 
+
+> ∗This is the corresponding author.
+
+many third-party libraries and frameworks expose functionalities such as data processing, network communication, and database access through APIs. With the rapid growth of the open-source ecosystem, a large number of feature-rich APIs have been continu-ously released and widely adopted in software projects. Proper use of these APIs can significantly improve development efficiency, re-duce development costs, and enhance the reliability and maintain-ability of software systems. However, as the software ecosystem continues to expand, the number of available APIs has grown rapidly, making it increas-ingly difficult for developers to quickly identify suitable APIs that satisfy their requirements during development [13]. To address this challenge, researchers have proposed API recommendation techniques, which aim to automatically recommend relevant APIs based on developers’ natural language queries or code contexts [1, 6, 10, 14, 19], thereby assisting developers in completing program-ming tasks more efficiently. In recent years, various API recom-mendation approaches have been proposed, including information retrieval–based methods [7], deep learning–based methods [3, 5], and approaches leveraging Large Language Models (LLMs) [8]. These methods have improved the effectiveness of API recommendation to some extent. Despite the progress made in API recommendation research, the evaluation of existing approaches typically relies on datasets constructed from code snippets, API documentation, or question-answering communities [12, 13]. These datasets mainly focus on APIs that are invoked in a single-level manner. However, in real-world software projects, third-party APIs are often invoked in a multi-level manner through method invocation chains. As shown in Figure 1, the method processComment does not invoke the is-Blank API from the Apache Commons Lang library in a single-level manner; instead, it calls the API in a multi-level manner through the isCommentEmpty method. To address this limitation, we mine real-world open-source Java projects from GitHub and construct a new query-based API rec-ommendation evaluation dataset, named Q-ARE . We first select projects satisfying quality criteria. Then, by analyzing both the in-vocation relationships among methods and between methods and APIs, we recursively resolve method invocation chains to identify third-party APIs that are directly or indirectly invoked by the tar-get methods.Furthermore, we expand multi-level method invoca-tion relationships and transform hierarchical call structures into a 
+
+> arXiv:2605.00472v1 [cs.SE] 1 May 2026 Wu et al.
+
+Figure 1: Example of multi-level invocation of a third-party API 
+
+unified representation consisting of query methods and the set of reachable third-party APIs, constructing a unified API recommen-dation target space. Based on this dataset, we introduce two metrics: API Call Depth 
+
+and API Call Density . Depth characterizes the invocation dis-tance between a query method and a target API. Density mea-sures the semantic proportion of target APIs within the code as-sociated with the invocation chain, quantified by the code size of the methods involved. When the call chain involves more code, the semantic contribution of the API within the overall method logic is smaller, increasing the difficulty of the API recommendation task. Using the proposed dataset, we conduct a systematic evalua-tion of several query-based API recommendation approaches and general LLMs. Experimental results show that recommendation performance decreases significantly as API Call Depth increases and semantic density decreases. These findings indicate that exist-ing methods still struggle to capture semantic relationships across method invocations and complex functional query, especially when APIs are used indirectly through multi-level invocation chains. The main contributions of this work are as follows: 1. We construct a query-based API recommendation evaluation dataset, Q-ARE , and provide its full source code for public use. This dataset is built from real open-source projects on GitHub and includes both direct and indirect third-party API invocations through method invocation analysis. It also provides corresponding seman-tic information, thereby reflecting the actual usage of APIs in soft-ware projects more realistically. The dataset and source code are available at https://doi.org/10.5281/zenodo.19907209. 2. We propose two metrics: API Call Depth and API Call Den-sity . Depth quantifies the invocation distance between a query method and a target API, while Density measures the sparsity of the target API in the method implementation, i.e., the proportion of code in the invocation chain occupied by the API, reflecting its significance in the overall implementation logic. 3. We systematically evaluate existing API recommendation meth-ods and large language models on the Q-ARE dataset. Experimen-tal results reveal that API Call Depth and semantic proportion have a significant impact on recommendation performance and in-dicate that current methods still exhibit substantial limitations in complex semantic understanding and cross-method reasoning. The rest of the paper is organized as follows. Chapter 2 reviews related work. Chapter 3 describes the dataset construction. Chap-ter 4 presents the experimental setup and results. Chapter 5 dis-cusses the findings and future directions. Chapter 6 examines threats to validity. Finally, Chapter 7 concludes the paper. 
+
+## 2 Related Work 2.1 Query-Based API Recommendation 
+
+Query-based API recommendation aims to automatically suggest APIs that can achieve a target functionality based on natural lan-guage descriptions provided by developers. According to APIGen [2], existing approaches can be broadly categorized into retrieval-based methods, learning-based methods, and LLM-based approaches. 
+
+Retrieval-based methods. Retrieval-based methods typically rec-ommend APIs by computing the semantic similarity between a query and API documentation or code descriptions. These methods usually first construct semantic representations of API documen-tation or code snippets and then retrieve candidate APIs based on similarity. For example, CLEAR [19] employs RoBERTa to learn semantic representations of natural language queries and API de-scriptions, and further optimizes the embedding space using con-trastive learning. After retrieving candidate APIs, a BERT-based bi-nary classification model is applied for re-ranking, achieving high recommendation accuracy. Such methods are relatively simple to implement and highly interpretable, but their performance gener-ally depends on the quality of API documentation and the semantic alignment between queries and documentation, limiting their abil-ity to handle complex semantics or indirect API usage scenarios. 
+
+Learning-based methods. Learning-based methods typically model API recommendation as a sequence generation or ranking task, leveraging deep learning models to learn the mapping between queries and APIs from large-scale historical code or Q&A data. For instance, DeepAPI [5] adopts an RNN encoder–decoder archi-tecture to encode natural language queries into semantic vectors and generates the corresponding API call sequences via the de-coder. The method incorporates an attention mechanism, enabling the model to dynamically focus on different parts of the input query during generation, thereby improving the accuracy of API sequence generation. Moreover, BRAID [20] proposes a plug-and-play enhancement framework that learns developers’ implicit feed-back on recommended results and combines it with active learning to re-rank outputs from existing recommendation systems, signifi-cantly improving Top-1 recommendation performance. Compared to retrieval-based methods, learning-based approaches can capture more complex semantic relationships, but their effectiveness often depends on the size of the training data and may be constrained by limitations in modeling long-range dependencies. Q-ARE: An Evaluation Dataset for Query Based API Recommendation 
+
+LLM-based approaches. With the rapid advancement of large lan-guage models (LLMs) in code understanding and generation, re-searchers have explored LLM-based API recommendation. For ex-ample, APIGen [2] retrieves historical programming Q&A seman-tically similar to a user query as examples and combines them with highly relevant “API seeds” extracted from official documen-tation to guide LLMs in generating semantically relevant API call sequences, achieving generative API recommendation. Compared with traditional methods, LLMs demonstrate stronger potential in semantic understanding and code generation, yet their effective-ness in recommending APIs for complex software projects still re-quires systematic evaluation. In summary, although existing query-based API recommenda-tion methods model the semantic relationships between queries and third-party APIs from various perspectives, constructing an evaluation dataset that can systematically assess the semantic un-derstanding capabilities of these methods is of significant research value and can provide a benchmark for improving future approaches. 
+
+## 2.2 API Recommendation Evaluation Datasets 
+
+The development of API recommendation methods largely relies on high-quality evaluation datasets. Existing datasets are primarily derived from open-source software projects [4, 5, 17], Q&A com-munities [6, 13, 14], and manually constructed data [2, 11, 16]. A dataset from Gu et al. [5] is built from Java projects on GitHub. Methods with non-empty Javadoc comments ending with a period were selected, and the first sentence of each Javadoc was used as a natural language description. Static analysis of method bodies extracted all external API calls (e.g., java.io.File.<init> , Doc-umentBuilder.parse ) to form API sequences. After cleaning, the dataset contains around 7.5 million method–API pairs, covering Java standard libraries and third-party APIs. 
+
+APIBENCH-Q [13] evaluates query-based API recommenda-tion methods using data from Stack Overflow and tutorial web-sites (e.g., GeeksforGeeks, Java2s, Kode Java). Stack Overflow posts were filtered by rules (removing posts without answers, code snip-pets, or relevant API calls) and manually verified in two rounds to ensure queries expressed clear functional requirements and an-swers contained corresponding API calls. Tutorial website data were filtered using rules only. The dataset contains 6,563 Java queries and 4,309 Python queries, each paired with accurate ground-truth APIs. 
+
+THINK [11] collects 150 real-world programming tasks from GitHub and CodeGen4Libs, supplemented with 60 GPT-4-generated tasks, totaling 210 tasks. These cover Java third-party libraries in PDF, image, and NLP domains, involving 3,234 classes and 25,451 APIs, providing diverse and realistic evaluation scenarios. Existing datasets have limitations. Most focus on single-level API calls, whereas real projects often involve multi-level invoca-tion chains. Some consider only tasks completed by a single API, not capturing multi-API cooperation. While some datasets account for parameter dependencies, their data are mainly LLM-generated or manually constructed and do not fully reflect complex real-world invocation structures. To address these issues, we construct the Q-ARE dataset from real-world GitHub Java projects. By analyzing method invocations and recursively resolving chains, it identifies both single- and multi-level API calls. We introduce two evaluation metrics: API Call Depth , quantifying the distance between a query method and a target API, and API Call Density , measuring the proportion of code lines associated with the target API in the invocation chain. These metrics provide a systematic benchmark for evaluating API recommendation methods and LLMs in complex invocation scenar-ios. 
+
+## 3 Dataset Construction 
+
+To systematically evaluate the performance of query-based API recommendation methods and general-purpose LLMs under com-plex call structures and semantic contexts, we construct a new query-based API recommendation evaluation dataset, Q-ARE . The dataset construction process consists of four main stages: Project Selection , Method Extraction and Call Relation Analysis , Third-Party API Collection and Processing , and Query–Target API Construction , as illustrated in Figure 2. 
+
+## 3.1 Project Selection 
+
+To ensure the representativeness, quality, and executability of the projects in the dataset, we selected GitHub open-source Java projects that meet the following criteria: 1. GitHub Stars ≥ 20 : The number of stars reflects a project’s community attention and activity, and to some extent, its main-tenance quality. Based on this consideration, and drawing on the authors’ extensive experience in software development and open-source projects, we reached a consensus to use a GitHub Star thresh-old of 20 or more as an initial screening criterion, ensuring that the selected projects have a certain level of community recognition and practical value. 2. Creation Date between February 6, 2025 and December 31, 2025 : The starting date is determined with reference to the re-lease timeline of mainstream large language models. Specifically, we first construct a baseline set using representative models from the OpenCompass LLM Leaderboard [15], and take the most re-cently released model among them (Gemini-2.0-Pro-Exp-02-05, re-leased on February 5, 2025) as the lower bound of the timeline. Accordingly, the following day (i.e., February 6, 2025) is used as the starting point for data filtering. The end date is chosen to en-sure that all selected projects were created before the start of the experiments (January 1, 2026) and have accumulated sufficient de-velopment and evolution history to support subsequent analysis and evaluation. 3. Contains Test Cases : Select projects that include executable test cases to support standardized verification of code functional-ity and to provide a foundation for automated evaluation in sub-sequent tasks (e.g., method generation based on API recommenda-tion results). 4. Use of Mainstream Third-Party Libraries (e.g., Spring Framework) : This criterion ensures that projects contain rich third-party API usage, providing sufficient samples for evaluating API recommendation methods. Spring Framework is one of the most widely used frameworks in web development and research; its com-prehensive documentation guarantees clear API descriptions, which Wu et al. 
+
+Figure 2: Dataset Construction Pipeline 
+
+facilitates accurate and in-depth evaluation and ensures that exper-imental results are representative of realistic scenarios. Through these selection criteria, we obtained a set of representa-tive real-world software projects, providing a reliable data source for constructing the Q-ARE dataset. 
+
+## 3.2 Method Extraction and Invocation Relationship Analysis 
+
+Within the selected projects, we perform static analysis based on Eclipse JDT (Java Development Tools) to construct abstract syn-tax trees (ASTs) from the source code. We first extract all methods along with their corresponding comment information. Consider-ing that natural language queries typically originate from method descriptions, only methods containing comment information are retained as candidate samples. For comments written in Chinese, large language models are used to translate them into English to ensure consistency in semantic representation. Next, we perform static analysis on the project code to resolve invocation relationships both among methods and between meth-ods and APIs. We first construct a set of third-party libraries by ag-gregating all imported third-party libraries across the projects, and use this set to identify third-party APIs involved in method calls. Calls that do not belong to this set (e.g., internal project methods or standard library calls) are filtered out. Furthermore, we count the number of third-party APIs called by each method and use boxplots to visualize their distribution. The results show that the interquartile range (IQR) of API calls is [2, 5]. To focus on methods with typical external dependency structures while avoiding noise caused by extremely sparse or highly coupled methods, only methods with API call counts within this IQR are retained for analysis. Based on this, we recursively resolve method invocation chains to identify third-party APIs directly or indirectly invoked by the target methods, providing the foundational data for constructing the mapping between queries and target APIs. 
+
+## 3.3 Third-Party API Collection and Processing 
+
+After parsing call chains, all directly or indirectly invoked third-party APIs were collected and deduplicated to form the target API set. To support semantic matching in API recommendation tasks, textual descriptions of APIs were also collected using the following steps: 
+
+• Javadoc parsing: Extract official documentation comments from the library’s javadoc.jar .
+
+• Source code parsing and summary generation: For APIs lacking documentation, source code was obtained from sources.jar 
+
+or by decompiling JAR files, and concise functional descrip-tions were generated using LLMs. 
+
+• Filtering strategy: APIs with neither documentation nor parseable source code were removed, and any methods de-pendent on these APIs were also discarded. This process ensures that the Q-ARE dataset captures method dependencies on third-party APIs, including both direct and multi-level indirect calls, in real software projects. 
+
+## 3.4 Query and Target API Construction 
+
+During the dataset construction phase, we treat method comments as natural language queries ( Query ) and the third-party API sets involved in method invocation chains as target API sets ( Target APIs ), thereby establishing a mapping between queries and APIs. To evaluate the complexity of API usage structures and the deep semantic understanding capabilities of baseline methods, we intro-duce two metrics: 
+
+• API Call Depth measures the invocation distance between a method and its target API. Specifically, it represents the path length from the method to the target API along the in-vocation chain. For example, the method processComment 
+
+calls isCommentEmpty , which in turn invokes the third-party API isBlank . In this case, the call depth of isBlank rel-ative to processComment is 3, while its depth relative to 
+
+isCommentEmpty is 2. 
+
+• API Call Density quantifies the proportion of lines of code associated with a target API within the relevant invoca-tion chain. Specifically, we compute the total lines of code (LOC) across all methods in the invocation chain and take the reciprocal as the density value: Q-ARE: An Evaluation Dataset for Query Based API Recommendation 
+
+Density = 1∑𝑛 𝑖=1 𝐿𝑂𝐶 𝑖 
+
+where 𝐿𝑂𝐶 𝑖 denotes the number of lines of code in the 𝑖 -th method of the invocation chain. A larger invocation chain corresponds to a smaller Density value, indicating that the target API occupies a smaller proportion of the overall im-plementation logic, thereby increasing the difficulty of rec-ommendation. These metrics enable quantification of both the invocation re-lationship between a query method and its target APIs and the relative importance of APIs within the implementation logic, pro-viding a foundation for subsequent performance analysis of API recommendation methods. The final Q-ARE dataset comprises 115 open-source projects, 5,698 query samples, and 1,822 distinct third-party APIs, with a maximum call depth of 7. The dataset systematically captures both direct and indirect API usage in real software projects, providing a new benchmark for evaluating API recommendation methods on tasks involving complex call structures and semantic reasoning. 
+
+## 4 Experimental Setup and Results 4.1 Experimental Objectives 
+
+The experiments in this work aim to leverage the Q-ARE dataset to systematically evaluate the performance of existing query-based API recommendation methods as well as general large language models (LLMs) under complex semantic invocation structures. The experimental design primarily focuses on: 
+
+• Assessing the capabilities of baseline methods on the Q-ARE dataset. 
+
+• Systematically analyzing the relationships between the two metrics, API Call Depth and API Call Density , and se-mantic relevance: 
+
+– Investigating the impact of API Call Depth on rec-ommendation performance. 
+
+– Investigating the impact of API Call Density on rec-ommendation performance. 
+
+– Studying the relationship between API Call Depth ,
+
+API Call Density , and semantic relevance. 
+
+## 4.2 Experimental Subjects and Methods 
+
+To comprehensively evaluate performance on the Q-ARE dataset, we select three representative types of query-based API recommen-dation approaches as baselines, including retrieval-based methods, learning-based methods, and general LLM-based methods. 
+
+Retrieval-based method. Retrieval-based approaches recom-mend APIs by measuring the similarity between queries and API documentation or code examples. We adopt CLEAR [19] as the baseline. CLEAR uses RoBERTa to generate sentence embeddings and employs a two-stage framework consisting of retrieval fol-lowed by BERT-based binary re-ranking to recommend APIs. We choose CLEAR because it is a representative retrieval-based method in existing studies and provides a reproducible implementation, en-suring reliable and fair evaluation. 
+
+Learning-based method. Learning-based approaches encode method call sequences or call graphs using sequence models or graph neural networks to predict target APIs. We adopt Deep-API [5] as the baseline. DeepAPI employs an encoder–decoder ar-chitecture with an attention mechanism to generate accurate API call sequences. We select DeepAPI as it is widely recognized in the literature and has a reproducible implementation, which guaran-tees the consistency and fairness of our experimental evaluation. 
+
+Large Language Model. In the LLM-based approach, method comments are used as natural language queries, and the model se-lects relevant APIs from a given API list. We adopt Gemini-3-Pro-Preview as the baseline model, which ranks among the top models on the OpenCompass LLM Leaderboard (January 2026) [15]. 
+
+## 4.3 Experimental Setup 
+
+4.3.1 Research Questions (RQs). Based on the experimental objec-tives of this work and the characteristics of the Q-ARE dataset, we define the following core research questions to systematically evaluate the performance of existing query-based API recommen-dation methods and general large language models (LLMs). These RQs cover both horizontal comparisons among methods and ver-tical analyses of metrics, with sub-questions focusing on the rela-tionship between API Call Depth , API Call Density , and seman-tic relevance, providing clear guidance for experiment design and result analysis: 
+
+• RQ1 : How do different baseline methods perform on the 
+
+Q-ARE dataset? 
+
+• RQ2 : How do the two metrics, API Call Depth and API Call Density , affect API recommendation results, and what is their relationship with semantics? RQ2 focuses on the two key metrics, API Call Depth and API Call Density , to systematically investigate their impact on rec-ommendation performance and their semantic correlations. This is further decomposed into three sub-questions: 
+
+• RQ2.1 : How does API Call Depth influence API recom-mendation results? 
+
+• RQ2.2 : How does API Call Density influence API recom-mendation results? 
+
+• RQ2.3 : What is the relationship between API Call Depth ,
+
+API Call Density , and semantic relevance? 
+
+4.3.2 Evaluation Metrics. To systematically assess the performance of query-based API recommendation methods on the Q-ARE dataset, we adopt multiple evaluation metrics to comprehensively measure the quality of recommendations. Following the approach of [19], we employ three widely-used metrics: Precision, Recall, and F1-score. Additionally, we introduce the API Exact Match (AEM) met-ric proposed in [9], which evaluates whether the recommended results exactly match the target APIs. 
+
+## 4.4 Experimental Results and Analysis 
+
+4.4.1 RQ1: Performance of Different Baseline Methods on the Q-ARE Dataset. First, we compute and report the Precision, Recall, and API Exact Match for the three selected baselines on the Q-ARE dataset. The results are presented in Table 1. Wu et al. 
+
+Table 1: Performance of baseline methods on the Q-ARE dataset Method Precision Recall API Exact Match 
+
+DeepAPI 0.00009 0.00018 0.01738 CLEAR 0.02229 0.01331 0Gemini-3-Pro-Preview 0.21000 0.20140 0.10760 As shown in Table 1, when confronted with complex scenarios in which methods and APIs in real software projects are connected through multi-level invocation chains, the overall performance of existing API recommendation methods remains limited. Regarding the API Exact Match metric, Gemini-3-Pro-Preview achieves the best result, yet its match rate is only around 11%. This indicates that even state-of-the-art general large language models still face significant challenges in accurately predicting the complete set of target APIs under complex invocation structures. The primary reason for this phenomenon is that, in real software development projects, target APIs are likely not invoked directly (single-level) by the query method, but rather through multiple in-termediate method calls. As the call depth increases, recommenda-tion models struggle to capture the true usage intent of the APIs. Moreover, a single method implementation typically involves the collaborative usage of multiple APIs, further increasing the diffi-culty of predicting the complete set of APIs. Overall, these results indicate that current API recommendation methods still have substantial limitations in handling complex in-vocation structures, highlighting the necessity of incorporating in-vocation structure information into API recommendation tasks. 
+
+4.4.2 RQ2: How do API Call Depth and Call Density affect rec-ommendation results, and what is their relationship with semantics? 
+
+This research question focuses on the two key metrics, API Call Depth and API Call Density , systematically investigating their impact on API recommendation performance and their relation-ship with semantic understanding. Specifically, it is further decom-posed into the following three sub-questions: 
+
+RQ2.1: How does API Call Depth affect API recommenda-tion results? 
+
+For this sub-question, we analyze the precision, recall, and F1 scores of the three baseline methods under different API Call Depths . The corresponding line charts are presented in Figure 3. The experimental results indicate that all three methods achieve their best performance when the API Call Depth is 2. As the in-vocation chain deepens, both precision and recall scores decrease significantly. Among them, CLEAR exhibits some fluctuations at depths 3 and 5, which may be caused by the uneven distribution of samples across different depths. DEEPAPI shows a relatively smooth performance decline, while Gemini performs well for shal-low calls but remains ineffective for deep calls. Overall, existing methods still face substantial challenges in handling deep API calls, highlighting the need for more effective API recommendation ap-proaches to improve prediction capability in scenarios with multi-level invocation chains. 
+
+RQ2.2: How does API Call Density affect API recommen-dation performance? 
+
+(a) DeepAPI 
+
+(b) CLEAR 
+
+(c) Gemini-3-Pro-Preview Figure 3: Performance comparison of baseline methods un-der different API Call Depths API Call Density is defined as the reciprocal of the total lines of code of a method. We further analyze the precision and recall scores of the three baseline methods under different total lines of code, and plot the corresponding line charts, as shown in Figure 4. The experimental results indicate that all methods exhibit signif-icant length sensitivity . For shorter code segments (less than 125 lines), the models retain a certain level of recognition capability; however, as the length of method implementations increases, per-formance drops substantially, and for code segments exceeding 245 lines, the models are nearly ineffective. Specifically, DeepAPI achieves relatively high precision on short code segments but suffers from low recall, indicating conser-vative predictions that may miss true target APIs. CLEAR demon-strates slightly higher recall on short code segments but lower pre-cision, resulting in more false positives. Gemini-3-Pro-Preview ,on the other hand, exhibits the highest precision on short code seg-ments (up to 0.2), outperforming the other two methods and high-lighting the potential of large language models in local semantic understanding and contextual modeling. Q-ARE: An Evaluation Dataset for Query Based API Recommendation 
+
+(a) DeepAPI 
+
+(b) CLEAR 
+
+(c) Gemini-3-Pro-Preview Figure 4: Performance comparison of baseline methods un-der different method total line counts (Density) 
+
+Nevertheless, all methods perform poorly on long code seg-ments, indicating that existing techniques still face significant chal-lenges when handling complex and lengthy invocation structures. Therefore, future research should focus on improving the perfor-mance of API recommendation methods for long code segments to better handle complex invocation chains in real-world software projects. 
+
+RQ2.3: Relationship between API Call Depth, Density, and Semantic Relevance Analysis of API Call Depth and Semantic Relevance: For each query sample, we record the Depth of its corresponding tar-get APIs and group the samples by Depth. Precision and Recall are then calculated for each Depth group to observe the impact of in-vocation distance on recommendation performance. Additionally, to validate this RQ, we compute the semantic similarity between the query method comments and the target API documentation for each Depth group, and visualize the trend using line charts. 
+
+Analysis of API Call Density and Semantic Relevance: For each query sample, we record the Density of its corresponding target APIs. Density values are divided into six groups ranging 
+
+Figure 5: Semantic similarity across different Depth groups 
+
+from 0 to 0.333333. Precision and Recall are calculated for each 
+
+Depth group within each Density interval to analyze the impact of API density on recommendation performance. Similarly, to val-idate this RQ, we compute the semantic similarity between query method comments and the corresponding target API documenta-tion within each Density group, and visualize the results using bar charts. To answer this research question, we employ Sentence-Transformers to compute the semantic similarity between each query method comment and its corresponding third-party API doc-umentation under different Depth values and Density intervals. The results are visualized using line and bar charts to investigate the correlation between Depth, Density, and semantic similarity, thereby validating the effectiveness of these two metrics in captur-ing the semantic relevance between queries and target APIs. Figure 5 illustrates the trend of semantic similarity between query comments and target API documentation with respect to 
+
+API Call Depth . The x-axis represents Depth values (ranging from 2 to 7, where Depth=2 indicates direct calls, and larger values indi-cate more distant invocations), and the y-axis represents the aver-age semantic similarity at each depth. From the figure, it can be observed that Depth exhibits a clear negative correlation with semantic similarity. As Depth increases (i.e., the invocation distance between the query method and the target API becomes longer), the average semantic similarity gener-ally decreases. When Depth = 2 (direct invocation), the average se-mantic similarity reaches its maximum value (approximately 0.18), indicating the strongest semantic association between the query method and directly invoked APIs. When Depth ≥ 3, semantic similarity significantly drops, suggesting that the semantic connec-tion between the query and target APIs weakens as the invocation chain length increases. It is worth noting that at Depth = 7, there is a slight increase in semantic similarity. Further analysis reveals that the number of samples in this Depth interval is only 11, which may lead to sta-tistical fluctuations. Moreover, several of these samples have Den-sity values higher than the average Density for Depth 5 and 6. Overall, these results indicate that Depth effectively reflects the semantic distance between query methods and target APIs, provid-ing preliminary evidence for its validity as a metric for semantic relevance. Wu et al. 
+
+Figure 6: Semantic similarity across different Density groups 
+
+Figure 6illustrates the comparison of average semantic similar-ity between query comments and target API documentation under different Density groups. The x-axis represents the Density inter-vals, while the y-axis shows the average semantic similarity for each group. As shown in Figure 6, semantic similarity exhibits a clear pos-itive correlation with Density . As Density increases (i.e., the se-mantic proportion of the target API within the invocation chain code rises), the average semantic similarity between the query method and the target API also increases. Specifically, the high-Density group achieves an average semantic similarity of approx-imately 0.23, representing an increase of about 0.10 compared to the low-Density group. These results indicate that when the target API occupies a higher semantic proportion in the method implementation, the query method’s semantic information more effectively reflects the API usage intent, resulting in stronger semantic alignment. There-fore, Density effectively captures the semantic importance of the target API within the invocation chain and further validates its close relationship with query–API semantic relevance. Based on the above statistical analysis and visualizations, RQ2.4 can be addressed as follows: 
+
+• Depth is generally negatively correlated with semantic similarity: the greater the invocation Depth , the weaker the semantic association between the query method and the target API, and the lower the semantic proportion of the target API in the method implementation. 
+
+• Density is positively correlated with semantic similarity: the higher the invocation density, the stronger the seman-tic association between the query method and the target API, and the higher the semantic proportion of the target API in the method implementation. Both Depth and Density can to some extent reflect the semantic relevance between the query and the target API. Hence, these two metrics serve as important factors for analyzing the difficulty of API recommendation under complex semantic scenarios, provid-ing a new analytical dimension for evaluating the performance of API recommendation methods. 
+
+## 4.5 Experimental Conclusions 
+
+This chapter systematically evaluates the performance of existing query-based API recommendation methods and general LLMs on the QARE dataset, verifying the research questions through statis-tical analysis and visualization. The main conclusions are: (1) Performance of traditional methods vs. LLMs: LLMs perform better in single-layer invocations, while tradi-tional methods better capture invocation chain structures. However, all methods struggle with multi-layer invo-cations and low-density scenarios, indicating room for improvement in semantic understanding and structural awareness. (2) Impact of Depth and Density: As Depth increases, pre-cision drops sharply, showing a strong negative effect on recommendation performance. Density generally has a positive effect, while deeper structures remain challeng-ing. (3) API call metrics and semantic relevance: Depth neg-atively correlates with semantic similarity between query and target API, while Density shows a positive correlation. Both metrics effectively characterize semantic relevance, offering a new dimension for evaluating API recommen-dation performance. 
+
+## 5 Discussion and Future Work 
+
+Experimental results show that existing query-based API rec-ommendation methods and general-purpose LLMs achieve only around 11% AEM in complex software scenarios, indicating overall limited performance. As API Call Depth increases and API Call Density decreases—reducing the semantic proportion of APIs—all baseline methods’ performance drops significantly. This highlights the limitations of current approaches in capturing multi-layered in-vocation relationships and complex semantic dependencies. More-over, the strong impact of Call Density shows that existing meth-ods struggle to capture semantic relevance in sparse invocation sce-narios, making it difficult to exploit latent semantic relationships in indirect call chains. The Q-ARE dataset introduces two evaluation dimensions— 
+
+Depth and Density —addressing the limitations of traditional datasets that consider only direct query-to-API matches. This pro-vides a finer-grained, realistic benchmark for evaluating API rec-ommendation methods under complex scenarios. Experimental re-sults validate the dataset and metrics, while revealing key chal-lenges in handling multi-layered invocation chains: balancing se-mantic comprehension ( Depth ) with structural complexity. These insights indicate directions for future research. Future work can focus on: 
+
+• Enhancing multi-layer call reasoning: Develop more efficient reasoning mechanisms to better capture multi-layered chains and semantic dependencies. 
+
+• Expanding dataset scale and coverage: Build larger, multi-language, multi-framework datasets to overcome ecological limitations and improve generalizability. 
+
+• Integrating multimodal information and improving annotations: Combine source code, documentation, and Q-ARE: An Evaluation Dataset for Query Based API Recommendation 
+
+test cases, while improving LLM-generated annotations to reduce semantic noise. 
+
+• Designing multi-metric recommendation strategies: 
+
+Use Depth and Density to optimize ranking, improving ac-curacy in indirect or sparse invocation scenarios. These improvements are expected to enhance API recommen-dation accuracy and semantic understanding in complex projects, reducing developer effort and supporting more efficient software development. 
+
+## 6 Threats to Validity 
+
+To ensure the reliability of our conclusions, this study systemati-cally analyzes potential threats to validity in dataset construction, experimental design, and evaluation, and adopts measures to miti-gate them. Selection bias may arise because the Q-ARE dataset only in-cludes Java projects with at least 20 stars, test cases, and Spring Framework development, which could limit diversity in project type, scale, and coding style. To mitigate this, we included projects from multiple domains with diverse third-party library usage and multi-layered APIs covering both direct and indirect calls, better reflecting real-world software and reducing sample bias. The accuracy of call chain analysis is another potential threat. Indirect API calls were identified via recursive static analysis of method call chains, which may miss or misparse some calls, af-fecting evaluation accuracy. We mitigated this risk by filtering the parsed call chains and excluding APIs that lacked source code or annotations. Annotation quality and semantic noise also affect evaluation. Although the Q-ARE dataset combines method comments, official Javadoc, and LLM-generated descriptions, some comments may be low-quality and LLM summaries may be inaccurate, introduc-ing semantic noise that could misestimate recommendation perfor-mance. To address this, we use only the first two lines of method comments, combine official documentation with source context, and filter low-quality or missing annotations. Finally, limitations in evaluation metrics and experimental set-tings pose a threat. Our experiments use Precision, Recall, and AEM, focusing on call depth and density , but factors such as API usage frequency, context, and runtime behavior are not considered, which may underestimate some methods. Future work can incor-porate dynamic analysis and multimodal information for a more comprehensive evaluation. In summary, these measures collectively minimize threats to va-lidity, providing a reliable basis for evaluating API recommenda-tion methods using Q-ARE and guiding future related research. 
+
+## 7 Conclusion 
+
+This work focuses on query-based API recommendation and intro-duces a new evaluation dataset, Q-ARE . The dataset extracts meth-ods and their associated third-party APIs from real open-source Java projects, and recursively parses method call chains to con-struct target API sets. Additionally, we introduce the concepts of 
+
+API Call Depth and API Call Density , quantifying: 
+
+• the distance between query methods and target APIs, and 
+
+• the compactness of API semantic contributions within call chains, thereby providing new evaluation dimensions for analyzing rec-ommendation performance in complex call scenarios. To support semantic understanding assessment, Q-ARE includes rich API an-notations, including official Javadoc as well as summaries gener-ated from source code analysis and large language models. Experimental results based on the Q-ARE dataset indicate: (1) As API Call Depth increases and call chains become sparser, the performance of existing query-based methods and general-purpose LLMs significantly decreases, reveal-ing the limitations of current approaches in cross-method call reasoning and complex semantic understanding. (2) The Q-ARE dataset and evaluation metrics effectively sup-port performance analysis across different types of meth-ods, providing a practical platform for standardized API recommendation evaluation and serving as a reference for method improvement. From a practical perspective, the dataset is not only suitable for academic evaluation of API recommendation and code gener-ation models but also provides direct support for industrial devel-opment tools. In practice, Q-ARE can be used to train and evaluate IDE-based intelligent programming assistants, such as API recom-mendation and code completion models, improving their accuracy in real project contexts and, consequently, developer productivity. Furthermore, the extracted method and API invocation relation-ships can support software engineering tasks such as code compre-hension, dependency analysis, and project-level API usage pattern mining. Therefore, Q-ARE holds value for both academic research and industrial applications. Overall, this study provides new data resources, evaluation di-mensions, and experimental infrastructure for the field of API rec-ommendation. It facilitates systematic evaluation of current meth-ods’ limitations and lays the foundation for future research, includ-ing enhancing cross-method reasoning capabilities of LLMs and designing more robust semantic-aware recommendation mecha-nisms. Future work may explore efficient multi-level call chain modeling methods and leverage LLMs’ contextual understanding capabilities to continuously improve the accuracy and practicality of API recommendation. 
+
+## References             
+
+> [1] Chi Chen, Xin Peng, Zhenchang Xing, Jun Sun, Xin Wang, Yifan Zhao, and Wenyun Zhao. 2021. Holistic combination of structural and textual code infor-mation for context based API recommendation. IEEE Transactions on Software Engineering 48, 8 (2021), 2987–3009. [2] Yujia Chen, Cuiyun Gao, Muyijie Zhu, Qing Liao, Yong Wang, and Guoai Xu. 2024. APIGen: Generative API method recommendation. In 2024 IEEE Inter-national Conference on Software Analysis, Evolution and Reengineering (SANER) .IEEE, 171–182. [3] Zhangyin Feng, Daya Guo, Duyu Tang, Nan Duan, Xiaocheng Feng, Ming Gong, Linjun Shou, Bing Qin, Ting Liu, Daxin Jiang, et al. 2020. Codebert: A pre-trained model for programming and natural languages. In Findings of the association for computational linguistics: EMNLP 2020 . 1536–1547. [4] Xiaodong Gu, Hongyu Zhang, and Sunghun Kim. 2018. Deep code search. In
+> Proceedings of the 40th international conference on software engineering . 933–944. [5] Xiaodong Gu, Hongyu Zhang, Dongmei Zhang, and Sunghun Kim. 2016. Deep API learning. In Proceedings of the 2016 24th ACM SIGSOFT international sympo-sium on foundations of software engineering . 631–642. [6] Qiao Huang, Xin Xia, Zhenchang Xing, David Lo, and Xinyu Wang. 2018. API method recommendation without worrying about the task-API knowledge gap.
+
+Wu et al. 
+
+In Proceedings of the 33rd ACM/IEEE International Conference on Automated Soft-ware Engineering . 293–304. [7] Ivana Clairine Irsan, Ting Zhang, Ferdian Thung, Kisub Kim, and David Lo. 2023. Picaso: enhancing api recommendations with relevant stack overflow posts. In 
+
+2023 IEEE/ACM 20th International Conference on Mining Software Repositories (MSR) . IEEE, 92–103. [8] Yuning Kang, Zan Wang, Hongyu Zhang, Junjie Chen, and Hanmo You. 2021. Apirecx: Cross-library api recommendation via pre-trained language model. In 
+
+Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing . 3425–3436. [9] Guancheng Lin, Xiao Yu, Jacky Keung, Xing Hu, Xin Xia, and Alex X Liu. 2025. Lightweight Model Editing for LLMs to Correct Deprecated API Recommenda-tions. arXiv preprint arXiv:2511.21022 (2025). [10] Chun-Yang Ling, Yan-Zhen Zou, Ze-Qi Lin, and Bing Xie. 2019. Graph embed-ding based API graph search and recommendation. Journal of Computer Science and Technology 34, 5 (2019), 993–1006. [11] Jiaxin Liu, Yating Zhang, Deze Wang, Yiwei Li, and Wei Dong. 2025. THINK: Tackling API Hallucinations in LLMs via Injecting Knowledge. In 2025 IEEE Inter-national Conference on Software Analysis, Evolution and Reengineering (SANER) .IEEE, 229–240. [12] Weiwen Liu, Xu Huang, Xingshan Zeng, Xinlong Hao, Shuai Yu, Dexun Li, Shuai Wang, Weinan Gan, Zhengying Liu, Yuanqing Yu, et al. 2024. Toolace: Winning the points of llm function calling. arXiv preprint arXiv:2409.00920 (2024). [13] Yun Peng, Shuqing Li, Wenwei Gu, Yichen Li, Wenxuan Wang, Cuiyun Gao, and Michael R Lyu. 2022. Revisiting, benchmarking and exploring API recommen-dation: How far are we? IEEE Transactions on Software Engineering 49, 4 (2022), 1876–1897. [14] Mohammad Masudur Rahman, Chanchal K Roy, and David Lo. 2016. Rack: Automatic api recommendation using crowdsourced knowledge. In 2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER) , Vol. 1. IEEE, 349–359. [15] Shanghai AI Lab. 2024. OpenCompass . Retrieved March 12, 2026 from https: //rank.opencompass.org.cn/home AI       . [16] Yewei Song, Xunzhu Tang, Cedric Lothritz, Saad Ezzini, Jacques Klein, Tegawendé Bissyande, Andrey Boytsov, Ulrick Ble, and Anne Goujon. 2025. Callnavi, a challenge and empirical study on llm function calling and routing. In Proceedings of the 29th International Conference on Evaluation and Assessment in Software Engineering . 114–125. [17] Chaozheng Wang, Shuzheng Gao, Cuiyun Gao, Wenxuan Wang, Chun Yong Chong, Shan Gao, and Michael R Lyu. 2024. A systematic evaluation of large code models in api suggestion: When, which, and how. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering . 281– 293. [18] Ying Wang, Bihuan Chen, Kaifeng Huang, Bowen Shi, Congying Xu, Xin Peng, Yijian Wu, and Yang Liu. 2020. An empirical study of usages, updates and risks of third-party libraries in java projects. In 2020 IEEE International conference on software maintenance and evolution (ICSME) . IEEE, 35–45. [19] Moshi Wei, Nima Shiri Harzevili, Yuchao Huang, Junjie Wang, and Song Wang. 2022. Clear: contrastive learning for api recommendation. In Proceedings of the 44th International Conference on Software Engineering . 376–387. [20] Yu Zhou, Xinying Yang, Taolue Chen, Zhiqiu Huang, Xiaoxing Ma, and Harald Gall. 2021. Boosting API recommendation with implicit feedback. IEEE Trans-actions on Software Engineering 48, 6 (2021), 2157–2172.
