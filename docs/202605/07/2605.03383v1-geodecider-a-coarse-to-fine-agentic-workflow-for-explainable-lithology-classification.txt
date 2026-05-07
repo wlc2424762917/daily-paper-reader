@@ -1,0 +1,607 @@
+Title: GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification
+
+URL Source: https://arxiv.org/pdf/2605.03383v1
+
+Published Time: Wed, 06 May 2026 00:31:50 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification 
+
+# Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen 
+
+State Key Laboratory of Cognitive Intelligence, University of Science and Technology of China, Hefei, China {jiahao.wang,yitong.zhou,maoqy0503,txytiny}@mail.ustc.edu.cn,{mycheng,qiliuql,cheneh}@ustc.edu.cn 
+
+## Abstract 
+
+Lithology classification aims to infer subsurface rock types from well-logging signals, supporting downstream applications like reser-voir characterization. Despite substantial progress, most existing methods still treat lithology classification as a single-pass classi-fication task. In contrast, practical experts incorporate geological principles, external knowledge, and tool-use capabilities to per-form accurate classification. In this work, we propose GeoDecider, a coarse-to-fine agentic workflow that enables accurate and ex-plainable lithology classification through training-free use of large language models (LLMs). GeoDecider reformulates lithology classi-fication as an expert-like structured process and organizes it into a multi-stage workflow involving coarse-to-fine reasoning. Specifi-cally, GeoDecider includes the following stages: (1) base classifier-guided coarse classification, which uses a pre-trained classifier to provide a rough reference for downstream tasks, thus reducing the overall cost of downstream reasoning, (2) tool-augmented reason-ing, which utilizes several tools such as contextual analysis and neighbor retrieval to achieve finer and more precise classifications, (3) geological refinement, which post-processes the final results to enforce geological consistency. Experiments on four benchmarks show that GeoDecider outperforms representative baselines. Fur-ther analysis demonstrates that the proposed framework produces geologically interpretable predictions while achieving a better trade-off between classification performance and inference efficiency 1.
+
+## Keywords 
+
+Lithology classification, Large language models, Agentic workflow 
+
+ACM Reference Format: 
+
+Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen. 2018. GeoDecider: A Coarse-to-Fine Agentic Work-flow for Explainable Lithology Classification. In Proceedings of Make sure to enter the correct conference title from your rights confirmation email (Conference acronym ’XX). ACM, New York, NY, USA, 12 pages. https: //doi.org/XXXXXXX.XXXXXXX  
+
+> 1https://github.com/realwangjiahao/GeoDecider Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+> Conference acronym ’XX, Woodstock, NY
+> ©2018 Copyright held by the owner/author(s). Publication rights licensed to ACM. ACM ISBN 978-1-4503-XXXX-X/2018/06 https://doi.org/XXXXXXX.XXXXXXX
+
+## 1 Introduction 
+
+Lithology classification, which infers subsurface rock types from well-logging data, plays a key role in subsurface analysis and petroleum exploration [ 3 , 7]. It supports applications like reservoir characteri-zation and geological modeling [ 11 , 15 , 61 ]. As large-scale well-log datasets become increasingly available, automated lithology classi-fication is becoming crucial for efficient well-log interpretation. Over the years, numerous methods have been developed to solve this problem. Existing approaches can be broadly categorized into the following paradigms [ 16 , 49 , 52 ]. Traditional manual interpre-tation by domain experts yields lithology classifications that align well with geological laws and stratigraphic patterns, but it is labor-intensive and difficult to scale [ 5]. Data-driven methods, including machine learning and deep learning, provide efficient inference and strong overall performance [ 2 , 65 ]. However, they often struggle with ambiguous lithological intervals and fail to integrate geological principles, such as stratigraphic continuity, leading to geologically implausible predictions [ 1, 4]. Large language models (LLMs) have shown promise in integrating domain knowledge and contextual reasoning for geological interpretation, but the computational cost makes large-scale application impractical [38, 50, 62]. Despite these advances, most existing methods still treat lithol-ogy classification as a single-pass task. In contrast, human experts incorporate external knowledge, tool-use capabilities, and geologi-cal principles to achieve accurate and geologically reasonable re-sults. Most existing approaches, while efficient, often struggle with complex cases, such as facies transitions or noisy data, where deeper contextual reasoning is required. Treating all samples equally leads to inefficient resource allocation, either compromising geological consistency or incurring unnecessary computational overhead. To achieve accurate and interpretable lithology classification, it is crucial to utilize reasoning capabilities while managing the computational costs of LLMs. Relying solely on complex models can lead to increased resource consumption, making large-scale application inefficient. To address this, we propose a hybrid ap-proach that integrates additional tools to support the classification process. By incorporating these tools, we can enhance the model’s reasoning without overwhelming the system, improving both pre-cision and efficiency. Furthermore, we introduce a coarse-grained classification step to reduce the computational load early in the process. This multi-stage approach strikes a balance between per-formance and computational efficiency, optimizing the trade-off between accuracy and computational cost. In this work, we propose GeoDecider, a coarse-to-fine agentic reasoning framework that enables efficient and accurate lithology classification using training-free large language models. GeoDe-cider reformulates lithology classification as an expert-like process, organizing it into a multi-stage workflow involving coarse-to-fine  
+
+> arXiv:2605.03383v1 [cs.AI] 5 May 2026 Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen
+
+reasoning and geological refinement. Specifically, GeoDecider intro-duces the following components: (1) Base classifier-guided coarse classification, which employs a pre-trained classifier for coarse-grained classification, effectively reducing the cost of downstream reasoning. (2) Tool-augmented LLM reasoning module, which uti-lizes various tools, such as contextual analysis and neighbor re-trieval, to refine the classification and achieve more precise results. (3) Geological refinement, which post-processes the final predic-tions to ensure geological consistency, aligning them with geo-logical principles and correcting any inconsistencies. By explicitly reasoning over geological context and constraints, GeoDecider en-ables more accurate and interpretable lithology classification, going beyond simple point-wise classification. We evaluate GeoDecider on multiple lithology classification benchmarks. Experimental re-sults show that GeoDecider consistently outperforms other baseline models. Further analysis demonstrates that the adaptive decision mechanism suppresses geologically implausible isolated predictions and achieves a clear trade-off improvement between performance and efficiency, highlighting its practicality for real-world subsurface modeling systems [53, 66]. Our contributions are summarized as follows: 
+
+• We propose a coarse-to-fine agentic reasoning framework for accurate and explainable lithology classification that aligns with geological principles. 
+
+• We instantiate GeoDecider with three key components: a light-weight base classifier for coarse prediction, a tool-augmented LLM module for ambiguous cases, and a geological refinement module for enforcing stratigraphic consistency. 
+
+• We demonstrate the effectiveness of GeoDecider through large-scale experiments, showing competitive performance. We also report the practical challenges in similar industrial settings. 
+
+## 2 Related Work 2.1 Lithology Classification 
+
+Lithology classification is a key sequence-labeling task in subsurface characterization, crucial for reservoir evaluation, stratigraphic inter-pretation, and geological modeling [ 33 , 46 ]. The task involves mod-eling long-range stratigraphic dependencies and accurately delin-eating formation boundaries, which is challenging due to its depth-wise sequential structure and lithology-specific semantics [ 36 , 43 ]. Research has progressed from heuristic rule-based methods to su-pervised learning frameworks using models like GBDT and XG-Boost [ 44 , 45 ]. Recently, deep learning models, including CNN/RNN variants and attention-based encoders, have been employed to cap-ture complex patterns and dependencies [ 35 , 40 ]. Some methods en-hance geological plausibility by incorporating stratigraphic priors, such as Markov-style consistency checks [ 30 , 48 ]. However, many approaches still struggle with achieving global stratigraphic consis-tency and integrating multi-source evidence systematically [ 7 , 25 ], compromising interpretability and robustness, especially in com-plex geological settings [18, 42]. 
+
+## 2.2 Time Series Classification 
+
+Time series classification has gained significant attention in both academia and industry [ 23 , 37 ]. Early approaches, such as Dynamic Time Warping (DTW) and K-Nearest Neighbors (KNN) [ 27 ], ef-fectively handled temporal distortions. To improve classification Porous 
+
+> Sand
+> Shale
+> Tight
+> Sand
+
+Figure 1: Example of multivariate well logs from various sensors for lithology classification. 
+
+accuracy, ensemble techniques like HIVE-COTE [ 32 ] were intro-duced, combining multiple feature transformations and classifiers through hierarchical voting for a more robust representation. With the rise of deep learning, models such as fully convolutional net-works [ 59 ] and recurrent neural networks [ 22 ] began to surpass traditional methods by learning hierarchical features from raw data. More recent models like InceptionTime [ 24 ] have used deeper networks with multi-scale convolutions, enhancing their ability to capture complex patterns. Transformer-based models [ 10 , 69 ]have further pushed the field by excelling at capturing long-range dependencies and global context. 
+
+## 2.3 LLM-based Reasoning 
+
+Recent advancements in LLMs have demonstrated remarkable gen-eralization in reasoning and decision-making [ 21 ]. A foundational capability is in-context learning (ICL), which enables models to adapt to unseen tasks via prompts without parameter updates [ 6,63 ]. To elicit multi-step inference, prompting strategies like chain-of-thought (CoT) [ 60 ] decompose complex problems into interme-diate steps, and subsequent work enhances robustness through ag-gregation (self-consistency [ 57 ]) and decomposition (least-to-most prompting [ 68 ]). Moving beyond static reasoning, a key paradigm shift views LLMs as autonomous agents operating in multi-step, goal-directed settings: unlike passive inference, such agentic sys-tems maintain intermediate states, interleave reasoning with ac-tions, and invoke tools to ground their outputs, as exemplified by Re-Act [ 64 ], Toolformer [ 47 ], and WebGPT [ 39 ]. To handle increasingly complex tasks, these agents have evolved into broader cognitive architectures that extend tool use with structured planning [ 17 , 58 ], long-term memory [ 41 ], and self-correction mechanisms such as Reflexion [ 51 ], whose modular design enables refinement and adap-tive execution and forms the basis for our framework [12, 13]. 
+
+## 3 Preliminaries 3.1 Well Log Data for Lithology Analysis 
+
+A well log is a depth-indexed multivariate sequence that records continuous petrophysical measurements along a borehole, provid-ing indirect evidence of subsurface lithology. In this study, we use the logging curves shown in Figure 1, including correlation logs (GR, GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Well Logging Data Input 
+
+Depth AC 
+
+40.0 22.841999 
+
+40.1 22.851666 
+
+Base 
+
+Classifier 
+
+Label prob 
+
+Cretaceous 0.1 
+
+Mother salt 0.7 
+
+Pleistocene 0.2 
+
+Confidence 
+
+0.7 > 0.6? 
+
+Accept the result, the 
+
+2th point is classied as 
+
+is Mother salt 
+
+Confident 
+
+2. LLM Reasoning 
+
+Knowledge Base Tool 
+
+Geological Law : Lateral facies 
+
+> succeed each other vertically
+
+Feature : Intrinsic patterns of 
+
+> stratigraphic succession laws.
+
+Label : Basal mother salt with 
+
+> high mobility.
+
+Toolkit 
+
+Neighbor Retriever Tool  
+
+> Neighbor2
+> Current Point
+> Neighbor1
+
+Trend Narrator Tool 
+
+> Above Depth
+> Value Change
+> Turning Point
+> Quantitative
+> Description
+
+Base Classifier Tool 
+
+Reasoning 
+
+Reasoning LLM2: Rely 
+
+> primarily on expert feature
+> descriptions, label definitions,
+> and heuristic rules
+
+Reasoning LLM1 : Rely 
+
+> primarily on base classifier
+> unless multiple evidence
+> sources clearly indicate
+> inconsistency
+
+Reasoning LLM3: Emphasize 
+
+> vertical continuity
+> and trend patterns across the
+> window and its context
+
+3. Refinement   
+
+> ------------------------------
+> Thinking Process:
+> Detected conflict at boundary. ..
+> Contextual trend suggests distinct
+> lithology change not captured by
+> NN...
+> ------------------------------
+> Final Output: [Pleistocene]
+> Input Signals:
+> Neural Net: [Cretaceous ]
+> Neighbors: [Mother salt ]
+> Context Trend: [ Cretaceous ]
+
+From the classification 
+
+result of base classifier, the 
+
+label may be Cretaceous ,
+
+Mother salt and Pleistocene 
+
+Historical Classification 
+
+From the historical 
+
+classification report, we 
+
+know that the above point is 
+
+classifier as Pleistocene 
+
+Reasoning LLM Tool 
+
+> Domain Knowledge
+> Complex Reasoning
+> Semantic Understanding
+> Zero -shot Generalization
+
+Result 
+
+Result1: According to base classifier,  
+
+> the result is Mother salt, because ….
+
+Result2: According to expert  
+
+> feature descriptions, the result
+> is Pleistocene , because….
+
+Result3: According to vertical  
+
+> continuity and trend patterns, the result
+> is Mother salt, because….
+
+Classification Report 
+
+Refinement Module        
+
+> According to Result1, Result2, Result3
+> in Result Module, we can see that:
+> (1) According to base classifier, the
+> result is Mother salt, (2) According to
+> expert feature descriptions, the result
+> is Pleistocene, (3) According to vertical
+> continuity and trend patterns, the
+> result is Mother salt.
+> However, according to geological laws
+> and above predictions, we can see that
+> the predictions should be Pleistocene,…
+
+1. Coarse Classifier 
+
+Figure 2: The illustration of GeoDecider, a coarse-to-fine framework for lithology classification. 
+
+SP, CAL), a resistivity log (RT), and porosity-related logs (AC, CNL, DEN), which capture complementary geological properties such as shale content, permeability, fluid saturation, and pore structure. These logs are sampled at fine depth intervals to form a multichan-nel input sequence. As illustrated in Figure 1, depth is shown on the vertical axis, with logging curves on the left and expert-annotated lithology labels (e.g., Shale, Tight Sand, Porous Sand) on the right. 
+
+## 3.2 Problem Definition 
+
+Given a well log sequence X = [x1, x2, · · · , x𝐿 ] of length 𝐿 , where each x𝑡 ∈ R𝑀 denotes the multi-channel logging measurements at depth 𝑡 . We assume access to a pre-trained lightweight classifier 
+
+M𝑏𝑎𝑠𝑒 , which provides an initial sequence of probability distri-butions P = [p1, p2, · · · , p𝐿 ], where p𝑡 = M𝑏𝑎𝑠𝑒 (x𝑡 ) denotes the confidence scores over the candidate lithology classes C. Building upon these initial predictions, our problem is defined as construct-ing a reasoning-based inference framework F . This framework leverages both the raw contextual series X and the base model’s suggestions P as joint inputs to generate the optimal lithology sequence Y = [𝑦 1, 𝑦 2, · · · , 𝑦 𝐿 ]. The objective is to maximize the consistency between the statistical evidence provided by P and the physical trends implied by X.
+
+## 4 The Proposed GeoDecider 
+
+In this section, we introduce GeoDecider, a confidence-aware frame-work for context-aware lithology classification. GeoDecider inte-grates lightweight prediction with selective reasoning and geology-inspired refinement to enable efficient and robust inference. We first provide an overview of the framework and then describe each component in detail. 
+
+## 4.1 Framework Overview 
+
+As illustrated in Figure 2, the proposed framework follows a confidence-aware inference pipeline that integrates lightweight prediction, selective reasoning, and geology-inspired refinement. A base classi-fier first produces point-wise lithology predictions with confidence estimates, based on which high-confidence samples are directly accepted while low-confidence samples are routed to a reasoning module. For routed samples, raw numerical logs are augmented into a structured Evidence Profile via a tool-enhanced perception module, incorporating domain knowledge, contextual trend repre-sentations, and empirical exemplars. Multiple reasoning paths with complementary inductive biases then infer candidate labels, whose outputs are aggregated through collaborative decision-making, fol-lowed by a geological refinement step that enforces stratigraphic consistency along the depth dimension. 
+
+## 4.2 Base Classifier-Guided Coarse Classification 
+
+Lithology identification in real-world well logging exhibits strong class imbalance and heterogeneous semantic complexity. While many lithologies show distinctive logging patterns and can be reli-ably recognized by lightweight classifiers, a small subset presents ambiguous or overlapping signatures that require broader contex-tual reasoning. Motivated by this observation, we adopt a confidence-aware two-stage inference pipeline, where high-confidence predic-tions are directly accepted and low-confidence samples are adap-tively routed to a high-cost reasoning module. This design achieves efficient inference on easy cases while preserving accuracy on se-mantically challenging lithologies. 
+
+4.2.1 Inference Routing Mechanism. We first train a lightweight base classifier on the training dataset, and then select the best checkpoint based on the classification performance on the vali-dation dataset. This base model is designed to efficiently handle lithology classes with distinctive logging patterns, while providing calibrated confidence estimates on unseen samples. Given an in-put interval x, the base classifier outputs a class probability vector 
+
+Pbase (x) ∈ [ 0, 1]𝐾 . We quantify the prediction confidence using the maximum class probability. Then we define the routing decision function as follows based on a confidence threshold 𝜏 ∈ [ 0, 1]:
+
+𝑄 conf (x) = max 
+
+𝑘 Pbase (x)𝑘 , (1) 
+
+𝐷 (x) =
+
+(
+
+Base , 𝑄 conf (x) ≥ 𝜏, 
+
+Reason , 𝑄 conf (x) < 𝜏 . (2) Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen 
+
+where 𝐷 () denotes the decision-making routing function, if 𝐷 (x) =
+
+Base , the prediction of the base model is directly accepted; oth-erwise, x is routed to the reasoning module for further inference. This mechanism enables fine-grained, sample-level allocation of computational resources based on model confidence. 
+
+4.2.2 Threshold Calibration via Validation Trade-offs. The routing threshold 𝜏 governs a trade-off between computational efficiency and predictive reliability. Rather than fixing 𝜏 heuristically, we determine it in a data-driven manner using a held-out validation set Dval . For each candidate threshold 𝜏 , we estimate the proportion of samples whose predictions are accepted by the base model, 
+
+𝐶𝑜𝑣 (𝜏 ) = Pr 
+
+> x∼D val
+
+[𝑄 conf (x) ≥ 𝜏 ] , (3) We also compute the corresponding prediction accuracy on this subset, denoted by 𝐴𝑐𝑐 base (𝜏 ). As 𝜏 varies, these quantities jointly characterize the efficiency–reliability trade-off of the routing mech-anism. We select the operating threshold 𝜏 ∗ at a regime where cov-erage is maximized while the base-model accuracy remains stable, thereby avoiding aggressive reliance on low-confidence predictions. The calibrated threshold 𝜏 ∗ is fixed and used during inference. 
+
+## 4.3 Tool-Augmented Reasoning with LLMs 
+
+To enable effective LLM-based reasoning over numerical well-log data, we augment the input with structured evidence derived from multiple specialized tools. Given raw logging signals and base model predictions, these tools extract complementary evidence captur-ing local contextual patterns, geological trends, and representative historical exemplars. The resulting evidence profile is provided to the LLM as structured input, allowing it to reason over both statis-tical cues and geology-informed context, and to produce refined lithology decisions in ambiguous cases. 
+
+4.3.1 Knowledge Base Tool. The knowledge base provides struc-tured domain priors that are difficult to infer from raw numerical signals alone. It contains three types of expert-curated information: (1) feature descriptions explaining the physical meaning of log-ging measurements, (2) label descriptions characterizing lithology classes and their typical patterns, and (3) expert-level guidelines summarizing common decision heuristics and boundary cues. By grounding numerical observations in explicit geological semantics, the knowledge base acts as a semantic anchor for downstream reasoning. When incorporated into the evidence profile, it helps interpret numerical variations in a geology-aware manner, reduc-ing ambiguity in complex cases and improving the robustness and interpretability of the final predictions. 
+
+4.3.2 Contextual Trend Analysis Tool. Lithology identification re-lies on the continuity and evolution of logging signals across depth, rather than isolated point-wise measurements. To capture such stratigraphic context, we analyze each target segment together with its surrounding intervals. Formally, given a well-log sequence X =
+
+[x1, x2, · · · , x𝐿 ], we consider a target window X[𝑠 :𝑒 ] = [x𝑠 , · · · , x𝑒 ]
+
+and construct an extended contextual segment: 
+
+Xctx   
+
+> [𝑠 :𝑒 ]
+
+= X[𝑠 −Δ:𝑠 −1] ∪ X[𝑠 :𝑒 ] ∪ X[𝑒 +1: 𝑒 +Δ], (4) where Δ controls the contextual depth range. A trend analysis operator T (·) is applied to extract a structured representation 
+
+z[𝑠 :𝑒 ] 
+
+> trend
+
+= T ( Xctx   
+
+> [𝑠 :𝑒 ]
+
+), which summarizes the evolution of logging signals across the target window and its context. The resulting representation encodes window-level trend patterns such as sta-ble regimes, gradual transitions, and boundary-induced variations, providing stratigraphic evidence for downstream reasoning-based lithology inference. 
+
+4.3.3 Neighbor Retrieval Tool. To complement domain knowledge and contextual trend cues, we incorporate a Neighbor Retrieval tool that provides empirical evidence from historical observations. In lithology identification, logging signatures of different classes may partially overlap, making rule-based or trend-based reasoning alone insufficient. Retrieving similar past instances offers concrete reference cases for resolving such ambiguities. Formally, for each depth point 𝑡 with logging measurement x𝑡 , we retrieve a set of 𝑘 
+
+nearest neighbors from a reference dataset, 
+
+N𝑡 = {( x𝑡 1 , 𝑦 𝑡 1 ), . . . , (x𝑡 𝑘 , 𝑦 𝑡 𝑘 )} , (5) where similarity is computed in the feature space and 𝑦 𝑡 𝑖 denotes the corresponding lithology labels. These retrieved neighbors are incorporated into the evidence profile as empirical exemplars and supplied to the reasoning module, enabling case-based comparison. 
+
+4.3.4 Historical Classification Tool. Lithological interpretations along a well log exhibit strong sequential coherence, and predic-tions from nearby depth intervals provide useful contextual cues. To exploit this property, we introduce a historical classification tool incorporating predicted lithology labels from adjacent upper inter-vals. Given a target depth window X[𝑠 :𝑒 ] , we retrieve the predicted labels from the immediately preceding window: 
+
+H[𝑠 :𝑒 ] = { ˆ𝑦 𝑠 −1, ˆ𝑦 𝑠 −2, . . . , ˆ𝑦 𝑠 −ℎ }, (6) where ℎ controls the historical depth range. These predicted labels are treated as soft contextual signals and incorporated into the evi-dence profile, providing continuity-aware guidance for reasoning. By referencing prior predictions from neighboring upper intervals, this tool helps stabilize classifications within the target window and reduces spurious label fluctuations without introducing hard stratigraphic constraints. 
+
+4.3.5 Multi-Perspective Reasoning. To mitigate the bias and po-tential hallucination of a single reasoning trajectory, we adopt a multi-persona reasoning ensemble that decomposes the reason-ing process into multiple complementary perspectives. Inspired by modular expert systems in complex industrial workflows, we instantiate three specialized reasoning personas, each emphasizing a distinct dimension of the constructed Evidence Profile. 
+
+• Data-Centric Analyst : focuses on statistical evidence, primarily the base model confidence scores P and empirical exemplars retrieved by the Neighbor Retrieval module. 
+
+• Context-Aware Stratigrapher : prioritizes contextual consis-tency by reasoning over window-level trend representations de-rived from the trend analysis module, ensuring alignment with stratigraphic continuity. 
+
+• Rule-Based Physicist : enforces domain constraints by adhering to expert feature descriptions and petrophysical rules encoded in the knowledge base, guaranteeing physical plausibility. GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Each persona performs independent reasoning conditioned on the same Evidence Profile but guided by its designated inductive bias, resulting in a candidate lithology prediction. 
+
+## 4.4 Geological Refinement 
+
+The upstream stage produces multiple candidate predictions for each target depth window based on complementary evidence sources. These intermediate results capture local statistical cues, contextual trends, and empirical references, but may still lead to inconsistent interpretations when considered along the depth dimension. We introduce a Geological Refinement Module that leverages an LLM to jointly reason over these candidate results under geological constraints. Specifically, for a target depth window X[𝑠 :𝑒 ] , the LLM receives the raw logging measurements, the upstream prediction re-sults {q(𝑚 )[𝑠 :𝑒 ] }𝑀 𝑚 =1, and explicit geology-inspired guidelines as input, and produces the refined lithology prediction 
+
+ˆ𝑦 [𝑠 :𝑒 ] = RLLM 
+
+
+
+X[𝑠 :𝑒 ], {q(𝑚 )[𝑠 :𝑒 ] }𝑀 𝑚 =1, G
+
+
+
+. (7) where RLLM (·) denotes the reasoning process of the LLM and G rep-resents geological principles such as stratigraphic continuity and plausible transition behavior. By reasoning over multi-source pre-dictions in conjunction with geological constraints, the refinement module resolves conflicting local evidence and produces lithology assignments that are consistent with stratigraphic structure and geological expectations. 
+
+## 5 Experiments 
+
+In this section, we evaluate GeoDecider on a variety of datasets, comparing it with several baseline methods. We then conduct fur-ther investigations to assess the effectiveness of each module. Fi-nally, we analyze the practical challenges in real-world industrial settings and lessons learned under privacy and compliance con-straints. 
+
+## 5.1 Experimental Settings 
+
+5.1.1 Datasets. We evaluate our method on four public well-log datasets from established repositories: (1) SEAM : the SEG wiki open data catalog for reproducible geoscience benchmarking, (2) 
+
+Facies : the Kaggle dataset containing facies logs from nine wells in the Council Grove gas reservoir (Kansas), (3) Force : the Kaggle well-log dataset for lithology prediction, associated with the FORCE 2020 lithology prediction context, (4) Geolink : the GEOLINK-S2 well-log dataset with analysis notebooks and preprocessing code. Details can be found in Table 1 and appendix A and B. 
+
+5.1.2 Baselines. To conduct a comprehensive and fair comparison, we compare against several baselines grouped into four categories: 
+
+Machine learning-based methods: XGBoost [ 8], nn-DTW [ 27 ], GBDT [ 28 ]. Deep learning-based methods: LSTMFCN [ 26 ], MLP [ 54 ], MiniRocket [ 14 ], InceptionTime [ 24 ]. LLM-based approaches: In-structTime [ 9 ], TableTime [ 56 ], GPT4TS [ 70 ]. Time-series foun-dation models : UniTS [ 19 ] and MOMENT [ 20 ]. For a detailed introduction to these baselines, please see appendix C. 
+
+5.1.3 Evaluation Metrics. To evaluate the lithology classification performance, here we select three widely used metrics [ 55 , 67 ], i.e., Precision, Recall, and F1 measure [31, 34]. Considering our task is a multi-class classification problem, we use the weighted average scores to evaluate the performances of our proposed methods and 
+
+Table 1: Statistics of each dataset in the experiments. 
+
+Statistics SEAM Facies Force Geolink #of total wells 5 7 11 128 #of total samples 7,092 3,164 52,766 580,205 #of total well logs 18 7 11 8#of total labels 7 9 5 11 #of sampling interval (m) 10 0.5 0.15 0.125 all baselines. Specifically, we weight the metrics of each class by the number of samples from that class. 
+
+5.1.4 Implementation Details. In this work, we adopt DeepSeek-R1-0528 as the base LLM for its open-source availability and ability to expose complete reasoning traces. Under default settings, all exper-iments are conducted three times, and the final results are reported using majority voting to ensure stability, with inference performed via the official API platform using temperature=0.6, top-p=0.7, and max-tokens=8,192. The deep learning baselines and the base clas-sifiers are trained using the Adam optimizer [ 29 ] in PyTorch on a single NVIDIA GeForce RTX 4090D GPU. 
+
+## 5.2 Classification Results Analysis 
+
+Table 2 summarizes the classification performance of GeoDecider against a broad set of baseline methods across four datasets. Al-though GeoDecider is explicitly designed to refine classification re-sults from strong base classifiers selected among the best-performing baselines, it consistently delivers improvements in Recall and F1-score. In particular, on datasets with higher lithological ambiguity, GeoDecider achieves gains of up to 3–5% in F1-score and 2–6% in Recall compared to its corresponding base models. These results indicate that the proposed agentic workflow is effective at identi-fying and correcting hard failure cases of discriminative models, rather than simply reinforcing their original predictions. Moreover, GeoDecider consistently outperforms recent LLM-based time-series and foundation models, including TableTime, In-structTime, GPT4TS, MOMENT, and UniTS. While these methods rely on end-to-end large-model inference for all samples, GeoDe-cider achieves several-percent improvements in both Recall and F1-score by selectively invoking LLM-based reasoning only for ambiguous cases. This advantage is more evident in datasets char-acterized by subtle lithological transitions and inter-class similarity, suggesting that confidence-aware agentic collaboration provides a more effective and robust alternative to naively applying LLMs to geological lithology classification. 
+
+## 5.3 Ablation Studies 
+
+5.3.1 Effectiveness of Knowledge Base. As shown in Table 3, the knowledge base tool provides essential domain-specific prior geo-logical information for the reasoning process. When the knowledge base tool is removed, the F1-score on the SEAM dataset drops from 0.7833 to 0.7745, and on the Force dataset, it decreases from 0.5254 to 0.5132. This performance degradation indicates that the LLM-based agent relies on structured domain knowledge to resolve ambiguities in well-log responses, especially when the signal-to-noise ratio is low in complex reservoir regions. 
+
+5.3.2 Necessity of Contextual Trend Analysis. The contextual trend analysis module is the most critical component in our toolkit, as its Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen 
+
+Table 2: Classification performance comparison of GeoDecider and other baseline models across four datasets. The best results are highlighted in bold, while the underlined results indicate the second-best performance. 
+
+Method SEAM Facies Force Geolink Precision Recall F1 Precision Recall F1 Precision Recall F1 Precision Recall F1 XGBoost 0.7579 0.7707 0.7355 0.4657 0.4229 0.4357 0.4691 0.4183 0.4573 0.4106 0.4115 0.4347 nn-DTW 0.7656 0.3694 0.4396 0.3649 0.3407 0.3589 0.3845 0.3412 0.3616 0.3789 0.3567 0.3675 GBDT 0.7468 0.7268 0.7626 0.4744 0.4233 0.4440 0.4204 0.4126 0.4445 0.4116 0.4072 0.4149 LSTMFCN 0.7658 0.7353 0.7694 0.3897 0.3579 0.3869 0.4155 0.3466 0.4046 0.4056 0.3912 0.3983 MLP 0.7776 0.7313 0.7647 0.4460 0.3891 0.4201 0.4454 0.4592 0.5068 0.4512 0.4489 0.4501 MiniRocket 0.7501 0.7302 0.7667 0.4489 0.3859 0.4129 0.4856 0.4712 0.4783 0.4289 0.4215 0.4252 InceptionTime 0.7747 0.7359 0.7667 0.3684 0.3447 0.3817 0.4512 0.4389 0.4450 0.4156 0.4012 0.4083 InstructTime 0.7752 0.7348 0.7659 0.4952 0.3455 0.3821 0.5125 0.4376 0.4448 0.4145 0.4021 0.4082 TableTime 0.6521 0.5844 0.6288 0.3588 0.3421 0.3655 0.3956 0.3688 0.3912 0.3822 0.3715 0.3768 GPT4TS 0.7412 0.7612 0.7489 0.4356 0.3789 0.4412 0.4688 0.4615 0.4651 0.4188 0.4156 0.4172 UniTS 0.7388 0.7156 0.7745 0.4125 0.3688 0.3956 0.4412 0.4255 0.4332 0.4122 0.4056 0.4492 MOMENT 0.7256 0.7092 0.7315 0.4055 0.3612 0.3887 0.4356 0.4988 0.4270 0.4011 0.4588 0.3961 
+
+GeoDecider 0.7765 0.7820 0.7803 0.5012 0.4052 0.4481 0.5312 0.5198 0.5254 0.4425 0.4750 0.4582 Table 3: Comprehensive ablation on the impact of the toolkit and geological refinement module, evaluated by F1 score.                                  
+
+> Variant SEAM Facies Force Geolink Full Model 0.7833 0.4481 0.5254 0.4582
+> 𝑤 /𝑜 Knowledge Base 0.7745 0.4405 0.5132 0.4534
+> 𝑤 /𝑜 Contextual Trend Analysis 0.7702 0.4362 0.5075 0.4505
+> 𝑤 /𝑜 Neighbor Retrieval 0.7791 0.4452 0.5198 0.4561
+> 𝑤 /𝑜 Historical Auxiliary 0.7765 0.4427 0.5201 0.4545
+> 𝑤 /𝑜 Geological Refinement 0.7742 0.4402 0.5135 0.4536
+
+removal leads to the largest performance drop among all ablations. On the Facies dataset, the F1-score decreases to 0.4362, only slightly above the baseline, indicating that point-wise predictions alone fail to capture complex lithological variations. From a geological per-spective, lithology interpretation is inherently context-dependent, relying on depth-wise trends and stratigraphic continuity. By mod-eling vertical continuity in well-log sequences, contextual trend analysis aligns the agent’s reasoning with geological principles and plays a central role in accurate facies classification. 
+
+5.3.3 Analysis of Neighbor Retrieval. The neighbor retrieval mod-ule complements the system by providing reference geological sam-ples with similar semantics. While its impact is smaller than other modules, it consistently improves performance across datasets. For example, on Geolink, removing this module decreases the F1-score from 0.4582 to 0.4561. This suggests that while general geological knowledge is effective, neighboring cases provide valuable fine-grained cues for refining lithology interpretation. 
+
+5.3.4 Analysis of Historical Prediction Auxiliary. To enhance tem-poral consistency, we incorporate historical predictions during in-ference, introducing dependencies across adjacent depth intervals. Unlike the base model, which uses a 16-depth sliding window, the history-aware refinement uses a shorter window of 4 and autore-gressive inference based on previous outputs. While this reduces parallelism, the overhead is minimal due to the smaller window and adaptive routing, resulting in consistent predictions. Base Classifier      
+
+> +GeoDecider
+> XGBoost GBDT MLP
+> MiniRocket InceptionTime LSTMFCN
+
+Figure 3: Performance comparison between lightweight base models and their refined counterparts, evaluated by F1 score. 
+
+5.3.5 Ablation of Geological Refinement. The geological refine-ment module ensures physical plausibility and geological consis-tency, with its impact comparable to the knowledge base. Removing it causes a 0.0119 drop in F1-score on the Force dataset. By vali-dating predictions against geological constraints, the refinement step suppresses implausible outcomes. Ablation results show that geological refinement effectively mitigates catastrophic errors, im-proving reliability and interpretability in lithology classification. 
+
+## 5.4 Generalization Across Base Classifiers 
+
+We evaluate the effectiveness of the proposed agent-based frame-work by examining its ability to refine predictions produced by several lightweight base models. In this setting, a collection of representative lightweight classifiers is first applied to perform point-wise lithology classification, serving as the initial predictors. The proposed framework is then applied on top of these base mod-els to selectively refine their predictions through confidence-aware routing, tool-enhanced perception, multi-perspective reasoning, and geological refinement. Figure 3 reports the average F1 scores on three well-log datasets. Across all datasets, incorporating the agent-based framework consistently improves the performance of base classifiers, yielding relative gains of up to 15% on Force and GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Figure 4: The improvement of F1 and the number of process-ing test samples after adaptive routing. 
+
+8–9% on Facies and Geolink. These demonstrate that the proposed framework effectively corrects low-confidence and ambiguous pre-dictions produced by lightweight classifiers, while preserving their efficiency on easy samples, validating the practical value of agent-based refinement for real-world lithology identification. 
+
+## 5.5 Effectiveness of Inference Routing 
+
+We evaluate adaptive routing by comparing the full model with an ablated variant without routing. As shown in Figure 4, enabling adaptive routing consistently improves F1 across all datasets while reducing the number of test samples processed during inference. The full model achieves higher F1 scores on SEAM, Facies, Force, and Geolink despite operating on a smaller subset of samples, indi-cating that routing selectively retains informative cases for further processing. Moreover, adaptive routing improves both performance and efficiency. While F1 gains range from moderate to substantial, the number of processed samples is substantially reduced on SEAM, Facies, and Force, and remains lower even on the large-scale Ge-olink dataset. These results show that adaptive routing effectively allocates computation to challenging samples while handling sim-pler cases with lightweight inference, enhancing both predictive performance and inference efficiency. 
+
+## 5.6 In-Depth Analysis of Geological Refinement 
+
+To further assess geological refinement, we analyze the Flying Point Ratio, which measures the proportion of isolated and geologically implausible lithology predictions along depth. Flying points violate geological continuity and lead to fragmented stratigraphic patterns. As shown in Table 4, introducing geological refinement consistently reduces the flying point ratio across all benchmarks, achieving sub-stantial relative reductions over the base classifier. This indicates that refinement effectively suppresses spurious point-wise predic-tions and produces smoother, more geologically coherent lithology sequences. We further compare the full model with an ablated vari-ant without geological refinement. Removing refinement results in a clear increase in the flying point ratio, demonstrating that the improvement cannot be attributed solely to stronger base represen-tations. Instead, geological refinement corrects locally inconsistent predictions by leveraging contextual and structural constraints of subsurface formations, thereby enhancing the geological plausibil-ity and interpretability of the outputs. 
+
+Figure 5: Performance comparison of single- and multi-perspective reasoning Table 4: The ratio of flying point of base classifier, GeoDe-cider(w/ and w/o refinement). 
+
+Variant SEAM Facies Force Geolink Base Classifier 0.0148 0.1760 0.0873 0.1240 GeoDecider(w/o Ref) 0.0141 0.1596 0.0792 0.1196 GeoDecider(w/ Ref) 0.0135 0.1541 0.0746 0.1137 
+
+## 5.7 Analysis of Multi-Perspective Reasoning 
+
+This experiment evaluates the effectiveness of multi-perspective reasoning by comparing GeoDecider with three representative single-perspective variants, including context-based, data-based, and rule-based reasoning. As shown in Figure 5, GeoDecider consis-tently achieves the best F1 performance across all evaluated datasets. The performance gains are particularly pronounced on the Force dataset, where integrating multiple reasoning perspectives yields a clear advantage over any individual strategy. This indicates that different perspectives capture complementary information: context-based reasoning emphasizes stratigraphic continuity, data-based reasoning focuses on local measurement patterns, while rule-based reasoning enforces domain constraints. By jointly leveraging these heterogeneous signals, GeoDecider produces more robust and ac-curate lithology predictions than models relying on a single rea-soning perspective. The results demonstrate that multi-perspective reasoning is essential for effectively handling the complexity and variability of real-world geological formations. 
+
+## 5.8 Hyperparameter Sensitivity Analysis 
+
+5.8.1 Base LLM Comparison. We evaluate three LLM backbones: DeepSeek-R1, GPT-5, and Gemini 3 Pro within our framework. As shown in Table 5, all backbones achieve comparable precision, recall, and F1 on SEAM and Facies, with only minor differences. This indicates that performance gains mainly arise from the system-level design rather than the specific LLM backbone, demonstrating that the proposed framework is largely backbone-agnostic and flexible for deployment under different constraints. 
+
+5.8.2 Effect of Temperature on Model Performance. Figure 7 shows the sensitivity of GeoDecider to the temperature parameter. As the temperature increases, the F1 score improves on all datasets, peaking at a moderate temperature. This indicates that an appropri-ate temperature balances exploration and determinism, enhancing Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen You are a well log data analysis expert in lithology classification. Please help me classify these points. 
+
+Pre -Trained Classifier guided pre -classified:       
+
+> You are a petroleum well log data analysis expert.
+> Please classify each depth point (each row/sample) in
+> the Well Log Facies Dataset
+> into one of 9 lithofacies categories using the provided
+> well log features.
+> The data is pre -classified by XGBoost :
+> | No. | DEPTH | GR | SP |Pre -Classified result:)
+> |6| 2924 | 61.9 | 149.7 | [PRE -CLASSIFIED] Poor oil -
+> bearing layer |
+> | 7 | 2925 | 61.1 | 150.1 | Oil -bearing layer (0.50),
+> Poor oil -bearing layer (0.47) |
+> | 8 | 2926 | 60.8 | 150.5 | [PRE -CLASSIFIED] Oil -
+> bearing layer |
+
+Tool -Augmented Reasoning:    
+
+> Feature Description :
+> GR: Natural Gamma Ray log
+> Classification suggestions :
+> Generally higher RT compared to
+> water layers….
+> Trend Analysis :According to
+> contextual values, we can see that
+> RT….
+> Neighbors : Similar reference
+> samples for Sample 7:
+> | DEPTH | GR | SP | | Actual Class |
+> Similarity |
+> |3707 | 66.7 | 150.2 | | Poor oil -
+> bearing layer | 0.751 )
+
+Multi -Perspective Reasoning ：               
+
+> Data -Centric Analyst :Based on the
+> XGBoost classification result, this
+> interval is predicted as an oil -bearing
+> layer, as its feature pattern matches
+> learned oil -bearing samples.
+> Context -Aware Stratigrapher :From the
+> contextual trend analysis along depth,
+> the surrounding intervals indicate
+> weaker reservoir continuity, suggesting
+> apoor oil -bearing layer.
+> Rule -Based Physicist :According to
+> geological rules and physical constraints,
+> the observed log responses are
+> consistent with an oil -bearing layer.
+
+Refinement Module:   
+
+> Taking full account of geological
+> patterns, the depth -wise trend
+> analysis reveals limited
+> reservoir continuity and
+> weakened characteristic
+> responses in this interval.
+> Although point -wise signals show
+> partial consistency with oil -
+> bearing layers, the overall
+> stratigraphic context supports
+> classifying this interval as a
+> poor oil -bearing layer, which is
+> the most appropriate
+> interpretation .
+
+Figure 6: A case of how GeoDecider performs lithology classification via pre-classified and tool-augmented reasoning. Table 5: Performance comparison with different base LLMs. 
+
+Base LLM SEAM Facies Precision Recall F1 Precision Recall F1 DeepSeek-R1 0.7950 0.7720 0.7833 0.5012 0.4052 0.4481 
+
+GPT-5 0.7825 0.7610 0.7716 0.4885 0.3895 0.4334 Gemini 3 Pro 0.7941 0.7745 0.7841 0.5025 0.4035 0.4476 
+
+multi-perspective evidence integration. However, further increases lead to performance degradation, suggesting that overly stochastic reasoning reduces stability and harms prediction quality. Overall, GeoDecider exhibits sensitivity to temperature, with an optimal range for robust performance. 
+
+## 5.9 Case Study 
+
+Figure 6 presents a case study illustrating GeoDecider’s end-to-end decision process for lithology classification. The base classifier provides point-wise pre-classification based on log features. For uncertain samples, the agent activates tool-augmented reasoning to incorporate feature descriptions, trend analysis, and neighboring reference cases. These signals are examined from multiple perspec-tives, which may lead to conflicting conclusions. The refinement module then integrates geological patterns and stratigraphic conti-nuity to resolve inconsistencies and produce a geologically plausible final prediction. This case demonstrates how GeoDecider combines diverse evidence to generate coherent lithology interpretations. 
+
+## 5.10 Challenges and Lessons From Deployment 
+
+GeoDecider was developed in close collaboration with a large na-tional oil company in China using proprietary well-log data. How-ever, strict internal data governance and confidentiality policies pre-vented the disclosure of raw logs or detailed performance metrics outside the company. As a result, our experiments were conducted on publicly available benchmark datasets, and we are unable to report production-level performance indicators. This experience highlights key lessons for deploying complex, data-driven systems in highly regulated environments. The deployment faced challenges due to privacy and compliance requirements. The multi-stage approval process for data access and model evaluation, involving legal and security teams, impacted the project timeline. Practitioners must plan for long approval cycles 
+
+Figure 7: Sensitivity analysis of GeoDecider to the tempera-ture parameter of LLMs, evaluated by F1 score. 
+
+and integrate privacy and compliance into the deployment process. Additionally, evaluation protocols required de-identified, aggre-gated data, with external reporting needing further anonymization. Robust offline evaluation on public datasets and internal validation were crucial for ensuring progress within regulatory constraints. Another challenge was designing the system under infrastruc-ture and privacy constraints. Given data locality requirements, we prioritized lightweight models and tool-augmented reasoning to ensure deployability within secure infrastructures. Additionally, prompt design required significant domain expert involvement to align with geological principles and industry standards. This experience emphasizes the importance of domain expertise and privacy-aware practices in real-world system deployment. 
+
+## 6 Conclusion 
+
+In this work, we propose GeoDecider, an agentic reasoning work-flow for explainable and geologically reasonable lithology classi-fication that involves coarse-to-fine reasoning and geological re-finement. By combining data-driven classification with contextual trend analysis, rule-based geological constraints, and neighbor re-trieval, GeoDecider produces more geologically coherent lithology sequences while reducing unnecessary computation through selec-tive reasoning. Experiments across multiple well-log benchmarks demonstrate the effectiveness of GeoDecider. Case studies further show that it consistently improves classification performance, en-hances stratigraphic continuity, and produces stable, interpretable predictions. These results highlight the value of integrating domain knowledge and adaptive reasoning for reliable geoscience analysis. GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+## References 
+
+[1] Mohammed AM Abdullah, Ahmed A Mohammed, and Sohaib R Awad. 2024. RockDNet: Deep learning approach for lithology classification. Applied Sciences 
+
+14, 13 (2024), 5511. [2] Fatimah Alzubaidi, Peyman Mostaghimi, Pawel Swietojanski, Stuart R Clark, and Ryan T Armstrong. 2021. Automated lithology classification from drill core images using convolutional neural networks. Journal of Petroleum Science and Engineering 197 (2021), 107933. [3] Roman Beloborodov, James Gunning, Marina Pervukhina, Juerg Hauser, Michael Ben Clennell, Alan Mur, and Vladimir Li. 2024. Automated lithofluid and facies classification in well logs: The rock-physics perspective. Geophysics 
+
+89, 4 (2024), MR209–MR222. [4] Filipe Beretta, AL Rodrigues, RL Peroni, and JFCL Costa. 2019. Automated lithological classification using UAV and machine learning on an open cast mine. 
+
+Applied Earth Science 128, 3 (2019), 79–88. [5] Thiago Santi Bressan, Marcelo Kehl de Souza, Tiago J Girelli, and Farid Chemale Junior. 2020. Evaluation of machine learning methods for lithology classification using geophysical data. Computers & Geosciences 139 (2020), 104475. [6] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al . 2020. Language models are few-shot learners. Advances in neural information processing systems 33 (2020), 1877–1901. [7] Luoyuan Chen, Xingjian Wang, and Zhanbo Liu. 2025. Geological information-driven deep learning for lithology identification from well logs. Frontiers in Earth Science 13 (2025), 1662760. [8] Tianqi Chen, Tong He, Michael Benesty, Vadim Khotilovich, Yuan Tang, Hyunsu Cho, Kailong Chen, Rory Mitchell, Ignacio Cano, Tianyi Zhou, et al . 2015. Xgboost: extreme gradient boosting. R package version 0.4-2 1, 4 (2015), 1–4. [9] Mingyue Cheng, Yiheng Chen, Qi Liu, Zhiding Liu, Yucong Luo, and Enhong Chen. 2025. InstrucTime: Advancing Time Series Classification with Multimodal Language Modeling. In Proceedings of the Eighteenth ACM International Conference on Web Search and Data Mining (Hannover, Germany) (WSDM ’25) . Association for Computing Machinery, New York, NY, USA, 792–800. doi:10.1145/3701551. 3703499 [10] Mingyue Cheng, Qi Liu, Zhiding Liu, Zhi Li, Yucong Luo, and Enhong Chen. 2023. FormerTime: Hierarchical Multi-Scale Representations for Multivariate Time Series Classification. In Proceedings of the ACM Web Conference 2023 (Austin, TX, USA) (WWW ’23) . Association for Computing Machinery, New York, NY, USA, 1437–1445. doi:10.1145/3543507.3583205 [11] Mingyue Cheng, Qi Liu, Qingyang Mao, Yitong Zhou, Yupeng Li, Jiahao Wang, Jiaying Lin, Jiawei Cao, and Enhong Chen. 2025. A survey on table mining with large language models: Challenges, advancements and prospects. (2025). [12] Mingyue Cheng, Zhiding Liu, Xiaoyu Tao, Qi Liu, Jintao Zhang, Tingyue Pan, Shilong Zhang, Panjing He, Xiaohan Zhang, Daoyu Wang, et al . 2025. A com-prehensive survey of time series forecasting: Concepts, challenges, and future directions. Authorea Preprints (2025). [13] Mingyue Cheng, Jiahao Wang, Daoyu Wang, Xiaoyu Tao, Qi Liu, and Enhong Chen. 2026. Can slow-thinking llms reason over time? empirical studies in time series forecasting. In Proceedings of the Nineteenth ACM International Conference on Web Search and Data Mining . 99–110. [14] Angus Dempster, Daniel F. Schmidt, and Geoffrey I. Webb. 2021. MiniRocket: A Very Fast (Almost) Deterministic Transform for Time Series Classification. In Proceedings of the 27th ACM SIGKDD Conference on Knowledge Discovery & Data Mining (Virtual Event, Singapore) (KDD ’21) . Association for Computing Machinery, New York, NY, USA, 248–257. doi:10.1145/3447548.3467231 [15] Shao-Qun Dong, Zhao-Hui Zhong, Xue-Hui Cui, Lian-Bo Zeng, Xu Yang, Jian-Jun Liu, Yan-Ming Sun, and Jing-Ru Hao. 2023. A deep kernel method for lithofacies identification using conventional well logs. Petroleum Science 20, 3 (2023), 1411– 1428. [16] Mohamed Ali El-Omairi and Abdelkader El Garouani. 2023. A review on ad-vancements in lithological mapping utilizing machine learning algorithms and remote sensing data. Heliyon 9, 9 (2023). [17] Lutfi Eren Erdogan, Nicholas Lee, Sehoon Kim, Suhong Moon, Hiroki Furuta, Gopala Anumanchipalli, Kurt Keutzer, and Amir Gholami. 2025. Plan-and-Act: Im-proving Planning of Agents for Long-Horizon Tasks. In International Conference on Machine Learning . PMLR, 15419–15462. [18] Zuochun Fan, Changhao Hu, Shu Jiang, Man Li, Ye Cai, Yue Jiang, Yang Li, and Mei Tian. 2025. Logging-data-driven lithology identification in complex reservoirs: an example from the Niuxintuo block of the Liaohe oilfield. Frontiers in Earth Science 13 (2025), 1491334. [19] Shanghua Gao, Teddy Koker, Owen Queen, Tom Hartvigsen, Theodoros Tsiligkaridis, and Marinka Zitnik. 2024. Units: A unified multi-task time series model. Advances in Neural Information Processing Systems 37 (2024), 140589– 140631. [20] Mononito Goswami, Konrad Szafer, Arjun Choudhry, Yifu Cai, Shuo Li, and Artur Dubrawski. 2024. MOMENT: a family of open time-series foundation models. In Proceedings of the 41st International Conference on Machine Learning (Vienna, Austria) (ICML’24) . JMLR.org, Article 642, 38 pages. [21] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al . 2025. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 (2025). [22] Michael Hüsken and Peter Stagge. 2003. Recurrent neural networks for time series classification. Neurocomputing 50 (2003), 223–235. [23] Hassan Ismail Fawaz, Germain Forestier, Jonathan Weber, Lhassane Idoumghar, and Pierre-Alain Muller. 2019. Deep learning for time series classification: a review. Data mining and knowledge discovery 33, 4 (2019), 917–963. [24] Hassan Ismail Fawaz, Benjamin Lucas, Germain Forestier, Charlotte Pelletier, Daniel F Schmidt, Jonathan Weber, Geoffrey I Webb, Lhassane Idoumghar, Pierre-Alain Muller, and François Petitjean. 2020. Inceptiontime: Finding alexnet for time series classification. Data Mining and Knowledge Discovery 34, 6 (2020), 1936–1962. [25] Shiyi Jiang, Panke Sun, Fengqing Lyu, Sicheng Zhu, Ruifeng Zhou, Bin Li, Taihong He, Yujian Lin, Yining Gao, Wendan Song, et al . 2024. Machine learning (ML) for fluvial lithofacies identification from well logs: A hybrid classification model integrating lithofacies characteristics, logging data distributions, and ML models applicability. Geoenergy Science and Engineering 233 (2024), 212587. [26] Fazle Karim, Somshubra Majumdar, Houshang Darabi, and Samuel Harford. 2019. Multivariate LSTM-FCNs for time series classification. Neural networks 116 (2019), 237–245. [27] Rohit J Kate. 2016. Using dynamic time warping distances as features for improved time series classification. Data mining and knowledge discovery 30 (2016), 283– 312. [28] Guolin Ke, Qi Meng, Thomas Finley, Taifeng Wang, Wei Chen, Weidong Ma, Qiwei Ye, and Tie-Yan Liu. 2017. LightGBM: a highly efficient gradient boosting decision tree. In Proceedings of the 31st International Conference on Neural Information Processing Systems (Long Beach, California, USA) (NIPS’17) . Curran Associates Inc., Red Hook, NY, USA, 3149–3157. [29] Diederik P Kingma. 2014. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 (2014). [30] Lundi Kusuma and Alwin Djamaoeddin. 2025. Leveraging Hidden Markov Model with Window Filtering Technique for Unsupervised Facies Detection in Well Logs. In SPE Middle East Oil and Gas Show and Conference . SPE, D031S085R006. [31] Zhi Li, Zhefeng Wang, Zhicheng Wei, Xiangguang Zhou, Yijun Wang, Baoxing Huai, Qi Liu, Nicholas Jing Yuan, Renbin Gong, and Enhong Chen. 2021. Cross-oilfield reservoir classification via multi-scale sensor knowledge transfer. In 
+
+Proceedings of the AAAI Conference on Artificial Intelligence , Vol. 35. 4215–4223. [32] Jason Lines, Sarah Taylor, and Anthony Bagnall. 2018. Time series classifica-tion with HIVE-COTE: The hierarchical vote collective of transformation-based ensembles. ACM Transactions on Knowledge Discovery from Data (TKDD) 12, 5 (2018), 1–35. [33] Jiming Liu and Dongjin Xu. 2025. Logging-data-driven lithology identification of conglomerate reservoir by the assistance of integrated machine learning methods. 
+
+Scientific Reports (2025). [34] Qi Liu, Enhong Chen, Hui Xiong, Chris HQ Ding, and Jian Chen. 2011. Enhancing collaborative filtering by user interest expansion via personalized ranking. IEEE Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics) 42, 1 (2011), 218–233. [35] Yuwen Liu, Yulan Zhang, Xingyuan Mao, Xucheng Zhou, Jingwen Chang, Wenwei Wang, Pan Wang, and Lianyong Qi. 2024. Lithological facies classification using attention-based gated recurrent unit. Tsinghua Science and Technology 29, 4 (2024), 1206–1218. [36] Zhege Liu, Junxing Cao, Jiachun You, Shuna Chen, Yujia Lu, and Peng Zhou. 2021. A lithological sequence classification method with well log via SVM-assisted bi-directional GRU-CRF neural network. Journal of Petroleum Science and Engineering 205 (2021), 108913. [37] Zhiding Liu, Jiqian Yang, Mingyue Cheng, Yucong Luo, and Zhi Li. 2024. Gen-erative Pretrained Hierarchical Transformer for Time Series Forecasting. In 
+
+Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining (Barcelona, Spain) (KDD ’24) . Association for Computing Machinery, New York, NY, USA, 2003–2013. doi:10.1145/3637528.3671855 [38] Yucong Luo, Yitong Zhou, Mingyue Cheng, Jiahao Wang, Daoyu Wang, Tingyue Pan, and Jintao Zhang. 2025. Time series forecasting as reasoning: A slow-thinking approach with reinforced llms. arXiv preprint arXiv:2506.10630 (2025). [39] Reiichiro Nakano, Jacob Hilton, Suchir Balaji, Jeff Wu, Long Ouyang, Christina Kim, Christopher Hesse, Shantanu Jain, Vineet Kosaraju, William Saunders, et al .2021. Webgpt: Browser-assisted question-answering with human feedback. arXiv preprint arXiv:2112.09332 (2021). [40] An Hai Nguyen, Khang Nguyen, and Nga Mai. 2025. Classifying reservoir facies using attention-based residual neural networks. PeerJ Computer Science 11 (2025), e2977. [41] Charles Packer, Vivian Fang, Shishir_G Patil, Kevin Lin, Sarah Wooders, and Joseph_E Gonzalez. 2023. MemGPT: Towards LLMs as Operating Systems. (2023). [42] Qingwei Pang, Chenglizhao Chen, Youzhuang Sun, and Shanchen Pang. 2025. Empowering lithology identification with FreLog: Leveraging frequency domain insights in well logging signal processing. Measurement 246 (2025), 116710. Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen 
+
+[43] Gyeong-Tae Park, Jina Jeong, Irina Emelyanova, Marina Pervukhina, Lionel Esteban, and Seong-Taek Yun. 2022. Data-driven sequence labeling methods incorporating the long-range spatial variation of geological data for lithofacies sequence estimation. Journal of Petroleum Science and Engineering 208 (2022), 109345. [44] Pal Washa Shahzad Rathore, Matloob Hussain, Muhammad Bilal Malik, and Yawar Amin. 2023. Well log analysis and comparison of supervised machine learning algorithms for lithofacies identification in pab formation, lower indus basin. Journal of Applied Geophysics 219 (2023), 105199. [45] HAN Ruiyi, WANG Zhuwen, WANG Wenhua, XU Fanghui, QI Xinghua, and CUI Yitong. 2021. Lithology identification of igneous rocks based on XGboost and conventional logging curves, a case study of the eastern depression of Liaohe Basin. Journal of Applied Geophysics 195 (2021), 104480. [46] Muhammad Ansar Saleem, Ghulam Mohyuddin Sohail, Saif Ur Rehman, Qa-mar Yasin, and Ahmed E Radwan. 2025. Multiple machine learning algorithms for lithofacies prediction in the deltaic depositional system of the lower Goru Formation, Lower Indus Basin, Pakistan. Scientific Reports 15, 1 (2025), 34933. [47] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Eric Hambro, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. 2023. Toolformer: Language models can teach themselves to use tools. Advances in Neural Information Processing Systems 36 (2023), 68539–68551. [48] Agnes Schumann. 2002. Hidden Markov models for lithological well log classifi-cation. Terra Nostra 4 (2002), 373–378. [49] Heng Shi, ZhenHao Xu, Peng Lin, and Wen Ma. 2023. Refined lithology identifica-tion: Methodology, challenges and prospects. Geoenergy Science and Engineering 
+
+231 (2023), 212382. [50] PAN Shijun and Shujia Qin. 2025. Application of Multimodal for Lithology-aware Prompt Engineering in Mineral Processing Systems. Intelligence, Informatics and Infrastructure 6, 3 (2025), 47–54. [51] Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik Narasimhan, and Shunyu Yao. 2023. Reflexion: Language agents with verbal reinforcement learning. 
+
+Advances in Neural Information Processing Systems 36 (2023), 8634–8652. [52] Xiaoyu Tao, Mingyue Cheng, Ze Guo, Shuo Yu, Yaguo Liu, Qi Liu, and Shijin Wang. 2026. MemCast: Memory-Driven Time Series Forecasting with Experience-Conditioned Reasoning. arXiv preprint arXiv:2602.03164 (2026). [53] Xiaoyu Tao, Mingyue Cheng, Chuang Jiang, Tian Gao, Huanjian Zhang, and Yaguo Liu. 2026. Cast-R1: Learning Tool-Augmented Sequential Decision Policies for Time Series Forecasting. arXiv preprint arXiv:2602.13802 (2026). [54] Hind Taud and Jean-Franccois Mas. 2017. Multilayer perceptron (MLP). In 
+
+Geomatic approaches for modeling land change scenarios . Springer, 451–455. [55] Michele Tonutti, Emanuele Ruffaldi, Alessandro Cattaneo, and Carlo Alberto Avizzano. 2019. Robust and subject-independent driving manoeuvre anticipation through domain-adversarial recurrent neural networks. Robotics and Autonomous Systems 115 (2019), 162–173. [56] Jiahao Wang, Mingyue Cheng, Qingyang Mao, Yitong Zhou, Daoyu Wang, Qi Liu, Feiyang Xu, and Xin Li. 2025. Tabletime: Reformulating time series classification as training-free table understanding with large language models. In Proceedings of the 34th ACM International Conference on Information and Knowledge Management .3009–3019. [57] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi, Sharan Narang, Aakanksha Chowdhery, and Denny Zhou. 2022. Self-consistency improves chain of thought reasoning in language models. arXiv preprint arXiv:2203.11171 (2022). [58] Zihao Wang, Shaofei Cai, Guanzhou Chen, Anji Liu, Xiaojian Shawn Ma, and Yitao Liang. 2023. Describe, explain, plan and select: interactive planning with llms enables open-world multi-task agents. Advances in Neural Information Processing Systems 36 (2023), 34153–34189. [59] Zhiguang Wang, Weizhong Yan, and Tim Oates. 2016. Time series classification from scratch with deep neural networks: A strong baseline. 2017 International Joint Conference on Neural Networks (IJCNN) (2016), 1578–1585. https://api. semanticscholar.org/CorpusID:14303613 [60] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al . 2022. Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information processing systems 35 (2022), 24824–24837. [61] Xuanzhi Wu and Edo Nyland. 1987. Automated stratigraphic interpretation of well-log data. Geophysics 52, 12 (1987), 1665–1676. [62] Zhenhao Xu, Zhaoyang Wang, Shucai Li, Xiao Zhang, and Peng Lin. 2024. GeoPredict-LLM: Intelligent tunnel advanced geological prediction by repro-gramming large language models. Intelligent Geoengineering 1, 1 (2024), 49–57. [63] Hao Xue and Flora D Salim. 2023. Promptcast: A new prompt-based learning paradigm for time series forecasting. IEEE Transactions on Knowledge and Data Engineering 36, 11 (2023), 6851–6864. [64] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. 2023. React: Synergizing reasoning and acting in language models. In International Conference on Learning Representations (ICLR) .[65] Le Yu, Alok Porwal, Eun-Jung Holden, and Michael C Dentith. 2012. Towards automatic lithological classification from remote sensing data using support vector machines. Computers & Geosciences 45 (2012), 229–239. [66] Xiaohan Zhang, Tian Gao, Mingyue Cheng, Bokai Pan, Ze Guo, Yaguo Liu, and Xiaoyu Tao. 2025. AlphaCast: A Human Wisdom-LLM Intelligence Co-Reasoning Framework for Interactive Time Series Forecasting. arXiv preprint arXiv:2511.08947 (2025). [67] Yi Zheng, Qi Liu, Enhong Chen, Yong Ge, and J Leon Zhao. 2014. Time se-ries classification using multi-channels deep convolutional neural networks. In 
+
+International conference on web-age information management . Springer, 298–310. [68] Denny Zhou, Nathanael Schärli, Le Hou, Jason Wei, Nathan Scales, Xuezhi Wang, Dale Schuurmans, Claire Cui, Olivier Bousquet, Quoc V Le, and Ed H. Chi. 2023. Least-to-Most Prompting Enables Complex Reasoning in Large Language Models. In The Eleventh International Conference on Learning Representations . https: //openreview.net/forum?id=WZH7099tgfM [69] Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, and Wancai Zhang. 2021. Informer: Beyond efficient transformer for long se-quence time-series forecasting. In Proceedings of the AAAI conference on artificial intelligence , Vol. 35. 11106–11115. [70] Tian Zhou, Peisong Niu, Liang Sun, Rong Jin, et al . 2023. One fits all: Power general time series analysis by pretrained lm. Advances in neural information processing systems 36 (2023), 43322–43355. GeoDecider: A Coarse-to-Fine Agentic Workflow for Explainable Lithology Classification Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Table 6: Detailed specification of input features and target classes for the four benchmark datasets. The input features represent the exact channels used by the GeoDecider.                 
+
+> Dataset # Cls Input Features (Curves) Target SEAM 7
+> 9 Channels: Depth, Bed Dip ( 𝑋 , 𝑌 ), Total Porosity, Horizontal Resistivity, TTI Dip ( 𝑋 , 𝑌 ), P-wave Velocity ( 𝑉 𝑝 ), S-wave Velocity ( 𝑉 𝑠 )Layers
+> Facies 9
+> 7 Channels: Depth, Gamma Ray (GR), Deep Induction Resistivity (log 10 ), Neutron-Density Porosity Diff ( Δ𝜙 ), Neutron-Density Porosity (PHIND), Photoelectric Effect (PE), Nonmarine-Marine Indicator Lithofacies
+> FORCE 5
+> 9 Channels: Depth, Caliper (CALI), Sonic Slowness (DTC), Gamma Ray (GR), Neutron Porosity (NPHI), Bulk Density (RHOB), Coordinates (𝑋 , 𝑌 , 𝑍 )Lithology
+> GeoLink 11
+> 9 Channels: Depth, Caliper (CALI), Neutron Porosity (NPHI), Bulk Density (RHOB), Gamma Ray (GR), Sonic Slowness (DTC), Resistivity (Deep, Shallow, Medium) Lithology
+
+## A Dataset Specifications and Input Features 
+
+To facilitate reproducibility and clarify the inputs used by the GeoDecider framework, we provide the detailed configuration for each benchmark dataset. Table 6 summarizes the specific geophysi-cal logs and features selected as inputs for the model, along with the target lithological classes. For the Facies dataset, the 9 classes correspond to specific deposi-tional environments ranging from Nonmarine sandstone to Phylloid-algal bafflestone . The FORCE dataset targets 5 primary lithologies: 
+
+Shale, Sandstone, Limestone, Marl, and Sandstone/Shale . GeoLink in-cludes 11 granular classes, distinguishing between variations such as Silty Sand , Cross Bedded Sand , and Argillaceous Limestone . Finally, 
+
+SEAM classifies geological ages and salt bodies, including Mother Salt , Cretaceous , and Lower Miocene layers. 
+
+## B Datasets Description 
+
+• SEAM 2: the SEG Wiki Open Data "Well logs" catalog as an entry point to publicly released well-log resources for reproducible geoscience benchmarking; 
+
+• Facies 3: the Kaggle Well Log Facies Dataset, which contains facies logs from nine wells in the Council Grove gas reservoir (Kansas) with facies labels derived from core observations; 
+
+• Force 4: the Kaggle Well logs dataset for machine learning, re-leased for lithology (rock-type) prediction from multiple geo-physical well-log measurements and associated with the FORCE 2020 lithology prediction context; 
+
+> 2https://wiki.seg.org/wiki/Open_data#Well_logs
+> 3https://www.kaggle.com/datasets/imeintanis/well-log-facies-dataset
+> 4https://www.kaggle.com/datasets/faresazzam/well-logs-dataset-for-machine-learning
+
+• Geolink 5: the GEOLINK-S2 well-log dataset accessed via the geolink_dataset repository, which provides analysis notebooks and preprocessing code for the GEOLINK-S2 data. 
+
+## C Baselines 
+
+• XGBoost : XGBoost is a tree-based gradient boosting method that builds an ensemble of decision trees to optimize a differentiable loss function. It is widely used as a strong traditional machine learning baseline due to its robustness and efficiency on tabular and time-series features. 
+
+• nn-DTW : nn-DTW combines nearest-neighbor classification with Dynamic Time Warping distance to handle temporal mis-alignments between time series. It serves as a classical non-parametric baseline that focuses on shape similarity rather than learned representations. 
+
+• GBDT : Gradient Boosting Decision Trees (GBDT) iteratively fits shallow decision trees to the residuals of previous trees to minimize prediction error. Compared with XGBoost, it provides a simpler yet competitive boosting baseline for sequence-level classification on hand-crafted features. 
+
+• LSTMFCN : LSTMFCN integrates a Long Short-Term Memory (LSTM) branch with a Fully Convolutional Network (FCN) branch to jointly capture temporal dependencies and local patterns in time series. This architecture has become a common deep learn-ing baseline for multivariate time-series classification tasks. 
+
+• MLP : The Multilayer Perceptron (MLP) treats each input seg-ment as a fixed-length feature vector and performs classification through stacked fully-connected layers with nonlinear activa-tions. Despite its simplicity and lack of explicit temporal model-ing, it offers a strong baseline when features are informative. 
+
+• MiniRocket : MiniRocket applies a fixed set of convolutional kernels to time series and uses simple summary statistics as features, followed by a linear classifier. It is designed to provide very fast and competitive time-series classification with minimal training overhead. 
+
+• InceptionTime : InceptionTime is a deep convolutional archi-tecture for time-series classification that uses Inception-style multi-scale convolutional blocks. By capturing patterns at differ-ent temporal resolutions, it achieves strong accuracy on a wide range of benchmark datasets. 
+
+• InstructTime : InstructTime reformulates time-series classifica-tion as an instruction-following task for multimodal language models. It leverages natural-language descriptions of tasks and features to enable flexible, training-free or lightly fine-tuned time-series understanding. 
+
+• TableTime : TableTime converts time-series segments into tabu-lar formats and uses large language models’ table-understanding capabilities for classification. This approach treats time series as structured tables, enabling training-free inference with generic LLMs. 
+
+• GPT4TS : GPT4TS is a time-series analysis framework that adapts pretrained language-model-style architectures to forecasting and classification. It views time series as token sequences and lever-ages generative pretraining for downstream time-series tasks.  
+
+> 5https://github.com/LukasMosser/geolink_dataset?tab=readme-ov-file Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Jiahao Wang, Mingyue Cheng, Yitong Zhou, Qingyang Mao, Xiaoyu Tao, Qi Liu, Enhong Chen
+
+• UniTS : UniTS is a unified multi-task time-series model designed to support various tasks such as classification, forecasting, and imputation within a single backbone. It serves as a strong foun-dation model baseline for evaluating specialized methods. 
+
+• MOMENT : MOMENT is an open family of time-series founda-tion models pretrained on large-scale heterogeneous time-series corpora. It provides general-purpose representations that can be adapted to downstream classification tasks with minimal task-specific tuning.
