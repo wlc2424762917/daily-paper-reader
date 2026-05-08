@@ -1,0 +1,594 @@
+Title: Self-Adaptive Multi-Agent LLM-Based Security Pattern Selection for IoT Systems
+
+URL Source: https://arxiv.org/pdf/2605.00741v1
+
+Published Time: Mon, 04 May 2026 01:08:23 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+> 1
+
+# Self-Adaptive Multi-Agent LLM-Based Security Pattern Selection for IoT Systems 
+
+Saeid Jamshidi, Foutse Khomh, Carol Fung, and Kawser Wazed Nafi 
+
+Abstract —The adoption of Internet of Things (IoT) systems at the network edge of smart architectures is increasing rapidly, intensifying the need for security mechanisms that are both adaptive and resource-efficient. In such environments, runtime defence mechanisms are no longer limited to detection alone but become a resource-constrained task of selecting mitigation actions. Security controls must be carefully selected, combined, and executed under latency, energy, and computational con-straints, while preventing unsafe interactions between controls. Existing approaches predominantly rely on static rule sets and learned policies, which provide limited guarantees of feasibility, conflict safety, and execution correctness in resource-constrained edge settings. To address this limitation, we introduce ASPO ,a self-adaptive multi-agent security pattern selection that in-tegrates Large Language Model (LLM)-based reasoning with deterministic enforcement within a MAPE-K control loop. ASPO explicitly separates stochastic decision generation from execution: LLM agents propose candidate mitigation portfolios, while a deterministic optimisation core enforces closed-world action in-tegrity, conflict-free composition, and resource feasibility at every decision epoch. We deploy ASPO on a distributed edge-gateway testbed and evaluate it across two workloads, each comprising 500 and 1000 runtime security decisions, using replayed IoT attack traffic. In addition, the results demonstrate invariant safety properties, including 100% conflict-free activation, consistent re-source feasibility across workloads, and stable pattern dominance with perfect rank preservation. Importantly, deeper decision ex-ploration reduces extreme-case execution costs, compressing tail latency and energy overheads by 21.9% and 23.1%, respectively, without increasing mean energy consumption. 
+
+Index Terms —IoT security, edge gateway, security, large lan-guage models, multi-agent LLMS. 
+
+I. I NTRODUCTION 
+
+The rapid expansion of Internet of Things (IoT) systems has shifted security enforcement from centralised infrastructures to resource-constrained edge gateways [1]–[3]. These gateways aggregate traffic from heterogeneous devices and serve as the first layer of defence, operating under constraints on CPU, memory, latency, and energy [4], [5]. As a result, runtime security at the edge is not merely a detection problem, but a constrained decision problem in which mitigation mechanisms must be selected and composed to suppress attacks while preserving system stability [6], [7]. IoT security patterns provide reusable design solutions such as authentication, segmentation, and secure communication [8], [9]. However, they are largely static, and existing work does 
+
+S. Jamshidi, F. Khomh, and Kawser Wazed Nafi are with the SWAT Labora-tory, Polytechnique Montr´ eal, Montr´ eal, QC, Canada (e-mail: {saeid.jamshidi, foutse.khomh, kawser.wazed-nafi }@polymtl.ca). C. Fung is with the Concordia Institute for Information Systems En-gineering (CIISE), Concordia University, Montr´ eal, QC, Canada (e-mail: 
+
+{carol.fung }@concordia.ca). 
+
+not address how to dynamically select, compose, and order patterns at runtime under resource constraints [10], [11]. In practice, gateways must determine which mitigation actions to activate, whether they can coexist safely, and whether their combined cost remains feasible. Adaptive approaches based on Deep Reinforcement Learn-ing (DRL) learn mitigation policies from interaction [12], [13]. Our prior work [14], [15] showed that DRL-based IDS can optimise decisions while accounting for latency and energy costs [16]. However, DRL-based IDS remains a policy-learning paradigm that lacks explicit reasoning and cannot guarantee conflict-free, valid, and resource-feasible execution, since safety constraints are only implicitly encoded in the reward signal. Large Language Models (LLMs) offer reasoning capabilities and enable multi-agent decision-making workflows [17]–[21]. However, LLM outputs are stochas-tic and may produce infeasible and unsafe mitigation plans without control [22]–[25]. Consequently, existing approaches remain fragmented: DRL provides adaptation without guar-antees, optimisation enforces constraints without contextual reasoning, and LLMs enable reasoning without safe execution. This limitation reflects a structural incompatibility between reasoning and enforcement. Empirical evidence from prior work [14], [15] indicates that unconstrained mitigation selec-tion often produces portfolios that violate conflict and resource feasibility requirements under dynamic edge conditions. This demonstrates that lightweight, unconstrained decision mecha-nisms are insufficient and underscores the need for an archi-tecture that explicitly separates reasoning from deterministic enforcement. Therefore, the central research gap is the lack of a runtime mitigation mechanism that simultaneously sup-ports context-aware decision-making, enforces the validity of closed-world actions, and guarantees conflict-free, resource-feasible execution. To address these limitations, we introduce ASPO , a self-adaptive multi-agent IoT security pattern selection grounded in the MAPE-K (Monitor, Analyse, Plan, Execute, Knowl-edge) autonomic control model [26], [27]. The MAPE-K loop is required in this context to enforce a structured sep-aration among monitoring, reasoning, and execution stages, enabling the controlled integration of stochastic LLM-based deliberation with deterministic enforcement, while ensuring that runtime decisions remain auditable, reproducible, and bounded by safe execution constraints. The need for such a solution arises from a limitation of existing approaches: runtime security decisions at the edge must simultaneously reason about complex threat contexts while ensuring that only safe, feasible, and executable actions are enforced under 
+
+> arXiv:2605.00741v1 [cs.CR] 1 May 2026 2
+
+resource constraints. This requirement cannot be satisfied by existing approaches in isolation, since policy-learning methods provide adaptive behaviour without deterministic safety guar-antees, while optimisation-based methods enforce feasibility without the ability to perform contextual reasoning. ASPO explicitly resolves this limitation by integrating context-aware reasoning with deterministic enforcement within a unified decision process. ASPO addresses this gap by operationalis-ing design-time IoT security patterns as executable runtime primitives within a closed-world catalogue, including Security Logger/Auditor , Secure Fog , Security Segmentation , Secure Distributed Publish/Subscribe , Permission Control , Whitelist ,
+
+Blacklist , Outbound-Only Connection , Personal Zone Hub ,and Trusted Communication Partner . Each pattern is asso-ciated with explicit capability requirements, resource costs, and interaction constraints, enabling formal reasoning about safe composition at runtime. The system is self-adaptive because mitigation decisions are recomputed at each decision epoch based on updated telemetry, evolving threat context, and real-time resource headroom. Importantly, ASPO operates downstream of the detection layer and focuses on mitigation selection rather than attack detection; therefore, its objective is not classification accuracy but the correctness and feasibility of runtime decision-making under constraints. Conceptually, ASPO shifts runtime defence from policy learning to agen-tic deliberation with deterministic enforcement. Specialised LLM agents generate schema-constrained candidate portfo-lios conditioned on structured context, while a deterministic, conflict-aware optimisation core enforces closed-world action integrity, conflict-free composition, and resource feasibility before execution. Within ASPO, the Monitor stage captures gateway telemetry and resource indicators, and the Analyse 
+
+stage constructs a structured threat representation including attack class, severity, confidence, behavioural evidence, and explicit operational budgets. The Plan stage employs a multi-agent architecture comprising context, reasoning, constraint, planning, and auditing agents, whose outputs are bounded within the closed-world catalogue, and no agent directly executes mitigation commands. Final actuation is determined exclusively by a deterministic validation core, ensuring that all activated mitigation portfolios remain safe, feasible, and executable under latency and energy constraints. This sepa-ration establishes a verifiable decision boundary and enables traceable, auditable mitigation selection by explicitly validat-ing constraints and preserving decision traces at each decision epoch. The main contributions of this work are summarised as follows:  
+
+> •
+
+From policy learning to safe decision-making: ahybrid agentic-deterministic paradigm. We introduce ASPO, a novel runtime security solution that moves beyond conventional policy learning by combining multi-agent LLM-based reasoning with a deterministic valida-tion core. This design enables context-aware mitigation decisions while preventing unsafe, infeasible, and out-of-catalogue actions at execution time, thereby improving the reliability and explainability of runtime security de-cisions.  
+
+> •
+
+Deterministic enforcement of security composition under real-world constraints. We reformulate runtime mitigation selection as a closed-world, conflict-aware op-timisation problem in which security patterns are treated as executable primitives with explicit interaction rules, capability constraints, and resource costs. In contrast to prior approaches, ASPO guarantees conflict-free compo-sition and adherence to latency, energy, and computa-tional budgets as hard constraints at every decision epoch.  
+
+> •
+
+Operational validation on a distributed edge testbed under realistic attack conditions. We implement ASPO on a distributed edge-gateway testbed and evaluate it using the Bot-IoT dataset across diverse attack scenar-ios. Extensive experiments demonstrate invariant safety enforcement, stable mitigation behaviour, and controlled latency and energy overheads under workload scaling, supporting practical deployment in resource-constrained IoT networks. The remainder of this paper is organised as follows. Sec-tion II reviews related work. Section III presents the threat model and system assumptions. Section IV describes the proposed ASPO methodology. Section V outlines the experi-mental setup. Section VI reports the experimental results. Sec-tion VII discusses the findings and implications. Section VIII highlights limitations and future directions. Section IX con-cludes the paper. II. R ELATED WORK 
+
+This section presents the related work and reviews existing approaches relevant to runtime security mitigation in IoT networks. 
+
+A. Dynamic Mitigation and Pattern Selection 
+
+DRL has been widely explored as a mechanism for adap-tive cyber defence, particularly in environments where attack behaviours and network conditions evolve over time. Recent work has applied RL to automated intrusion response, adaptive security policy tuning, and autonomous mitigation planning in cyber–physical and IoT networks [28]–[30]. These approaches enable systems to learn state-dependent mitigation strategies, where the state typically encodes observable system conditions such as traffic intensity, attack type, protocol behaviour, and resource utilisation levels, through interaction with the envi-ronment. Such formulations have been applied to intrusion response, traffic control, and adaptive policy tuning in IoT networks. More recently, multi-agent DRL has been investi-gated to distribute defensive decision-making across multiple learners, reflecting the decentralised and heterogeneous nature of modern cyber–physical systems [31], [32]. Hierarchical and cooperative MARL formulations [33] have also been pro-posed to coordinate multiple defensive actions across network layers and hosts, improving scalability and adaptability in large cyber-defence environments. While RL/DRL methods offer strong adaptability, they primarily operate as policy learners and do not inherently provide structured deliberation mechanisms for composing multiple mitigations under explicit interaction constraints and hard resource budgets. 3
+
+B. LLM Agents for Cybersecurity Automation 
+
+In parallel with learning-based control, LLMs have enabled a new class of agentic cybersecurity systems capable of reasoning over complex workflows. Recent work demonstrates that LLMs can interpret contextual signals, coordinate tools, and generate structured plans for security operations [34]–[36]. Beyond penetration-testing automation, more recent studies investigate LLM-driven autonomous security agents for mon-itoring, incident analysis, and defensive-reasoning pipelines [37], [38]. These systems highlight LLMs’ ability to sup-port structured reasoning and workflow decomposition across complex cybersecurity tasks. However, their outputs remain stochastic and may result in infeasible actions unless execution is governed by deterministic validation mechanisms. 
+
+C. Prompt Injection and the Need for Deterministic Actuation Boundaries 
+
+The use of agentic LLM systems introduces additional risks, including prompt injection, tool misuse, and instruc-tion manipulation via untrusted context. Recent research, therefore, explores defences against such attacks at inference time. DefensiveTokens proposes a lightweight mechanism that improves robustness against prompt injection by appending optimised special tokens without retraining the model [39]. Other recent works study safe tool use and constrained ex-ecution in LLM-driven systems, emphasising the importance of bounded action spaces and runtime verification to prevent unsafe autonomous decisions [40], [41]. While such tech-niques improve robustness, safe deployment in IoT gateways still requires architectural safeguards that ensure closed-world actuation, conflict-free mitigation composition, and strict fea-sibility within latency, energy, and computational budgets. 
+
+D. Security Control Selection and Coordination Under Con-straint 
+
+Another group of researches formulates mitigation selection as a constrained planning and optimisation problem. These approaches emphasise the explicit modelling of operational trade-offs, thereby enabling security decisions to be audited and verified. Planning-based formulations have been applied to cost-aware security configuration, adaptive policy synthesis, and automated control selection under resource limits [42], [43]. Recent work further explores multi-objective security optimisation in edge and IoT networks, where latency, computational overhead, and energy consumption must be jointly considered when selecting mitigation portfolios [44]. However, these approaches typically assume a predefined candidate set and do not integrate agentic reasoning layers that can interpret context and generate mitigation alternatives. They also rarely embed the process within an autonomic control loop while enforcing deterministic execution guarantees at each decision epoch. The literature review indicates that existing research on adaptive IoT security evolves along three independent di-rections: RL-based mitigation selection, LLM-driven agen-tic cybersecurity automation, and constraint-aware security control optimisation. RL/DRL approaches provide dynamic adaptation but do not inherently enforce deterministic, conflict-free, and closed-world actuation guarantees at runtime. LLM-based multi-agent systems demonstrate reasoning and plan-ning capabilities, yet they introduce stochastic behaviour and safety risks due to the absence of formally enforced bound-aries. Optimisation-based control selection offers structured decision-making but lacks integration with agentic reason-ing architectures. As a result, these research streams remain fragmented. To the best of this study’s knowledge, there is currently no unified solution that combines multi-agent LLM deliberation with deterministic, conflict-aware, and resource-feasible execution under explicit latency and energy constraints at the edge gateway level. ASPO addresses this gap through a hybrid agentic-deterministic architecture embedded within a formal MAPE-K control loop. III. T HREAT MODEL 
+
+We consider an adversarial runtime environment in which the edge gateway receives telemetry, evidence tokens, and contextual inputs derived from network traffic that may be partially manipulated. The adversary’s objective is to impact runtime security decisions so that unsafe mitigation portfolios are activated, resource budgets are exceeded, and execution consistency is disrupted. The attacker therefore targets the decision process that maps structured context to security-pattern portfolios rather than attempting to compromise the detection stage itself. The attacker interacts with the system through observable traffic behaviour, including attack patterns such as DoS, DDoS, botnet activity, brute-force attempts, and port scanning, and indirectly through inputs consumed by the reasoning pipeline [45], [46]. Three attack surfaces are considered: 1) Prompt-manipulation attempts aim to distort the semantic interpretation of telemetry by crafting adversarial traffic patterns that produce misleading evidence tokens, 2) Context poisoning attempts to bias structured context vari-ables, such as threat severity, confidence, and resource indica-tors, through manipulated traffic characteristics, and 3) Tool-abuse attempts aim to push the decision pipeline toward in-feasible and conflicting security patterns that could destabilize the gateway. Let the structured runtime context at epoch t be 
+
+St, constructed deterministically from telemetry. Adversarial impact is modelled as a bounded perturbation: 
+
+˜St = St + δt, ∥δt∥ ≤ ∆, (1) where δt represents injected distortions in evidence tokens, resource signals, and contextual attributes derived from attack traffic. This perturbation may alter the stochastic candidate set proposed by the reasoning agents: 
+
+Ct = fLLM ( ˜St, P), (2) but it cannot directly determine the activated mitigation port-folio. Final activation is computed exclusively by the deter-ministic optimisation core: 
+
+Y det  
+
+> t
+
+= g(Ct, b t, M, B ), (3) 4
+
+This solution enforces closed-world membership within the predefined security-pattern catalogue P, guarantees conflict-free composition, and ensures compliance with resource bud-gets. The architecture distinguishes between components that must remain trusted and elements that may be impacted by adversarial inputs. The deterministic optimiser, the imple-mented pattern catalogue, feasibility constraints, the conflict matrix, and the audit verifier collectively function as integrity-preserving modules whose behaviour defines the system’s execution boundary. By contrast, telemetry streams, network traffic, and candidate portfolios generated by LLM agents are treated as potentially adversarial signals. Because actuation is restricted to the fixed catalogue P, adversarial inputs cannot introduce arbitrary mitigation actions, violate ordering constraints, and trigger execution outside the defined action space. ASPO is therefore designed to limit the impact of adversarial signals on reasoning while preserving safe ac-tuation. The threat model does not account for protection against hardware compromise, pattern-catalogue corruption, and direct manipulation of the deterministic optimiser. Under these assumptions, the validation layer guarantees that every activated portfolio remains catalogue-bounded, conflict-free, and resource-feasible, even when the reasoning stage receives adversarial inputs. IV. M ETHODOLOGICAL OVERVIEW 
+
+We designed ASPO as a self-adaptive runtime security control method grounded in the integrated MAPE-K loop . The system operates over discrete decision epochs t ∈ { 1, . . . , T }
+
+and outputs, at each epoch, a verified mitigation portfolio Yt
+
+and a safe activation order Πt. The central methodological principle is a separation between 1) stochastic deliberation 
+
+performed by schema-constrained LLM agents that propose candidate portfolios and execution plans, and 2) deterministic enforcement that performs final selection, ordering, and vali-dation under closed-world, conflict, and resource constraints. Figure 1 illustrates the MAPE-K pipeline. 
+
+A. MAPE-K Instantiation and Per-Epoch Output 
+
+ASPO instantiates the MAPE-K loop as a telemetry-driven state-transition system:  
+
+> •
+
+Monitor (M): observe telemetry xt (traffic features, evidence tokens, resource indicators).  
+
+> •
+
+Analyze (A): compute a bounded structured context St
+
+via a deterministic encoder Φ( ·). 
+
+> •
+
+Plan (P): propose candidates via multi-agent delibera-tion, then compute the final portfolio via deterministic optimisation under hard constraints.  
+
+> •
+
+Execute (E): activate the approved portfolio in validated order; enforce rollback and fail-safe baseline if validation fails.  
+
+> •
+
+Knowledge (K): maintain a closed-world catalogue P
+
+with costs/constraints, interaction matrices, and prece-dence rules. The per-epoch output is (Yt, Πt, Zt), where Yt is the activated pattern set, Πt is its activation order, and Zt is an auditable trace containing inputs, agent candidates, feasibility results, deterministic selections, and gate outcomes. 
+
+B. System Model and Structured Context (Monitor → Analyze) 
+
+We define the telemetry space collected at the edge gate-way device, the deterministic encoder Φ( ·), and the schema-bounded context St that constitutes the input to the planning process. 
+
+1) Telemetry and Deterministic Context Encoding: Let 
+
+xt ∈ Rd denotes raw telemetry at epoch t. ASPO constructs a bounded, schema-compliant context using a deterministic mapping: 
+
+St = Φ( xt), (4) where Φ( ·) performs normalisation, clipping, evidence-token extraction, and schema assembly. Determinism is required for reproducibility: 
+
+xt = xt′ ⇒ Φ( xt) = Φ( xt′ ). (5) 
+
+2) Context Definition: The structured context is: 
+
+St = (ˆ τt, σ t, κ t, bt, ℓ t, et, ct) , (6) where ˆτt ∈ T is the inferred threat class in a finite taxonomy 
+
+T , σt ∈ [0 , 1] is threat severity, κt ∈ [0 , 1] is confidence, 
+
+et is a bounded evidence-token set, ct ⊆ C is the available capability set, and ℓt ∈ L is a services level agreement mode. 
+
+3) Resource Budgets and Portfolio Representation: The resource headroom vector is: 
+
+bt =  bcpu t , b mem t , b lat t , b ene t
+
+ ∈ R4
+
+> ≥0
+
+, (7) and is enforced as a hard feasibility constraint during deter-ministic selection. Let P = {p1, . . . , p m} denote the pattern catalog. A portfolio is represented by yt ∈ { 0, 1}m:
+
+Yt = {pi ∈ P | yt,i = 1 }, |Yt| ≤ B. (8) 
+
+C. Knowledge Base: Closed-World Security Pattern Cata-logue (Knowledge) 
+
+We formalise the shared knowledge base, including the implemented pattern catalogue P, per-pattern constraints and costs, and the conflict/synergy structures governing safe run-time composition. 
+
+1) Closed-World Catalogue (Implemented Patterns): ASPO is instantiated over a concrete closed-world catalogue with 
+
+m = 10 explicitly implemented mitigation patterns: 
+
+P =
+
+
+
+(P 01) Security Logger/Auditor ,
+
+(P 02) Secure Fog ,
+
+(P 03) Security Segmentation ,
+
+(P 04) Secure Distributed Publish/Subscribe ,
+
+(P 05) Permission Control ,
+
+(P 06) Whitelist ,
+
+(P 07) Blacklist ,
+
+(P 08) Outbound-Only Connection ,
+
+(P 09) Personal Zone Hub ,
+
+(P 10) Trusted Communication Partner 
+
+
+
+. (9) Each element of P corresponds to an executable mitigation primitive encoded as a machine-checkable object. 5
+
+Fig. 1: MAPE-K-based architecture of ASPO. Monitor/Analyse: construct a structured context; Plan: combines multi-agent proposals with deterministic portfolio optimisation and safety validation; Execute: enacts only validated portfolios; knowledge: stores the closed-world catalogue and interaction/cost metadata. 
+
+2) Pattern Schema and Cost Model: Each pattern p ∈ P is modeled as: 
+
+p = ( Ip, Rp, cp, qp, δ p, Ap, ρ p) , (10) where Rp ⊆ T denotes covered threat classes, cp ⊆ C are capability preconditions, Ap defines activation semantics, and 
+
+ρp defines rollback triggers. The cost vector is: 
+
+qp = ( qcpu p , q mem p , q lat p , q ene p ) ∈ R4
+
+> ≥0
+
+. (11) 
+
+3) Interaction Structures: Conflicts and Synergies: ASPO encodes composition behavior using a conflict matrix M ∈{0, 1}m×m and synergy matrix B ∈ {0, 1}m×m. For any portfolio Y :
+
+Conflict( Y ) = X
+
+> i<j
+
+Mij 1pi∈Y 1pj ∈Y ,
+
+Synergy( Y ) = X
+
+> i<j
+
+Bij 1pi∈Y 1pj ∈Y . (12) Conflicts are enforced as hard constraints ( Conflict( Y ) = 0 ), while synergies contribute optional score bonuses. 
+
+D. Agentic Deliberation and Deterministic Enforcement (An-alyze → Plan) 
+
+We formalize the Analyze →Plan transition as a hybrid stochastic–deterministic process separating agentic proposal generation from deterministic portfolio selection and valida-tion. 
+
+1) Agents, Contracts, and Communication Graph: Let 
+
+A = {Actx , A rea , A con , A pla , A aud } denote Context, Rea-soner, Constraint, Planner, and Audit agents. Each agent is a stochastic function over schema-constrained JSON: 
+
+Ai : Jin → J out . (13) Agents are restricted to proposing candidates and plans and have no direct actuation capability. A closed-world output contract is enforced: 
+
+pattern_id ∈ P . (14) The information flow is sequential and acyclic: 
+
+Actx → Area → Acon → Deterministic Core → Aorc → Aaud .
+
+(15) 
+
+2) Formal Hybrid Decision Pipeline: The Reasoner pro-poses a bounded candidate set: 
+
+Ct = f LLM θ (St, P), Ct ⊆ P , |C t| ≤ K, (16) and is stochastic due to decoding randomness: 
+
+P(Ct | S t) > 0 for multiple admissible subsets . (17) Feasibility filtering produces 
+
+Ft = {p ∈ C t | cp ⊆ ct}. (18) Final activation is computed deterministically: 
+
+Y det t = arg max     
+
+> Y⊆F t,|Y|≤ B
+
+Score( Y )
+
+s.t. Conflict( Y ) = 0 ,
+
+X
+
+> p∈Y
+
+qrp ≤ brt ∀r ∈ { cpu, mem, lat, ene }.
+
+(19) 6
+
+This stage depends only on (Ft, bt, M, B) and is therefore deterministic: 
+
+(Ft, bt, M, B) = ( Ft′ , bt′ , M, B)
+
+⇒ Y det t = Y det t′ . (20) 
+
+3) Deterministic Ordering and Plan Consistency: Let D
+
+denote precedence rules. The deterministic order is: 
+
+Πdet t = TOPO SORT (D[Y det t ]) . (21) The Planner produces a plan P↕⊣\ t, but plan acceptance requires set consistency: 
+
+P↕⊣\ t.selected_patterns = Y det t . (22) Execution occurs iff the deterministic gate accepts the plan and the Audit agent outputs approved ∈ { 0, 1}.
+
+E. Deterministic Scoring and Portfolio Optimisation (Plan) 
+
+We formalise the suitability scoring, the budget-normalised cost model, and the constrained optimisation procedure that deterministically selects the optimal mitigation portfolio. 
+
+1) Suitability and Evidence Alignment: For each pattern p,we define the suitability as: 
+
+st(p) = α11ˆτt∈R p + α2σt + α3κt + α41cp⊆ct + α5ψ(p, et),
+
+(23) where 1(·) denotes the indicator function, returning 1 if the condition is satisfied and 0 otherwise. with deterministic bounded evidence alignment: 
+
+ψ(p, et) = |E p ∩ et|
+
+max(1 , |E p|) ∈ [0 , 1] . (24) 
+
+2) Budget-Normalised Cost and Portfolio Score: The budget-normalized cost of selecting pattern p at epoch t is defined as: 
+
+ct(p) = X
+
+> r∈{ cpu,mem,lat,ene }
+
+βr
+
+qrp
+
+max( ϵ, b rt ) , ϵ > 0, (25) where βr denotes the resource weighting coefficient and brt
+
+represents the available budget for resource r. The portfolio score is then computed as: 
+
+Score( Y ) = X
+
+> p∈Y
+
+(st(p) − ct(p)) (26) 
+
++ η Synergy( Y ) (27) 
+
+− λ Conflict( Y ) (28) where λ ≫ 1 ensures that conflicting pattern combinations are penalised. 
+
+F. Adversarial Robustness Against Prompt Manipulation (Analyse/Plan Boundary) 
+
+We model prompt manipulation as bounded perturbations of structured inputs and show that deterministic selection enforces action-space integrity and execution stability. 
+
+1) Bounded Perturbation Model: Adversarial impact is modelled as a bounded perturbation of structured context: 
+
+˜St = St + δt, ∥δt∥ ≤ ∆. (29) 
+
+2) Deterministic Trust Boundary and Activation Invariance: 
+
+The stochastic candidate proposal may change under ˜St:
+
+Ct = f LLM θ ( ˜St, P), (30) But actuation is computed only through deterministic filtering and optimisation: 
+
+Y det t = g(Ct, bt, M, B), (31) where g(·) enforces 1) closed-world membership, 2) feasibility 
+
+cp ⊆ ct, and 3) conflict-free and budget-feasible selection. Therefore, 
+
+Y det t ⊆ P . (32) If the optimiser argmax is invariant under the perturbation: 
+
+arg max  
+
+> Y⊆F t
+
+Score( Y ) = arg max  
+
+> Y⊆F ′
+> t
+
+Score( Y ), (33) Then the activated portfolio remains unchanged: 
+
+Y det t (St) = Y det t ( ˜St). (34) 
+
+G. Energy and Latency Modelling (Monitor/Execute) 
+
+We formalise the latency decomposition and the power model used to quantify decision overhead and to enforce fea-sibility under edge-resource constraints. Decision-time energy at epoch t is: 
+
+Et = ¯Pt ∆t, (35) where end-to-end decision latency is decomposed as: 
+
+∆t = X
+
+> a∈A
+
+ta + tnet + tdet . (36) Average power is modelled as: 
+
+¯Pt = P0 + γ1Lt + γ2 max(0 , T t − 40) , (37) with P0 idle power, Lt a load proxy, and Tt device temper-ature ( ◦C). These quantities support feasibility reporting and enforcement against latency/energy budgets in bt.
+
+H. Conflict-Aware Agentic Decision Procedure (MAPE: Exe-cute with Audit) 
+
+The end-to-end decision procedure of ASPO integrates LLM-based agentic reasoning with deterministic selection, validation, and audit stages, as summarised in Algorithm 1. The pipeline transforms telemetry into structured context, generates candidate mitigation portfolios, and applies deter-ministic optimisation to ensure conflict-free and resource-feasible selection. The validated portfolio is then ordered, executed, and audited, with a fail-safe baseline activated if validation fails, ensuring safe and reliable actuation despite imperfect LLM outputs. V. E XPERIMENTAL SETUP 
+
+In this section, we describe the deployment environment, at-tack scenarios, measurement procedure, and evaluation criteria used to ensure a reproducible assessment of ASPO. 7
+
+Algorithm 1 ASPO Conflict-Aware Decision Procedure                                                                                                    
+
+> Require: Raw telemetry features xt, pattern catalog P, conflict matrix M,synergy matrix B, precedence rules D, portfolio bound B, candidate bound K
+> Ensure: Activated security portfolio Ytwith execution order Πtand an auditable decision trace 1: (Monitor) Collect telemetry and compute structured context St←Φ( xt)
+> 2: (Analyze: Context Agent) S⋆t←LLMC ONTEXT (St)
+> 3: (Analyze/Plan: Reasoner Agent) Ct←LLMR EASONER (S⋆t,P, K )
+> 4: (Plan: Constraint Agent) Ft←LLMC ONSTRAINT (S⋆t,Ct)
+> 5: (Plan: Deterministic Selection) Ydet t←
+> arg max Y⊆F t,|Y|≤ BScore( Y)subject to ConflictFree( Y, M)
+> and Feasible( Y, bt)
+> 6: (Plan: Ordering) Πdet t←TOPO SORT (D[Ydet t])
+> 7: (Plan: Planner Agent) P↕⊣\ t←LLMP LANNER (S⋆t, Y det t,Πdet t,P)
+> 8: (Execute: Deterministic Security Gate) (ok, issues )←
+> VALIDATE PLAN (P↕⊣\ t,M,bt)
+> 9: (Execute: Audit Agent) A⊓⌈⟩⊔ t←
+> LLMA UDITOR (S⋆t,P↕⊣\ t, issues )
+> 10: if ok =true and A⊓⌈⟩⊔ t.approved =true then
+> 11: Execute patterns in order Πt← P↕⊣\ t.activation order and log trace 12: else
+> 13: Fail-safe: activate minimal safe baseline portfolio (e.g., lightweight rate-limit) and log issues 14: end if
+> 15: return Yt← P↕⊣\ t.selected patterns ,Πt
+
+A. Testbed 
+
+ASPO was evaluated in a controlled distributed edge-gateway emulation (Figure 2). The testbed consists of 10 Rasp-berry Pi 4 Model B devices organised into three logical layers: the IoT device layer, the edge control layer, and the cloud-hosted LLM services. Each node represents a typical edge gateway (quad-core ARM Cortex-A72, 1.5 GHz, 4 GB RAM), with thermal limits and computational constraints of passively cooled embedded platforms explicitly modelled. Each node runs an isolated ASPO MAPE-K instance and communicates with cloud-hosted LLM services (e.g., DeepSeek v3, GPT-4o-mini, LLaMA-3.1-8B-Instruct) for stochastic reasoning, while the deterministic optimisation core remains local to ensure conflict-free, resource-feasible actuation independent of network variability. Ten independent nodes processed disjoint replayed attack traces, each executing 100 decision epochs (1000 runtime security decisions total). Background fluctu-ating memory availability and temperature-dependent power scaling were modelled to reflect realistic gateway conditions. Per-epoch energy was estimated using a calibrated power model combining idle consumption and load scaling, with latency, energy, and decision traces logged for subsequent generalised linear model-based statistical analysis, as shown in Figure 2. 
+
+B. Dataset 
+
+We evaluated ASPO using the Bot-IoT dataset [47], a large-scale IoT intrusion dataset containing labelled benign and malicious traffic generated from realistic IoT device simula-tions. Attack categories include distributed DDoS, DoS, port scanning, and botnet command-and-control activity. Replay mode streams labelled Bot-IoT flow records into the ASPO telemetry interface, where each replay window is determinis-tically mapped to a structured threat context St that includes attack type, a severity proxy based on traffic intensity, and a confidence level derived from label integrity. Balanced replay sampling [48], [49] ensures equal representation of attack categories across decision epochs, thereby preventing bias from class imbalance. Consistent with the threat model, replayed inputs are treated as external signals that define the structured context consumed by the reasoning and decision pipeline. Because the objective is to evaluate runtime decision behaviour rather than detection accuracy, threat labels are directly used to construct St rather than being processed by an online classifier. This design isolates the decision layer from detector noise, enabling controlled and reproducible evaluation of feasibility enforcement, portfolio construction, and runtime stability under well-defined threat conditions. While this abstraction removes detector uncertainty, replayed flows preserve temporal structure, attack diversity, and traffic patterns present in the dataset. 
+
+C. Feature Selection 
+
+Feature extraction was restricted to gateway-observable at-tributes directly available from Bot-IoT flow records, ensuring compatibility with edge gateway and alignment with ASPO’s objective of runtime decision-making based on operational telemetry. The selected features capture key aspects of net-work behaviour, including traffic intensity (packet and byte rates), session structure (connection duration and timeout irregularities), protocol control patterns (TCP flag frequency), service interaction diversity (destination port entropy), and application-layer signals (authentication failures and DNS anomalies). Feature selection prioritised deployability, robust-ness to adversarial noise, and interpretability, aggregating highly correlated attributes to prevent redundancy and the amplification of duplicated evidence. Rather than serving as inputs to a supervised detection model, these signals are trans-formed into structured evidence tokens for the agentic reason-ing layer, enabling explainable mitigation selection based on interpretable behavioural cues. Ground-truth labels are used to construct structured context variables, ensuring that evaluation isolates decision intelligence and feasibility constraints rather than detection accuracy. Table I summarises the gateway-observable features used to construct these evidence tokens. VI. E XPERIMENTAL RESULTS 
+
+This section presents the evaluation of ASPO’s deterministic safety enforcement, portfolio-optimisation behaviour, threat-level robustness, multi-agent stability, edge-level efficiency, and workload-scaling performance. 
+
+A. Deterministic Safety Enforcement 
+
+ASPO’s deterministic safety enforcement is analysed within its multi-agent architecture. The Gate →Audit →Approval pipeline operationalises the principle that safety is enforced 
+
+before optimisation and coordination effects propagate, with auditing confirming correctness without stochastic disagree-ment. In ASPO, final approval signifies the successful execu-tion of a mitigation portfolio following deterministic valida-tion and audit verification. A gate rejection does not imply 8
+
+Fig. 2: Distributed edge testbed for MAPE-K-based ASPO. Ten independent edge nodes execute isolated ASPO engines over replayed IoT traffic while interacting with cloud LLM services. TABLE I: Gateway-Observable Features Used for Evidence Construction                     
+
+> Feature Operational Interpretation for Co-ordination
+> Packet rate Primary traffic intensity indicator re-flecting flooding, burst behavior Byte rate Complementary load signal captur-ing abnormal transfer magnitude Connection duration Session persistence cue distinguish-ing short scans from sustained activ-ity TCP flag frequency Protocol-control anomalies such as SYN floods, reset abuse Destination port entropy Service diversity signal useful for detecting scanning, lateral probing Authentication failure bursts Application-level security indicator for brute-force attempts DNS anomaly patterns Naming irregularities suggesting command-and-control, tunneling behavior Connection timeout irregu-larities Session instability cue reflecting blocked, failed, disrupted communi-cations
+
+inaction; it indicates violation of at least one hard constraint, including conflict-freeness, precedence feasibility, catalogue membership, and latency and energy feasibility. In such cases, a lightweight fail-safe baseline policy is activated to ensure continuous protection while preventing unsafe multi-pattern execution. The approval rate, therefore, reflects the proportion of structurally admissible multi-pattern coordination , rather than defended events. Figure 3 provides a structural view of safety enforcement. Early-stage elimination at the gate dominates, indicating that the constraint layer acts as ahard safety boundary rather than a soft preference. Table II quantifies this behaviour: the gate rejects 496/500 (99.2%) 
+
+Fig. 3: Safety funnel illustrating Gate → Audit → Final approval filtering under a side-by-side comparison of LLM backends (DeepSeek v3, GPT-4o-mini, and LLaMA-3.1-8B-Instruct) with identical constraints and replay protocol. in the 500-run setting and 995/1000 (99.5%) in the 1000-run setting, leaving a small admissible set for downstream evaluation. All gate-accepted instances are approved (4/4 and 5/5), indicating complete agreement between the deterministic gate and the audit stage. This agreement shows that the auditor functions as a verification layer aligned with the safety boundary, with acceptance determined by enforceable constraints that are consistently validated. The high rejection rate reflects enforcement of constraints rather than system failure. Under closed-world and resource-feasible guarantees, most candidate plans generated during exploration are filtered before execution. This behaviour is desirable in safety-critical 9
+
+TABLE II: Gate-audit agreement, reporting the consistency between deterministic gate decisions and audit-stage validation outcomes.             
+
+> Setting Gate Reject Gate Accept Final Approved Approval Rate 500-run 496 440.008 1000-run 995 550.005
+
+TABLE III: Deterministic gate failure reasons, reporting the distribution of rejection causes observed during coordination.         
+
+> Failure Type 500 1000 activation order mismatch 13 22 resource feasibility violation 816 conflict detection 12
+
+edge gateways, where preventing unsafe combinations is more important than maximising activation frequency. Table III supports this interpretation by showing that failures are not random artefacts. Activation-order mismatch is the primary driver of rejection in both settings, followed by resource feasibility violations, with conflict detection remaining rare. The proportional persistence of these categories under scaling indicates consistent enforcement of structural constraints as the number of runs increases. This behaviour aligns with deterministic enforcement in portfolio construction, where order feasibility and resource constraints govern admissibility, showing that the gate functions as a stable safety oracle rather than a stochastic filter. Figure 4 characterises the deterministic score geometry produced by ASPO’s portfolio reasoning. The distribution remains bounded and stable across workloads, indicating no drift under repeated execution. This stability is critical for multi-agent pipelines, since workload sensitivity would imply a shift in the objective’s semantics. Consistent behaviour of the reasoner and scoring compo-nents allows the gate to enforce constraints on a comparable scoring scale across experiments. The deterministic scoring function, therefore, provides a reproducible mapping between threat evidence and admissible mitigation structures, sup-porting consistent decision behaviour under similar telemetry distributions in safety-critical autonomous systems. Figure 5 characterises calibration between deterministic scoring and the safety pipeline. Approval probability increases monoton-ically across score bins in both workloads, indicating that higher-scoring portfolios are more likely to satisfy the safety boundary and pass validation. This monotonic relationship shows alignment between scoring and constraint satisfaction. The 1000-run curve exceeds the 500-run curve across bins, indicating improved calibration under deeper replication. As more candidates are evaluated, the mapping between score and admissibility becomes clearer, reflecting reduced selection noise without altering safety logic. Final approval remains rare (4/500 vs. 5/1000), requiring low-rate inference. The approval rate is 0.8% for 500 runs (95% exact CI: [0.22%, 2.04%]) and 0.5% for 1000 runs (95% exact CI: [0.16%, 1.16%]). Overlapping intervals indicate no statistically separable shift. The risk ratio is 0.625, and the odds ratio is 0.623. A two-sided Fisher’s exact test yields p = 0 .492 , confirming no significant difference. Table IV reports a rare-event statistical comparison of final approvals across workloads. Approval 
+
+Fig. 4: Deterministic portfolio score distribution across runs. The distribution is computed after deterministic selection and safety filtering. 
+
+Fig. 5: Approval probability as a function of deterministic score, showing how acceptance likelihood varies across score levels. rates remain low in both settings (0.8% vs 0.5%), with over-lapping 95% confidence intervals, indicating no statistically distinguishable difference between the two settings. The risk ratio (0.625) and odds ratio (0.623) suggest a lower marginal approval probability under scaling, but the difference is not statistically significant. This is confirmed by Fisher’s exact test ( p = 0 .492 ), which shows that workload scaling does not alter the likelihood of approval. 
+
+B. Portfolio Optimization Behavior 
+
+ASPO constructs feasible portfolios under deterministic safety constraints, focusing on structural feasibility, approval dynamics across portfolio sizes, and stability under workload scaling. Portfolio size denotes the number of patterns activated simultaneously, subject to precedence, resource, and conflict constraints. Approval behaviour reflects how structural com-pleteness interacts with feasibility boundaries: low approval at small sizes indicates insufficient coverage and ordering satisfaction, while larger portfolios increase the risk of re-source violations. Moreover, approval trends reveal a balance between capability sufficiency and feasibility preservation. Figure 6 shows a structural transition in approval probability as portfolio size increases. Portfolios of size 0 and 1 are rarely 10 
+
+TABLE IV: Rare-Event Statistical Comparison of Final Ap-proval (500 vs. 1000 runs)             
+
+> Statistic 500-run 1000-run Approvals / Trials 4 / 500 5 / 1000 Approval rate 0.0080 0.0050 95% CI (exact) [0.0022, 0.0204] [0.0016, 0.0116] Risk Ratio (RR) 0.625 Odds Ratio (OR) 0.623 Fisher exact test (two-sided) p= 0 .492
+
+Fig. 6: Approval probability as a function of portfolio size, illustrating the emergence of feasible mitigation configurations once minimal structural completeness is reached. approved, indicating that minimal capability aggregation fails to satisfy ordering and resource constraints. A sharp threshold appears at size 2, where approval increases from 0.05 to 0.30 in the 500-run setting and from 0.08 to 0.63 in the 1000-run setting, reflecting the onset of feasibility once sufficient structural completeness is achieved. This indicates that many threats require at least two supporting mitigation primitives, such as traffic control with verification, segmentation with logging, to satisfy interaction constraints. Beyond size 2, approval stabilises, with size 3 showing no further increase, indicating convergence toward balanced portfolios that satisfy feasibility without unnecessary complexity. This behaviour is consistent with bounded combinatorial optimisation, where additional patterns increase constraint pressure faster than they increase suitability. Rare-event inference shows that confi-dence intervals at size 2 do not overlap across workloads, and Fisher’s exact test [50] confirms a significant increase under 1000 runs ( p < 0.01 ). The relative risk exceeds 2.0, indi-cating improved precision in identifying admissible portfolios while preserving the feasibility boundary. Pattern identifiers (e.g., P01–P10) correspond to the security patterns defined in the closed-world catalogue P introduced in Section IV. Table VI demonstrates stability in pattern ranking. Frequencies scale proportionally from 500 to 1000 runs while preserving ordinal order, with Spearman’s rank correlation [51] equal to 1.0. A chi-square test on normalised frequencies shows no significant deviation ( p > 0.05 ), indicating that scaling amplifies confident selections without redistributing preference weight. This stability indicates that suitability scoring, together with deterministic filtering, induces a consistent preference TABLE V: Statistical comparison at portfolio size 2 between the 500-run and 1000-run workloads, reporting approval dif-ferences and effect-size indicators.          
+
+> Statistic 500-run 1000-run Approval rate 0.30 0.63 95% CI (exact) [0.22, 0.39] [0.55, 0.70] Relative Risk 2.10 Fisher exact test p < 0.01
+
+TABLE VI: Top selected patterns based on combined ranking across workloads, reporting selection frequencies in the 500-run and 1000-run settings.                                             
+
+> Rank Pattern Count (500) Count (1000) ∆(1000–500) 1P04 255 510 255 2P10 149 290 141 3P05 125 257 132 4P02 92 192 100 5P09 65 123 58 6P03 55 117 62 7P06 48 93 45 8P07 41 75 34 9P08 25 43 18 10 P01 24 43 19
+
+structure over the pattern catalogue, supporting reproducible mitigation selection under similar threat distributions. 
+
+C. Threat-Level Robustness 
+
+ASPO’s decision consistency is evaluated across hetero-geneous threat categories by analysing whether deterministic portfolio construction and approval behaviour remain stable under varying structural constraints. Approval dynamics across threat classes reflect how the decision mechanism adapts to different interaction topologies among mitigation patterns. Each threat activates distinct subsets of the closed-world cata-logue, with specific precedence and resource interactions; thus, consistent behaviour across threats indicates that the determin-istic feasibility boundary generalises beyond individual attack structures. Variations in approval probability, therefore, reflect differences in structural complexity rather than defensive ca-pability. Figure 7 shows that approval probabilities remain within a narrow range across threat classes, indicating that constraint enforcement does not favour any specific category. Under the 500-run workload, moderate variation appears, with DoS and DDoS slightly exceeding brute-force and portscan. Under the 1000-run workload, approval increases across most threats, with the largest gains in distributed classes such as DDoS and Botnet. Partial overlap of confidence intervals indicates improved precision under scaling without structural bias. Table VII quantifies these effects through Fisher’s exact test together with relative risk, showing that the decision layer generalises across heterogeneous constraint topologies without converging toward any dominant threat pattern. Approval rates represent admissible multi-pattern decisions rather than overall defensive success. When a candidate portfolio is rejected, ASPO activates a fallback baseline policy, such as rate limiting combined with traffic filtering, to ensure continuous protection. 11 
+
+Fig. 7: Threat-specific approval rates with 95% confidence intervals, comparing the 500-run and 1000-run workloads across attack categories. TABLE VII: Threat-level statistical comparison between 500-run and 1000-run workloads.                                    
+
+> Threat Approved 500 Approved 1000 Rate 500 Rate 1000 RR DoS 1/125 1/250 0.008 0.004 0.50 DDoS 1/125 2/250 0.008 0.008 1.00 Botnet 1/125 1/250 0.008 0.004 0.50 Brute-force 1/125 1/250 0.008 0.004 0.50 Portscan 0/125 0/250 0.000 0.000 –Total 4/500 5/1000 0.008 0.005 0.625
+
+Therefore, the observed distribution reflects structural feasibil-ity rather than response availability. 
+
+D. Multi-Agent Runtime Structure 
+
+ASPO’s temporal integrity is evaluated under workload scaling through per-agent latency, distributional stability, tail behaviour, and threat-conditioned variability. Total runtime latency is decomposed across specialised agents responsi-ble for reasoning and constraint evaluation. Stability of this decomposition across workloads indicates that the architec-tural balance is preserved, with no emerging bottlenecks as execution depth increases. Per-agent latency thus reflects both performance and structural robustness of the decision pipeline. Figure 8 shows a stable ordering of component contributions across workloads. The Reasoner dominates total latency, followed by the Planner and Constraint modules, while context initialisation and auditing contribute smaller shares. Increasing execution depth preserves this hierarchy, indicating that structural balance is maintained under scaling. The Reasoner’s dominance reflects its role in context inter-pretation, candidate synthesis, and structured exploration, and the stability of its share indicates that deeper execution does not inflate reasoning overhead. The system therefore maintains a consistent distribution of computational effort, supporting predictable deployment in resource-constrained edge gate-ways. Table VIII shows that mean latency variation remains below 2.5% for all agents except the auditor, which increases by 6.1%. The auditor’s proportional share rises only from 0.141 to 0.147, indicating uniform scaling without bottleneck formation. The reasoner’s share decreases slightly as execution 
+
+Fig. 8: Runtime decomposition across LLM agents, showing the relative latency contribution of each component in the coordination pipeline. 
+
+Fig. 9: Component-level empirical cumulative distribution function (ECDF) of execution delays, showing how runtime distributions differ across components. depth increases, indicating improved efficiency. P90 values remain closely aligned across workloads, showing no heavy-tail amplification at the component level. This pattern indicates that the temporal structure remains self-balanced as deci-sion depth increases, with incremental computation distributed proportionally across stages, supporting predictable latency envelopes during continuous operation. Table IX provides formal validation. Kolmogorov-Smirnov distances [52] remain below 0.05 for all agents, indicating preservation of distribu-tional shape. Wilcoxon signed-rank tests [53] show no statisti-cally significant inflation in per-agent latency. Coefficient-of-variation drift remains minimal, confirming stable dispersion across workloads. These results indicate proportional scaling without skewed latency distributions, supporting predictable timing behaviour as decision frequency increases. Figure 9 corroborates these findings. Empirical cumulative curves for both workloads overlap closely across agents, indicating near-identical distributional progression. No curve exhibits right-tail divergence under scaling. This suggests that deeper ar-chitectures do not introduce rare high-latency events within individual modules, reinforcing the observation that tail com-pression at the system level is not driven by instability in any single component. Threat-conditioned analysis further validates architectural resilience. Figure 10 shows moderately elevated reasoner latency under distributed threats such as DDoS, reflecting increased reasoning complexity, while inter-12 
+
+TABLE VIII: Per-agent runtime summary reporting mean execution time and proportional share for each component across workloads.                                     
+
+> Agent Mean 500 P90 500 Share 500 Mean 1000 P90 1000 Share 1000
+> Context 4.233 5.754 0.190 4.276 5.677 0.188 Reasoner 5.835 7.615 0.262 5.852 7.576 0.258 Constraint 4.293 5.607 0.192 4.329 5.594 0.191 Planner 4.815 6.303 0.216 4.918 6.323 0.217 Auditor 3.153 4.224 0.141 3.346 4.258 0.147
+
+TABLE IX: Statistical stability analysis of per-agent runtime for the 500-run and 1000-run workloads, comparing mean drift, proportional contribution, and distributional consistency across agents.                                           
+
+> Agent ∆Mean(%) ∆Share KS Dist. Wilcoxon pCV Drift(%) Structural Shift Context +1.0 -0.002 0.032 >0.05 +0.6 None Reasoner +0.3 -0.004 0.028 >0.05 +0.4 None Constraint +0.8 -0.001 0.031 >0.05 +0.5 None Planner +2.1 +0.001 0.036 >0.05 +0.7 None Auditor +6.1 +0.006 0.041 >0.05 +1.2 Minor
+
+Fig. 10: Reasoner runtime by threat category, showing how decision latency of the reasoning stage varies across attack types under the evaluated coordination workloads. 
+
+Fig. 11: Auditor runtime by threat category, showing how ver-ification latency varies across attack types under the evaluated coordination workloads. threat variance remains below 8% of the mean and scaling does not amplify dispersion. Figure 11 shows bounded auditor latency across threat categories with stable dispersion under increased workload. Two-way ANOVA [54] (workload ×
+
+threat) shows no significant interaction effect ( p > 0.05 ), indicating that execution depth does not alter threat-dependent latency dynamics. Three stability properties emerge: per-agent contributions remain proportional under scaling, distributional shapes remain aligned without tail distortion, and threat het-erogeneity does not induce asymmetric latency growth. 
+
+E. Edge-Level Efficiency 
+
+Deeper execution is evaluated for its impact on edge stabil-ity while keeping computational overhead unchanged. Under strict resource limits at edge gateways, efficiency is assessed through median latency, energy consumption, and extreme ex-ecution cases that define runtime predictability. It is important to note that ASPO does not perform attack detection and therefore does not report detection accuracy; instead, the eval-uation focuses on the correctness, feasibility, and efficiency of mitigation selection given a structured threat context. Figure 12 shows that increasing execution depth does not inflate central runtime cost, as median latency remains stable (22.46 s vs. 22.83 s). Scaling primarily affects the tails of the distribution: ECDF curves shift leftward, and P99 latency decreases from 36.0 s to 28.1 s, representing a 21.9% reduction in extreme delay. Kolmogorov-Smirnov testing confirms that this shift reflects reduced dispersion ( p < 0.01 ), while latency symmetry across service modes and threat categories is preserved. En-ergy behaviour in Figure 13 follows the same pattern. Median energy increases marginally (52.97 J vs. 54.10 J, +2.1%), while extreme events contract, with P99 decreasing from 216 J to 166 J (-23.1%). Average power remains stable (2.357 W vs. 2.369 W), indicating that tail reduction arises from improved 13 
+
+Fig. 12: Latency comparison between the 500-run and 1000-run workloads. Panels report ECDF curves, median latency, and tail-percentile values, illustrating how workload scaling affects the latency distribution. decision stability rather than increased resource draw. Table X summarises joint efficiency and approval behaviour. Final approval decreases slightly (0.008 to 0.005), while gate-audit agreement remains fully aligned across workloads, confirming consistent deterministic enforcement. This reduction reflects tighter feasibility convergence, as deeper exploration filters structurally infeasible portfolios earlier while fallback protec-tion remains active. Statistical results in Table XI support this interpretation, showing stable central latency, median energy, and power, with significant contraction in extreme latency and energy tails. 
+
+F. Architectural Stability 
+
+This analysis synthesises experimental evidence to as-sess whether ASPO’s deterministic multi-agent design pro-vides structural guarantees beyond isolated performance gains. Safety consistency, optimisation invariance, runtime propor-tionality, and tail behaviour are integrated to evaluate global architectural stability under workload scaling. The objective is to determine whether the system preserves coherent struc-tural behaviour when performance dimensions are considered jointly. A stable approach maintains consistent safety filter-ing, optimisation preferences, runtime balance, and efficiency without degrading any of these dimensions. Table XII con-solidates the principal structural guarantees observed across experiments and shows consistent stability under scaling. Deterministic safety enforcement remains proportional, with violation rates scaling linearly, indicating that constraint inten-sity is preserved. Optimisation behaviour remains stable, with perfectly aligned pattern rankings (Spearman = 1.00), while the reduction in final approval reflects tighter convergence toward feasibility. Runtime proportionality is maintained, with Kolmogorov-Smirnov distances below 0.05 and no evidence of structural drift or bottleneck formation. Extreme-case be-haviour improves, with P99 latency and energy decreasing by more than 20%, indicating that rare high-cost execu-tions are stabilised without increasing median latency and energy consumption. Threat-level analysis shows no workload-dependent bias, confirming generalisation across heteroge-neous constraint topologies. 
+
+G. Component Contribution Analysis 
+
+To evaluate the necessity of ASPO’s deterministic safe-guards, component contributions are estimated using logged violation categories rather than disabling modules, preserv-ing realistic behaviour while enabling counterfactual risk as-sessment. Table XIII summarises violation rates: execution-order validation filters inconsistent sequences in 2.2–2.6% of decisions, resource feasibility checks detect budget vi-olations at about 1.6%, and conflict enforcement captures rare unsafe combinations at approximately 0.2%. These rates remain stable across workloads with no statistically significant drift ( p > 0.05 ), indicating proportional scaling of constraint pressure. Each safeguard addresses a distinct failure mode: execution-order validation preserves semantic correctness, fea-sibility checks prevent overload, and conflict enforcement ensures structural compatibility. The non-zero contribution of all modules confirms that the deterministic boundary is composed of complementary safety layers rather than a single dominant constraint. 
+
+H. Runtime Trace Analysis 
+
+Figure 14 (see Appendix) illustrates a representative runtime trace of ASPO during a DoS attack. The Monitor and Anal-yse stages construct the structured context St from gateway telemetry and extracted evidence tokens. The multi-agent LLM 14 
+
+Fig. 13: Energy comparison between the 500-run and 1000-run workloads. Panels report ECDF curves, median energy, and tail percentiles across workloads. TABLE X: Integrated efficiency and approval comparison between 500-run and 1000-run workloads. The table reports approval strictness alongside central and tail latency/energy metrics, highlighting how deeper affects stability and the cost of extreme-case execution.                            
+
+> Setting Final approved Audit approved Gate passed Latency median Latency P90 Latency P99 Energy median Energy P90 Avg power 500-run 0.008 0.008 0.008 22.465 27.560 36.000 52.969 70.987 2.357 1000-run 0.005 0.005 0.005 22.825 27.797 28.100 54.102 74.091 2.369
+
+TABLE XI: Statistical comparison between 500-run and 1000-run workloads. Central metrics remain statistically unchanged, whereas tail latency and energy exhibit significant reductions under deeper execution.                                    
+
+> Metric ∆(%) Test Statistic p-value Final Approval -37.5 Fisher Exact –<0.05
+> Latency Median +1.6 Mann-Whitney U n.s. >0.05
+> Latency P99 -21.9 KS Test 0.18 <0.01
+> Energy Median +2.1 Mann-Whitney U n.s. >0.05
+> Energy P99 -23.1 KS Test 0.21 <0.01
+> Avg Power +0.5 t-test n.s. >0.05
+
+layer then performs deliberation: the Context Agent normalises the state, the Reasoner Agent proposes candidate security patterns, and the Constraint Agent filters infeasible options. The deterministic optimisation core selects the highest-scoring conflict-free mitigation portfolio, which is subsequently veri-fied by the Security Gate and Auditor Agent before activation at the gateway. 
+
+I. Architectural Comparison with Agentic Defence Systems 
+
+ASPO is compared with a representative agentic cyber-security solution to clarify its architectural properties and empirically validated guarantees. The focus is on struc-tural distinction rather than survey coverage. Recent agent-based systems rely on large-model reasoning, RL, and hy-TABLE XII: Global structural stability indicators across work-loads, comparing the 500-run and 1000-run configurations in terms of safety enforcement, optimisation consistency, runtime behaviour, and extreme-case efficiency.                                  
+
+> Property 500-run 1000-run Structural Interpretation Final Approval Rate 0.008 0.005 Deterministic tightening Execution-Order Violation 2.6% 2.2% Proportional scaling Resource Violation 1.6% 1.6% Invariant enforcement Spearman Rank (Patterns) 1.00 1.00 No preference drift Max KS (Runtime Agents) –0.041 Distribution preserved P99 Latency (s) 36.0 28.1 -21.9% tail compression P99 Energy (J) 216 166 -23.1% tail compression Avg Power (W) 2.357 2.369 +0.5% stable draw Threat Interaction p>0.05 >0.05 No scaling bias
+
+brid controllers to generate mitigation strategies across multi-step workflows. Hybrid approaches that combine RL with language-model reasoning improve adaptability, yet safety is typically embedded in policy optimisation rather than enforced structurally [55]. Guardrail-oriented designs constrain outputs through supervisory reasoning and rule generation, though these mechanisms operate as probabilistic filters rather than deterministic execution constraints [56]. As a result, feasibil-ity, compatibility, and ordering constraints emerge implicitly during decision-making. ASPO enforces feasibility determin-istically before mitigation outcomes propagate. The Gate ap-plies execution-order, resource, and compatibility constraints 15 
+
+TABLE XIII: Empirical module contribution based on observed violations, showing how execution-order validation, resource feasibility checks, and conflict enforcement contribute to preventing unsafe system outcomes.                 
+
+> Module Violations (500) Violations (1000) Rate 500 Rate 1000
+> Execution-Order Validator 13 22 0.026 0.022 Resource Feasibility Checker 816 0.016 0.016 Conflict Matrix Enforcement 120.002 0.002
+
+as hard requirements, while the auditor verifies admissibility without redefining feasibility. This separation enables direct measurement of safety behaviour rather than indirect infer-ence from downstream performance. Experimental evidence supports this distinction: gate and audit decisions agree on admissible candidates; violation rates remain stable under scaling; portfolio rankings remain invariant; extreme latency and energy values contract while median cost remains stable. Table XIV summarises ASPO’s mechanisms and guarantees relative to common agentic designs. The comparison shows that ASPO’s contribution lies in architectural guarantees rather than isolated performance gains. By separating reasoning, constraint enforcement, and execution into bounded stages, the system preserves stable safety semantics, optimisation behaviour, and runtime structure as execution depth increases, distinguishing it from approaches where safety properties arise implicitly from model behaviour. VII. D ISCUSSION 
+
+The results indicate that the primary contribution lies in the architectural formulation rather than isolated performance gains. The separation between stochastic multi-agent reason-ing and deterministic enforcement reframes runtime security decisions as a bounded process governed by explicit feasibility constraints. Uncertainty is confined to candidate portfolio generation, while final activation is restricted to configura-tions that satisfy conflict-freedom, resource feasibility, and verifiable execution semantics. The validation gate functions as a stabilising boundary that prevents incompatible decisions from propagating, consistent with empirical observations such as invariant violation proportions, stable optimisation rank-ings, and contraction of extreme latency and energy values under scaling. Deterministic feasibility enforcement therefore operates not only as a filtering mechanism but also as a structural regulariser, restricting execution to admissible re-gions of the decision space. Moreover, this behaviour aligns with constrained control, where exploratory actions remain bounded by enforceable limits. The separation between rea-soning and enforcement further improves interpretability and accountability, as mitigation selection can be expressed as a reconstructible combinatorial optimisation problem with ex-plicit feasibility constraints. Incorporating latency and energy as hard constraints frames runtime defence as a bounded multi-objective decision process, balancing security effectiveness against operational sustainability. Several limitations define the current boundary of this approach. Safe activation is guaranteed only after candidate generation, making overall performance dependent on the quality, diversity, and latency of the reasoning stage. In addition, the feasibility boundary depends on the completeness of the pattern catalogue and the correctness of constraint definitions, which may permit admis-sible but suboptimal portfolios. In addition, the results suggest that agentic reasoning complements, rather than replaces, classical control principles. Hybrid architectures that combine probabilistic deliberation with deterministic constraints pro-vide stronger guarantees of stability, safety, and transparency, indicating that adaptive intelligence in safety-critical systems requires explicitly enforced structural boundaries. VIII. L IMITATIONS AND FUTURE WORK 
+
+Despite its structural advantages, the approach presents several limitations that define directions for further inves-tigation. The current implementation relies on cloud-hosted LLM services for multi-agent reasoning, which may introduce latency variability and external dependencies in connectivity-constrained deployments. Edge-local distillation strategies, compact reasoning models, and hybrid inference configura-tions could improve responsiveness while reducing reliance on external infrastructure. The security pattern catalogue is defined as a closed-world set to ensure safe, verifiable actua-tion. While this design enables compatibility checking, it limits extensibility when new mitigation patterns and interaction structures emerge. Mechanisms for semi-automated catalogue expansion, adaptive conflict-matrix refinement, and dynamic modelling of interaction effects could increase flexibility while preserving structural safety guarantees. The experimental eval-uation is based on replayed IoT attack traces within a con-trolled edge gateway, enabling reproducibility and systematic stress testing. However, operational deployments involve het-erogeneous traffic patterns, evolving adversarial strategies, and additional environmental variability. Validation in live multi-gateway deployments, together with federated edge environ-ments, would provide a more robust assessment under dynamic conditions. Although deterministic enforcement prevents un-safe activation, overall decision quality remains dependent on candidate generation by the reasoning stage. Improvements in proposal stability, formal verification of precedence and compatibility structures, and resilience against prompt manip-ulation and context poisoning remain important for reliability. These directions extend the system from a structurally safe decision mechanism toward a more adaptive, distributed, and formally grounded edge security architecture. IX. C ONCLUSION 
+
+This work presented a self-adaptive IoT security architec-ture that integrates multi-agent reasoning with deterministic, conflict-aware, and resource-feasible execution. By separating stochastic candidate generation from deterministic activation, runtime decision-making is constrained to a closed-world, 16 
+
+TABLE XIV: Architectural comparison between ASPO and representative agentic cybersecurity frameworks. The table emphasises implemented mechanisms and empirically validated guarantees rather than general conceptual similarities. 
+
+Design Dimension Representative Agentic Systems ASPO Implementation Empirical Evidence in This Work 
+
+Safety enforcement LLM and RL-driven coordination where safety is evaluated through policy learning, guardrail prompt-ing, post-hoc filtering [55]–[57] Deterministic feasibility gate preceding coordination Perfect gate–audit agreement; sta-ble violation rates under scaling Resource feasibility Resource constraints are typically embedded implicitly in reward shaping, planning heuristics [55], [58] Explicit deterministic feasibility con-straints Invariant resource-violation rate across workloads Mitigation compatibility Mitigation combinations are often resolved through model scoring, rule heuristics, agent negotiation [56], [57] Conflict matrix and execution-order vali-dation enforced structurally Persistent detection of incompati-ble configurations Optimisation stability Policy outputs may vary across runs due to stochastic sampling, exploration in agent-based decision loops [55], [58] Deterministic scoring scale preserved across workloads Monotonic score–approval cou-pling; invariant ranking order Runtime scaling behaviour Agent pipelines may exhibit variable latency distribution, cost growth as reasoning depth increases [55], [57] Balanced multi-agent runtime with pre-served proportional shares KS distances < 0.05 ; no work-load–threat interaction in latency Edge efficiency Performance improvements in au-tonomous defence are often accom-panied by increased computational load, inference overhead [55] Tail contraction without median and power inflation 
+
+> 20% reduction in P99 latency and energy; stable median cost 
+
+compatibility-preserving execution space under explicit la-tency and energy budgets. Experimental results demonstrate stable portfolio selection, consistent enforcement of feasibility constraints, invariant resource behaviour, and a significant reduction in extreme latency and energy values with in-creasing execution depth. These findings indicate improved convergence and system stability without disproportionate computational overhead. Embedding agentic reasoning within a structured MAPE-K control formulation, with latency and energy treated as intrinsic feasibility constraints, reframes IoT security decision-making as a bounded and verifiable process rather than a purely policy-driven adaptation mechanism. This formulation enhances interpretability, preserves execution consistency, and supports deployment in resource-constrained environments requiring predictable operation. Additionally, the results suggest that architectures combining probabilistic reasoning with deterministic execution boundaries provide a practical and reliable foundation for autonomous defence systems operating under strict safety and resource constraints. REFERENCES [1] T. Zhukabayeva, L. Zholshiyeva, N. Karabayev, S. Khan, and N. Al-nazzawi, “Cybersecurity solutions for industrial internet of things– edge computing integration: Challenges, threats, and future directions,” 
+
+Sensors , vol. 25, no. 1, p. 213, 2025. [2] S. Hudda and K. Haribabu, “A review on wsn based resource constrained smart iot systems,” Discover Internet of things , vol. 5, no. 1, p. 56, 2025. [3] Y. Zhang and J. Feng, “Towards a smart and sustainable future with edge computing-powered internet of things: Fundamentals, applications, challenges, and future research directions,” Journal of The Institution of Engineers (India): Series B , vol. 106, no. 2, pp. 785–804, 2025. [4] M. Trigka and E. Dritsas, “Edge and cloud computing in smart cities,” 
+
+Future Internet , vol. 17, no. 3, p. 118, 2025. [5] A. M. Sheikh, M. R. Islam, M. H. Habaebi, S. A. Zabidi, A. R. Bin Najeeb, and A. Kabbani, “A survey on edge computing (ec) security challenges: Classification, threats, and mitigation strategies,” Future Internet , vol. 17, no. 4, p. 175, 2025. [6] V. Mahavaishnavi, R. Saminathan, and R. Prithviraj, “Secure container orchestration: A framework for detecting and mitigating orchestrator-level vulnerabilities,” Multimedia Tools and Applications , vol. 84, no. 17, pp. 18 351–18 371, 2025. [7] S. Batewela, P. Ranaweera, M. Liyanage, E. Zeydan, and M. Ylianttila, “Addressing security orchestration challenges in next-generation net-works: A comprehensive overview,” IEEE Open Journal of the Computer Society , 2025. [8] E. B. Fernandez, H. Washizaki, N. Yoshioka, and T. Okubo, “The design of secure iot applications using patterns: State of the art and directions for research,” Internet of Things , vol. 15, p. 100408, 2021. [9] T. Rajmohan, P. H. Nguyen, and N. Ferry, “A decade of research on patterns and architectures for iot security,” Cybersecurity , vol. 5, no. 1, p. 2, 2022. [10] T. Nguyen et al. , “Deep reinforcement learning for cyber security: A survey,” IEEE Access , vol. 11, pp. 23 456–23 478, 2023. [11] L. Wang et al. , “Reinforcement learning-based intrusion detection for iot,” IEEE Internet of Things Journal , vol. 10, no. 8, pp. 6789–6801, 2023. [12] N. Lyu, Y. Wang, Z. Cheng, Q. Zhang, and F. Chen, “Multi-objective adaptive rate limiting in microservices using deep reinforcement learn-ing,” in Proceedings of the 4th International Conference on Artificial Intelligence and Intelligent Information Processing , 2025, pp. 862–869. [13] A. Kavianifar and S. Jalili, “Rs-drl: Managing uncertainty in self-adaptive systems based on a novel continuous deep reinforcement learning method,” ACM Transactions on Autonomous and Adaptive Systems , 2025. [14] S. Jamshidi, A. Nikanjam, K. W. Nafi, and F. Khomh, “A dynamic secu-rity pattern selection framework using deep reinforcement learning,” in 
+
+2025 IEEE International Conference on Software Services Engineering (SSE) . IEEE, 2025, pp. 98–108. [15] J. Saeid, “Understanding the impact of iot security patterns on cpu usage and energy consumption: a dynamic approach for selecting patterns with deep reinforcement learning,” International Journal of Information Security , vol. 24, no. 2, p. 91, 2025. [16] Y. Zhang et al. , “Energy-efficient security mechanisms in iot edge networks,” IEEE Transactions on Sustainable Computing , 2023. [17] OpenAI, “Gpt-4 technical report,” arXiv preprint arXiv:2303.08774 ,2023. [Online]. Available: https://arxiv.org/abs/2303.08774 [18] L. Huang et al. , “A survey of large language model-based autonomous agents,” arXiv preprint arXiv:2308.11432 , 2023. [Online]. Available: https://arxiv.org/abs/2308.11432 [19] Q. Wu, G. Bansal, J. Zhang, Y. Wu, B. Li, E. Zhu, L. Jiang, X. Zhang, S. Zhang, J. Liu, A. H. Awadallah, R. W. White, 17 
+
+D. Burger, and C. Wang, “Autogen: Enabling next-gen llm applications via multi-agent conversation,” arXiv preprint arXiv:2308.08155 , 2023. [Online]. Available: https://arxiv.org/abs/2308.08155 [20] G. Li, H. Hammoud, H. Itani, D. Khizbullin, and B. Ghanem, “Camel: Communicative agents for mind exploration of large scale language model society,” arXiv preprint arXiv:2303.17760 , 2023. [Online]. Available: https://arxiv.org/abs/2303.17760 [21] J. S. Park et al. , “Generative agents: Interactive simulacra of human behavior,” ACM UIST , 2023. [Online]. Available: https: //arxiv.org/abs/2304.03442 [22] K. Greshake et al. , “More than you’ve asked for: Acomprehensive analysis of prompt injection vulnerabilities,” 
+
+arXiv preprint arXiv:2302.12173 , 2023. [Online]. Available: https://arxiv.org/abs/2302.12173 [23] K.-T. Tran, D. Dao, M.-D. Nguyen, Q.-V. Pham, B. O’Sullivan, and H. D. Nguyen, “Multi-agent collaboration mechanisms: A survey of llms,” arXiv preprint arXiv:2501.06322 , 2025. [24] T. Rebedea, R. Dinu, M. Sreedhar, C. Parisien, and J. Cohen, “Nemo guardrails: A toolkit for controllable and safe llm applications with programmable rails,” in Proceedings of EMNLP 2023 System Demonstrations , 2023. [Online]. Available: https://aclanthology.org/ 2023.emnlp-demo.40/ [25] N. Jain et al. , “Baseline defenses for prompt injection attacks against llm agents,” arXiv preprint arXiv:2309.00614 , 2023. [Online]. Available: https://arxiv.org/abs/2309.00614 [26] P. Zhou, D. Zuo, K. M. Hou, Z. Zhang, J. Dong, J. Li, and H. Zhou, “A comprehensive technological survey on the dependable self-management cps: From self-adaptive architecture to self-management strategies,” 
+
+Sensors , vol. 19, no. 5, p. 1033, 2019. [27] J. O. Kephart and D. M. Chess, “The vision of autonomic computing,” 
+
+Computer , vol. 36, no. 1, pp. 41–50, 2003. [28] E. Iturbe, J. Garcia, and M. Lopez, “Powering intelligent intrusion responses to advanced cyber threats using reinforcement learning,” 
+
+Expert Systems with Applications , 2025. [29] A. Suresh and A. Cyril Jose, “Adaptive network intrusion detection using reinforcement learning with proximal policy optimization,” ACM Transactions on Privacy and Security , vol. 28, no. 4, pp. 1–24, 2025. [30] M. Saqib, D. Mehta, and W. Chen, “Adaptive security policy man-agement in cloud environments using reinforcement learning,” arXiv preprint arXiv:2505.08837 , 2025. [31] D. Wushishi et al. , “D3o-iiot: Dynamic deception orchestration in industrial iot via deep reinforcement learning,” Scientific Reports ,2025, check final volume/pages on journal site. [Online]. Available: https://www.nature.com/articles/s41598-025-90839-8 [32] I. Ahmed, M. A. Syed, M. Maaruf, and M. Khalid, “Distributed computing in multi-agent systems: a survey of decentralized machine learning approaches,” Computing , vol. 107, no. 1, p. 2, 2025. [33] V. Mavroudis, G. Palmer, S. Farmer, K. S. Whitehead, D. Fos-ter, A. Price, I. Miles, A. Caron, and S. Pasteris, “Guidelines for applying rl and marl in cybersecurity applications,” arXiv preprint arXiv:2503.04262 , 2025. [34] G. Deng, Y. Liu, V. Mayoral-Vilches, P. Liu, Y. Li, Y. Xu, T. Zhang, Y. Liu, M. Pinzger, and S. Rass, “Pentestgpt: Evaluating and harnessing large language models for automated penetration testing,” in 33rd USENIX Security Symposium (USENIX Security 24) , 2024, pp. 847–864. [Online]. Available: https://www.usenix.org/conference/ usenixsecurity24/presentation/deng [35] X. Shen, L. Wang, Z. Li, Y. Chen, W. Zhao, D. Sun, J. Wang, and W. Ruan, “Pentestagent: Incorporating llm agents to automated penetration testing,” CoRR , vol. abs/2411.05185, 2024. [Online]. Available: https://arxiv.org/abs/2411.05185 [36] J. Xu, J. W. Stokes, G. McDonald, X. Bai, D. Marshall, S. Wang, A. Swaminathan, and Z. Li, “Autoattacker: A large language model guided system to implement automatic cyber-attacks,” CoRR , vol. abs/2403.01038, 2024. [Online]. Available: https://arxiv.org/abs/2403. 01038 [37] M. Xu, J. Fan, X. Huang, C. Zhou, J. Kang, D. Niyato, S. Mao, Z. Han, K.-Y. Lam et al. , “Forewarned is forearmed: A survey on large language model-based agents in autonomous cyberattacks,” arXiv preprint arXiv:2505.12786 , 2025. [38] H. Chowdhry, J. Manero, and S. Sampalli, “Evaluating ai agents for cyber defense: A comparison of deep reinforcement learning and llm approaches,” in International Conference on Intelligent Data Engineer-ing and Automated Learning . Springer, 2025, pp. 423–433. [39] S. Chen, Y. Wang, N. Carlini, C. Sitawarin, and D. Wagner, “Defending against prompt injection with a few defensivetokens,” CoRR , vol. abs/2507.07974, 2025. [Online]. Available: https://arxiv.org/abs/2507. 07974 [40] Y. Song, J. Li, and K. Patel, “Secure tool use in large language model agents,” IEEE Transactions on Dependable and Secure Computing ,2024. [41] R. Zhang, H. Wang, J. Wang, M. Li, Y. Huang, D. Wang, and Q. Wang, “From allies to adversaries: Manipulating llm tool-calling through adversarial injection,” in Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) ,2025, pp. 2009–2028. [42] A. Dutta, E. Al-Shaer, E. Aghaei, Q. Duan, and H. Yasar, “Security control grid for optimized cyber defense planning,” IEEE Transactions on Network and Service Management , vol. 22, no. 1, pp. 913–929, 2024. [43] P. Ranaweera, I. Balapuwaduge, A. Jurcut, E. Zeydan, and M. Liyanage, “Optimizing security in dynamic service migration scenarios of multi-access edge computing,” in 2025 IEEE 102nd Vehicular Technology Conference (VTC2025-Fall) . IEEE, 2025, pp. 1–6. [44] I. Bisio, C. Garibotto, F. Lavagetto, A. Sciarrone, and M. Zerbino, “Dis-tributed multi-objective optimization for edge computing in resource-constrained social iot networks,” IEEE Internet of Things Journal , 2026. [45] Y. Liu, G. Deng, Y. Li, K. Wang, Z. Wang, X. Wang, T. Zhang, Y. Liu, H. Wang, Y. Zheng et al. , “Prompt injection attack against llm-integrated applications,” arXiv preprint arXiv:2306.05499 , 2023. [46] K. Greshake, S. Abdelnabi, S. Mishra, C. Endres, T. Holz, and M. Fritz, “Not what you’ve signed up for: Compromising real-world llm-integrated applications with indirect prompt injection,” in Proceedings of the 16th ACM workshop on artificial intelligence and security , 2023, pp. 79–90. [47] UNSW Canberra Cyber, “The bot-iot dataset,” https://research.unsw.edu. au/projects/bot-iot-dataset, 2018. [48] R. Balass, V. Medvedevs, A. I. Mackus, J. Ormanis, A. Ancans, and J. Judvaitis, “Precise realtime current consumption measurement in iot testbed,” Open Research Europe , vol. 3, p. 27, 2024. [49] C. Feng, N. Huber, A. H. Celdr´ an, G. Bovet, and B. Stiller, “A practical testbed for decentralized federated learning on physical edge devices,” in 2025 IEEE 50th Conference on Local Computer Networks (LCN) .IEEE, 2025, pp. 1–3. [50] H.-Y. Kim, “Statistical notes for clinical researchers: Chi-squared test and fisher’s exact test,” Restorative dentistry & endodontics , vol. 42, no. 2, p. 152, 2017. [51] J. Hauke and T. Kossowski, “Comparison of values of pearson’s and spearman’s correlation coefficients on the same sets of data,” Quaes-tiones geographicae , vol. 30, no. 2, pp. 87–93, 2011. [52] O. K. Tonguz and F. Taschin, “Using kolmogorov-smirnov distance for measuring distribution shift in machine learning,” arXiv preprint arXiv:2510.15996 , 2025. [53] B. Thakkar, “Continuous variable analyses: student’s t-test, mann– whitney u test, wilcoxon signed-rank test,” in Translational cardiology .Elsevier, 2025, pp. 165–167. [54] H.-Y. Kim, “Statistical notes for clinical researchers: Two-way analysis of variance (anova)-exploring possible interaction between factors,” 
+
+Restorative dentistry & endodontics , vol. 39, no. 2, pp. 143–147, 2014. [55] J. Loevenich, E. Adler, T. H¨ urten, and R. R. F. Lopes, “Design and evaluation of an autonomous cyber defence agent using drl and an augmented llm,” Computer Networks , vol. 262, p. 111162, 2025. [56] A. (arXiv submission metadata), “Guardagent: Safeguard llm agents by a guard agent via knowledge-enabled reasoning,” arXiv:2406.09187, 2024. [57] Y. Tang, Y. Liu, J. Lan, Z. Yan, and E. Gelenbe, “Security of llm-based agents regarding attacks, defenses, and applications: A comprehensive survey,” Information Fusion , p. 103941, 2026. [58] I. S. Thompson, A. Caron, V. Mavroudis, and C. Hicks, “Entity-based re-inforcement learning for autonomous cyber defence,” arXiv:2410.17647, 2024. 18 
+
+APPENDIX 
+
+[Edge Gateway: Node-02] Timestamp: 2026-03-06 14:12:07 ------------------------------------------------------------
+
+→ New ASPO decision epoch detected [epoch: 18] 
+
+→ Threat context: DoS attack Severity = 0.81 Confidence = 0.93 
+
+→ Monitor stage: gateway telemetry captured packet_rate = 3250/s tcp_flag_anomaly = 0.71 dst_port_entropy = 0.22 CPU headroom = 0.58 Memory = 0.69 Latency budget = 95 ms Energy = 64 J
+
+→ Analyze stage: structured state constructed 
+
+St = [ threat = DoS, severity = 0.81, confidence = 0.93, SLA = normal ]
+
+evidence tokens = {traffic burst, SYN flood pattern, service saturation }→ Invoking Multi-Agent LLM Planning Layer [Context Agent] → normalised context representation and validated schema status: PASS [Reasoner Agent] → generated candidate mitigation patterns 
+
+{Blacklist, Security Segmentation, Outbound-Only Connection, Security Logger/Auditor }
+
+[Constraint Agent] → filtered candidates using capability and relevance rules rejected: Outbound-Only Connection feasible set Ft = {Blacklist, Security Segmentation, Security Logger/Auditor }→ Running Deterministic Portfolio Optimization 
+
+Y = {Blacklist } score = 1.84 feasible 
+
+Y = {SecuritySegmentation } score = 2.03 feasible 
+
+Y = {SecurityLogger/Auditor } score = 1.51 feasible 
+
+Y = {Blacklist, SecuritySegmentation } score = 4.27 feasible 
+
+Y = {Blacklist, SecurityLogger/Auditor } score = 3.11 feasible Selected portfolio: 
+
+Y det t = {Blacklist, SecuritySegmentation }→ Ordering module activation order determined by precedence rules [Security Segmentation → Blacklist] [Planner Agent] → generated executable mitigation plan segment suspicious traffic, then block malicious sources [Security Gate] → deterministic validation catalog membership = PASS conflict check = PASS resource feasibility = PASS execution order = PASS [Auditor Agent] → policy consistency verified approved = TRUE 
+
+→ Execute stage Security Segmentation → Blacklist 
+
+→ Final system outcome DoS traffic contained successfully decision latency = 21.8 s energy overhead = 49.6 Jgateway state = stable 
+
+Fig. 14: Example ASPO runtime trace for a DoS attack scenario. The log illustrates the interaction between the multi-agent LLM planning layer and the deterministic enforcement core, including context normalisation, candidate mitigation generation, feasibility filtering, portfolio optimisation, ordering, validation, and final mitigation activation.

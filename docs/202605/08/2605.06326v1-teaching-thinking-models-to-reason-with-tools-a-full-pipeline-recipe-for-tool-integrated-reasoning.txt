@@ -1,0 +1,738 @@
+Title: Teaching Thinking Models to Reason with Tools: A Full-Pipeline Recipe for Tool-Integrated Reasoning
+
+URL Source: https://arxiv.org/pdf/2605.06326v1
+
+Published Time: Fri, 08 May 2026 01:42:58 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# Teaching Thinking Models to Reason with Tools: A Full-Pipeline Recipe for Tool-Integrated Reasoning 
+
+Qianjia Cheng 1,2∗, Yuchen Zhang 2,3∗, Zhilin Wang 2,6, Yuxin Zuo 5, Shunkai Zhang 2,3,Yuchen Fan 7, Yu Qiao 2, Bowen Zhou 2,5, Ning Ding 5†, Yu Cheng 2,4†, Yun Luo 2†, Ganqu Cui 2† 
+
+> 1
+
+Zhejiang University 2 Shanghai AI Laboratory 3 Peking University  
+
+> 4
+
+The Chinese University of Hong Kong 5 Tsinghua University  
+
+> 6
+
+University of Science and Technology of China 7 Shanghai Jiao Tong University 
+
+chengqianjia@zju.edu.cn 
+
+## Abstract 
+
+Tool-integrated reasoning (TIR) offers a direct way to extend thinking models be-yond the limits of text-only reasoning. Paradoxically, we observe that tool-enabled evaluation can degrade reasoning performance even when the strong thinking mod-els make almost no actual tool calls. In this paper, we investigate how to inject natural tool-use behavior into a strong thinking model without sacrificing its no-tool reasoning ability, and present a comprehensive TIR recipe. We highlight that (i) the effectiveness of TIR supervised fine-tuning (SFT) hinges on the learnability of teacher trajectories, which should prioritize problems inherently suited for tool-augmented solutions; (ii) controlling the proportion of tool-use trajectories could mitigate the catastrophic forgetting of text-only reasoning capacity; (iii) optimizing for pass@k and response length instead of training loss could maximize TIR SFT gains while preserving headroom for reinforcement learning (RL) exploration; (iv) a stable RL with verifiable rewards (RLVR) stage, built upon suitable SFT initialization and explicit safeguards against mode collapse, provides a simple yet remarkably effective solution. When applied to Qwen3 thinking models at 4B and 30B scales, our recipe yields models that achieve state-of-the-art performance in a wide range of benchmarks among open-source models, such as 96.7% and 99.2% on AIME 2025 for 4B and 30B, respectively. 
+
+## 1 Introduction 
+
+Current thinking models have demonstrated that scaling the reasoning depth can substantially improve performance on difficult tasks with pure natural language [ 29 , 5 , 3, 45 , 44 ]. However, in more complex scenarios that frequently require formal reasoning (e.g., numerical computation, symbolic manipulation, and systematic case enumeration), text-only reasoning often struggles, making it both costly and less reliable [ 20 , 48 , 18 ]. TIR provides a natural way out. By allowing the model to interleave natural-language deliberation with code execution [ 12 , 11 ], TIR combines the flexibility of text-only reasoning with the precision and expertise of the external feedback. The potential of TIR is clear in principle, yet simply providing a thinking model with access to a code executor does not guarantee interleaved reasoning. As shown in Table 1, across 400 tool-enabled rollouts, Qwen3 thinking models make almost no tool calls, continuing with text-only reasoning. For example, as illustrated in Figure 1, the model invokes the executor only once at the very end to verify the final answer, rather than leveraging computation to guide intermediate reasoning steps. This behavior reflects the delayed-code pattern [ 18 , 10 ], where code is applied too late or even not at all, rather than being integrated into the reasoning loop. We identify the core bottleneck as the           
+
+> ∗Equal contribution. †Corresponding authors. Our models and dataset are coming soon. Preprint.
+> arXiv:2605.06326v1 [cs.CL] 7 May 2026 Question (BeyondAIME): Count distinct 16-bead two-color necklaces under all rotations and re-ections of the dihedral group D16 , with no three consecutive same-color beads. Ground truth: 88
+
+Qwen3-30B-Thinking-2507 ✗  
+
+> Tool-enabled 1 tool call (late-verify)
+
+Trice -30B ✓                          
+
+> Tool-enabled 9 tool calls (interleaved)
+> Apply Burnside on D16 (|D16 |=32 ): all 32 elements need a
+> Fix( g).(no sandbox query)
+> Rotations (recalled). f(16)= 1686 ,f(8)= 36 ,f(4)=6 ,
+> f(2)=2 ;rot. subtotal = 1844 .
+> Reections (assumed). 16 reections each x f(8)=36 , total
+> =2420 ;2420 /32= 75 .625 ✗(non-integer).
+> Out of ideas; call Python to verify the current Fix counts.
+> In[1]: burnside_late_verify(...) reflections_fixed = 16 * C[8] # flawed premise result = total_fixed // 32 # silent floor
+> Out[1]: 75 echoes wrong premises; no error surfaced. ✗
+
+75 ✗            
+
+> late call
+> Apply Burnside on D16 (|D16 |=32 ): each of the 32 group elements needs a Fix( g)count, which we ooad to the sand-box rather than guess from memory.
+> In[1]: for n in {2, 4, 8, 16}: count_cyclic_no_three_run(n)
+> Out[1]: f(2)=2, f(4)=6, f(8)=46, f(16)=2206 ✓
+> Reections need a separate count: split the 16 axes into
+> through-bead and through-gap families, and enumerate the symmetric bit assignments under each via code.
+> In[2]: count_symmetric_valid( 'beads '|'gaps ')
+> Out[2]: through-bead = 42, through-gap = 26 ✓
+
+N = (2272 + 544) /32 = 88 ✓
+
+Figure 1: The same problem, two policies for invoking the tool. Grey boxes are text-only reasoning; violet-bordered In[k] cells are tool calls and sienna-bordered Out[k] cells are tool responses (Jupyter-style). Left: the pre-trained thinking model treats the Python sandbox as a nal-pass verier  after a long text-only Burnside derivation arrives at the impossible 2420 /32=75 .625 , it makes one late call that hard-codes the very premises that broke the sum (e.g. reflections_fixed = 16*C[8] ); a silent integer oor masks the inconsistency and the model commits to 75 ✗. Right: our model interleaves text and code actions, feeding each observation back into the same Burnside formula, and reaches 88 ✓. The contrast highlights when 
+
+and how computation is hooked into reasoning  the focus of  ?? .1Figure 1: The same problem, two policies for invoking the tool. Grey boxes denote text-only reasoning; In[k] cells indicate tool calls, and Out[k] cells represent tool responses. Left: Qwen3-30B-Thinking-2507 treats the Python sandbox as a final-pass verifier. After a text-only Burnside derivation yields the inconsistent value 2420 /32 = 75 .625 , it makes a single late-stage call that hard-codes the flawed assumptions (e.g. reflections_fixed = 16*C[8] ). A silent integer floor masks the error, leading to the incorrect result 75 ✗. Right: TRICE -30B interleaves textual reasoning with code execution, feeding each intermediate result back into the same Burnside framework, and correctly obtains 88 ✓.Table 1: Naively enabling a Python tool does not induce interleaved thinking on BeyondAIME. Calls t
+
+and Len t are measured only on TIR trajectories. 
+
+Model Acc n/t Pass@4 n/t Calls t Len t
+
+Qwen3-4B-Thinking 54.3 / 50.3 66 / 62 0.07 15.3k Qwen3-30B-Thinking 66.0 / 58.0 79 / 68 0.00 17.1k Qwen3-30B-Instruct 51.3 / 39.5 66 / 58 1.38 9.7k 
+
+lack of a reliable policy for determining when reasoning should hand off to computation and how to incorporate the results back into the reasoning process. To address this challenge, prior work has explored several approaches, including fine-tuning on tool-using trajectories and reinforcement learning that rewards successful tool invocation [ 12 , 11 , 18 , 40 ]. However, these approaches often overlook the structural fragility of reasoning chains during tool integration. Our empirical analysis in Table 1 reveals a critical bottleneck: unlike standard instruct models, thinking models exhibit a sharp performance drop when prompted with tools, indicating that their internal reasoning logic is easily disrupted. It indicates that teaching a strong thinking model to think with tools without sacrificing its text-only reasoning performance requires more effort. To resolve this inherent instability, we move beyond scattered techniques and propose a systematic, full-pipeline recipe spanning data preparation, SFT, the transition from SFT to RL, and RL itself. The recipe is organized as the following components: • Data Engineering: For each training stage, we carefully build data collection and filtering pipelines. For teacher prompts, we find that tool-advantaged problems could better encourage tool use. For teacher trajectories, we find that 1) pattern learnability matters a lot, and 2) mixing TIR and text-only reasoning trajectories helps prevent catastrophic degradation of text-only reasoning. Based 2on these findings, we construct high-quality teacher trajectories for SFT training. Moreover, we construct a challenging RLVR dataset to naturally elicit tool usage patterns in RL training. • Stage Coordination: We identify that what the student learns during SFT evolves through form, substance, and noise, and argue that SFT training should prioritize downstream RL potential over standard supervised loss. To this end, we utilize pass@k performance and rollout length to determine the optimal SFT extent for maximizing subsequent RL gains. • Reinforcement Learning: We show that a suitable SFT initialization and on-policy training stabilize multi-turn tool use, improving both with-tool and no-tool performance. We forgo the format rewards and leverage outcome-based rewards only with challenging questions to naturally elicit tool use. Applied to Qwen3 thinking models at 4B and 30B scales, the resulting models, capable of Textual Reasoning Interleaved with Code Execution, termed as T RICE -4B and T RICE -30B, achieve state-of-the-art performance among open-source models of this scale in a wide range of benchmarks, such as reaching 96.7% and 99.2% on AIME 2025, respectively. 
+
+## 2 Related Work 
+
+Reinforcement learning for large reasoning models. Reinforcement learning has made remark-able progress for building large reasoning models [ 29 , 3 , 4 , 43 , 51 ]. By optimizing with verifiable rewards, it encourages LLMs to scale up their reasoning processes, thereby advancing the frontier of intelligence [ 2 , 5 , 45 , 25 , 15 ]. However, text-only reasoning is inherently limited for problems that re-quire exact numerical computation or rigorous verification. Therefore, external tools that compensate for these limitations can be naturally integrated into the reasoning process [42, 9, 8, 22, 37]. 
+
+Tool-integrated reasoning. Although introducing executable tools into reasoning has shown clear feasibility, injecting this ability into an already strong thinking model is not straightforward: it requires reshaping a largely fixed policy [ 20 , 47 , 39 ]. Prior work focuses on different parts of this problem, including the cold-start tool trajectories, code placement, theoretical support expansion, RL stability, long-CoT tool discovery, interaction-dense priors, and tool-use pattern selection [ 11 , 18 , 22 , 40 , 31 ]. Beyond the above work, we aim to convert an already strong thinking model into a reliable TIR model while maintaining or improving its no-tool performance through a full-pipeline recipe. 
+
+## 3 Preliminary 
+
+3.1 Reinforcement Learning with Verifiable Reward 
+
+Given a problem x ∼ D , an LLM policy πθ autoregressively generates a serialized trajectory 
+
+y = ( y1, . . . , y T ) and receives a terminal reward r(x, y ) from a verifier. The standard RL objective is 
+
+J(θ) = Ex∼D , y ∼πθ (·| x) [r(x, y )] . (1) Policy-gradient methods estimate its gradient by assigning an advantage to generated tokens [33]: 
+
+∇θ J(θ) = E
+
+" TX
+
+> t=1
+
+∇θ log πθ (yt | x, y <t )At
+
+#
+
+. (2) With only a trajectory-level reward, REINFORCE can use At = r(x, y ) for all tokens. In practice, group-normalized variants such as GRPO sample K responses {y(k)}Kk=1 for the same prompt and use a normalized trajectory advantage, 
+
+A(k) 
+
+> t
+
+= r(x, y (k)) − mean j r(x, y (j))std j r(x, y (j)) + ϵ , (3) which reduces variance and supports learning from sparse verifiable rewards [32]. 
+
+3.2 Tool-Integrated Reasoning 
+
+Tool-integrated reasoning uses the same objective, but the trajectory y is produced through an interactive process before being verified. At interaction turn τ , the state is sτ = ( x, H τ , E τ ), where 3Table 2: Teacher comparison. Calls represent tool calls per trajectory. Len means response length. Snippet is code-block length in tokens. Tool Use is the fraction of problems with ≥1 tool calls.                       
+
+> Accuracy (%) Trajectory Statistics Model AIME25 HMMT25 IMOAnswerBench Calls Len Snippet Tool Use GPT-OSS-120B 99.2 92.5 77.3 12.2 21.6K 137 99.7% MiniMax-M2.7 99.2 91.7 76.3 5.1 27.4K 325 66.4%
+
+Hτ is the current interaction history and Eτ is the sandbox state. The policy takes an action aτ that is either natural-language reasoning or executable code. Text actions are appended directly to the history. Code actions are executed by the sandbox, and it returns an observation oτ , such as printed output or an error message, so the next state is 
+
+sτ +1 = ( x, H τ ⊕ aτ ⊕ oτ , E τ +1 ). (4) When the model emits a final answer or reaches the turn budget, the final history is serialized as y
+
+and scored by the same verifier reward r(x, y ). We use a stateful sandbox, so variables, imports, and intermediate computations persist across tool calls; this lets the model inspect, revise, and extend prior computations rather than restart from an empty environment. The no-tool setting is the special case in which code actions are disallowed, so y is generated entirely through language. 
+
+## 4 Data Engineering for TIR 
+
+In this section, we detail the SFT data curation pipeline of our TIR recipe, focusing on the strategic selection of teacher models and the SFT trajectories. 
+
+4.1 Teacher Model Selection  
+
+> TAKEAWAY 1
+
+For TIR SFT, teacher selection should account for the learnability of tool-use patterns, not teacher accuracy alone. 
+
+When selecting a teacher model for TIR SFT, we argue that downstream task performance alone is insufficient [ 14 ], since the teacher’s tool-use pattern directly shapes the reasoning strategy learned by the student. Considering the cost and tool-use capability, we mainly compare GPT-OSS-120B [ 28 ]and MiniMax-M2.7 [36] from the frontier models [35, 6, 28, 36]. As shown in Table 2, the two models achieve comparable performance, but exhibit markedly different tool-use styles despite being equipped with the same stateful sandbox environment described in Section 3. Specifically, GPT-OSS-120B follows a high-frequency, lightweight pattern: it generates short code snippets and incrementally builds on variables, functions, and intermediate results from previous tool calls, thereby effectively exploiting the persistent sandbox state. In contrast, MiniMax-M2.7 follows a more typical stateless low-frequency, heavyweight pattern: it tends to generate longer self-contained programs with repeated definitions, and shows a substantially lower tool-use rate. Table 3: The performance (%) of 4B stu-dent models trained with each teacher’s trajectories on BeyondAIME.          
+
+> Teacher Acc Calls Len GPT-OSS-120B 55.8 29.3 37.2K MiniMax-M2.7 17.8 1.2 68.3K
+
+To assess whether these tool-use patterns are learnable by the student model, we fine-tune Qwen3-4B-Thinking-2507 under the same setup using 16K trajectories from each teacher. Table 3 shows that with the high-frequency, lightweight teacher, the student yields higher accuracy and shorter responses. We attribute this to three factors. First, lightweight snippets decompose computation into simple, single-purpose steps that a 4B model can generate more reliably, whereas the low-frequency, heavyweight style requires longer self-contained programs that are more vulnerable to autoregressive error accumu-lation [ 17 ], often leading to repeated debugging and budget exhaustion. Second, high-frequency, lightweight calls better support interleaved reasoning: the model can offload small-case exploration whenever needed, and immediately incorporate execution feedback into subsequent reasoning. In contrast, heavyweight calls require substantial textual pre-planning, making the underlying TIR strategy harder for the student model to master. Third, lightweight snippets naturally reuse variables, 4Table 4: With-tool accuracy (%) of student mod-els with and without prompt selection.         
+
+> Prompts HMMT25 BeyondAIME Base (no SFT) 58.3 50.3 Random 69.6 52.3 Tool-adv. 75.0 53.5
+
+Table 5: With-tool accuracy (%) under different trajectory composition strategies.         
+
+> Configuration HMMT25 BeyondAIME TIR traj., 32K 75.0 53.5 Mixed traj., 32K 78.3 53.0 Mixed traj., 16K 82.5 53.3
+
+functions, and execution states in the stateful sandbox, improving both token and execution efficiency. We therefore select GPT-OSS-120B as our teacher model. 
+
+4.2 SFT Data Selection  
+
+> TAKEAWAY 2
+
+Selecting problems amenable to tool-augmented solutions (termed as tool-advantaged prob-lems) as teacher inputs can better elicit students to use tools from teacher trajectories. 
+
+After selecting the teacher, the next question is how to choose the prompts and trajectories. We answer this question from the following perspectives. 
+
+Prompt selection. First, we select the prompts for the teacher model to produce trajectories more suitable for students. The quality of TIR supervision varies across problems. Problems whose difficulty lies in computational structure tend to benefit more from tool access, while those centered on conceptual insight benefit less. Moreover, the teacher’s tool-use policy itself is imperfect and may not leverage tools effectively on every problem. To select prompts likely to yield more informative trajectories, we compare the teacher’s average accuracy over k rollouts with and without tool access per problem and retain those where TIR accuracy substantially exceeds the text-only reasoning, termed 
+
+tool-advantaged problems. As Table 4 shows, the model trained on trajectories from tool-advantaged prompts performs much better with a 5.4% advantage.  
+
+> TAKEAWAY 3
+
+To preserve the student model’s native text-only reasoning capability, mix text-only trajectories into the TIR set to avoid catastrophic forgetting Table 6: Text-only BeyondAIME accuracy and truncation rate (%) after SFT.         
+
+> Configuration Accuracy Trunc. Rate Base 54.3 0TIR traj., 32K 34.1 44 Mixed traj., 32K 49.0 19
+
+Mix TIR trajectories with text-only reasoning ones. 
+
+Despite the strong TIR performance of TIR-only SFT, the same models exhibit severe text-only reasoning degradation: accuracy drops across all benchmarks, as shown in Table 6. Moreover, the text-only truncation rate surges to ∼40%. We study these text-only reason-ing trajectories (e.g., Appendix C.1) and attribute this to a cross-mode negative transfer: TIR-only SFT causes the model to internalize a code-centric reasoning loop that persists even when no tool is available. The model attempts to simulate code execution in natural language, for example, writing programs, fabricating outputs, and iterating on hallucinated results—ultimately exhausting the token budget without mathematical progress [ 9, 13 ]. To alleviate this phenomenon, we developed a simple but effective approach: mixing text-only trajectories into TIR trajectories. In this way, the text-only reasoning performance recovers (Table 6) while TIR accuracy is still preserved (Table 5).  
+
+> TAKEAWAY 4
+
+Filtering out overlong teacher trajectories not only improves efficiency for downstream RL, but also prevents the student from falling into the trap of imitating reasoning length. 
+
+Overlong filtering. Considering downstream RL rollout efficiency, we restrict trajectories to 16K tokens to control the rollout length of the student models. Surprisingly, it improves HMMT25 accuracy 50 4 8 12 16 20 24   
+
+> SFT Epoch
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Accuracy
+> Form Substance Noise
+> Avg@8
+> Pass@8
+
+(a) Accuracy 0 4 8 12 16 20 24  
+
+> SFT Epoch
+> 24
+> 28
+> 32
+> Tokens (K)
+
+(b) Response length 0 4 8 12 16 20 24  
+
+> SFT Epoch
+> 0
+> 5
+> 10
+> Rate (%)
+
+(c) Length trunc. rate 0 4 8 12 16 20 24  
+
+> SFT Epoch
+> 0
+> 10
+> 20
+> Count
+
+(d) Tool call counts Figure 2: TIR SFT dynamics of the 30B model. We perform SFT on Qwen3-30B-A3B-Thinking-2507 using expert data generated by GPT-OSS-120B. The observed learning curve (measured on BeyondAIME) demonstrates a "form–substance–noise" progression. from 78.3% to 82.5%, while maintaining comparable BeyondAIME performance as presented in Table 5. It implies that filtering out overly long trajectories during SFT helps prevent the student model from exploiting length as a spurious signal, encouraging it to focus more on learning the substance of TIR. 
+
+## 5 Stage Coordination: From SFT to RL 
+
+Based on the curated SFT data, this section details a principled execution of the fine-tuning process to fully unlock its potential within the holistic training pipeline. 
+
+TAKEAWAY 5
+
+During TIR SFT, what the student learns evolves across form, substance, and noise. We determine the training extent based on pass@k performance and rollout length. 
+
+5.1 TIR SFT Dynamics 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> Inference Probability
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Training Probability
+> SFT Ep 8 (KL=0.026199)
+> SFT Ep 16 (KL=0.112458)
+
+Figure 3: The token proba-bilities assigned by the infer-ence and training engines to the same rollouts. During TIR SFT, the student model follows a form–substance–noise learning progression, which we characterize as stage 1-3 . In the early stage, it quickly acquires the format of tool invocation, causing tool-use frequency to rise sharply, which yet does not yield effective TIR. As shown in Figure 2, performance drops while the truncation rate in-creases. Case in Appendix C.2 further shows that early tool calls are often inefficient symbolic exploration, repeated verification, or loops, which accumulate errors and produce overly long reasoning trajecto-ries. It suggests that the model is primarily imitating the form of TIR in this stage ( stage 1 ). As training proceeds, tool-use frequency stabi-lizes, and tool calls more often provide useful intermediate evidence. Correspondingly, both pass@1 and pass@8 improve, indicating that the model moves beyond exploiting the superficial signal of tool-call frequency and begins to learn the substance of TIR, adapting tool use to its reasoning prior. This resembles the degradation–recovery dynamics observed in long-CoT SFT [ 46 , 24 ]( stage 2 ). Finally, after TIR behavior has been sufficiently internalized and useful supervi-sion diminishes, the following SFT gradually overfits the teacher-side noise (e.g., rollout length), leading the performance to saturate or even decline ( stage 3 ). 
+
+5.2 Identifying RL-Ready SFT Checkpoints 
+
+The learning pattern observed in the student model informs our choice of the SFT endpoint. Specifi-cally, we aim to select a checkpoint that has sufficiently learned the substance of TIR, but has not yet absorbed excessive noise, as the initialization for RL. As discussed in Section 5.1, we find that the transitions between stages are closely associated with two diagnostics: pass@k performance and rollout length. We therefore use these metrics to guide checkpoint selection. 60 200 400 
+
+> Training Steps
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> Avg@8
+> SFT Ep1
+> SFT Ep8
+> SFT Ep16
+
+(a) Accuracy 0 200 400  
+
+> Training Steps
+> 25
+> 30
+> 35
+> Tokens (K)
+> SFT Ep1
+> SFT Ep8
+> SFT Ep16
+
+(b) Response length 0 200 400  
+
+> Training Steps
+> 10.0
+> 12.5
+> 15.0
+> 17.5
+> 20.0
+> Count
+> SFT Ep1
+> SFT Ep8
+> SFT Ep16
+
+(c) Tool call counts Figure 4: The RL training dynamics of the 30B model, EP is short for Epoch. Ep 1 is the model in 
+
+stage 1 , Ep 8 is the model in stage 2 , while Ep 16 is the model in stage 3 .0 200 400 
+
+> Training Steps
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> Avg@8
+> Off-policy
+> On-policy
+> On-policy + R3
+
+(a) Acc on BeyondAIME 0 200 400 600  
+
+> Training Steps
+> 10
+> 15
+> 20
+> 25
+> 30
+> 35
+> Tokens (K)
+> Off-policy
+> On-policy
+> On-policy + R3
+
+(b) Training resp. length 0 200 400 600  
+
+> Training Steps
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> Logprob Abs. Diff  Off-policy
+> On-policy
+> On-policy + R3
+
+(c) Train–rollout mismatch Figure 5: Comparison of different RL training strategies. An off-policy setting (four updates per rollout) leads to collapse. On-policy updates stabilize training, and adding rollout routing replay (R3) further improves the final score while keeping the train–inference mismatch controlled. To validate this criterion, we initialize RL from checkpoints at different stages, namely epochs 1, 8, and 16. As shown in Figure 4, checkpoints from both stage 1 and stage 3 eventually collapse during RL training. The failure of stage 1 is straightforward: the model has not yet learned an effective TIR strategy, but already invokes tools frequently. Under outcome-only rewards, RL further amplifies these erroneous patterns, ultimately leading to training collapse [21]. The failure of stage 3 is more subtle, since its pass@1 performance is even higher than that of the stage-2 checkpoint. We therefore conduct a deeper analysis of the stage-3 model. As shown in Figure 3, a salient difference in RL is that, compared with the stage-2 model, the stage-3 model has a 
+
+∼5 times larger train–inference mismatch. We attribute this to partial overfitting to the teacher model in stage 3 , where the student begins to absorb teacher-side noise. Moreover, due to the off-policy nature of tool-return tokens in the context, the model becomes more prone to emitting extremely low-probability tokens, making RL optimization substantially more difficult [23, 49]. 
+
+5.3 Stable RL Training for TIR 
+
+TAKEAWAY 6
+
+For the off-policy nature of tool-call returns, stability must be a central consideration in TIR RL. Using on-policy rollouts together with rollout routing replay is simple but necessary. 
+
+In the RL stage, we do not introduce any reward that directly incentivizes tool invocation, since tuning its weight is difficult and may also induce reward hacking. Instead, we carefully construct a high-difficulty, IMO-level dataset from scratch for training, which is available at Appendix A.2. Intuitively, tasks that exceed the inherent limits of text-only reasoning provide a stronger functional incentive for the model to invoke external tools. However, even under the simplest RLVR setup, training quickly collapses with off-policy updates, where each rollout batch is partitioned into four mini-batches for gradient updates. Surprisingly, simply switching to fully on-policy training could mitigate this issue, as shown in Figure 5. Moreover, adding rollout routing replay [ 27 ], which reuses inference-time routing distributions during training, further improves stability and performance (Figure 5). These results highlight that, in the TIR 7Table 7: Performance comparison on competition-level mathematical benchmarks. Results are accuracy (%) under each model’s indicated inference setting. Models marked with † are reported by concurrent TIR systems under their original protocols; all other results follow our unified protocol (§6.1). Highlighted rows are our trained models; bold marks the best result within each scale group. 
+
+Model Tool AIME25 HMMT25 Beyond AIME IMO AnswerBench APEX25 Avg. 
+
+<10B scale 
+
+Qwen3-4B-Thinking-2507 ✗ 82.5 68.8 54.3 57.0 2.8 58.2 Qwen3.5-4B ✗ 75.8 72.9 58.8 59.5 0.0 60.6 Qwen3.5-9B ✗ 85.8 82.1 67.3 65.0 0.0 67.2 TRICE -4B ✗ 79.2 71.3 58.5 61.0 5.6 61.7 ASTER-4B † ✓ 90.0 77.1 61.7 – – –AgentMath-8B † ✓ 84.7 71.3 – – – –TRICE -4B ✓ 96.7 86.7 71.3 68.9 13.9 72.2 
+
+∼30B scale 
+
+Qwen3-30B-A3B-Instruct-2507 ✗ 67.5 55.8 51.3 52.3 2.8 52.5 Qwen3-30B-A3B-Thinking-2507 ✗ 88.8 75.6 65.9 66.1 0.0 67.1 Qwen3.5-35B-A3B ✗ 94.2 85.8 72.5 73.8 0.0 74.7 TRICE -30B ✗ 89.2 81.7 71.0 72.3 0.0 72.8 GPT-OSS-20B ✓ 86.7 83.3 63.0 60.0 8.3 63.4 GLM-4.7-Flash ✓ 95.0 84.2 76.0 68.3 11.1 71.6 Nemotron-3-Nano-30B-A3B ✓ 96.7 90.4 80.0 77.0 11.1 78.8 AgentMath-30B-A3B † ✓ 86.4 73.8 – – – –GLM-4.7-Flash w/ recipe ✓ 98.3 89.6 81.0 78.8 13.9 80.3 TRICE -30B ✓ 99.2 92.5 82.5 80.3 16.7 81.9 
+
+setting, the off-policy nature of external tool returns makes it especially important to avoid additional distributional shifts and to prioritize RL training stability. 
+
+## 6 Experiments 
+
+6.1 Setup 
+
+In the experiment, we compare against a broad set of open-source reasoning models. Unless otherwise noted, all models are evaluated under our unified protocol on five competition-level benchmarks: AIME 2025 [ 19 ], HMMT 2025 [ 7], BeyondAIME [ 1 ], IMOAnswerBench [ 26 ], and APEX 2025 [ 7]. Every question is repeated 8 times to ensure reproducibility. We use a consistent configuration of 80K maximum rollout length and up to 128 tool calls in a stateful sandbox. 
+
+6.2 Main Results TRICE-4B  
+
+> GPT-OSS-20B
+> Nemotron-3
+> -Nano-30B-A3B TRICE-30B
+> GLM-4.7-Flash
+> 20000
+> 30000
+> 40000
+> 50000
+> Mean Response Length  w/ Tools
+> w/o Tools
+
+Figure 6: TIR token efficiency. 
+
+Performance. As shown in Table 7, our models achieve state-of-the-art tool-integrated reasoning performance, surpassing both existing TIR methods and frontier open-source reasoning models at the same or even larger pa-rameter scales. Notably, our models yield substantial gains over the base thinking models, specifically, for the 4B and 30B models, we achieve 14.0% and 14.8% av-erage improvements, respectively. It is also noteworthy that on APEX 2025, a collection of national and inter-national Olympiad problems where most open-source models score near zero, T RICE -4B and T RICE -30B models reach 13.9% and 16.7%, respectively. Moreover, our models retain or even improve the text-only reasoning ability on most benchmarks as presented in Table 7, confirming that with our full-pipeline recipe, the TIR capability is injected without degrading intrinsic reasoning mode. 8Table 8: Performance (%) with larger text-only models on representative benchmarks.                 
+
+> Model Tool HMMT25 BeyondAIME IMOAnswerBench Qwen3-235B-A22B-Thinking ✗88.8 71.8 73.8 DeepSeek-V3.2-Thinking ✗90.8 76.8 75.0 TRICE -30B ✓92.5 82.5 80.3
+
+Table 9: Generalization performance (%) to other domains.                           
+
+> Model Tool FrontierScience GPQA-Diamond LiveCodeBench Qwen3-4B-Thinking-2507 ✗27.5 64.4 51.4 TRICE -4B ✓42.0 (+14.5) 68.8 (+4.4) 55.6 (+4.2) Qwen3-30B-A3B-Thinking-2507 ✗44.9 71.2 61.5 TRICE -30B ✓53.0 (+8.1) 75.4 (+4.2) 73.2 (+11.7)
+
+Efficiency. Beyond solving more problems, tool-integrated reasoning consistently yields shorter responses than text-only (Figure 6), as code compresses lengthy manual arithmetic into concise exe-cutable snippets [ 11 , 18 ]. Also, while achieving superior accuracy, T RICE -30B produces substantially shorter responses than same-scale TIR models such as Nemotron-3-Nano and GLM-4.7-Flash. 
+
+6.3 What TIR Unlocks 
+
+As shown in Table 8, T RICE with tools surpasses substantially larger text-only reasoning models. We further analyze what TIR unlocks that parameter scaling alone cannot replicate. 30.1%   
+
+> 24.4%
+> 21.2%
+> 12.2%
+> 12.2%
+> Empirical Discovery Algorithmic Search
+> Computation Offloading No Tool Use
+> Conjecture Verification
+
+Figure 7: Distribution of the roles code-executor plays in T RICE -30B trajectories on solved questions. 
+
+1) Code executor is not merely a calculator, but a cognitive tool. We annotate each solved trajectory with a primary com-putational purpose with Gemini-3-Flash: empirical discovery, algorithmic search, computation offloading, or conjecture ver-ification (definitions in Appendix D). As Figure 7 shows, code is more often used to explore and discover , such as computing small instances to conjecture a pattern, or enumerating a combi-natorial space instead of merely performing precise arithmetic. This matches the nature of competition-level questions, which require identifying structure from concrete cases or searching over configurations that grow combinatorially. 
+
+2) Scaling text-only reasoning is not a silver bullet. TIR uniquely solves problems dominated by code-critical algorith-mic search. These problems remain challenging for text-only scaling, since natural-language simulation of iterative compu-tation is both context-inefficient and error-prone, especially for large-scale search and multi-case exploration [22]. 
+
+6.4 Generalization Analysis Cross-domain transfer. Although trained only on math data, the learned interleaved reasoning pattern transfers to different domains and tasks. As shown in Table 9, across diverse benchmarks, including FrontierScience [ 38 ], which requires scientific computation, LiveCodeBench [ 16 ], which evaluates code generation ability, and the knowledge-intensive GPQA-Diamond [ 30 ], our models consistently achieve non-trivial improvements over the base models, with gains of up to 14.5%. 
+
+Cross-model transfer. Our recipe is not specific to a single model family. We apply the recipe to GLM-4.7-Flash, a model that already possesses native TIR capability [ 34 ]. As shown in Table 7, GLM-4.7-Flash w/ recipe further improves over the original GLM-4.7-Flash on most benchmarks, confirming that our data and training recipe provide complementary signal even for models with existing tool-use ability. Full training details are in Appendix B.4. 97 Conclusion 
+
+In this study, we addressed the challenge of teaching strong thinking models to perform tool-integrated reasoning. We developed a comprehensive training pipeline, spanning from data curation to SFT and RL training recipe. Through our approaches, our models achieved SOTA performance in TIR while preserving no-tool capabilities and further generalizing to different tasks. We hope this study provides useful insights for the community to train future reasoning models. 
+
+## References 
+
+[1] ByteDance-Seed. BeyondAIME: Advancing math reasoning evaluation beyond high school olympiads. https://huggingface.co/datasets/ByteDance-Seed/BeyondAIME , 2025. Hugging Face dataset. [2] Jiacheng Chen, Qianjia Cheng, Fangchen Yu, Haiyuan Wan, Yuchen Zhang, Shenghe Zheng, Junchi Yao, Qingyang Zhang, Haonan He, Yun Luo, et al. P1: Mastering physics olympiads with reinforcement learning. arXiv preprint arXiv:2511.13612 , 2025. [3] Ganqu Cui, Lifan Yuan, Zefan Wang, Hanbin Wang, Yuchen Zhang, Jiacheng Chen, Wendi Li, Bingxiang He, Yuchen Fan, Tianyu Yu, et al. Process reinforcement through implicit rewards. 
+
+arXiv preprint arXiv:2502.01456 , 2025. [4] Ganqu Cui, Yuchen Zhang, Jiacheng Chen, Lifan Yuan, Zhi Wang, Yuxin Zuo, Haozhan Li, Yuchen Fan, Huayu Chen, Weize Chen, et al. The entropy mechanism of reinforcement learning for reasoning language models. arXiv preprint arXiv:2505.22617 , 2025. [5] DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Han Bao, Hanwei Xu, Haocheng Wang, Honghui Ding, Huajian Xin, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo, Jiashi Li, Jiawei Wang, Jingchang Chen, Jingyang Yuan, Junjie Qiu, Junlong Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Meng Li, Miaojun Wang, Mingming Li, Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L. Jin, Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou, Shaoqing Wu, Shengfeng Ye, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wanjia Zhao, Wen Liu, Wenfeng Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q. Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang, Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Y. X. Zhu, Yanhong Xu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, Ziwei Xie, Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen Zhang. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning, 2025. URL https://arxiv.org/abs/2501.12948 .[6] DeepSeek-AI, Aixin Liu, Aoxue Mei, Bangcai Lin, Bing Xue, Bingxuan Wang, Bingzheng Xu, Bochao Wu, Bowei Zhang, Chaofan Lin, Chen Dong, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenhao Xu, Chong Ruan, Damai Dai, Daya Guo, Dejian Yang, Deli Chen, 10 Erhang Li, Fangqi Zhou, Fangyun Lin, Fucong Dai, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Hanwei Xu, Hao Li, Haofen Liang, Haoran Wei, Haowei Zhang, Haowen Luo, Haozhe Ji, Honghui Ding, Hongxuan Tang, Huanqi Cao, Huazuo Gao, Hui Qu, Hui Zeng, Jialiang Huang, Jiashi Li, Jiaxin Xu, Jiewen Hu, Jingchang Chen, Jingting Xiang, Jingyang Yuan, Jingyuan Cheng, Jinhua Zhu, Jun Ran, Junguang Jiang, Junjie Qiu, Junlong Li, Junxiao Song, Kai Dong, Kaige Gao, Kang Guan, Kexin Huang, Kexing Zhou, Kezhao Huang, Kuai Yu, Lean Wang, Lecong Zhang, Lei Wang, Liang Zhao, Liangsheng Yin, Lihua Guo, Lingxiao Luo, Linwang Ma, Litong Wang, Liyue Zhang, M. S. Di, M. Y Xu, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Mingxu Zhou, Panpan Huang, Peixin Cong, Peiyi Wang, Qiancheng Wang, Qihao Zhu, Qingyang Li, Qinyu Chen, Qiushi Du, Ruiling Xu, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, Runqiu Yin, Runxin Xu, Ruomeng Shen, Ruoyu Zhang, S. H. Liu, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shaofei Cai, Shaoyuan Chen, Shengding Hu, Shengyu Liu, Shiqiang Hu, Shirong Ma, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, Songyang Zhou, Tao Ni, Tao Yun, Tian Pei, Tian Ye, Tianyuan Yue, Wangding Zeng, Wen Liu, Wenfeng Liang, Wenjie Pang, Wenjing Luo, Wenjun Gao, Wentao Zhang, Xi Gao, Xiangwen Wang, Xiao Bi, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaokang Zhang, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xingkai Yu, Xingyou Li, Xinyu Yang, Xinyuan Li, Xu Chen, Xuecheng Su, Xuehai Pan, Xuheng Lin, Xuwei Fu, Y. Q. Wang, Yang Zhang, Yanhong Xu, Yanru Ma, Yao Li, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Qian, Yi Yu, Yichao Zhang, Yifan Ding, Yifan Shi, Yiliang Xiong, Ying He, Ying Zhou, Yinmin Zhong, Yishi Piao, Yisong Wang, Yixiao Chen, Yixuan Tan, Yixuan Wei, Yiyang Ma, Yiyuan Liu, Yonglun Yang, Yongqiang Guo, Yongtong Wu, Yu Wu, Yuan Cheng, Yuan Ou, Yuanfan Xu, Yuduan Wang, Yue Gong, Yuhan Wu, Yuheng Zou, Yukun Li, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Z. F. Wu, Z. Z. Ren, Zehua Zhao, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhibin Gou, Zhicheng Ma, Zhigang Yan, Zhihong Shao, Zhixian Huang, Zhiyu Wu, Zhuoshu Li, Zhuping Zhang, Zian Xu, Zihao Wang, Zihui Gu, Zijia Zhu, Zilin Li, Zipeng Zhang, Ziwei Xie, Ziyi Gao, Zizheng Pan, Zongqing Yao, Bei Feng, Hui Li, J. L. Cai, Jiaqi Ni, Lei Xu, Meng Li, Ning Tian, R. J. Chen, R. L. Jin, S. S. Li, Shuang Zhou, Tianyu Sun, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xinnan Song, Xinyi Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, Dongjie Ji, Jian Liang, Jianzhong Guo, Jin Chen, Leyi Xia, Miaojun Wang, Mingming Li, Peng Zhang, Ruyi Chen, Shangmian Sun, Shaoqing Wu, Shengfeng Ye, T. Wang, W. L. Xiao, Wei An, Xianzu Wang, Xiaowen Sun, Xiaoxiang Wang, Ying Tang, Yukun Zha, Zekai Zhang, Zhe Ju, Zhen Zhang, and Zihua Qu. Deepseek-v3.2: Pushing the frontier of open large language models, 2025. URL 
+
+https://arxiv.org/abs/2512.02556 .[7] Jasper Dekoninck, Nikola Jovanovi´ c, Tim Gehrunger, Kári Rögnvalddson, Ivo Petrov, Chenhao Sun, and Martin Vechev. Beyond benchmarks: Matharena as an evaluation platform for mathematics with llms. 2026. URL https://arxiv.org/abs/2605.00674 .[8] Guanting Dong, Hangyu Mao, Kai Ma, Licheng Bao, Yifei Chen, Zhongyuan Wang, Zhongxia Chen, Jiazhen Du, Huiyang Wang, Fuzheng Zhang, et al. Agentic reinforced policy optimization. 
+
+arXiv preprint arXiv:2507.19849 , 2025. [9] Wei Du, Shubham Toshniwal, Branislav Kisacanin, Sadegh Mahdavi, Ivan Moshkov, George Armstrong, Stephen Ge, Edgar Minasyan, Feng Chen, and Igor Gitman. Nemotron-math: Efficient long-context distillation of mathematical reasoning from multi-mode supervision. 
+
+arXiv preprint arXiv:2512.15489 , 2025. [10] Weihua Du, Hailei Gong, Zhan Ling, Kang Liu, Lingfeng Shen, Xuesong Yao, Yufei Xu, Dingyuan Shi, Yiming Yang, and Jiecao Chen. Generalizable end-to-end tool-use rl with synthetic codegym. arXiv preprint arXiv:2509.17325 , 2025. [11] Jiazhan Feng, Shijue Huang, Xingwei Qu, Ge Zhang, Yujia Qin, Baoquan Zhong, Chengquan Jiang, Jinxin Chi, and Wanjun Zhong. Retool: Reinforcement learning for strategic tool use in llms, 2025. URL https://arxiv.org/abs/2504.11536 .[12] Luyu Gao, Aman Madaan, Shuyan Zhou, Uri Alon, Pengfei Liu, Yiming Yang, Jamie Callan, and Graham Neubig. PAL: Program-aided language models. In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett, editors, Proceedings 
+
+11 of the 40th International Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pages 10764–10799. PMLR, 23–29 Jul 2023. URL https: //proceedings.mlr.press/v202/gao23f.html .[13] Tianyu Gao, Alexander Wettig, Howard Yen, and Danqi Chen. How to train long-context language models (effectively). In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 7376–7399, 2025. [14] Etash Guha, Ryan Marten, Sedrick Keh, Negin Raoof, Georgios Smyrnis, Hritik Bansal, Marianna Nezhurina, Jean Mercat, Trung Vu, Zayne Sprague, et al. Openthoughts: Data recipes for reasoning models. arXiv preprint arXiv:2506.04178 , 2025. [15] Bingxiang He, Zekai Qu, Zeyuan Liu, Yinghao Chen, Yuxin Zuo, Cheng Qian, Kaiyan Zhang, Weize Chen, Chaojun Xiao, Ganqu Cui, et al. Justrl: Scaling a 1.5 b llm with a simple rl recipe. 
+
+arXiv preprint arXiv:2512.16649 , 2025. [16] Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia Yan, Tianjun Zhang, Sida Wang, Ar-mando Solar-Lezama, Koushik Sen, and Ion Stoica. Livecodebench: Holistic and contamination free evaluation of large language models for code, 2024. URL https://arxiv.org/abs/ 2403.07974 .[17] Xue Jiang, Yihong Dong, Yongding Tao, Huanyu Liu, Zhi Jin, and Ge Li. Rocode: Integrating backtracking mechanism and program analysis in large language models for code generation. In 2025 IEEE/ACM 47th International Conference on Software Engineering (ICSE) , pages 334–346. IEEE, 2025. [18] Chengpeng Li, Zhengyang Tang, Ziniu Li, Mingfeng Xue, Keqin Bao, Tian Ding, Ruoyu Sun, Benyou Wang, Xiang Wang, Junyang Lin, and Dayiheng Liu. Cort: Code-integrated reasoning within thinking, 2025. URL https://arxiv.org/abs/2506.09820 .[19] Jia Li, Edward Beeching, Lewis Tunstall, Ben Lipkin, Roman Soletskyi, Shengyi Huang, Kashif Rasul, Longhui Yu, Albert Q Jiang, Ziju Shen, et al. Numinamath: The largest public dataset in ai4maths with 860k pairs of competition math problems and solutions. Hugging Face repository ,13:9, 2024. [20] Kun Li, Zenan Xu, Junan Li, Zengrui Jin, Jinghao Deng, Zexuan Qiu, and Bo Zhou. Discovery and reinforcement of tool-integrated reasoning chains via rollout trees, 2026. URL https: //arxiv.org/abs/2601.08274 .[21] Yingru Li, Jiawei Xu, Jiacai Liu, Yuxuan Tong, Ziniu Li, Tianle Cai, Ge Zhang, Qian Liu, and Baoxiang Wang. Taming the tail: Stable llm reinforcement learning via dynamic vocabulary pruning. arXiv preprint arXiv:2512.23087 , 2025. [22] Heng Lin and Zhongwen Xu. Understanding tool-integrated reasoning, 2025. URL https: //arxiv.org/abs/2508.19201 .[23] Jiacai Liu, Yingru Li, Yuqian Fu, Jiawei Wang, Qian Liu, and Yu Shen. When speed kills stability: Demystifying rl collapse from the training-inference mismatch. Notion Blog , 2025. [24] Renjie Luo, Jiaxi Li, Chen Huang, and Wei Lu. Through the valley: Path to effective long CoT training for small language models. In Christos Christodoulopoulos, Tanmoy Chakraborty, Carolyn Rose, and Violet Peng, editors, Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing , pages 4972–4992, Suzhou, China, November 2025. Association for Computational Linguistics. ISBN 979-8-89176-332-6. doi: 10.18653/v1/2025. emnlp-main.251. URL https://aclanthology.org/2025.emnlp-main.251/ .[25] Yun Luo, Futing Wang, Qianjia Cheng, Fangchen Yu, Haodi Lei, Jianhao Yan, Chenxi Li, Jiacheng Chen, Yufeng Zhao, Haiyuan Wan, et al. P1-vl: bridging visual perception and scientific reasoning in physics olympiads. arXiv preprint arXiv:2602.09443 , 2026. [26] Thang Luong, Dawsen Hwang, Hoang H. Nguyen, Golnaz Ghiasi, Yuri Chervonyi, Insuk Seo, Junsu Kim, Garrett Bingham, Jonathan Lee, Swaroop Mishra, Alex Zhai, Clara Huiyi Hu, Henryk Michalewski, Jimin Kim, Jeonghyun Ahn, Junhwi Bae, Xingyou Song, Trieu H. Trinh, 12 Quoc V. Le, and Junehyuk Jung. Towards robust mathematical reasoning. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing , 2025. URL 
+
+https://aclanthology.org/2025.emnlp-main.1794/ .[27] Wenhan Ma, Hailin Zhang, Liang Zhao, Yifan Song, Yudong Wang, Zhifang Sui, and Fuli Luo. Stabilizing moe reinforcement learning by aligning training and inference routers, 2025. URL 
+
+https://arxiv.org/abs/2510.11370 .[28] OpenAI. gpt-oss-120b and gpt-oss-20b model card, 2025. URL https://arxiv.org/abs/ 2508.10925 .[29] OpenAI, Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Flo-rencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, Red Avila, Igor Babuschkin, Suchir Balaji, Valerie Balcom, Paul Baltescu, Haiming Bao, Mohammad Bavarian, Jeff Belgum, Irwan Bello, Jake Berdine, Gabriel Bernadett-Shapiro, Christopher Berner, Lenny Bogdonoff, Oleg Boiko, Madelaine Boyd, Anna-Luisa Brakman, Greg Brockman, Tim Brooks, Miles Brundage, Kevin Button, Trevor Cai, Rosie Campbell, An-drew Cann, Brittany Carey, Chelsea Carlson, Rory Carmichael, Brooke Chan, Che Chang, Fotis Chantzis, Derek Chen, Sully Chen, Ruby Chen, Jason Chen, Mark Chen, Ben Chess, Chester Cho, Casey Chu, Hyung Won Chung, Dave Cummings, Jeremiah Currier, Yunxing Dai, Cory Decareaux, Thomas Degry, Noah Deutsch, Damien Deville, Arka Dhar, David Dohan, Steve Dowling, Sheila Dunning, Adrien Ecoffet, Atty Eleti, Tyna Eloundou, David Farhi, Liam Fedus, Niko Felix, Simón Posada Fishman, Juston Forte, Isabella Fulford, Leo Gao, Elie Georges, Christian Gibson, Vik Goel, Tarun Gogineni, Gabriel Goh, Rapha Gontijo-Lopes, Jonathan Gordon, Morgan Grafstein, Scott Gray, Ryan Greene, Joshua Gross, Shixiang Shane Gu, Yufei Guo, Chris Hallacy, Jesse Han, Jeff Harris, Yuchen He, Mike Heaton, Johannes Heidecke, Chris Hesse, Alan Hickey, Wade Hickey, Peter Hoeschele, Brandon Houghton, Kenny Hsu, Shengli Hu, Xin Hu, Joost Huizinga, Shantanu Jain, Shawn Jain, Joanne Jang, Angela Jiang, Roger Jiang, Haozhun Jin, Denny Jin, Shino Jomoto, Billie Jonn, Heewoo Jun, Tomer Kaftan, Łukasz Kaiser, Ali Kamali, Ingmar Kanitscheider, Nitish Shirish Keskar, Tabarak Khan, Logan Kilpatrick, Jong Wook Kim, Christina Kim, Yongjik Kim, Jan Hendrik Kirchner, Jamie Kiros, Matt Knight, Daniel Kokotajlo, Łukasz Kondraciuk, Andrew Kondrich, Aris Konstantinidis, Kyle Kosic, Gretchen Krueger, Vishal Kuo, Michael Lampe, Ikai Lan, Teddy Lee, Jan Leike, Jade Leung, Daniel Levy, Chak Ming Li, Rachel Lim, Molly Lin, Stephanie Lin, Mateusz Litwin, Theresa Lopez, Ryan Lowe, Patricia Lue, Anna Makanju, Kim Malfacini, Sam Man-ning, Todor Markov, Yaniv Markovski, Bianca Martin, Katie Mayer, Andrew Mayne, Bob McGrew, Scott Mayer McKinney, Christine McLeavey, Paul McMillan, Jake McNeil, David Medina, Aalok Mehta, Jacob Menick, Luke Metz, Andrey Mishchenko, Pamela Mishkin, Vinnie Monaco, Evan Morikawa, Daniel Mossing, Tong Mu, Mira Murati, Oleg Murk, David Mély, Ashvin Nair, Reiichiro Nakano, Rajeev Nayak, Arvind Neelakantan, Richard Ngo, Hyeonwoo Noh, Long Ouyang, Cullen O’Keefe, Jakub Pachocki, Alex Paino, Joe Palermo, Ashley Pan-tuliano, Giambattista Parascandolo, Joel Parish, Emy Parparita, Alex Passos, Mikhail Pavlov, Andrew Peng, Adam Perelman, Filipe de Avila Belbute Peres, Michael Petrov, Henrique Ponde de Oliveira Pinto, Michael, Pokorny, Michelle Pokrass, Vitchyr H. Pong, Tolly Powell, Alethea Power, Boris Power, Elizabeth Proehl, Raul Puri, Alec Radford, Jack Rae, Aditya Ramesh, Cameron Raymond, Francis Real, Kendra Rimbach, Carl Ross, Bob Rotsted, Henri Roussez, Nick Ryder, Mario Saltarelli, Ted Sanders, Shibani Santurkar, Girish Sastry, Heather Schmidt, David Schnurr, John Schulman, Daniel Selsam, Kyla Sheppard, Toki Sherbakov, Jessica Shieh, Sarah Shoker, Pranav Shyam, Szymon Sidor, Eric Sigler, Maddie Simens, Jordan Sitkin, Kata-rina Slama, Ian Sohl, Benjamin Sokolowsky, Yang Song, Natalie Staudacher, Felipe Petroski Such, Natalie Summers, Ilya Sutskever, Jie Tang, Nikolas Tezak, Madeleine B. Thompson, Phil Tillet, Amin Tootoonchian, Elizabeth Tseng, Preston Tuggle, Nick Turley, Jerry Tworek, Juan Felipe Cerón Uribe, Andrea Vallone, Arun Vijayvergiya, Chelsea Voss, Carroll Wainwright, Justin Jay Wang, Alvin Wang, Ben Wang, Jonathan Ward, Jason Wei, CJ Weinmann, Akila Welihinda, Peter Welinder, Jiayi Weng, Lilian Weng, Matt Wiethoff, Dave Willner, Clemens Winter, Samuel Wolrich, Hannah Wong, Lauren Workman, Sherwin Wu, Jeff Wu, Michael Wu, Kai Xiao, Tao Xu, Sarah Yoo, Kevin Yu, Qiming Yuan, Wojciech Zaremba, Rowan Zellers, Chong Zhang, Marvin Zhang, Shengjia Zhao, Tianhao Zheng, Juntang Zhuang, William Zhuk, and Barret Zoph. Gpt-4 technical report, 2024. URL https://arxiv.org/abs/2303.08774 .13 [30] David Rein, Betty Li Hou, Asa Cooper Stickland, Jackson Petty, Richard Yuanzhe Pang, Julien Dirani, Julian Michael, and Samuel R Bowman. Gpqa: A graduate-level google-proof q&a benchmark. In First Conference on Language Modeling , 2024. [31] Ning Shang, Yifei Liu, Yi Zhu, Li Lyna Zhang, Weijiang Xu, Xinyu Guan, Buze Zhang, Bingcheng Dong, Xudong Zhou, Bowen Zhang, et al. rstar2-agent: Agentic reasoning technical report. arXiv preprint arXiv:2508.20722 , 2025. [32] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, Y. K. Li, Y. Wu, and Daya Guo. Deepseekmath: Pushing the limits of mathematical reasoning in open language models, 2024. URL https://arxiv.org/abs/ 2402.03300 .[33] Richard S Sutton and Andrew G Barto. Reinforcement learning: An introduction . MIT press, 2018. [34] 5 Team, Aohan Zeng, Xin Lv, Qinkai Zheng, Zhenyu Hou, Bin Chen, Chengxing Xie, Cunxiang Wang, Da Yin, Hao Zeng, Jiajie Zhang, Kedong Wang, Lucen Zhong, Mingdao Liu, Rui Lu, Shulin Cao, Xiaohan Zhang, Xuancheng Huang, Yao Wei, Yean Cheng, Yifan An, Yilin Niu, Yuanhao Wen, Yushi Bai, Zhengxiao Du, Zihan Wang, Zilin Zhu, Bohan Zhang, Bosi Wen, Bowen Wu, Bowen Xu, Can Huang, Casey Zhao, Changpeng Cai, Chao Yu, Chen Li, Chendi Ge, Chenghua Huang, Chenhui Zhang, Chenxi Xu, Chenzheng Zhu, Chuang Li, Congfeng Yin, Daoyan Lin, Dayong Yang, Dazhi Jiang, Ding Ai, Erle Zhu, Fei Wang, Gengzheng Pan, Guo Wang, Hailong Sun, Haitao Li, Haiyang Li, Haiyi Hu, Hanyu Zhang, Hao Peng, Hao Tai, Haoke Zhang, Haoran Wang, Haoyu Yang, He Liu, He Zhao, Hongwei Liu, Hongxi Yan, Huan Liu, Huilong Chen, Ji Li, Jiajing Zhao, Jiamin Ren, Jian Jiao, Jiani Zhao, Jianyang Yan, Jiaqi Wang, Jiayi Gui, Jiayue Zhao, Jie Liu, Jijie Li, Jing Li, Jing Lu, Jingsen Wang, Jingwei Yuan, Jingxuan Li, Jingzhao Du, Jinhua Du, Jinxin Liu, Junkai Zhi, Junli Gao, Ke Wang, Lekang Yang, Liang Xu, Lin Fan, Lindong Wu, Lintao Ding, Lu Wang, Man Zhang, Minghao Li, Minghuan Xu, Mingming Zhao, Mingshu Zhai, Pengfan Du, Qian Dong, Shangde Lei, Shangqing Tu, Shangtong Yang, Shaoyou Lu, Shijie Li, Shuang Li, Shuang-Li, Shuxun Yang, Sibo Yi, Tianshu Yu, Wei Tian, Weihan Wang, Wenbo Yu, Weng Lam Tam, Wenjie Liang, Wentao Liu, Xiao Wang, Xiaohan Jia, Xiaotao Gu, Xiaoying Ling, Xin Wang, Xing Fan, Xingru Pan, Xinyuan Zhang, Xinze Zhang, Xiuqing Fu, Xunkai Zhang, Yabo Xu, Yandong Wu, Yida Lu, Yidong Wang, Yilin Zhou, Yiming Pan, Ying Zhang, Yingli Wang, Yingru Li, Yinpei Su, Yipeng Geng, Yitong Zhu, Yongkun Yang, Yuhang Li, Yuhao Wu, Yujiang Li, Yunan Liu, Yunqing Wang, Yuntao Li, Yuxuan Zhang, Zezhen Liu, Zhen Yang, Zhengda Zhou, Zhongpei Qiao, Zhuoer Feng, Zhuorui Liu, Zichen Zhang, Zihan Wang, Zijun Yao, Zikang Wang, Ziqiang Liu, Ziwei Chai, Zixuan Li, Zuodong Zhao, Wenguang Chen, Jidong Zhai, Bin Xu, Minlie Huang, Hongning Wang, Juanzi Li, Yuxiao Dong, and Jie Tang. Glm-4.5: Agentic, reasoning, and coding (arc) foundation models, 2025. URL https://arxiv.org/abs/2508.06471 .[35] Kimi Team, Tongtong Bai, Yifan Bai, Yiping Bao, S. H. Cai, Yuan Cao, Y. Charles, H. S. Che, Cheng Chen, Guanduo Chen, Huarong Chen, Jia Chen, Jiahao Chen, Jianlong Chen, Jun Chen, Kefan Chen, Liang Chen, Ruijue Chen, Xinhao Chen, Yanru Chen, Yanxu Chen, Yicun Chen, Yimin Chen, Yingjiang Chen, Yuankun Chen, Yujie Chen, Yutian Chen, Zhirong Chen, Ziwei Chen, Dazhi Cheng, Minghan Chu, Jialei Cui, Jiaqi Deng, Muxi Diao, Hao Ding, Mengfan Dong, Mengnan Dong, Yuxin Dong, Yuhao Dong, Angang Du, Chenzhuang Du, Dikang Du, Lingxiao Du, Yulun Du, Yu Fan, Shengjun Fang, Qiulin Feng, Yichen Feng, Garimugai Fu, Kelin Fu, Hongcheng Gao, Tong Gao, Yuyao Ge, Shangyi Geng, Chengyang Gong, Xiaochen Gong, Zhuoma Gongque, Qizheng Gu, Xinran Gu, Yicheng Gu, Longyu Guan, Yuanying Guo, Xiaoru Hao, Weiran He, Wenyang He, Yunjia He, Chao Hong, Hao Hu, Jiaxi Hu, Yangyang Hu, Zhenxing Hu, Ke Huang, Ruiyuan Huang, Weixiao Huang, Zhiqi Huang, Tao Jiang, Zhejun Jiang, Xinyi Jin, Yu Jing, Guokun Lai, Aidi Li, C. Li, Cheng Li, Fang Li, Guanghe Li, Guanyu Li, Haitao Li, Haoyang Li, Jia Li, Jingwei Li, Junxiong Li, Lincan Li, Mo Li, Weihong Li, Wentao Li, Xinhang Li, Xinhao Li, Yang Li, Yanhao Li, Yiwei Li, Yuxiao Li, Zhaowei Li, Zheming Li, Weilong Liao, Jiawei Lin, Xiaohan Lin, Zhishan Lin, Zichao Lin, Cheng Liu, Chenyu Liu, Hongzhang Liu, Liang Liu, Shaowei Liu, Shudong Liu, Shuran Liu, Tianwei Liu, Tianyu Liu, Weizhou Liu, Xiangyan Liu, Yangyang Liu, Yanming Liu, Yibo Liu, Yuanxin Liu, Yue Liu, Zhengying Liu, Zhongnuo Liu, Enzhe Lu, Haoyu Lu, Zhiyuan Lu, Junyu Luo, Tongxu Luo, Yashuo Luo, Long Ma, Yingwei Ma, Shaoguang Mao, Yuan Mei, Xin Men, Fanqing Meng, 14 Zhiyong Meng, Yibo Miao, Minqing Ni, Kun Ouyang, Siyuan Pan, Bo Pang, Yuchao Qian, Ruoyu Qin, Zeyu Qin, Jiezhong Qiu, Bowen Qu, Zeyu Shang, Youbo Shao, Tianxiao Shen, Zhennan Shen, Juanfeng Shi, Lidong Shi, Shengyuan Shi, Feifan Song, Pengwei Song, Tianhui Song, Xiaoxi Song, Hongjin Su, Jianlin Su, Zhaochen Su, Lin Sui, Jinsong Sun, Junyao Sun, Tongyu Sun, Flood Sung, Yunpeng Tai, Chuning Tang, Heyi Tang, Xiaojuan Tang, Zhengyang Tang, Jiawen Tao, Shiyuan Teng, Chaoran Tian, Pengfei Tian, Ao Wang, Bowen Wang, Chensi Wang, Chuang Wang, Congcong Wang, Dingkun Wang, Dinglu Wang, Dongliang Wang, Feng Wang, Hailong Wang, Haiming Wang, Hengzhi Wang, Huaqing Wang, Hui Wang, Jiahao Wang, Jinhong Wang, Jiuzheng Wang, Kaixin Wang, Linian Wang, Qibin Wang, Shengjie Wang, Shuyi Wang, Si Wang, Wei Wang, Xiaochen Wang, Xinyuan Wang, Yao Wang, Yejie Wang, Yipu Wang, Yiqin Wang, Yucheng Wang, Yuzhi Wang, Zhaoji Wang, Zhaowei Wang, Zhengtao Wang, Zhexu Wang, Zihan Wang, Zizhe Wang, Chu Wei, Ming Wei, Chuan Wen, Zichen Wen, Chengjie Wu, Haoning Wu, Junyan Wu, Rucong Wu, Wenhao Wu, Yuefeng Wu, Yuhao Wu, Yuxin Wu, Zijian Wu, Chenjun Xiao, Jin Xie, Xiaotong Xie, Yuchong Xie, Yifei Xin, Bowei Xing, Boyu Xu, Jianfan Xu, Jing Xu, Jinjing Xu, L. H. Xu, Lin Xu, Suting Xu, Weixin Xu, Xinbo Xu, Xinran Xu, Yangchuan Xu, Yichang Xu, Yuemeng Xu, Zelai Xu, Ziyao Xu, Junjie Yan, Yuzi Yan, Guangyao Yang, Hao Yang, Junwei Yang, Kai Yang, Ningyuan Yang, Ruihan Yang, Xiaofei Yang, Xinlong Yang, Ying Yang, Yi Yang, Yi Yang, Zhen Yang, Zhilin Yang, Zonghan Yang, Haotian Yao, Dan Ye, Wenjie Ye, Zhuorui Ye, Bohong Yin, Chengzhen Yu, Longhui Yu, Tao Yu, Tianxiang Yu, Enming Yuan, Mengjie Yuan, Xiaokun Yuan, Yang Yue, Weihao Zeng, Dunyuan Zha, Haobing Zhan, Dehao Zhang, Hao Zhang, Jin Zhang, Puqi Zhang, Qiao Zhang, Rui Zhang, Xiaobin Zhang, Y. Zhang, Yadong Zhang, Yangkun Zhang, Yichi Zhang, Yizhi Zhang, Yongting Zhang, Yu Zhang, Yushun Zhang, Yutao Zhang, Yutong Zhang, Zheng Zhang, Chenguang Zhao, Feifan Zhao, Jinxiang Zhao, Shuai Zhao, Xiangyu Zhao, Yikai Zhao, Zijia Zhao, Huabin Zheng, Ruihan Zheng, Shaojie Zheng, Tengyang Zheng, Junfeng Zhong, Longguang Zhong, Weiming Zhong, M. Zhou, Runjie Zhou, Xinyu Zhou, Zaida Zhou, Jinguo Zhu, Liya Zhu, Xinhao Zhu, Yuxuan Zhu, Zhen Zhu, Jingze Zhuang, Weiyu Zhuang, Ying Zou, and Xinxing Zu. Kimi k2.5: Visual agentic intelligence, 2026. URL 
+
+https://arxiv.org/abs/2602.02276 .[36] Minimax Team. Minimax m2.7: Early echoes of self-evolution. 
+
+https://www.minimax.io/news/minimax-m27-en , 2026. [37] Guoqing Wang, Sunhao Dai, Guangze Ye, Zeyu Gan, Wei Yao, Yong Deng, Xiaofeng Wu, and Zhenzhe Ying. Information gain-based policy optimization: A simple and effective approach for multi-turn llm agents. arXiv preprint arXiv:2510.14967 , 2025. [38] Miles Wang, Robi Lin, Kat Hu, Joy Jiao, Neil Chowdhury, Ethan Chang, and Tejal Patwardhan. Frontierscience: Evaluating ai’s ability to perform expert-level scientific tasks. arXiv preprint arXiv:2601.21165 , 2026. [39] Peng Xia, Kaide Zeng, Jiaqi Liu, Can Qin, Fang Wu, Yiyang Zhou, Caiming Xiong, and Huaxiu Yao. Agent0: Unleashing self-evolving agents from zero data via tool-integrated reasoning. 
+
+arXiv preprint arXiv:2511.16043 , 2025. [40] Zhenghai Xue, Longtao Zheng, Qian Liu, Yingru Li, Xiaosen Zheng, Zejun Ma, and Bo An. Simpletir: End-to-end reinforcement learning for multi-turn tool-integrated reasoning, 2025. URL https://arxiv.org/abs/2509.02479 .[41] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. Qwen3 technical report, 2025. URL https://arxiv.org/abs/2505.09388 .[42] Zhaochen Yu, Ling Yang, Jiaru Zou, Shuicheng Yan, and Mengdi Wang. Demystifying reinforcement learning in agentic reasoning. arXiv preprint arXiv:2510.11701 , 2025. 15 [43] Lifan Yuan, Weize Chen, Yuchen Zhang, Ganqu Cui, Hanbin Wang, Ziming You, Ning Ding, Zhiyuan Liu, Maosong Sun, and Hao Peng. From f (x) and g(x) to f (g(x)) : Llms learn new skills in rl by composing old ones. arXiv preprint arXiv:2509.25123 , 2025. [44] Weihao Zeng, Yuzhen Huang, Qian Liu, Wei Liu, Keqing He, Zejun Ma, and Junxian He. Simplerl-zoo: Investigating and taming zero reinforcement learning for open base models in the wild, 2025. URL https://arxiv.org/abs/2503.18892 .[45] Kaiyan Zhang, Yuxin Zuo, Bingxiang He, Youbang Sun, Runze Liu, Che Jiang, Yuchen Fan, Kai Tian, Guoli Jia, Pengfei Li, et al. A survey of reinforcement learning for large reasoning models. arXiv preprint arXiv:2509.08827 , 2025. [46] Wenhao Zhang, Yuexiang Xie, Yuchang Sun, Yanxi Chen, Guoyin Wang, Yaliang Li, Bolin Ding, and Jingren Zhou. On-policy rl meets off-policy experts: Harmonizing supervised fine-tuning and reinforcement learning via dynamic weighting, 2026. URL https://arxiv.org/ abs/2508.11408 .[47] Xuqin Zhang, Quan He, Zhenrui Zheng, Zongzhang Zhang, Xu He, and Dong Li. Aster: Agentic scaling with tool-integrated extended reasoning, 2026. URL https://arxiv.org/ abs/2602.01204 .[48] Yabo Zhang, Yihan Zeng, Qingyun Li, Zhen Hu, Kavin Han, and Wangmeng Zuo. Tool-r1: Sample-efficient reinforcement learning for agentic tool use. arXiv preprint arXiv:2509.12867 ,2025. [49] Chujie Zheng, Kai Dang, Bowen Yu, Mingze Li, Huiqiang Jiang, Junrong Lin, Yuqiong Liu, Hao Lin, Chencan Wu, Feng Hu, et al. Stabilizing reinforcement learning with llms: Formulation and practices. arXiv preprint arXiv:2512.01374 , 2025. [50] Zilin Zhu, Chengxing Xie, Xin Lv, and slime Contributors. slime: An llm post-training framework for rl scaling. https://github.com/THUDM/slime , 2025. GitHub repository. Corresponding author: Xin Lv. [51] Yuxin Zuo, Kaiyan Zhang, Li Sheng, Shang Qu, Ganqu Cui, Xuekai Zhu, Haozhan Li, Yuchen Zhang, Xinwei Long, Ermo Hua, Biqing Qi, Youbang Sun, Zhiyuan Ma, Lifan Yuan, Ning Ding, and Bowen Zhou. Ttrl: Test-time reinforcement learning, 2025. URL https://arxiv. org/abs/2504.16084 .16 Appendix A Data Processing 
+
+A.1 SFT Data Construction 0.3 0.4 0.5 0.6 0.7 
+
+> Average Difficulty
+> TIR(Random)
+> TIR(Tool-adv.)
+> Mixed
+> Mixed, 16k
+
+Figure 8: Average prompt difficulty across SFT data configurations. Difficulty is mea-sured by the avg@8 accuracy of GPT-OSS-120B; higher values indicate easier prompts. For SFT, we need a prompt pool that is large enough to support selection rather than merely sampling. Nemotron-Math-v2 [ 9] provides such a source, con-taining ∼347K mathematical problems with broad topic coverage. From this pool, we construct 65K training sets by rolling one trajectory from GPT-OSS-120B per problem under a stateful sandbox. The final recipe keeps prompts where the teacher benefits from tool access, mixes the resulting TIR trajectories with text-only trajectories, and filters out trajectories longer than 16K tokens. We further note that, for the ablation study in Sec-tion 4.2, we keep the prompt difficulty in a reasonable and consistent range across compared settings to rule out difficulty as the main explanation for the observed differences. As shown in Figure 8, all TIR data variants stay within a narrow difficulty band. 
+
+A.2 RL Data Construction 
+
+We construct 4,325 math QA examples that are challenging, high-quality, and reliably verifiable for RLVR training. The construction process consists of three stages: source collection, QA extraction, and data filtering. 
+
+Data collection. We collect roughly 20K raw problems from mathematical competition books and public online math puzzle sites. The book sources cover olympiad yearbooks, IMO training materials, topic-oriented collections, and translated competition references, while the online sources provide additional answer-oriented problems with concise statements. 
+
+QA extraction. QA extraction mainly targets the book data, where problems and solutions are embedded in long, heterogeneous documents rather than already separated into fields. We use a provenance-centered extraction pipeline: each book is converted to Markdown, line-indexed, and split into overlapping chunks. The extraction model predicts only source coordinates for candidate problems, from which statements are reconstructed. Answer localization is also coordinate-based: candidate solution spans are retrieved from the same book and recovered from the original text. We then normalize statements and answers into English LaTeX and extract final answers in \boxed{} 
+
+format when possible. Online problems are converted to the same schema, with a normalized statement, final answer, and source metadata. 
+
+Data filtering. To enhance the quality and reliability of the extracted data, we apply four filters: problem quality filtering, deduplication, verifiability filtering, and difficulty filtering. We first remove malformed or incomplete records, including layout noise, solution fragments, context-dependent statements, and problems that require diagrams or subjective explanations. We then keep only examples whose final answers can be reliably verified, excluding proof-oriented questions and cases where the answer cannot be normalized into a stable format. Finally, we sample each problem eight times with DeepSeek-Speciale and retain only problems with fewer than six correct attempts. After these steps, we obtain 4,325 problems, each instantiated in both with-tool and text-only formats for RL training. 
+
+## B Experimental Details 
+
+B.1 Training Settings Base Models We use three base models: Qwen3-4B-Thinking-2507 [ 41 ], Qwen3-30B-A3B-Thinking-2507 [ 41 ], and GLM-4.7-Flash [ 34 ]. The 4B model is a dense decoder-only Transformer, 17 Table 10: Hyperparameters used for full-parameter SFT.              
+
+> Hyperparameter Qwen3-4B-Thinking-2507 Qwen3-30B-A3B-Thinking-2507 Number of Epochs 12 8Batch Size 128 Learning Rate 1×10 −5
+> Optimizer AdamW Learning Rate Scheduler cosine Max Sequence Length 16,384 Warmup ratio 0.1 Training Precision bfloat16
+
+Table 11: Hyperparameters used for RLVR.                   
+
+> Hyperparameter Qwen3-4B-Thinking-2507 Qwen3-30B-A3B-Thinking-2507 Algorithm GSPO w. TIS GSPO w. TIS Train Batch Size 32 Max Response Length 65,536 Max Tool Calls 128 Learning Rate 1e-6 Temperature 1.0 Rollout N 8Partial Rollout Yes Dynamic Sampling Filter Yes Verifier Rule-based + Model-based MoE Freeze Router No Yes Rollout Routing Replay No Yes Framework Slime
+
+while Qwen3-30B-A3B-Thinking-2507 and GLM-4.7-Flash are sparse MoE models with about 30B total and 3B activated parameters. Both Qwen3 models are post-trained thinking models that provide strong long-chain-of-thought baselines but lack reliable interleaved tool use. In contrast, GLM-4.7-Flash is a MoE model with native TIR capability. 
+
+SFT Training Our SFT training is conducted using Slime framework [ 50 ] on a server equipped with 8 H200 (141GB) GPUs. We adopt full-parameter fine-tuning for all SFT experiments. The detailed hyperparameters we used are presented in Table 10, which are determined through a preliminary hyperparameter search. 
+
+RL Training Starting from the SFT checkpoints, we further train the models with RLVR in the Slime framework. RL rollouts are generated and verified by a hybrid rule- and model-based verifier, while partial rollout, dynamic sampling, and model-specific MoE safeguards are used to improve training stability. All RL experiments are conducted on 64 H200 GPUs. The detailed hyperparameters are summarized in Table 11. 
+
+B.2 Evaluation Settings 
+
+We primarily evaluate on five competition-level mathematical benchmarks: AIME 2025, HMMT 2025, BeyondAIME, IMOAnswerBench, and APEX 2025. These benchmarks cover a wide range of mathematical reasoning skills, including algebra, number theory, combinatorics, geometry, olympiad-style problem solving, and extremely challenging questions. To assess out-of-domain generalization, we further evaluate on FrontierScience, GPQA-Diamond, and LiveCodeBench, which extend the testbed to scientific reasoning, knowledge-intensive QA, and coding. To ensure robust evaluation, we perform 8 independent rollouts per question under both with-tool and no-tool settings, and report avg@8 as the pass@1 metric. We use a consistent rollout budget across models: maximum response length is 80K tokens, and tool-enabled runs allow up to 128 tool calls in a stateful Python sandbox. Sampling parameters such as temperature, top-p, and top-k follow the recommended configuration for each model; for our Qwen3-based models, we use temperature 18 0.6, top-p = 0 .95 , and top-k = 20 . For answer validation, we follow the Rule+Model verification protocol [ 2]: after extracting final answers from \boxed{} markers when available, we first apply a rule-based verifier, and use the model verifier only when rule-based verification fails. 
+
+B.3 TIR SFT Dynamics of Qwen3-4B-Thinking-2507 0 8 16 24 32  
+
+> SFT Epoch
+> 0.6
+> 0.8
+> Accuracy  Form Substance Noise
+> Avg@8
+> Pass@8
+
+(a) Accuracy 0 8 16 24 32  
+
+> SFT Epoch
+> 25
+> 30
+> 35
+> Tokens (K)
+
+(b) Response length 0 8 16 24 32  
+
+> SFT Epoch
+> 0
+> 10
+> 20
+> Rate (%)
+
+(c) Length trunc. rate 0 8 16 24 32  
+
+> SFT Epoch
+> 0
+> 10
+> 20
+> Count
+
+(d) Tool call counts Figure 9: TIR SFT dynamics of the 4B model. Under the same SFT data as the 30B model, Qwen3-4B-Thinking-2507 shows a similar “form–substance–noise” progression on BeyondAIME. Compared with the 30B model, it more readily produces long and truncated trajectories, making response length an important signal for checkpoint selection. 
+
+B.4 More RL Training Dynamics 0 150 300 450 
+
+> Training Steps
+> 70
+> 72
+> 74
+> 76
+> Acc. (%)
+
+(a) Accuracy 0 150 300 450  
+
+> Training Steps
+> 30
+> 32
+> 34
+> 36
+> 38
+> Tokens (K)
+
+(b) Response length 0 150 300 450  
+
+> Training Steps
+> 19.5
+> 21.0
+> 22.5
+> 24.0
+> Calls
+
+(c) Tool call counts Figure 10: RL dynamics of Qwen3-4B-Thinking-2507 after 12 SFT epochs on BeyondAIME. RL improves accuracy under noisy evaluations, while response length and tool-call counts rise, indicating more frequent tool use and a larger rollout budget demand. 0 80 160 240 320 
+
+> Training Steps
+> 76.5
+> 78.0
+> 79.5
+> 81.0
+> Acc. (%)
+
+(a) Accuracy 0 80 160 240 320  
+
+> Training Steps
+> 24.0
+> 25.5
+> 27.0
+> 28.5
+> Tokens (K)
+
+(b) Response length 0 80 160 240 320  
+
+> Training Steps
+> 15.0
+> 16.5
+> 18.0
+> 19.5
+> Calls
+
+(c) Tool call counts Figure 11: RL dynamics of GLM-4.7-Flash after 4 SFT epochs on BeyondAIME. Starting from a model with native TIR ability, RL maintains high accuracy while steadily increasing response length and tool calls, suggesting stronger but more compute-intensive tool use. 19 C Case Study 
+
+C.1 Case Study: Text-Only Reasoning Degradation after TIR-Only SFT 
+
+> Case Study: Text-Only Reasoning Degradation after TIR-Only SFT
+
+Problem: (BeyondAIME) Let N be the minimal positive integer which cannot be represented as 
+
+P7263  
+
+> i=1
+
+(−1) ai × 2bi , where ai, b i are non-negative integers. Find N mod 29 . Ground truth: 23 
+
+Reasoning: . . . we can restrict exponents to at most maybe 5 because sum up to 31 requires exponents up to 5 ( 25=32). So we can brute force for k=4, exponents from 0 to 5, signs ±, and count combos with exactly 4 terms (order doesn’t matter). Let’s do that with Python. def representable(k, max_val): import itertools max_exp = int(math.log2(max_val+1)) + 2 powers = [2**e for e in range(max_exp+1)] seen = set() for combo in itertools.combinations_with_replacement(powers, k): for signs in itertools.product([1,-1], repeat=k): s = sum(sign*p for sign,p in zip(signs,combo)) if 0 < s <= max_val: seen.add(s) return seen rep = representable(4, 31) print(sorted(rep)[-10:]); print(31 in rep) 
+
+( The model emits a full Python routine despite having no sandbox to execute it. ) 
+
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, . . . , 28, 29, 30] / False. ( The model fabricates an execution output and treats it as real evidence. ) 
+
+It shows that 31 is not representable with exactly 4 signed powers of 2. So minimal nonrepre-sentable for k=4 is indeed 31 = 25 − 1. Good. Now test for k=5: minimal nonrepresentable predicted to be 26 − 1 = 63 .rep5 = representable(5, 63) print(sorted(rep5)[-10:]); print(63 in rep5) [0, 1, 2, . . . , 60, 61, 62] / False. ( Another fabricated output, again treated as ground truth for the next step. ) 
+
+63 not representable. So pattern holds for k=5. Thus, for k terms, minimal nonrepresentable integer is 2k+1 − 1. . . . ( The model continues this write-code → fabricate-output → reason cycle for several more values of k. ) . . . . . . gen300 = (sign*2**e for e,sign in zip(combo, signs)); list(gen300) / Same. Now try: gen301 = (sign*(2**e) for e,sign in zip(combo, signs)); list(gen301) / Same. Now try: gen302 = (sign*2**e for e,sign in zip(combo, signs)); list(gen302) / Same. . . . gen1455 = (sign*(2**e) for e,sign in zip(combo, signs)); list(gen1455) / Same. Now try: gen1456 = (sign*2**e for e,sign in zip(combo, signs)); list(gen1456) / Same. . . . ( This degenerate loop repeats over 1,500 times until the 81,920-token limit is reached without producing a final answer. ) 
+
+Analysis: The model has internalized the TIR interaction loop but cannot execute code without tools, so it emulates the missing sandbox by fabricating outputs in text. These fabricated results become incorrect premises for subsequent reasoning, and the cycle eventually degenerates into meaningless repetition. This supports the mixed-trajectory design in Section 4.2: mixing text-only trajectories during SFT preserves a non-tool reasoning mode and prevents this code-centric loop from dominating no-tool inference. 
+
+20 C.2 Case Study: Form Imitation in Early TIR SFT 
+
+Case Study: Form Imitation in Early TIR SFT 
+
+Problem: (BeyondAIME) Consider the planes where the six faces of the cube 
+
+ABCD -A1B1C1D1 are located, and the planes where the four faces of the tetrahedron 
+
+BA 1C1D1 are located. How many parts do these ten planes divide the space into? Ground truth: 
+
+64 
+
+Reasoning: We need to parse the problem: There’s a cube ABCD - A1B1C1D1. Let’s define coordinates . . . Thus the six faces of the cube are the six coordinate planes at x = 0 , x = 1 , y =0, y = 1 , z = 0 , z = 1 . Now consider the tetrahedron BA1C1D1. . . . These four faces are the four planar facets of the tetrahedron. We need to compute their plane equations. Let’s do that in Python. 
+
+> Tool Call #1
+> import sympy as sp A = sp.Point(0,0,0); B = sp.Point(1,0,0); . . . verts = [B, A1, C1, D1] for combo in itertools.combinations(verts, 3): face = sp.Plane(*combo); faces.append(face) faces
+> Output
+> [Plane(Point3D(1,0,0), (-1,1,-1)), Plane(Point3D(1,0,0), (-1,0,-1)), ...]
+
+. . . ( The model proceeds with several reasonable tool calls to compute plane equations and intersections. ) . . . 
+
+Reasoning: It seems scipy.optimize is present. Let’s try to call linprog.  
+
+> Tool Call #48 (wrong function name)
+> print(scipy.optimize.linprog([0,0,0], A_ub=[[1,0,0],[0,1,0],[0,0,1]], b_ub=[1,1,1], bounds=(None,None)))
+> Output
+> Unknown tool: stateful_code_exec
+
+Reasoning: It seems the environment doesn’t have scipy.optimize? The import succeeded but maybe not? Let’s try to import scipy.optimize directly. 
+
+> Tool Call #49
+> import scipy.optimize
+> Output
+> (empty)
+
+Reasoning: It seems scipy.optimize is present. Let’s try to call linprog.  
+
+> Tool Call #50 (identical to #48)
+> print(scipy.optimize.linprog([0,0,0], . . . ))
+> Output
+> Unknown tool: stateful_code_exec
+
+. . . ( This import → wrong-name call → error → re-import cycle repeats identically for over 80 consecutive tool calls. ) . . . 
+
+21 Reasoning: Now triple (0,5,6) point. Now triple (0,5,7) line. Now triple (0,5,8) point. Now triple (0,5,1) point. Now triple (0,5,0) not distinct. Now triple (0,5,2) point. Now triple (0,5,3) point. Now triple (0,5,4) point. Now triple (0,5,6) point. Now triple (0,5,7) line. Now triple (0,5,8) point. . . . ( This enumeration repeats indefinitely until the 81,920-token limit is reached. ) 
+
+Analysis: The early SFT checkpoint has acquired the surface form of TIR—frequent tool invocation, retry-after-error patterns—but cannot diagnose the actual failure (wrong function name) or switch to a mathematical approach. After exhausting tool calls, it degenerates into repetitive text enumeration. This illustrates why early SFT checkpoints are unsuitable for RL initialization (Section 5.2): outcome-only rewards would further reinforce these degenerate patterns. 
+
+C.3 Case Study: Our Model Interleaved Thinking with Code Execution 
+
+Case Study: Our Model Interleaved Thinking with Code Execution 
+
+Problem: (BeyondAIME) Suppose there is a necklace composed of beads of two colors, red and blue, with a total of 16 beads. The necklace can be freely rotated and flipped. If on this necklace there are neither three consecutive blue beads nor three consecutive red beads, how many different necklaces meet the above requirements? Ground truth: 88 
+
+Reasoning: Let X be the set of colourings of the 16-bead cycle that contain no three equal consecutive beads. The symmetry group is D16 with |D16 | = 32 . By Burnside’s lemma, 
+
+N = 1
+
+> |D16 |
+
+P 
+
+> g∈D16
+
+|Fix( g)|. A rotation with gcd(16 , k ) = d fixes exactly the number of cyclic binary strings of length d with no three consecutive identical beads. Let me first compute these counts via brute force.     
+
+> Tool Call #1: Enumerate valid cyclic strings by length
+> def count_no_three_run(n): count=0 for mask in range(1«n): bits=[(mask»i)&1 for i in range(n)] ok=True for i in range(n): if bits[i]==bits[(i+1)%n]==bits[(i+2)%n]: ok=False; break if ok: count+=1 return count for n in [1,2,4,8,16]: print(n, count_no_three_run(n))
+> Output
+> 1 0 2 2 4 6 8 46 16 2206
+
+Reasoning: Good. So f (1) = 0 , f (2) = 2 , f (4) = 6 , f (8) = 46 , f (16) = 2206 . The sum over rotations is f (16) · 1 + f (8) · 1 + f (4) · 2 + f (2) · 4 + f (1) · 8 = 2272 . Reflections need a separate count: split the 16 axes into through-bead and through-gap families, and enumerate the symmetric bit assignments under each via code.  
+
+> Tool Call #2: Count colourings fixed under reflections
+> def count_symmetric_valid(reflection_type): n=16; pairs=[]; fixed=[] if reflection_type==’through_beads’: fixed=[0,8] for i in range(1,8): pairs.append((i, n-i)) elif reflection_type==’through_gaps’: for i in range(8): pairs.append((i, (-i-1)%n)) . . . ( assigns bits to fixed/paired positions, checks no-three-run condition ) . . . print(’through_beads’, count_symmetric_valid(’through_beads’)) print(’through_gaps’, count_symmetric_valid(’through_gaps’))
+
+22 Output 
+
+through_beads 42 through_gaps 26 
+
+Reasoning: So the reflection sum is 8 × 42 + 8 × 26 = 544 , giving N = (2272 + 544) /32 = 88 .Let me verify this independently by enumerating all 2206 valid colourings and directly computing dihedral orbits. First, collect all valid colourings into a list. 
+
+Tool Call #3: Collect all valid colourings into valid_colorings 
+
+def satisfies_condition(colors): n = len(colors) for i in range(n): if colors[i] == colors[(i+1)%n] == colors[(i+2)%n]: return False return True def all_colorings_valid(): n=16; valid=[] for mask in range(1«n): colors=[(mask»i)&1 for i in range(n)] if satisfies_condition(colors): valid.append(tuple(colors)) return valid valid_colorings = all_colorings_valid() len(valid_colorings) 
+
+Output 
+
+2206 
+
+Reasoning: Good, 2206 matches the earlier count. Now directly compute orbits under D16 using the valid_colorings list that is already in the sandbox. 
+
+Tool Call #4: Direct orbit enumeration (reuses valid_colorings from #3) 
+
+valid = valid_colorings # reuses variable from previous call 
+
+def rotate(seq, k): return tuple(seq[(i+k)%n] for i in range(n)) def reflect(seq): return tuple(seq[(-i)%n] for i in range(n)) def dihedral_images(seq): images = [] for k in range(n): images.append(rotate(seq, k)) images.append(rotate(reflect(seq), k)) return images seen=set(); orbits=[] for seq in valid: if seq not in seen: for img in dihedral_images(seq): seen.add(img) orbits.append(seq) len(orbits) 
+
+Output 
+
+88 
+
+. . . ( Tool calls #5–#9 further cross-validate via transfer-matrix tr( An) and linear-string recur-rence counts. ) . . . 
+
+Reasoning: Both Burnside’s formula and direct orbit enumeration give N = 88 , and the transfer matrix confirms f (n) = tr( An). Therefore N = 2272+544 32 = 88 .
+
+Analysis: The model identifies the Burnside framework through text reasoning but offloads every fixed-point count to the sandbox, avoiding the error-prone mental arithmetic that causes the baseline to fail (cf. Figure 1). Tool calls #3 and #4 demonstrate stateful sandbox usage: 
+
+23 valid_colorings computed in #3 is directly reused in #4 without re-enumeration, enabling an independent orbit-based verification path that would be infeasible with stateless execution. 
+
+## D Code-Use Behavior Analysis 
+
+D.1 Code-Use Behavior Classification 
+
+To analyze what TIR contributes during problem solving, we categorize code behavior by its computa-tional purpose in the surrounding context, assigning each trajectory one primary purpose. We use four categories: Empirical Discovery , where code computes small cases to reveal a pattern or invariant; 
+
+Algorithmic Search , where code enumerates a large solution space such as brute-force candidates, combinatorial configurations, or DP states; Computation Offloading , where code performs precise arithmetic or symbolic manipulation after the model has identified what to compute; and Conjecture Verification , where code checks a result or intermediate claim already derived in natural-language reasoning. 
+
+D.2 Representative Examples 
+
+We illustrate the four categories with representative, condensed T RICE -30B trajectories from Be-yondAIME. 
+
+Empirical Discovery 
+
+Problem: For positive integers a < b , if a3 = ( ka + 1) b + k, then k is called good. Find the sum of all good integers k ≤ 1997 .
+
+Reasoning: . . . Let’s try iterating over k and a maybe. For each k up to limit, we need to find 
+
+a > k such that there exists integer b > a with b = ( a3 − k)/(ka + 1) . . . 
+
+> Python Code
+> def good_ks(limit=1997, a_max=5000): good=set() for a in range(2, a_max+1): for k in range(1, min(limit, a-1)+1): den = k*a + 1 num = a**3 - k if num % den == 0: b = num//den if b > a: good.add(k) return good good = good_ks(1997, a_max=2000) len(good), sorted(list(good))[:20]
+> Output
+> (16, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 27, 30, 64, 112, 418])
+
+Purpose: Empirical discovery. The search results expose regular families of good k’s, which the model later generalizes analytically. 
+
+Algorithmic Search 
+
+Problem: There are 60 real numbers a1, . . . , a 60 with cyclic adjacent differences at most 1 and total sum 0. Maximize a12 + a24 + a36 + a48 + a60 .
+
+Reasoning: . . . Let’s set up LP. Variables ai continuous. Constraints: sum ai = 0 and |ai −
+
+ai+1 | ≤ 1. Objective maximize the selected five. Solve and get optimal value. 24 Python Code 
+
+> prob = pulp.LpProblem(’max_sum’, pulp.LpMaximize) a = pulp.LpVariable.dicts(’a’, range(1,61), lowBound=None) prob += pulp.lpSum([a[i] for i in [12,24,36,48,60]]) prob += pulp.lpSum([a[i] for i in range(1,61)]) == 0 for i in range(1,61): j = 1 if i==60 else i+1 prob += a[i] - a[j] <= 1 prob += a[j] - a[i] <= 1 prob.solve(pulp.PULP_CBC_CMD(msg=False)) print(pulp.value(prob.objective))
+> Output
+> 15.0
+
+Purpose: Algorithmic search. Code solves the constrained optimization problem directly over the feasible space. 
+
+## E Limitations and Future Work 
+
+This work primarily focuses on tool-integrated reasoning for competition-level mathematics, where problems are challenging, verifiable, and naturally benefit from executable computation. Although our math-only recipe shows promising transfer to scientific reasoning, knowledge-intensive QA, and coding tasks, broader agentic settings remain underexplored. Therefore, we plan to extend this recipe beyond mathematics to broader agentic settings, such as software engineering workflows, web interaction. In addition, our experiments are mainly conducted on 4B and 30B models. As our analysis shows, the 4B and 30B models already exhibit slight different training dynamics, so scaling to substantially larger models may introduce different learning regimes, stability issues, or tool-use patterns. We leave the systematic study of these extensions to future work. 
+
+## F Broader Impacts 
+
+This work studies tool-integrated reasoning for mathematical and scientific problem solving. The potential positive impact is to make language models more reliable on tasks that require exact computation, symbolic manipulation, and systematic search. Since our study is conducted in research benchmarks rather than deployed applications, direct societal risks are limited. A possible risk is that users may over-trust model-generated reasoning or tool outputs when applying similar systems beyond controlled benchmark settings; therefore, practical use should retain transparent execution traces and appropriate human or domain-expert verification. 25
