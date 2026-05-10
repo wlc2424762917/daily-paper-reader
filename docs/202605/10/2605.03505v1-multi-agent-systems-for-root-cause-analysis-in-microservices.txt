@@ -1,0 +1,198 @@
+Title: Multi-Agent Systems for Root Cause Analysis in Microservices
+
+URL Source: https://arxiv.org/pdf/2605.03505v1
+
+Published Time: Wed, 06 May 2026 00:41:14 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Multi-Agent Systems for Root Cause Analysis in Microservices 
+
+# Alexander Naakka 
+
+alexandru.constantinov@group.one Zoner Oy Helsinki, Finland 
+
+# Yuqing Wang 
+
+University of Helsinki Helsinki, Finland yuqing.wang@helsinki.fi 
+
+# Mika V Mäntylä 
+
+University of Helsinki Helsinki, Finland mika.mantyla@helsinki.fi 
+
+## Abstract 
+
+Recent advances in large language models (LLMs) have enabled early attempts to automate root cause analysis (RCA) in microservice-based systems (MSS). Yet, prior works typically rely on a linear rea-soning process that proceeds along a single diagnostic path. In this paper, we propose LATS-RCA, an LLM-based multi-agent frame-work for RCA in MSS. LATS-RCA formulates RCA as a reflection-guided tree-structured search using a Language Agent Tree Search algorithm. In LATS-RCA, multiple LLM-driven agents iteratively perform RCA for each microservice by reasoning over its execution logs and performance metrics to collect operational evidence for root cause exploration. Reflection scores derived from intermediate diagnostic states are used to guide the search toward the most likely root cause based on accumulated evidence. We evaluate LATS-RCA on the open-source industrial MSS, Light-OAuth2 (LO2), using a publicly available dataset and in a production microservice environ-ment (Prod) in a case company with substantially higher operational complexity. LO2 is a small-team Java system with a homogeneous technology stack. The results on LO2 show that LATS-RCA achieves high diagnostic accuracy, and we further benchmark its associated computational costs. Compared to LO2, Prod attains lower diag-nostic accuracy and incurs higher computational cost. The Prod deployment demonstrates the practical applicability of LATS-RCA in real-world MSS and reflects the challenges introduced by poly-glot tech stack, varied logging practices of source components, and multi-factor root-causes by production-scale MSS. 
+
+## CCS Concepts 
+
+• Computer systems organization → Maintainability and maintenance ; Reliability ; • Software and its engineering →
+
+Software maintenance tools .
+
+## Keywords 
+
+large language model, root cause analysis, language agent tree search, multi-agent, anomaly, microservice 
+
+## 1 Introduction 
+
+Microservice-based systems (MSS) are widely adopted in modern production environments to support scalable, continuously evolv-ing software platforms [ 12 ]. In such systems, functionality is de-composed into independently deployed services that may scale across regions, depend on external APIs and data platforms, and jointly underpin critical business processes. Production anomalies are common in microservice environments [17]. Root cause analysis (RCA) therefore plays a central role in mi-croservice operations by enabling engineers to identify the underly-ing causes of anomalies and apply targeted actions to prevent future recurrence [ 3, 5 ]. Without a clear understanding of why failures oc-cur, similar anomalies are likely to reappear, repeatedly impacting both technical systems and the business processes built on top of them [ 8, 11 ]. As a result, timely and effective RCA is essential not only for short-term incident recovery but also for long-term sys-tem reliability and continuous operational improvement. However, in practice, performing RCA on microservices remains largely a manual and experience-driven process due to the complexity of mi-croservice operations [ 3, 17 ]. Engineers must reason over diverse operational signals, correlate symptoms, and interpret complex dependency relationships under time pressure. Such manual diag-nosis is often labor-intensive, time-consuming, and difficult to scale. The effectiveness of manual RCA heavily depends on individual expertise [3, 17]. Recent advances in large language models (LLMs) have opened up new opportunities for automating RCA in MSS. Owing to their strong reasoning capabilities, LLMs provide a promising founda-tion for supporting RCA tasks in complex MSS. Existing studies, RCAgent [ 14 ] and MicroRCA [ 9], represent important initial steps in this direction. However, these approaches perform RCA along a linear reasoning process, in which a single sequence of analysis steps leads to a final result. However, in practical microservice en-vironments, an observed anomaly may initially implicate multiple services or components [ 7], making it difficult to determine the root cause through a purely linear reasoning process. In this paper, we propose LATS-RCA, an LLM-based multi-agent framework for RCA in MSS. LATS-RCA performs RCA for each microservice based on its execution logs and performance metrics. Logs capture runtime events during service execution, whereas metrics summarize quantitative resource and performance behav-iors over time [ 13 ]. To analyze microservice behavior, LATS-RCA leverages multiple LLM-driven agents that iteratively reason over logs and metrics in a coordinated manner. Rather than treating RCA as a single linear reasoning process, LATS-RCA formulates RCA as a reflection-guided tree-structured search via the Language Agent Tree Search (LATS) algorithm [ 16 ]. LATS combines Monte Carlo Tree Search (MCTS) with LLM reflection, modeling reasoning as an explicit tree exploration process in which multiple candidate rea-soning paths are expanded, scored, and selectively pursued before reaching a final decision. LATS has demonstrated strong perfor-mance in multi-step reasoning settings, such as code generation, question answering, and interactive decision-making [ 16 ]. Building upon LATS, our LATS-RCA explicitly maintains multiple candidate root causes during search and incrementally gathers evidence from logs and metrics to evaluate how well each candidate explains the observed behavior. LLM-based reflection scores are used to evalu-ate intermediate diagnostic states and guide the search toward the most likely root cause. In the end, LATS-RCA outputs a root cause for each anomaly. 
+
+> arXiv:2605.03505v1 [cs.SE] 5 May 2026 Naakka et al.
+
+We evaluate LATS-RCA on Light-OAuth2 (LO2), an open-source industrial MSS implemented by a small team in Java, using the publicly available LO2 dataset. LATS-RCA achieves a diagnostic accuracy of 91.3%, outperforming the single-agent ReAct (39.8%) baseline and multi-agent ReAct baseline (57.4%). Each investiga-tion incurs an average cost of 53.1 API calls, 156K tokens, and 9.1 minutes of execution time. The computational cost of LATS-RCA is primarily due to its systematic exploration of a larger hypoth-esis space, rather than increased evidence collection. In addition to the LO2 benchmark evaluation, we deploy LATS-RCA in a real production MSS (Prod 1) serving over 300,000 websites across <con-tinent removed>, and evaluate LATS-RCA using a dataset of 37 real-world incidents collected over six months. Prod is a collection of independently developed microservices spanning a polyglot tech-nology stack (Node.js, Rust, Python, and Go) with heterogeneous logs and metrics. LATS-RCA achieves a diagnostic accuracy in the range of 60–70%, which is lower than the 91.3% observed on the LO2 benchmark. These production investigations also incur higher reasoning cost, with each incident involving an average of 75 API calls, 220K tokens, and 13 minutes of execution time. Our produc-tion validation suggests LATS-RCA’s sensitivity to production-scale complexity and service interaction. It provides a concrete example of deploying an LLM-based multi-agent framework for RCA in a real-world production environment. In summary, this paper makes these main contributions: 
+
+• We propose LATS-RCA, an LLM-based multi-agent frame-work for RCA in MSS. LATS-RCA iteratively analyzes logs and metrics by formulating diagnosis as a reflection-guided tree search over competing root-cause hypotheses. 
+
+• We evaluate LATS-RCA on the LO2 benchmark, achiev-ing 91.3% diagnostic accuracy and providing a quantitative analysis of the associated computational costs. 
+
+• We deploy and validate LATS-RCA in a real production microservice environment, presenting a concrete example of deploying an LLM-based multi-agent RCA framework beyond controlled benchmarks. 
+
+## 2 Related work 
+
+Existing work on LLM-based multi-agent systems for RCA over mul-timodal monitoring data are scarce; to the best of our knowledge, RCAgent [ 14 ] and MicroRCA [ 9] are the only related works. RCA-gent formulates RCA as an execution-based reasoning task over distributed traces, logs, and metrics. Instead of directly processing raw monitoring data, RCAgent generates executable analysis pro-grams to query, aggregate, and preprocess multimodal monitoring data (i.e., Python code for filtering logs, aggregating performance metrics over time windows, or extracting statistics from traces), and reasons over the results returned by program executions. RCA-gent outputs benchmark-specified diagnostic answers composed of structured fields (e.g., fault time span and faulty component), optionally accompanied by explanatory text derived from program execution results. MicroRCA adopts a pipeline-oriented approach that combines extensive modality-specific preprocessing with prompt-driven LLM 
+
+> 1Real product name masked due to double blind review
+
+reasoning. Given a fault time window, MicroRCA applies exten-sive modality-specific preprocessing, including log parsing and template-based filtering, trace anomaly detection using heuristic rules, and metric selection and filtering. The processed signals from logs, traces, and metrics are then summarized and provided to an LLM through carefully designed prompts, enabling the model to syn-thesize cross-modal evidence and infer the root cause. MicroRCA outputs structured RCA results in JSON form, including the identi-fied fault component, the root-cause reason, and an accompanying reasoning trace. 
+
+## 3 LATS-RCA Architecture 
+
+LATS-RCA consists of two diagnostic agents (log and metrics), coordinated by a supervisor. Each agent operates over a distinct observability modality: the log agent explores log data, and the metric agent analyzes metric data and generates comparative vi-sualizations. The supervisor coordinates cross-modal handoff and execution sequencing, and performs final correlation assessment. Each agent independently executes the diagnostic process on its modality. We model this process as a finite-horizon sequential decision process ⟨𝑆, 𝐴,𝑇 , 𝑅 ⟩. A state 𝑠 ∈ 𝑆 encodes the current ob-servations and active hypotheses. An action 𝑎 ∈ 𝐴 corresponds to invoking an analysis tool (i.e., log or metric queries). The transition operator 𝑇 is realized through tool execution: given (𝑠, 𝑎 ), execut-ing the selected tool(s) yields a successor state 𝑠 ′ = 𝑇 (𝑠, 𝑎 ). The reward signal 𝑅 is computed from a structured reflection of candi-date next steps. This formulation casts RCA as a search problem over diagnostic states. Accordingly, each agent performs diagnosis by maintaining a diagnostic search tree, which is iteratively extended as the search proceeds using a LLM-reflection guided MCTS algorithm. In this search tree, each node corresponds to a diagnostic state 𝑠 ∈ 𝑆 , and each edge represents an investigative action 𝑎 ∈ 𝐴 . The search starts from a root node that represents the initial diagnostic state. As the search proceeds iteratively, executing an investigative ac-tion produces a successor diagnostic state, which is added to the tree as a new node. Each search iteration consists of four distinct phases: selection, expansion, reflection with reward computation, and backpropagation. In the selection phase, the agent chooses a node (i.e., a diagnostic state 𝑠 𝑖 ) from the current search tree for further expansion. Selection is guided by the Upper Confidence Bound for Trees (UCT) score: UCT (𝑠 𝑖 ) = 𝑉 𝑖 + 𝑐 uct √︄ ln 𝑛 𝑝 
+
+𝑛 𝑖 
+
+, (1) where 𝑉 𝑖 denotes the value estimate for 𝑠 𝑖 , 𝑛 𝑝 is the parent visit count, 𝑛 𝑖 is the node visit count, and 𝑐 uct = 1.0 is the exploration constant. Following the AlphaGo-style UCT convention, we set 
+
+𝑐 uct = 1.0; a sensitivity analysis with 𝑐 uct ∈ { 0.5, 2.0} resulted in accuracy variations of less than 3%. Equation 1 computes a selection score that trades off exploitation (high 𝑉 𝑖 ) and exploration (low 𝑛 𝑖 ), and is used to prioritize promising yet under-explored diagnostic hypotheses. Figure 1 illustrates an example of node selection and expansion under the UCT criterion. Multi-Agent Systems for Root Cause Analysis in Microservices                             
+
+> 𝑠 0
+> 𝑠 1𝑠 2𝑠 3
+> 𝑠 11 𝑠 12 𝑠 21
+> 𝑠 121 𝑠 122
+> 𝑎 1
+> 𝑎 2
+> 𝑎 3
+> 𝑎 11
+> 𝑎 12
+> 𝑎 21
+> 𝑎 121
+> 𝑎 122
+> UCT =0.68
+> UCT =0.72 UCT =0.55 UCT =0.61
+> UCT =0.58 UCT =0.76 UCT =0.49
+> 𝑉 =0.82 𝑉 =0.63
+> Sel. path Expanded New
+
+Figure 1: Illustrative LATS search tree schematic. The nodes are annotated with the estimated value 𝑉 𝑖 and UCT scores computed in Eq. 1. 
+
+In the expansion phase, at each expanded leaf node, the agent samples 𝑁 = 5 candidate actions using temperature-scaled de-coding ( 𝜏 = 0.7). We choose 𝜏 = 0.7 to balance determinism and exploration: lower temperatures reduce action diversity, whereas higher temperatures increase low-utility proposals. We set 𝑁 = 5
+
+following prior LATS work [ 16 ]; in pilot runs, this produced 2–3 distinct action signatures per expansion while keeping API cost manageable. In reflection phase, each sampled candidate action is then scored by a LLM reflection module along three axes: evidence quality ( 𝑒 ), which measures how well the proposed action’s rationale is grounded in the retrieved logs and metrics; diagnostic completeness ( 𝑐 comp ), which evaluates how well the action addresses the current anomaly; internal consistency ( 𝑘 ), which penalizes self-contradictory reason-ing. Concretely, the LLM assigns numeric scores in the range [0, 1]
+
+for 𝑒 , 𝑐 comp , and 𝑘 , reflecting the degree to which each criterion is satisfied. These scores are aggregated into a scalar reflection score, 
+
+𝑟 = 𝑒 + 𝑐 comp + 𝑘 
+
+3 . (2) where the scalar 𝑟 summarizes the quality of a proposed next action by averaging 𝑒 , 𝑐 comp , 𝑘 . We use an unweighted mean to normalize the score to the scale of its constituents (e.g., 𝑟 ∈ [0, 1] when 
+
+𝑒, 𝑐 comp , 𝑘 ∈ [0, 1]), and to avoid introducing additional tuning parameters. To encourage robust decision-making under sampling variability, we compute a self-consistency term. Let 𝜎 denote an action signature and let 𝑛 𝜎 be its frequency among the 𝑁 sampled candidate actions; then 𝑠𝑐 (𝜎 ) = 𝑛 𝜎 /𝑁 . The final reward associated with the corresponding state transition is defined as, 
+
+𝑅 = 𝑤 𝑟 + ( 1 − 𝑤 ) 𝑠𝑐, (3) with 𝑤 = 0.5, balancing reflection quality and self-consistency. Equation 3 thus favors actions that are both high-quality under reflection ( 𝑟 ) and stable under sampling ( 𝑠𝑐 ), reducing sensitivity to single-sample outliers. In the backpropagation phase, the combined reward 𝑅 is prop-agated backward along the selected search path via online mean updating. Search iterations terminate when a candidate solution is confirmed, the depth limit is reached, or the iteration budget is ex-hausted; the optimal terminal node is returned as the investigation result. LATS-RCA decomposes analysis of two agents. When the su-pervisor detects insufficient progress (operationalized as 𝑟 < 0.7 or 
+
+𝑐 comp < 0.6), it initiates a handoff by passing a concise summary, rather than the full search tree, to the complementary agent: 
+
+𝑞 metrics = 𝑞 original ⊕ 𝑠 log , (4) where ⊕ denotes summary augmentation. Equation 4 formalizes handoff as information transfer at the level of condensed evidence, ensuring that the receiving agent conditions on salient findings without inheriting the upstream search trajectory. This design re-duces the risk of circular reasoning while enabling cross-modal validation. 
+
+## 4 Light-OAuth2 evaluation 
+
+We defined the following research questions: 
+
+• RQ1. Diagnostic accuracy : How does LATS-RCA perform in terms of root cause diagnostic accuracy? 
+
+• RQ2. Computational cost : What computational cost is associated with achieving this diagnostic accuracy? 
+
+## 4.1 Experiment setup 
+
+4.1.1 Dataset. We evaluate LATS-RCA on the LO2 open dataset [ 1]. LO2 is an open-source implementation of the OAuth2.0 authoriza-tion protocol. It consists of seven microservices and a MySQL data-base. The LO2 dataset is generated by executing the LO2 system under controlled API-level error injection. For each run, the system is first exercised with valid API requests, and then a specific API error is injected by issuing an erroneous request. During each exe-cution, logs are collected for each service, while 485 performance metrics (e.g., CPU, memory, disk usage) are recorded at the system level via Prometheus; each run is labeled according to the injected API error type. This process is repeated across a large number of runs to construct a labeled dataset of normal and anomalous execu-tions. In this paper, we use a sample of 100 executions from the LO2 dataset to evaluate our LATS-RCA. These executions contains 53 distinct failure cases spanning OAuth2.0 protocol violations, CRUD failures, and authentication errors. 
+
+4.1.2 Baselines. Directly comparable LLM-based agent RCA base-lines for MSS are not available under our experimental setting. We model RCA as a finite-horizon sequential decision process for label-based diagnosis, and operate on logs and metrics as the moni-toring modalities. RCAgent and MicroRCA are the closest related approaches. However, in addition to logs and metrics, both ap-proaches rely on distributed traces as the primary source of di-agnostic evidence, which fundamentally differs from our setting. Moreover, they output structured diagnostic reports rather than a root cause, making their evaluation protocols incompatible with ours. Therefore, we construct two LLM-agent baselines within our experimental setting to compare LATS-RCA against the applicable approaches. Specifically, we compare LATS-RCA against two Re-Act [ 15 ] baselines: (i) a single-agent ReAct baseline that uses the same tools but produces a linear reasoning trajectory, and (ii) a multi-agent ReAct variant that executes sequential log → metrics Naakka et al. 
+
+analysis. ReAct represents a widely adopted LLM-agent paradigm that follows a single-pass linear reasoning trajectory (similar to RCAagent and MicroRCA), where the agent alternates between diagnostic reasoning and tool invocation to refine its root cause hypothesis. 
+
+4.1.3 Evaluation metrics. We evaluate diagnostic effectiveness us-ing accuracy, measuring whether the predicted root cause matches the ground-truth failure label for each scenario. Each scenario in the LO2 dataset is associated with a single injected failure type, which serves as a ground-truth failure label for the root cause. In addition, we measure computational costs by the number of API calls, token consumption, and wall-clock runtime, following prior studies on of LLM reasoning evaluation [ 4, 10 ]. We also analyze search behavior using the number of hypotheses explored and the number of evidence items collected, which capture the breadth of exploration and the extent of evidence usage during diagnosis. 
+
+4.1.4 Implementation details. We implement LATS-RCA in Python 3.12 using LangChain [ 2] for tool integration and LangGraph [ 6]for agent orchestration. All agents (log, metric, and supervisor) use Claude Sonnet 4.5 ( claude-sonnet-4-5-20250929 ) accessed via the Anthropic API (SDK anthropic>=0.28,<0.30 ), with tem-perature fixed at 𝜏 = 0.7 for all LLM invocations, including pol-icy generation, reflection scoring, and supervisor correlation. No additional sampling parameters are modified from SDK defaults. Since the Anthropic API does not support random seeds, stochas-ticity is isolated to LLM text generation; tool execution and all downstream computations (reward computation, UCT selection, and backpropagation) are deterministic. Experiments requiring variance estimation aggregate multiple independent runs. Experi-ments run single-threaded on commodity hardware with runtime dominated by API latency; wall-clock measurements are reported for transparency but excluded from primary performance metrics. Further implementation details are in our anonymous replication package: https://figshare.com/s/10bffc3a1917ee18cda9. If this paper is accepted, we will make this package publicly available. 
+
+## 4.2 Study results 
+
+4.2.1 RQ1. Diagnostic Accuracy. As shown in Table 1, LATS-RCA achieves a diagnostic accuracy of 91.3% with a mean confidence 0.75, outperforming the single-agent ReAct baseline (39.8%) and multi-agent ReAct baseline (57.4%). This corresponds to a 2.3 × im-provement over the single-agent ReAct baseline with linear reason-ing, and a 1.6 × improvement over the sequential multi-agent ReAct baseline under the same tool and data setting. The improvement over the single-agent ReAct baseline suggests that systematic ex-ploration of multiple root-cause hypotheses is critical for accurate diagnosis under ambiguous evidence. The improvement over the multi-agent ReAct baseline indicates that multi-agent specialization and cross-modal handoff alone do not fully contribute to the gains; rather, the structured search process further strengthens diagnostic accuracy beyond linear cross-modal reasoning under the same tool and data setting. 
+
+Table 1: Evaluation results on the LO2 dataset. 
+
+Method Acc. (%) Calls Tokens (K) Time (min) LATS-RCA 91.3 53.1 156 9.1 ReAct (single) 39.8 13.5 41 1.2 ReAct (multi) 57.4 25.2 73 1.7 
+
+4.2.2 RQ2. Computational Cost. LATS-RCA incurs higher compu-tational costs than the baseline approaches, see Table 1. LATS-RCA requires 53.1 API calls per investigation compared to 13.5 for single-agent ReAct baseline and 25.2 for multi-agent ReAct baseline. Token consumption exhibits a similar trend: LATS-RCA uses 156K tokens, whereas the single-agent and multi-agent ReAct baselines consume 41K and 73K tokens, respectively. The investigation time is also in-creased: LATS-RCA takes 9.1 minutes per investigation, compared to 1.2 minutes for single-agent ReAct baseline and 1.7 minutes for the multi-agent ReAct baseline. The higher computational cost of LATS-RCA can be attributed to its search behavior, as illustrated in Figure 2, LATS-RCA explores an average of 18.9 hypotheses per investigation, compared to 5.1 for the single-agent ReAct baseline and 8.5 for the multi-agent ReAct baseline, representing a 3.7 × increase in search breadth. At the same time, all methods collect comparable numbers of evidence items: approximately 7.0 selected evidence items (e.g., log or metric seg-ments) per investigation. These results indicate that the diagnostic accuracy gains of LATS-RCA stem from systematic exploration and reflection-guided evaluation, rather than from gathering more mon-itoring data. By examining a larger set of alternative explanations while operating on the same underlying evidence items, LATS-RCA demonstrates more effective utilization of available observability signals.     
+
+> 0510 15 20
+> Hypotheses
+> Evidence items
+> Average Count
+> LATS-RCA
+> ReAct (single)
+> ReAct (multi)
+
+Figure 2: Search behavior: Dot plot comparing exploration breadth (hypotheses) versus depth (evidence). 
+
+## 4.3 Ablation Study 
+
+We conduct an ablation study to understand the contribution of individual components in LATS-RCA. Table 2 reports the results. Overall, candidate batching contributes the most to performance, followed by backpropagation and reflection, and all three com-ponents are necessary to achieve 91.3% diagnostic accuracy of LATS-RCA. Removing candidate batching (w/o candidate batching) leads to the largest performance degradation, with diagnostic ac-curacy dropping from 91.3% to 84.3%, indicating that maintaining Multi-Agent Systems for Root Cause Analysis in Microservices 
+
+multiple candidate hypotheses is critical for effective diagnosis. Disabling backpropagation (w/o backpropagation) results in the second-largest drop to 84.8%, suggesting that propagating feed-back from successful reasoning paths plays an important role in guiding the search process. In contrast, removing the reflection mechanism (w/o reflection) causes a smaller but still noticeable decrease to 87.6%, showing that reflection contributes less than the other components but remains beneficial. 
+
+Table 2: Ablation study. 
+
+Variant Acc. (%) Δ (pp) LATS-RCA 91.3 0.0 w/o candidate batching 84.3 -7.0 w/o backpropagation 84.8 -6.5 w/o reflection 87.6 -3.7 
+
+## 5 Production validation 5.1 Experiment setup 
+
+5.1.1 Production Environment. We deployed LATS-RCA in a real production environment that operates a microservice architecture of seven core services implemented in a polyglot stack: Node.js for API gateway and orchestration layers, Rust for hosting services managing high-performance WordPress infrastructure, Python for data processing pipelines, and Go for infrastructure services. The architecture follows a hybrid communication model using NATS for event-driven messaging, gRPC for synchronous service-to-service calls, and HTTP/REST for external API endpoints. The production system runs on a self-hosted Kubernetes cluster as part of an in-ternal developer platform, following cloud-native patterns with containerized services, horizontal pod auto-scaling, and service mesh observability. Production workloads serve over 300,000 web-sites across <continent removed>, including more than 5,000 high-performance managed WordPress hosting customers in <country removed>. Observability infrastructure captures logs through con-tainer stdout/stderr aggregation, generating approximately 8,000 to 25,000 log entries per service per hour during peak traffic. Metrics are collected via Prometheus exporters at 15-second intervals, track-ing service-level indicators (request rates, latencies, error rates) and infrastructure metrics (CPU, memory, network I/O). 
+
+5.1.2 Validation dataset. Our production validation dataset in-cludes 37 real-world incidents collected over six months from the deployed production environment, spanning authentication fail-ures, database timeouts, and network partitions. Production logs and metrics in this dataset exhibit substantial heterogeneity. Due to the polyglot service stack, logs appear in multiple formats, in-cluding JSON-structured entries from Node.js and Python services, unstructured text from Go, and mixed formats from Rust. Also, logs exhibit heterogeneous timestamp formats (e.g., ISO 8601 with timezone offsets, epoch milliseconds, and architecture-specific pat-terns), inconsistent severity taxonomies across logging frameworks (e.g., Java’s SEVERE/WARNING and Python’s CRITICAL/ERROR), and varied structural conventions such as JSON records, key–value pairs, and unstructured narratives. In addition, production metrics originate from diverse Prometheus exporters with service-specific naming conventions, varying units, and partial coverage across incidents. These characteristics introduce normalization and align-ment challenges that are not present in our previous experiments with the LO2 dataset. 
+
+5.1.3 Log and Metric Normalization. To address the above hetero-geneity challenges of production logs and metrics, we apply a sys-tematic normalization pipeline to them before applying LATS-RCA. For logs, we convert heterogeneous timestamp formats to a unified UTC ISO 8601 representation with millisecond precision, map sever-ity levels to LO2’s canonical hierarchy, extract key diagnostic fields (e.g., trace id, service name, and error code) into uniform metadata prefixes, and aggregate multiline stack traces into coherent log entries. For metrics, we align production Prometheus instrumenta-tion with LO2’s runtime schema through naming-pattern matching and unit conversion, and explicitly mark unavailable metrics rather than synthesizing them. We verify the normalization process using both automated consistency checks and targeted manual inspec-tion, ensuring that diagnostic-critical information required for root cause analysis is preserved. 
+
+## 5.2 Study results. 
+
+Under the above production setup, LATS-RCA exhibits lower per-formance than on the LO2 benchmark, achieving an accuracy of approximately 60–70% compared to 91.3% on LO2. The reported accuracy range reflects evaluation uncertainty inherent in produc-tion diagnostics. In addition, analyzing these production incidents requires substantially more reasoning steps, with each incident involving approximately an average of 75 API calls, 220K tokens, and 13 minutes of execution time. Unlike LO2’s injected faults with unambiguous ground truth, production incidents frequently involve multiple contributing fac-tors, yielding partial diagnoses that are neither fully correct nor entirely wrong. For example, identifying one of two interacting root causes constitutes partial correctness that cannot be adequately captured by binary evaluation. The observed performance degrada-tion primarily stems from increased system complexity, including undocumented service dependencies, transient infrastructure faults, and unpredictable user behavior patterns absent from benchmark settings. Despite this degradation, we find that our approach trans-fers effectively to operational environments with structured logging practices. The production validation confirms that reflection-guided tree search provides practical value in real-world incident response, while highlighting sensitivity to production-scale complexity and service entanglement. The approach assumes structured logging with timestamp prefixes and container-based aggregation, and may require adaptation when applied to legacy systems relying on purely unstructured syslog output. 
+
+## 6 Threats to validity 
+
+External threats may arise from the gap between the LO2 bench-mark evaluation and real-world production environment valida-tion. Our LO2 evaluation is conducted on a small-team Java-based industrial MSS with injected, well-defined API-level error scenar-ios, which enables controlled benchmarking with relatively clear ground truth. The LO2 dataset provides logs and metrics collected Naakka et al. 
+
+under controlled and standardized conditions. To address this bench-mark–production gap by design, we additionally deploy and val-idate LATS-RCA in a large-scale production MSS. Compared to the LO2 benchmark setting, this production environment exhibits substantially higher system complexity: core microservices are im-plemented in a polyglot stack (Node.js, Rust, Python, and Go), logs and metrics are more complex and heterogeneous, and incidents are often multi-factor and involve stronger service interaction ef-fects. Differences observed between the LO2 benchmark evaluation and production validation results therefore reflect the challenges of applying LLM-based reasoning for RCA across different system environments, and could be interpreted in the context of the envi-ronmental differences between benchmark and production settings. There are construct validity considerations related to the eval-uation methodology. In real-world complex MSS, anomalies may involve multiple contributing root causes, and diagnostic outcomes are not always binary. For experimental evaluation, this study fol-lows the dataset-defined single-label notion of root cause and as-sesses correctness using an exact-match criterion. This definition is aligned with the fault-injection design of the benchmark and sup-ports consistent and reproducible comparison across approaches under a shared evaluation setting. 
+
+## 7 Conclusion 
+
+This paper presents LATS-RCA, an LLM-based multi-agent frame-work for RCA in MSS. By formulating RCA as a reflection-guided tree-structured search over logs and metrics at the microservice level, LATS-RCA goes beyond single-path linear reasoning. We evaluate LATS-RCA on the LO2 benchmark and further validate it on Prod. Our results show that LATS-RCA achieves high diagnostic accuracy under the LO2 benchmark settings, which represents a small-team Java-based system with a homogeneous technology stack and standardized conditions. In contrast, Prod consists of independently developed components with a polyglot technology stack (Node.js, Rust, Python, and Go) and heterogeneous logs and metrics, resulting in higher reasoning computational cost and lower diagnostic accuracy. This production study provides a concrete ex-ample of deploying an LLM-based multi-agent RCA framework in practice and offers empirical insight into the challenges of ap-plying diagnostic reasoning at production-scale MSS. Future work will build directly on our production validation by expanding the set of real incidents and operational scenarios to better character-ize LATS-RCA’s behavior under production-scale heterogeneity. We will improve the log and metric normalization pipeline to re-duce format- and schema-dependence (e.g., timestamps, severity mappings, and metric naming/coverage), and study how such pre-processing affects diagnostic outcomes. In addition, we will refine the evaluation methodology to better reflect production diagnostics, where incidents can be multi-factor and outcomes may be partially correct. 
+
+Data Availability: If this paper is accepted, we will make our replication package publicly available. 
+
+## 8 Acknowledgment 
+
+This work is supported by the Research Council of Finland (grant id: 359861, the MuFAno project). This work is also funded by the EuroHPC Joint Undertaking and its members including top-up funding by the Ministry of Education and Culture. 
+
+## References 
+
+[1] Alexander Bakhtin, Jesse Nyyssölä, Yuqing Wang, Noman Ahmad, Ke Ping, Matteo Esposito, Mika Mäntylä, and Davide Taibi. 2025. LO2: Microservice API Anomaly Dataset of Logs and Metrics. In Proceedings of the 21st Interna-tional Conference on Predictive Models and Data Analytics in Software Engineering 
+
+(Trondheim, Norway) (PROMISE ’25) . Association for Computing Machinery, New York, NY, USA, 1–10. doi:10.1145/3727582.3728682 [2] Harrison Chase. 2022. LangChain . https://github.com/langchain-ai/langchain [3] Ruomeng Ding, Chaoyun Zhang, Lu Wang, Yong Xu, Minghua Ma, Xiaomin Wu, Meng Zhang, Qingjun Chen, Xin Gao, Xuedong Gao, Hao Fan, Saravan Rajmohan, Qingwei Lin, and Dongmei Zhang. 2023. TraceDiag: Adaptive, Interpretable, and Efficient Root Cause Analysis on Large-Scale Microservice Systems. In 
+
+Proceedings of the 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (San Francisco, CA, USA) 
+
+(ESEC/FSE 2023) . Association for Computing Machinery, New York, NY, USA, 1762–1773. doi:10.1145/3611643.3613864 [4] Tingxu Han, Zhenting Wang, Chunrong Fang, Shiyu Zhao, Shiqing Ma, and Zhenyu Chen. 2025. Token-budget-aware llm reasoning. In Findings of the Association for Computational Linguistics: ACL 2025 . 24842–24855. [5] Adha Hrusto, Nauman Bin Ali, Emelie Engström, and Yuqing Wang. 2025. Moni-toring data for Anomaly Detection in Cloud-Based Systems: A Systematic Map-ping Study. ACM Trans. Softw. Eng. Methodol. (June 2025). doi:10.1145/3744556 Just Accepted. [6] LangChain AI. 2024. LangGraph . https://github.com/langchain-ai/langgraph [7] Luan Pham, Huong Ha, and Hongyu Zhang. 2024. Root Cause Analysis for Microservice System based on Causal Inference: How Far Are We?. In Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering 
+
+(Sacramento, CA, USA) (ASE ’24) . Association for Computing Machinery, New York, NY, USA, 706–715. doi:10.1145/3691620.3695065 [8] Ke Ping, Hamza Bin Mazhar, Yuqing Wang, Ying Song, and Mika V. Mäntylä. 2026. AnoMod: A Dataset for Anomaly Detection and Root Cause Analysis in Microservice Systems. arXiv:2601.22881 [cs.SE] https://arxiv.org/abs/2601.22881 [9] Pan Tang, Shixiang Tang, Huanqi Pu, Zhiqing Miao, and Zhixing Wang. 2025. MicroRCA-Agent: Microservice Root Cause Analysis Method Based on Large Language Model Agents. arXiv:2509.15635 [cs.AI] https://arxiv.org/abs/2509. 15635 [10] Junlin Wang, Siddhartha Jain, Dejiao Zhang, Baishakhi Ray, Varun Kumar, and Ben Athiwaratkun. 2024. Reasoning in Token Economies: Budget-Aware Evaluation of LLM Reasoning Strategies. arXiv:2406.06461 [cs.CL] https: //arxiv.org/abs/2406.06461 [11] Tingting Wang and Guilin Qi. 2024. A Comprehensive Survey on Root Cause Analysis in (Micro) Services: Methodologies, Challenges, and Trends. arXiv:2408.00803 [cs.SE] https://arxiv.org/abs/2408.00803 [12] Yuqing Wang, Mika V. Mäntylä, Serge Demeyer, Mutlu Beyazıt, Joanna Kisaakye, and Jesse Nyyssölä. 2025. Cross-System Categorization of Abnormal Traces in Microservice-Based Systems via Meta-Learning. Proc. ACM Softw. Eng. 2, FSE, Article FSE027 (June 2025), 23 pages. doi:10.1145/3715742 [13] Yuqing Wang, Mika V. Mäntylä, Jesse Nyyssölä, Ke Ping, and Liqiang Wang. 2025. Cross-System Software Log-based Anomaly Detection Using Meta-Learning. In 
+
+2025 IEEE International Conference on Software Analysis, Evolution and Reengi-neering (SANER) . 454–464. doi:10.1109/SANER64311.2025.00049 [14] Zefan Wang, Zichuan Liu, Yingying Zhang, Aoxiao Zhong, Jihong Wang, Fengbin Yin, Lunting Fan, Lingfei Wu, and Qingsong Wen. 2024. RCAgent: Cloud Root Cause Analysis by Autonomous Agents with Tool-Augmented Large Language Models. In Proceedings of the 33rd ACM International Conference on Information and Knowledge Management (Boise, ID, USA) (CIKM ’24) . Association for Com-puting Machinery, New York, NY, USA, 4966–4974. doi:10.1145/3627673.3680016 [15] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. 2023. ReAct: Synergizing Reasoning and Acting in Language Models. arXiv preprint arXiv:2210.03629 (2023). https://arxiv.org/abs/2210.03629 [16] Andy Zhou, Kai Yan, Michal Shlapentokh-Rothman, Haohan Wang, and Yu-Xiong Wang. 2024. Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models. In Proceedings of the 41st International Conference on Machine Learning (Proceedings of Machine Learning Research, Vol. 235) , Ruslan Salakhutdinov, Zico Kolter, Katherine Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp (Eds.). PMLR, 62138–62160. https://proceedings.mlr.press/v235/zhou24r.html [17] Xiang Zhou, Xin Peng, Tao Xie, Jun Sun, Chao Ji, Wenhai Li, and Dan Ding. 2018. Fault analysis and debugging of microservice systems: Industrial survey, bench-mark system, and empirical study. IEEE Transactions on Software Engineering 47, 2 (2018), 243–260. doi:10.1109/TSE.2018.2887384
