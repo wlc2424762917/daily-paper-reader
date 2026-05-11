@@ -1,0 +1,3417 @@
+Title: Weblica: Scalable and Reproducible Training Environments for Visual Web Agents
+
+URL Source: https://arxiv.org/pdf/2605.06761v1
+
+Published Time: Mon, 11 May 2026 00:06:54 GMT
+
+Number of Pages: 28
+
+Markdown Content:
+# WEBLICA: Scalable and Reproducible Training Environments for Visual Web Agents 
+
+Oğuzhan Fatih Kar , Roman Bachmann , Yuanzheng Gong , Anders Boesen Lindbo Larsen , Afshin Dehghan 
+
+Apple The web is complex, open-ended, and constantly changing, making it challenging to scale training data for visual web agents. Existing data collection attempts remain limited to offline trajectories for supervised fine-tuning or a handful of sim-ulated environments for RL training, thus failing to capture web diversity. We propose WEBLICA (Web Replica), a framework for constructing reproducible and scalable web environments. Our framework leverages 1) HTTP-level caching to capture and replay stable visual states while preserving interactive behavior and 2) LLM-based environment synthesis grounded in real-world websites and core web navigation skills. Using this framework, we scale RL training to thousands of diverse environments and tasks. Our best model, WEBLICA-8B, outperforms open-weight baselines of similar size across multiple web navigation benchmarks while using fewer inference steps, scales favorably with additional test-time compute, and is competitive with API models. 
+
+Date: May 11, 2026 
+
+1 Introduction 
+
+Large language models are increasingly capable as autonomous agents in domains like coding [3, 26, 35, 15], mathematics [14, 23], and computer use [2, 24, 8, 28]. This progress is driven by the availability of large-scale, high-quality training data. Web navigation has emerged as a recent focus toward building agents that autonomously navigate the web to solve tasks ranging from information retrieval to form filling to online shopping. These agents aim to complete multi-step workflows that currently require manual effort, representing a significant step toward personalized digital assistants. However, progress on building web agents has been slower, primarily due to the difficulty of scaling training data and environments to capture the complexity of the web. Recent attempts at data generation include collecting offline trajectories as demonstration data for supervised fine-tuning [36, 5, 9], offering limited support to handle the stochastic nature of the web due to lack of interaction. As an alternative, building simulated web environments offers interaction, but they commonly cover only a handful of manually defined domains [50, 18], limiting generalization. While training directly on live websites could alleviate that, it suffers from brittleness due to timeouts and bot detection, making training unstable. In addition, the live web is constantly evolving and slow to interact with, making carefully controlled ablations and fully reproducible training difficult. This raises a natural question: how to scale interactive web environments while maintaining reproducibility? 
+
+We propose Weblica , a framework for constructing reproducible and scalable web environments to train visual web agents. Our framework introduces two complementary mechanisms. First, we develop an HTTP-level caching system that records and replays real website interactions, capturing stable visual states while preserving interactive behavior. This enables reproducible training on diverse real-world websites without the brittleness of live web training, though it is limited to domains where stable recordings can be obtained. Second, we present an LLM-based environment synthesis pipeline that generates interactive web environments grounded in real websites and core web navigation skills (e.g., form submission, authentication flows, dynamic 1
+
+> arXiv:2605.06761v1 [cs.AI] 7 May 2026
+
+Home / Compare 
+
+V E H I C L E C O M P A R I S O N T O O L 
+
+S E L E C T V E H I C L E S B Y M A K E , M O D E L & Y E A R 
+
+Choose up to 3 vehicles to compare side-by-side. Use the dropdowns below to select each vehicle by make, model, and year. 
+
+V E H I C L E 1
+
+M A K E 
+
+Select Make 
+
+M O D E L Y E A R 
+
+V E H I C L E 2
+
+M A K E 
+
+Select Make 
+
+M O D E L Y E A R 
+
+V E H I C L E 3
+
+M A K E 
+
+Select Make 
+
+M O D E L C O M P A R E V E H I C L E S Select Model Select Year Select Model Select Year 
+
+WR W I D E R I D E H O M E V E H I C L E S C O M P A R E A B O U T C O N T A C T Our Mission 
+
+At WildPath, we believe everyone deserves to experience the magic of the great outdoors. Our mission is to make camping accessible, safe, and enjoyable for adventurers of all skill levels. We partner with national parks, state forests, and private landowners to bring you the most diverse selection of camping experiences—from rustic backcountry sites to comfortable glamping retreats. 
+
+500+ 50K+ 48 24/7 
+
+Why Choose WildPath? 
+
+🔔 
+
+Real-Time Noti fi cations 
+
+🗺 
+
+Curated Selection 
+
+Every campsite is personally vetted by our team. We 
+
+🛡 
+
+Safety First 
+
+Receive critical safety alerts about  fi re conditions, severe 
+
+💬 
+
+Community Reviews 
+
+Read authentic reviews from fellow campers. Share your Campsites Happy Campers States Covered Support 
+
+About WildPath 
+
+Connecting adventurers with nature since 2019 
+
+🏕  WildPath Home Campsites My Bookings About Contact Account 
+
+3Hom e / Brows e Pro jec ts 
+
+Brows e Pro jec ts 
+
+Find exci ting free lance opportun itie s from clie nts aroun d the worl d.
+
+Show ing 1-10 of 15 pro jec ts Newest First 
+
+OPEN $3,000 - $5,000 
+
+Brand Ide nt ity Package 
+
+New st artup seeki ng compl ete brand ide nt ity inclu di ng lo go,
+
+color palett e, typo graphy, and brand guide lines docum ent .
+
+Brand Ide nt ity Logo Desig n Typo graphy
+
+23 propos als Post ed Feb 25 
+
+OPEN $1,500 - $2,500 
+
+Blo g Cont ent Writing - Tech Industry 
+
+Need 10 in-de pt h blo g posts ab out AI and machi ne lea rn ingfor our tech blo g. 2000+ wor ds each .
+
+Blo g Posts Tech nica l Writing SEO 
+
+31 propos als Post ed Feb 25 
+
+OPEN $5,000 - $8,000 
+
+E-comm erce Web site Rede sig n
+
+Loo ki ng for an exp erie nced UI/UX de sig ner to rede sig n our out da ted e-comm erce pl atform . Need mo de rn , mo bi le-fi rst 
+
+appro ach with improv ed check out flow ... 
+
+UI D esig n UX Resea rch Fig ma
+
+12 propos als Post ed Feb 24 
+
+OPEN $200 - $400 
+
+Podca st Pro duction and Edi ting
+
+Loo ki ng for on going po dca st edi tor for week ly bus iness po dca st . Inclu de s edi ting, mixing, and episo de pr eparation .
+
+Podca st Edi ting Audi o Mixing Soun d Desig n
+
+34 propos als Post ed Feb 24 
+
+OPEN $15,000 - $25,000 
+
+Reac t Native Mobi le App Developm ent 
+
+Build a cross -pl atform mo bi le app for our fi tn ess tr acki ng
+
+serv ice . Must int eg rate with Appl e Hea lt h and Goo gle Fit
+
+API s.
+
+Reac t Native iOS Andro id API I nt eg ration 
+
+8 propos als Post ed Feb 23 
+
+OPEN $4,000 - $6,500 
+
+Data Dashb oard Developm ent 
+
+Crea te int erac tive da ta da shb oard us ing Tab lea u for our sales and marke ting tea m. Conn ec t to mult ipl e da ta
+
+sour ce s.
+
+Tab lea u SQL Data Visu alization 
+
+9 propos als Post ed Feb 23 
+
+Sea rch pro jec ts by titl e or ski ll ... 
+
+Filt ers Clea r all 
+
+Categ ory 
+
+All Categ or ie s
+
+Desig n (2) 
+
+Developm ent (3) 
+
+Writing (2) 
+
+Marke ting (2) 
+
+Vide o & Animation (2) 
+
+Audi o (1) 
+
+Consult ing (1) 
+
+Data Scie nce (2) 
+
+Pro jec t Status 
+
+All Pro jec ts 
+
+Open
+
+In Pro gress 
+
+Compl eted 
+
+Budge t Range 
+
+Min — Max
+
+Apply Budge t
+
+LineWor k Find Talent Post a Pro jec tHom e Find Talent Brows e Pro jec ts About Cont ac tELIGIBILITY CALCULATOR 
+
+Check if your household qualifies for FHA housing assistance programs 
+
+Q U I C K L I N K S 
+
+●
+
+Income Limits Table 
+
+● Apply Now 
+
+●
+
+Required Documents 
+
+● FAQ 
+
+I N C O M E C AT E G O R I E S 
+
+Very Low Income 
+
+50% of Area Median Income 
+
+Low Income 
+
+80% of Area Median Income 
+
+CALCULATE YOUR ELIGIBILITY 
+
+HOUSEHOLD SIZE * 
+
+4 People 
+
+TOTAL ANNUAL HOUSEHOLD INCOME * 
+
+Enter total annual income 
+
+TOTAL ASSETS (OPTIONAL) 
+
+Savings, investments, etc. 
+
+SPECIAL CATEGORIES 
+
+HEAD OF HOUSEHOLD IS 62 OR OLDER 
+
+HOUSEHOLD MEMBER HAS A DISABILITY 
+
+CALCULATE ELIGIBILITY 
+
+2026 INCOME LIMITS FOR FAIRVIEW COUNTY 
+
+These limits are used to determine program eligibility. Limits are based on Area Median Income (AMI). 
+
+HOUSEHOLD SIZE VERY LOW (50% AMI) LOW (80% AMI) 
+
+1 Person $32,400 $51,850 2 People $37,000 $59,250 3 People $41,650 $66,650 4 People $46,250 $74,050 5 People $49,950 $80,000 
+
+READY TO APPLY? 
+
+If eligible, start your application today. 
+
+APPLY NOW 
+
+QUESTIONS? 
+
+Our team can answer eligibility questions. 
+
+(555) 742-8900 
+
+FAIRVIEW HOUSING AUTHORITY 
+
+Building Communities, Changing Lives 
+
+APPLY NOW HOME Get in Tou ch 
+
+Have qu est ions ? We'd lov e to hea r from you . Send us 
+
+a mess age and we'll respon d as soon as poss ib le.
+
+Emai l
+
+support @cont ent for ge .io
+
+Phon e
+
+1-800-555-0199 
+
+Hours 
+
+Mon -Fri: 9AM - 6PM PS T
+
+Office 
+
+123 Desig n Str ee t, San Franci sco, CA 94105 
+
+Send us a mess age 
+
+Your Name
+
+John Doe
+
+Emai l Add ress 
+
+john@exampl e.com 
+
+Subjec t
+
+Selec t a top ic 
+
+Mess age 
+
+How ca n we he lp you ?
+
+Send Mess age 
+
+CF Cont ent For ge 
+
+Empow ering crea tors to bring thei r
+
+idea s to life .
+
+PROD UCT
+
+Templ ates
+
+Prici ng
+
+Edi tor 
+
+SUPPOR T
+
+Help Cent er
+
+Cont ac t Us
+
+LEGAL 
+
+Privac y Pol ic y
+
+Terms of Serv ice 
+
+© 2026 Cont ent For ge . All righ ts reserv ed .
+
+CF Cont ent For ge Templ ates Prici ng Crea te Dashb oard Log In Start Free Tria lCATEGORY: All Categories DIFFICULTY: All Levels Search quizzes... 
+
+Showing 26 of 30 quizzes 
+
+MEDEQUIP A P P LY F I LT E R S 
+
+EASY ⏱ 10 min 
+
+ECG BASICS 
+
+Learn the fundamentals of electrocardiogram monitoring and interpretation. 
+
+15 Questions 2,341 Attempts 
+
+T A K E Q U I Z 
+
+EASY ⏱ 8 min 
+
+PULSE OXIMETRY BASICS 
+
+Understanding SpO2 monitoring and proper pulse oximeter placement. 
+
+12 Questions 3,102 Attempts 
+
+T A K E Q U I Z 
+
+MEDIUM ⏱ 15 min 
+
+BLOOD PRESSURE MONITORING 
+
+Non-invasive and invasive blood pressure monitoring techniques. 
+
+18 Questions 1,892 Attempts 
+
+T A K E Q U I Z 
+
+HARD ⏱ 25 min 
+
+ADVANCED ECG INTERPRETATION 
+
+Complex arrhythmia recognition and advanced ECG analysis. 
+
+25 Questions 876 Attempts 
+
+T A K E Q U I Z 
+
+MEDIUM ⏱ 12 min 
+
+CAPNOGRAPHY ESSENTIALS 
+
+End-tidal CO2 monitoring principles and clinical applications. 
+
+14 Questions 1,234 Attempts 
+
+T A K E Q U I Z 
+
+MEDIUM ⏱ 15 min 
+
+DEFIBRILLATOR OPERATION 
+
+Master the safe and effective use of manual and automatic defibrillators. 
+
+20 Questions 1,856 Attempts 
+
+T A K E Q U I Z 
+
+ALL QUIZZES 
+
+Browse our complete collection of medical equipment quizzes. Filter by category, difficulty, or search for specific topics. 
+
+M E D E Q U I P P RO HOME QUIZZES EQUIPMENT CERTIFICATIONS ABOUT 
+
+MEP Spring 2026 Issue Now Available Submit Your Work Subscribe Contact 
+
+The Verdant Quill 
+
+Where Stories Bloom 
+
+Submit Work Subscribe 
+
+Issues Archive 
+
+Explore our complete collection of quarterly issues spanning decades of literary excellence 
+
+VOL. 39, NO. 1 
+
+Spring 2026 
+
+CURRENT ISSUE 
+
+VOL. 38, NO. 4 
+
+Winter 2025 
+
+VOL. 38, NO. 3 
+
+Fall 2025 
+
+VOL. 38, NO. 2 
+
+Summer 2025 
+
+VOL. 38, NO. 1 
+
+Spring 2025 
+
+VOL. 37, NO. 4 
+
+Winter 2024 
+
+NAVIGATE 
+
+Home 
+
+Issues 
+
+2026 2025 2024 
+
+Browse Authors Submit Subscribe About Contact 
+
+GET EVERY ISSUE 
+
+Subscribe and never miss a single story. 
+
+Subscribe 
+
+ISSUE STATISTICS 
+
+Total Issues: 156 
+
+Years Active: 39 
+
+Stories Published: 3,120+ Trending Topics 
+
+#PBR Worl dFinals 
+
+#NFR 2026 
+
+#Bull Ridi ng
+
+#Barr elRaci ng
+
+#Tea mRop ing
+
+Quick Stats 
+
+2,847 
+
+RIDERS 
+
+156 
+
+EVEN TS
+
+Your Feed All Follow ing Trendi ng
+
+Sha re your ro de o mom ent ... 
+
+Post 
+
+Jake Thun de r ✓ @jake thun de r
+
+2h ag o
+
+⋯
+
+Just fi nished an incredib le ride at the PBR Worl d Finals ! 92 po ints on Twist ed Stee l.
+
+Thi s is wha t we tr ai n for ! 🐂 #PBR Worl dFinals #Bull Ridi ng
+
+4.5 K 39 234 156 
+
+Sarah Dusty ✓ @sarahd usty 
+
+4h ag o
+
+⋯
+
+New person al be st to da y! 13.42 sec on ds on the ba rr els . Hard wor k pays off ! Tha nk
+
+you to everyon e who be lie ves in me. @jake thun de r @brettmust ang you guys 
+
+insp ire me dai ly ! #Barr elRaci ng #NFR 2026 
+
+Upcoming Events 
+
+PBR Worl d Finals Mar 22-26 
+
+Che yenn e Front ie r
+
+Days 
+
+Jul 21-30 
+
+Calga ry Stamp ede Jul 7-16 
+
+Who to Follow 
+
+Levi Roun dup 
+
+@leviroun dup 
+
+Follow 
+
+Ruby Hors es…
+
+@ru byhors eshoe
+
+Follow 
+
+Ivy Gallop 
+
+@ivy ga llop 
+
+Follow 
+
+Blake Thun de r
+
+@blake thun de r
+
+Follow 
+
+🏇 Saddle Up Social Feed Events Ride rs Leade rboard📅 Trade Shows - Browse Events _ □ X
+
+File Edit View Help 
+
+Browse Trade Shows 
+
+Discover upcoming trade shows and exhibitions. Use the filters below to find events by category or location. Category: 
+
+All Categories 
+
+City: 
+
+All Cities 
+
+24 events found 
+
+TechExpo 2026 
+
+Mar 15 - Mar 18, 2026 
+
+Metro Convention Center, New York 
+
+The largest technology trade show in North America featuring cutting-edge innovations. 
+
+Technology 250 booths Floor Plan Exhibitors 
+
+AutoWorld Summit 
+
+Apr 2 - Apr 5, 2026 
+
+Lakeside Expo Hall, Chicago 
+
+Showcasing the future of automotive technology and electric vehicles. 
+
+Automotive 180 booths Floor Plan Exhibitors 
+
+AgriTech Summit 
+
+Apr 12 - Apr 14, 2026 
+
+Heartland Expo Center, Kansas City 
+
+Agricultural technology, farming equipment, and sustainable agriculture. 
+
+Agriculture 165 booths Floor Plan Exhibitors 
+
+HealthCare Connect 
+
+Apr 20 - Apr 22, 2026 
+
+Sunbelt Conference Center, Miami 
+
+Leading healthcare professionals and medical device manufacturers unite. 
+
+Healthcare 150 booths Floor Plan Exhibitors 
+
+FoodTech International 
+
+May 8 - May 10, 2026 
+
+Pacific Trade Center, San Francisco 
+
+Innovations in food technology, sustainable agriculture, and culinary arts. 
+
+Food & Beverage 200 booths Floor Plan Exhibitors 
+
+MarineTech Expo 
+
+May 15 - May 17, 2026 
+
+Harbor Convention Center, Seattle 
+
+Marine technology, boat building, and nautical equipment. 
+
+Marine 95 booths Floor Plan Exhibitors 
+
+BuildCon 2026 
+
+May 22 - May 25, 2026 
+
+Mountain View Center, Denver 
+
+Construction equipment, materials, and building technology expo. 
+
+Construction 175 booths Floor Plan Exhibitors 
+
+Fashion Forward Expo 
+
+Jun 5 - Jun 8, 2026 
+
+Grand Exhibition Hall, Los Angeles 
+
+The premier fashion industry trade show featuring top designers and brands. 
+
+Fashion 220 booths Floor Plan Exhibitors 
+
+GreenEnergy Summit 
+
+Jun 18 - Jun 20, 2026 
+
+Harbor Convention Center, Seattle 
+
+Renewable energy solutions and sustainable technology showcase. 
+
+Energy 130 booths Floor Plan Exhibitors 
+
+PrintMedia World 
+
+Jun 25 - Jun 27, 2026 
+
+Media Center Complex, Minneapolis 
+
+Printing technology, publishing, and media production. 
+
+Media 125 booths Floor Plan Exhibitors 
+
+Retail Revolution 
+
+Jul 10 - Jul 12, 2026 
+
+Central Expo Complex, Dallas 
+
+Retail technology, POS systems, and e-commerce solutions. 
+
+Retail 190 booths Floor Plan Exhibitors 
+
+AeroSpace Show 
+
+Jul 25 - Jul 28, 2026 
+
+Sky Harbor Center, Phoenix 
+
+Aviation and aerospace technology exhibition. 
+
+Aerospace 140 booths Floor Plan Exhibitors 
+
+Security & Safety Expo Gaming Universe BioTech Horizons FinTech Forum 
+
+Trade Shows 24 Events 
+
+■ Start Trade Shows 🔊 11:51 AM Experience the Art of Persian Tea 
+
+Discover traditional tea houses across the city, where ancient brewing methods meet modern comfort. Each Isfahan location o ff ers authentic Persian chai, exotic blends, and a tranquil atmosphere inspired by centuries of tea culture. 
+
+E X P L O R E O U R L O C AT I O N S 
+
+Find Your Perfect Tea Room 
+
+CLEAR ALL 
+
+Tea Types 
+
+Green Tea Black Tea Oolong Tea Herbal Infusions Persian Chai White Tea 
+
+Amenities 
+
+Free WiFi Outdoor Seating Parking Available Hookah Lounge Live Music Private Rooms 
+
+Price Range 
+
+$ $$ $$$ $$$$ 
+
+Up to: $$$$ 
+
+Minimum Rating 
+
+1+ 2+ 3+ 4+ 
+
+Any 
+
+Availability 
+
+Open Now Accepts Reservations 
+
+24 tea rooms found 
+
+I S F A H A N T E A H O U S E 
+
+OUR TEAS LOCATIONS ABOUT US CONTACT 
+
+Grand Opening: Visit our new Silk Road location! Free Persian sweets with every pot of tea. ×
+
+HOME LOCATIONS OUR TEAS ABOUT CONTACT Last up da ted : March 10, 2026 
+
+Speak Well The rapy (" we", "our ", or "us ") is comm itt ed to prot ec ting your pr ivac y. Thi s Privac y Pol ic y expl ai ns how wecoll ec t, us e, and safeg uard your inform ation whe n you us e our sp eech the rapy pl atform .
+
+Inform ation We Coll ec t
+
+We coll ec t inform ation you prov ide di rec tly to us , inclu di ng:
+
+Acc ount inform ation (name, emai l, passwor d)
+
+Pro fi le inform ation (age , the rapy goals )
+
+Exerci se pro gress and compl etion da ta
+
+Commun ica tion pr efe rence s
+
+How We Use Your Inform ation 
+
+We us e the inform ation we coll ec t to :
+
+Prov ide and improv e our sp eech the rapy serv ice s
+
+Person alize exerci se rec omm enda tions 
+
+Track and report the rapy pro gress 
+
+Send not ifica tions and up da tes
+
+Respon d to your inqu irie s
+
+Data Sec ur ity 
+
+We impl ement industry -st anda rd sec ur ity mea sur es to prot ec t your person al inform ation . All da ta is encrypt ed in tr ans it andat rest . We reg ul arly revie w and up da te our sec ur ity pr ac tice s.
+
+Your Righ ts 
+
+You ha ve the righ t to acce ss , corr ec t, or de lete your person al inform ation . You ca n manage your da ta throu gh your acc ount sett ings or by cont ac ting us di rec tly .
+
+Cont ac t Us
+
+If you ha ve qu est ions ab out thi s Privac y Pol ic y, pl ea se cont ac t us at pr ivac y@sp eak wellt he rapy .com or ca ll (555) 123-4567. 
+
+© 2026 Speak Well The rapy . All righ ts reserv ed . Privac y Terms Cont ac t
+
+Privac y Pol ic y Search... Wellness Programs 
+
+Sea rch pro grams ... Sea rch 
+
+All Pro grams Yoga Medi tation Fitn ess Nutr ition Slee p Mindf uln ess Str ess Relief 
+
+30 pro grams Sort by: Most Popul ar
+
+30-Day Yoga Journ ey
+
+★★★★ ½ 4.8 30 min begi nn er
+
+Trans form your body and mind withdai ly yo ga sess ions de sig ned for …
+
+$49.99 
+
+Medi tation Fun da ment als 
+
+★★★★ ½ 4.9 15 min begi nn er
+
+Lea rn the cor e tech niqu es of
+
+mindf uln ess medi tation in thi s…
+
+Free 
+
+HII T Fat Burn er
+
+★★★★ ½ 4.7 45 min
+
+int erm edia te
+
+High -int ens ity int erv al tr ai ning
+
+pro gram to maximize ca lor ie burn …
+
+$39.99 
+
+Bett er Slee p Pro gram
+
+★★★★ ½ 4.8 20 min all -levels 
+
+Scie nce -backed tech niqu es to 
+
+improv e sl ee p qu ality and…
+
+$29.99 Trans form your life with our exp ert -led pro grams de sig ned for every st age 
+
+of your welln ess journ ey
+
+POP ULAR POP ULAR POP ULAR POP ULAR 
+
+❄ Serenity Wellness Hom e Pro grams Art ic les Pro ducts Prac tition ers About Cont ac tOur most popular adventures hand-picked by our expedition team 
+
+Featured Expeditions 
+
+EXPLORE THE FROZEN FRONTIER 
+
+VIEW EXPEDITIONS LEARN MORE Embark on life-changing journeys to the most remote and pristine polar regions on Earth. Experience the raw beauty of the Arctic with our expert-led expeditions. 
+
+❄ ARCTIC EXPEDITIONS Home Expeditions About Us Contact S C R O L L 
+
+Where Desert Meets Kitchen 
+
+Artisan kitchenware inspired by the warm colors and timeless beauty of the American Southwest 
+
+SHOP COLLECTION OUR STORY 
+
+Terra Kitchen Showing 48 products Featured 
+
+GAME STORE 
+
+SEARCH 
+
+Search products... 
+
+CATEGORIES 
+
+PC Games (10) 
+
+Console Games (10) 
+
+Accessories (10) 
+
+Gift Cards (6) 
+
+Collectibles (6) 
+
+Pre-Orders (6) 
+
+PRICE RANGE 
+
+Min - Max 
+
+MINIMUM RATING 
+
+All Ratings 
+
+APPLY FILTERS 
+
+Clear All 
+
+PC GAMES 
+
+Cyber Nexus 2077 
+
+★★★★☆ (2,341) 
+
+$59.99 🛒 ADD TO BAG 
+
+PC GAMES 
+
+Tactical Strike Force 
+
+★★★★☆ (3,421) 
+
+$54.99 🛒 ADD TO BAG 
+
+CONSOLE GAMES 
+
+Legend of Heroes: Eclipse 
+
+★★★★☆ (8,765) 
+
+$69.99 🛒 ADD TO BAG 
+
+CONSOLE GAMES 
+
+Battle Royale Ultimate 
+
+★★★★☆ (15,678) 
+
+FREE 🛒 ADD TO BAG 
+
+ACCESSORIES 
+
+HyperSound Gaming Headset 
+
+★★★★☆ (2,345) 
+
+$149.99 🛒 ADD TO BAG 
+
+GIFT CARDS 
+
+$100 RaveGames Gift Card 
+
+★★★★★ (5,432) 
+
+$100.00 🛒 ADD TO BAG 
+
+HOT HOT HOT 
+
+HOT HOT HOT 
+
+RAVEGAMES Search games... 🔍 
+
+HOME STORE PC GAMES CONSOLE ABOUT 🛒 Bag Our Collections 
+
+Explore our diverse departments , each housing unique treasures from different eras and civilizations .
+
+Paintings 
+
+Our European Paintings collection spans over 700 years of artistic achievement , from the early Renaissance masters to the revolutionary Impressionists . The collection includes masterpieces by Vermeer ,
+
+Rembrandt , Monet , Van Gogh , and countless others who shaped the course of Western art history .
+
+Highlights include Vermeer 's "Girl with a Pearl Earring ," Van Gogh 's "Starry Night Over the Rhone ," and Monet 's celebrated "Water Lilies " series . The galleries are arranged chronologically , allowing visitors to trace the evolution of European painting through the centuries .
+
+2,500+ 
+
+ARTWORKS 
+
+700 
+
+YEARS 
+
+15 
+
+GALLERIES 
+
+EXPLORE COLLECTION 
+
+Collections 
+
+Home / Collections 
+
+M Metro Museum HOME EXHIBITS COLLECTIONS EVENTS VISIT ABOUT CONTACT 🇺🇸 EN ▼
+
+🇺🇸 Current : English Get in Touch 
+
+Have questions ? We 'd love to hear from you . Send us a message and we 'll respond as soon as possible .
+
+Send Us a Message 
+
+Full Name * Email Address *
+
+Subject *
+
+Select a topic ... 
+
+Order /Subscription ID (if applicable )
+
+e.g., BJ -12345 
+
+Message *
+
+Tell us how we can help ... 
+
+Sign me up for the BoxJoy newsletter 
+
+Send Message 
+
+Contact Information 
+
+📧 Email 
+
+hello @boxjoy .com 
+
+📞 Phone 
+
+1-800-BOX -JOY 1
+
+(1-800-269-5691) 
+
+🕐 Hours 
+
+Monday - Friday : 9 am - 6 pm EST Saturday : 10 am - 4 pm EST Sunday : Closed 
+
+📍 Address 
+
+BoxJoy Headquarters 
+
+123 Subscription Lane Brooklyn , NY 11201 
+
+Quick Answers 
+
+How do I cancel my subscription ?
+
+When will my box ship ?
+
+Can I gift a subscription ?
+
+What 's your return policy ?
+
+📦 BoxJoy Home Browse Boxes About Us Contact ♥ 0Compon ent Catalo g
+
+Brows e our ext ens ive selec tion of ga ming PC compon ents 
+
+Sea rch compon ents ... Sort : Name A-Z
+
+Show ing 110 of 110 compon ents 
+
+CP U
+
+AMD R yz en 9 7950 X
+
+$549 
+
+CP U
+
+AMD R yz en 9 7900 X
+
+$449 
+
+CP U
+
+AMD R yz en 7 7800 X3D
+
+$449 
+
+CP U
+
+AMD R yz en 7 7700 X
+
+$349 
+
+CP U
+
+AMD R yz en 5 7600 X
+
+$249 
+
+CP U
+
+AMD R yz en 7 5800 X3D
+
+$329 
+
+CP U
+
+AMD R yz en 7 5700 X
+
+$199 
+
+CP U
+
+AMD R yz en 5 5600 
+
+$149 
+
+CP U
+
+Int el Cor e i9-14900 K
+
+$589 
+
+Categ or ie s
+
+All Compon ents 
+
+Pro ce ssors (CP U)
+
+Graphic s Cards (GP U)
+
+Mot he rboards
+
+Memory (RAM )
+
+Stor age 
+
+Pow er Suppl ie s
+
+Cases
+
+Cool ing
+
+Price Range 
+
+Min: $ 0
+
+Max: $ 2000 
+
+Brand
+
+All Brands
+
+Rig Line Hom e PC B uilde r Pre-Built Syst ems Compon ents Support Activity Typ e
+
+All Types 
+
+Loca tion 
+
+All Locations 
+
+Sort By
+
+Date (Newest First) 
+
+Sea rch 
+
+Search adventures... 
+
+Your Adventur es 50 ad ventur es
+
+KA YAKING & WATER 
+
+Puge t Soun d Padd le
+
+Mar 12, 2026 • Puge t Soun d
+
+👣 8.5 mi ⛰ 0 ft ⏰ 3.5 hrs 
+
+CYCLING 
+
+Bur ke -Gilm an Trai l Ride 
+
+Mar 11, 2026 • Sea ttl e
+
+👣 28.5 mi ⛰ 450 ft ⏰ 2 hrs 
+
+HIKING 
+
+Summ it Trai l Exp edi tion 
+
+Mar 10, 2026 • Mount Rai nie r
+
+👣 12.5 mi ⛰ 3200 ft ⏰ 5.5 hrs 
+
+CLIMBING 
+
+Inde x Wall Asce nt 
+
+Mar 9, 2026 • Inde x
+
+🧗 4 rout es ⛰ 800 ft
+
+CAMPING 
+
+Starl igh t Basin Camp 
+
+Mar 8, 2026 • Olymp ic Nation al Park
+
+🏡 2 nigh ts 📍 Olymp ic Nation al Park
+
+WILDLIFE 
+
+Orca Watch Exp edi tion 
+
+Mar 7, 2026 • San Juan Isl ands
+
+🦍 6 sigh tings ⏰ 4 hrs 
+
+Adventur e Log
+
+Brows e your compl ete out door ad ventur e hi story 
+
+⛰ Trai lTrak Dashb oard Adventur es Trai ls Statist ic s Gea r JD Jake Danie ls 💰 Get Your Free Quot e
+
+Use our inst ant quot e ca lcul ator for an est imate, or requ est a free on -siteconsult ation for acc ur ate pr ici ng.
+
+📊 Quot e Calcul ator 
+
+Serv ice Typ e *
+
+✂ Tree 
+
+Prun ing
+
+🪓 Tree 
+
+Remov al
+
+🔬 Hea lt h
+
+Ass essm ent 
+
+⚙ Stump 
+
+Grindi ng
+
+🌱 Tree 
+
+Plant ing
+
+🚨 
+
+Emerge ncy
+
+Tree Typ e
+
+Select tree type... 
+
+Num be r of Tree s
+
+1 tree 
+
+Est imated Heigh t
+
+30-50 ft (Large) 
+
+Acce ss Diffic ulty 
+
+Moderate - Some obstacles 
+
+Addi tion al Serv ice s
+
+Inclu de stump grindi ng (+ $125) Deb ris ha ul ing (+ $75) 
+
+Woo d chi p mul ch (Free ) Cut fi rewoo d (+ $50) 
+
+Cont ac t Inform ation 
+
+Full Name *
+
+John Smith 
+
+Phon e Num be r *
+
+(555) 123-4567 
+
+Emai l Add ress *
+
+john@example.com 
+
+Prop erty Add ress *
+
+123 Main St, Oak Valley, CA 
+
+Addi tion al Not es
+
+✓ Why Choos e Us
+
+✓ Free on -site est imates
+
+✓ ISA C ert ified Arbor ists 
+
+✓ Fully lice ns ed & insur ed 
+
+✓ No hidde n fee s
+
+✓ Satisfac tion guarant eed 
+
+💵 Est imate Summ ary 
+
+Selec t a serv ice and tr ee de tai ls to see your 
+
+est imated cost .
+
+🌳 Gree nCanopy ⭐ 4.9 Rating 🌲 15,240 Tree s
+
+Serv ed 😊 98 % Satisfac tion 
+
+🏠 
+
+Hom e
+
+🛠 
+
+Serv ice s
+
+⭐
+
+Revie ws 
+
+📸 
+
+Gall ery 
+
+👥 
+
+About 
+
+📞 
+
+Cont ac t
+
+💰 
+
+Get
+
+Quot eULTIMATE FRISBEE APPAREL 
+
+Perform ance wea r for comp etitive pl ayers and ca su al ent hus ia sts 
+
+40 pro ducts foun d Sort by: Featured 
+
+Active Filt ers : App arel × Clear All 
+
+CHAOSGEAR 
+
+Tea m Spirit Hoo die 
+
+Cotton 
+
+$49.99 
+
+Add to Cart 
+
+ULTRA WEAR 
+
+Cha os Crew Swea ts hi rt 
+
+Cotton 
+
+$44.99 
+
+Add to Cart 
+
+FILTER APPAREL 
+
+* Materia l
+
+Cotton (15) 
+
+Poly est er (15) 
+
+Mesh (10) 
+
+Price Range 
+
+Min $
+
+0 to 
+
+Max $
+
+100 
+
+Apply Price 
+
+Brand
+
+Ultr aWea r
+
+Cha os Gea r
+
+Apply Filters 
+
+Reset All Filters 
+
+DISCCHAOS 
+
+> *
+
+Search for discs, gear, and more... 
+
+0Cont ac ts 
+
+Comp any inform ation and support 
+
+Resolv eDeb t Pro 
+
+Pro fe ss ion al Deb t Coll ec tion Serv ice s
+
+ADDRESS 
+
+1847 Financia l Plaza, Suite 400 
+
+Denv er, CO 80202 
+
+MAIN PHONE 
+
+1-800-555-DEB T (3328) 
+
+EMAIL 
+
+support @resolv edeb tpro .com 
+
+BUSINESS HO URS 
+
+Mon -Fri: 8:00 AM - 8:00 PM ES T
+
+Sat: 9:00 AM - 5:00 PM ES T
+
+Credi tor Partn ers 
+
+First Nation al Bank
+
+Banki ng | 124 acc ounts 
+
+Metro Hea lt h Syst ems 
+
+Hea lt hca re | 89 acc ounts 
+
+Capital Credi t Union 
+
+Credi t Union | 67 acc ounts 
+
+City Utilitie s Co
+
+Utility | 156 acc ounts 
+
+Premie r Auto Finance 
+
+Auto Finance | 45 acc ounts 
+
+Mid west Medica l Cent er
+
+Hea lt hca re | 78 acc ounts 
+
+Search creditors or team members... 
+
+Dashb oard
+
+Acc ounts 
+
+Paym ents 
+
+Reports 
+
+Cont ac ts 
+
+Quick Actions New Account Record Payment Help 
+
+Resolv eDeb t Pro Age nt Smith
+
+3Free shi pp ing on or de rs ov er $75 Help Cent er Track Orde r My Acc ount 
+
+Reci pes & Guide s
+
+From qu ick 30-minut e mozz arell a to aged art isan chedda r, fi nd the perfec treci pe for your ski ll level.
+
+All Recipes Easy Intermediate Advanced Soft Cheese Hard Cheese 
+
+FEA TU RED RECIPE 
+
+30-Minut e Mozz arell a
+
+The perfec t intro duction to chee se maki ng! Thi s qu ick and
+
+rewardi ng reci pe pro duce s fresh, str etch y mozz arell a tha t's perfec t
+
+for pizz a, ca pr ese salad s, or ea ting on its own . No sp ecia l equ ipm ent needed be yon d a large pot and a the rmom eter.
+
+30 minut es Serv es 4-6 
+
+Get the Mozz arell a Kit
+
+Fresh Ric ott a
+
+Crea my , de lica te ric ott a made in just 20 minut eswith simpl e ingredie nts .
+
+20 mins 2-4 
+
+Class ic Farm hous e Chedda r
+
+Tradi tion al aged chedda r with sha rp , compl ex
+
+flavors . Requ ires patie nce but wort h the wai t.
+
+4 hours + agi ng Make s 2 lb
+
+Crea my Brie 
+
+Soft-ripened chee se with a bloomy rind. AFrench class ic made in your own ki tche n.
+
+3 hours + agi ng Make s 8 oz 
+
+EAS Y IN TERMEDIA TE AD VANCED 
+
+Cur d & Craf t120 repos itor ie s foun d Filt ers Most Stars 
+
+sen_fortr ess /ab yss -lo gge r
+
+Swif t as Artor ia s, reliab le as the bon fi re
+
+Kotl in 1,837 463 42 Upda ted 2 mont hs ag o Unl ice ns e
+
+bon fi re_de v/bloo d-ge m
+
+Seek paleb loo d to tr ans ce nd your bugs
+
+C++ 1,533 345 20 Upda ted 3 mont hs ag o Unl ice ns e
+
+sen_fortr ess /burnt -tow er
+
+From the ashe s of legac y code , som ethi ng bea ut if ul rises
+
+JavaScript 1,505 316 4 Upda ted 5 mont hs ag o GPL -3.0 
+
+sen_fortr ess /simpl e-ge m
+
+The ch os en framewor k for un dead de velop ers 
+
+PHP 1,466 475 38 Upda ted 3 mont hs ag o MI T
+
+fi rekee per/be nha rt -swor d
+
+Seek paleb loo d to tr ans ce nd your bugs
+
+PHP 1,455 245 14 Upda ted 8 mont hs ag o
+
+Explore the Forge 
+
+Discov er repos itor ie s for ged in the flames of innov ation 
+
+Sea rch repos itor ie s by name or de script ion ... 
+
+🔥 Ember Forge Hom e Explor e Trendi ng Coll ec tions Acce ssor ie s
+
+Exp and your Nov a ec osyst em with comp atib le sm art de vice s and acce ssor ie s.
+
+All Pro ducts Sensors Ligh ting Sec ur ity Climate Pow er
+
+Mot ion Sensor 
+
+Wide -angle PIR mot ion de tec tion with adj ust ab le sens itivity . Perfec t
+
+for autom ation tr igge rs .
+
+$29 
+
+Add to Cart 
+
+Door /Window Sensor 
+
+Comp ac t mag netic sensor for doors 
+
+and windows . Inst ant op en/clos e
+
+not ifica tions .
+
+$24 
+
+Add to Cart 
+
+Temp & Hum idi ty Sensor 
+
+Acc ur ate env ironm ent al mon itor ingfor any room . Helps opt imize HVAC 
+
+autom ation .
+
+$34 
+
+Add to Cart 
+
+Water Leak Sensor 
+
+Early de tec tion of water leak s un de rsinks, nea r water hea ters , and in
+
+ba sements .
+
+$22 
+
+Add to Cart 
+
+Smart Bul b (Color )
+
+16 mill ion colors , di mm ab le, 800 
+
+lum ens . Wor ks with all E26 so cke ts .
+
+$18 
+
+Add to Cart 
+
+Smart LED S tr ip (2 m)
+
+Flexib le RGB W LED str ip withadhe sive backi ng. Cutt ab le to size.
+
+$39 
+
+Add to Cart 
+
+Smart Ligh t Switch 
+
+In-wall sm art sw itch with di mm er.
+
+Neutr al wire requ ired .
+
+$44 
+
+Add to Cart 
+
+Indoor Camera
+
+1080 p HD with nigh t vision , two -
+
+way audi o, and mot ion de tec tion .
+
+$79 
+
+Add to Cart 
+
+N Nov a Smart Hub Acce ssor ie s Support About Pro jec ts 
+
+All repos itor ie s and pro jec ts conn ec ted to Code Puls e
+
+C code puls e-api
+
+Typ eScript 
+
+Cor e API backe nd for Code Puls e pl atform . Handles
+
+aut he nt ica tion , revie ws , and pro jec t manage ment .
+
+8 op en 156 tot al 12 
+
+C code puls e-ui
+
+Reac t
+
+Front end web appl ica tion built with Reac t. Prov ide sthe us er int erface for code revie w.
+
+4 op en 89 tot al 8
+
+R rea lt ime-engi ne
+
+Typ eScript 
+
+Rea l-time coll ab or ation engi ne us ing Web Socke ts .
+
+Pow ers live code edi ting and not ifica tions .
+
+3 op en 67 tot al 5
+
+C code puls e-docs
+
+Markd own 
+
+Officia l docum ent ation for the Code Puls e pl atform .
+
+Inclu de s API refe rence and guide s.
+
+2 op en 45 tot al 6
+
+C code puls e-cli
+
+Go
+
+Comm and-line int erface for Code Puls e. Allows 
+
+crea ting and managi ng revie ws from term inal.
+
+1 op en 34 tot al 4
+
+C code puls e-vs code 
+
+Typ eScript 
+
+VS C ode ext ens ion for inl ine code revie w. Vie w and
+
+respon d to comm ents di rec tly in your edi tor .
+
+2 op en 28 tot al 3
+
+Code Puls e
+
+About Help Cent er Cont ac t Privac y Pol ic y Terms of Serv ice 
+
+© 2026 Code Puls e. All righ ts reserv ed .
+
+All Pendi ng Approv ed Cha nge s Requ est ed My Revie ws 
+
+Ass ig ned to Me
+
+Code Puls e Hom e Revie ws Pro jec ts Tea m Analyt ic s Sett ings 5 Alex Che nSpeech The rapy Tool Catalo g
+
+Brows e our compr ehe ns ive coll ec tion of evide nce -ba sed tools for sp eech and language the rapy 
+
+65 tools foun d Sort by: Name (A-Z) ▦ ☰
+
+AAC 
+
+AAC A ss essm ent 
+
+Kit
+
+Compr ehe ns ive tools for 
+
+AAC fea tur e matchi ng…
+
+$145.99 ★★★★ ½
+
+4.7 
+
+Age s: Presch ool , Sch ool ,
+
+Tee n, Adult 
+
+AAC 
+
+AAC M ode ling Kit
+
+Trai ning materia ls for 
+
+aided language …
+
+$52.99 ★★★★ ½ 4.9 
+
+Age s: Todd ler, Presch ool ,
+
+Sch ool 
+
+AAC 
+
+Acce ss ib le Switch 
+
+Set
+
+Set of 2 color ful je lly 
+
+bea n sw itche s for AAC …
+
+$74.99 ★★★★ ½ 4.6 
+
+Age s: Presch ool , Sch ool ,
+
+Tee n, Adult 
+
+AR TIC ULA TION 
+
+Art ic ul ation Card
+
+Deck - R S oun ds
+
+120 illustr ated ca rdstarge ting R soun d in…
+
+$24.99 ★★★★ ½ 4.9 
+
+Age s: Presch ool , Sch ool ,
+
+Tee n
+
+AR TIC ULA TION 
+
+Art ic ul ation Card
+
+Deck - S S oun ds
+
+AR TIC ULA TION 
+
+Art ic ul ation Dice 
+
+Set
+
+AR TIC ULA TION 
+
+Art ic ul ation Mirror 
+
+Set
+
+ORAL MO TOR 
+
+Bite Blo ck Set
+
+Filt ers Clear All 
+
+Sea rch 
+
+Search tools... 🔍 
+
+Categ ory 
+
+Age Group 
+
+Price Range 
+
+Con di tion 
+
+Art ic ul ation 
+
+Language 
+
+Voice 
+
+Flu ency
+
+Oral Motor 
+
+AAC 
+
+Todd ler (1-3) 
+
+Presch ool (3-5) 
+
+Sch ool Age (6-12) 
+
+Tee n (13-17) 
+
+Adult (18+) 
+
+Unde r $25 
+
+$25 - $50 
+
+$50 - $100 
+
+$100 - $200 
+
+Over $200 
+
+🗣  Voice PathThe rapy Hom e Tool Catalo g Con di tions Resour ce s About Us Cont ac tCont ac t Us
+
+Get in tou ch with our tr ade mark exp erts 
+
+Get in Tou ch 
+
+Phon e
+
+1-800-555-MARK (6275) 
+
+Mon -Fri: 8:00 AM - 8:00 PM ES T
+
+Emai l
+
+support @tr ade markg uard.com 
+
+We respon d withi n 24 hours 
+
+Office Add ress 
+
+Trade markGuard Head qu art ers 
+
+1250 Innov ation Boul evard, Suite 400 
+
+San Franci sco, CA 94107 
+
+Bus iness Hours 
+
+Mon da y - Frida y: 8:00 AM - 8:00 PM ES T
+
+Satur da y: 9:00 AM - 5:00 PM ES T
+
+Sun da y: Clos ed 
+
+Send Us a Mess age 
+
+Your Name *
+
+Ent er your name
+
+Emai l Add ress *
+
+Ent er your emai l
+
+Phon e Num be r
+
+(555) 123-4567 
+
+Subjec t *
+
+Selec t a su bjec t... 
+
+Mess age *Photo Gallery 
+
+Explore stunning moments captured during our balloon adventures 
+
+All Photos In Flight Sunsets Landscapes Our Guests 
+
+🎈 Sky Drift Home Our Fleet Experiences Book a Ride Gallery About Us Contact Book an Appointment 
+
+First Name * Last Name * Email Address * Phone Number * Preferred Location * 
+
+Select a location 
+
+Preferred Provider (Optional) 
+
+No preference 
+
+Type of Appointment * 
+
+Select a service 
+
+Preferred Date * 
+
+dd.mm.yyyy 
+
+Preferred Time * 
+
+Select a time 
+
+Insurance Provider (Optional) 
+
+e.g., Delta Dental, Cigna, Aetna 
+
+Additional Notes (Optional) 
+
+Any concerns, questions, or special requests... Schedule your visit with us today Reclaim the night sky. Enter your location below and press ENTER to see what's visible from YOUR corner of the cosmos. 
+
+> LOOK UP!
+
+THE UNIVERSE IS 
+
+YOURS 
+
+YOUR OBSERVATION SPOT: 
+
+Current: Not set Type a city name and press ENTER... [ENTER] 
+
+// TONIGHT'S SKY // 
+
+VISIBLE CONSTELLATIONS * Set your location to see what's up tonight! 
+
+// stars don't follow rules // 
+
+COSMIC RIOT HOME 
+
+SKY MAP 
+
+OBJECTS 
+
+EVENTS 
+
+ABOUT This Weekend Only 
+
+Extra 20% off your entire purchase with code VELVET 20 
+
+Coach Outlet 
+
+Signature Collection Sale 
+
+Extra 20% off all signature handbags and wallets . Limited time offer .
+
+COACH20 
+
+Expires : March 15, 2026 
+
+Nike Factory Store 
+
+Spring Running Collection 
+
+Buy 2 pairs of running shoes , get an extra 25% off the lower priced pair .
+
+NIKERUN25 
+
+Expires : March 20, 2026 
+
+Samsung Experience 
+
+Galaxy S24 Launch Special 
+
+Get $200 off Galaxy S24 series with trade -in of any smartphone .
+
+GALAXY200 
+
+Expires : March 31, 2026 
+
+Pottery Barn Outlet 
+
+Bedroom Refresh Sale 
+
+All bedding and bedroom furniture marked down . Free delivery on orders $500+. 
+
+BEDROOM65 
+
+Expires : March 25, 2026 
+
+70% OFF 60% OFF $200 OFF 65% OFF 
+
+Exclusive 
+
+Deals & Offers 
+
+Stack savings on top of outlet prices with these limited -time offers 
+
+Velvet 
+
+O U T L E T S 
+
+Home Stores Deals Events 
+
+Home Stores Deals Events Info Deg raded perform ance : Acc ount Manage ment 
+
+Dist ance : All Distances Loca tion : All Locations Avai labi lity : All Events Reset Filters 
+
+SPRIN T SOLD O UT 
+
+Boul de r Spr ing Spr int 
+
+Boul de r, CO Apr 15, 2026 
+
+A perfec t entry -level race throu gh bea ut if ul 
+
+Boul de r. 750 m sw im, 20 km bike , 5km run .
+
+$125 Join Waitlist 
+
+Sol d out 
+
+OL YMPIC LIMI TED SPO TS
+
+Pacific Coast Olymp ic 
+
+San Dieg o, CA May 22, 2026 
+
+Exp erie nce the thrill of raci ng alon g the stunn ing
+
+Pacific coastl ine.
+
+$225 Register 
+
+Only 2 spots lef t
+
+HALF IRONMAN AVAILABLE 
+
+Rock y Mount ai n Cha ll enge 
+
+Denv er, CO Jun 14, 2026 
+
+Test your endur ance at alt itu de in the maje st ic 
+
+Rock y Mount ai ns .
+
+$375 Register 
+
+377 spots avai lab le
+
+Tria thlon Events 
+
+Discov er and regi st er for race s ac ross the glo be . From spr ints to Ironm an
+
+di st ance s, fi nd your next cha ll enge .
+
+TriCor e Hom e Events Trai ning Stor e Cont ac tNHL Tea ms 
+
+Explor e all 32 NHL tea ms with de tai led st ats , rost ers , and latest news .
+
+CONFERENCE :
+
+All Conferences 
+
+DI VISION :
+
+All Divisions 
+
+SOR T BY:
+
+Team Name 
+
+Boston Bru ins 
+
+Atl ant ic Division 
+
+92 
+
+POIN TS
+
+42 
+
+WINS 
+
+Toronto Mapl e Leaf s
+
+Atl ant ic Division 
+
+88 
+
+POIN TS
+
+40 
+
+WINS 
+
+Tamp a Bay Ligh tn ing
+
+Atl ant ic Division 
+
+84 
+
+POIN TS
+
+38 
+
+WINS 
+
+Flor ida Pant he rs 
+
+Atl ant ic Division 
+
+82 
+
+POIN TS
+
+37 
+
+WINS 
+
+Detro it Red Wings
+
+Atl ant ic Division 
+
+78 
+
+POIN TS
+
+35 
+
+WINS 
+
+Buffa lo Sab res
+
+Atl ant ic Division 
+
+72 
+
+POIN TS
+
+32 
+
+WINS 
+
+Ott awa Senators 
+
+Atl ant ic Division 
+
+68 
+
+POIN TS
+
+30 
+
+WINS 
+
+Montr ea l Canadie ns 
+
+Atl ant ic Division 
+
+64 
+
+POIN TS
+
+28 
+
+WINS 
+
+New Yor k Range rs 
+
+Metropol itan Division 
+
+Carol ina Hurr ica nes
+
+Metropol itan Division 
+
+New Jers ey Devils 
+
+Metropol itan Division 
+
+Pitts bur gh Penguins 
+
+Metropol itan Division 
+
+🏒 ICE ZONE HOCKE Y HOME TEAMS PLA YERS SCHED ULE Search articles... Community Events 
+
+Find mee tups , photo shoots , and ga the rings nea r you 
+
+Filt er Events by Date & Time
+
+YEAR 
+
+2026 
+
+MON TH
+
+March 
+
+DA Y
+
+All Days 
+
+STAR T TIME 
+
+Any Time 
+
+END TIME 
+
+Any Time 
+
+CA TEGOR Y
+
+All Categories 
+
+Apply Filters Clear All 
+
+Events (50 events foun d) Sort by: Date (Soonest) 
+
+Spr ing Cospl ay Mee tup Mar 22, 2026 2:00 PM Centr al Park, NYC Mee tup 45 View 
+
+Anime Nigh t Photo Sess ion Mar 29, 2026 6:00 PM Stu di o 42, Broo klyn Photos hoot 20 View 
+
+Mega Con Pre-Party Apr 4, 2026 8:00 PM Orl ando Conv ent ion Cent er Party 150 View 
+
+Mega Con 2026 Day 1 Apr 5, 2026 10 :00 AM Orl ando, FL Cont est 500 View 
+
+Armor Buildi ng Wor kshop Apr 12, 2026 1:00 PM Make r Space Downtown Wor kshop 15 View 
+
+Gaming Cospl ay Gathe ring Apr 18, 2026 3:00 PM Game Cent er Plaza Mee tup 35 View 
+
+Suns et Beach Photos hoot Apr 25, 2026 5:00 PM Sant a Mon ica Beach Photos hoot 25 View 
+
+Wig Styl ing Mast erclass May 2, 2026 11 :00 AM Bea uty Acade my Wor kshop 12 View 
+
+Sup erhe ro Show down May 9, 2026 2:00 PM Com ic Boo k Stor e HQ Cont est 40 View 
+
+Fant asy For est Gathe ring May 16, 2026 12 :00 PM Bot anica l Garde ns Mee tup 55 View 
+
+EVEN T NAME DA TE TIME LOCA TION CA TEGOR Y ATT ENDEES AC TION 1 2 4 8
+
+Number of attempts (k) 
+
+20% 
+
+30% 
+
+40% 
+
+50% 
+
+60% 
+
+70% 
+
+> OM2W Accuracy (pass@k)
+
+Qwen3-VL-8B 
+
+WEBLICA-8B 
+
+2B 4B 8B 
+
+Model Size 
+
+0% 
+
+10% 
+
+20% 
+
+30% 
+
+40% 
+
+50% 
+
+> OM2W Accuracy (pass@1)
+
+13.3 
+
+23.2 
+
+28.6 
+
+24.1 
+
+35.2 
+
+39.2 
+
+Qwen3-VL 
+
+WEBLICA Figure 1 Scaling training data for visual web agents is challenging due to the complex, dynamic, and open-ended nature of the web. Left: We synthetically generate web environments in a fully automated and scalable manner, spanning a broad set of capabilities like navigation, form filling, filtering, date picking, and more. Alongside caching real websites, these create a fully offline alternative to the live web training. Right: Training on these environments improves performance across multiple web navigation benchmarks (Online-Mind2Web [41] shown here), scaling with both test-time compute (top) and model size (bottom). 
+
+search), enabling scaling to broader domains at the cost of a potential sim-to-real gap. All environments are served locally, eliminating network latency and enabling fast training. Together, these approaches provide diverse, reproducible environments at scale. Using this framework, we scale training to thousands of diverse environments and web navigation tasks. We fine-tune models from the Qwen3-VL [42] family, which operate purely on screenshots without requiring set-of-marks annotations or DOM access, as these can hurt generalization due to the web’s inconsistent underlying structure [47]. We study the effect of training stages and environment composition, and analyze how performance scales with model size and test-time compute. Our 8B model achieves strong results across multiple web navigation benchmarks. On Online-Mind2Web [41], it reaches 39.2% pass@1 with only 30 steps, outperforming open-weight models that use 3 × more steps, and improves further with additional test-time compute. 
+
+2 Related Work 
+
+Building Web Agents. Early web agents relied on text-only language models that process structured repre-sentations such as accessibility trees or DOM elements [44, 7, 50, 10]. Later work adopted vision-language models (VLMs) to ground actions visually [18, 11, 12]. Since early VLMs had limited grounding capabilities, initial approaches augmented screenshots with set-of-marks [43] overlays. These overlay numbered bounding boxes on interactive elements to simplify action prediction. However, this introduces dependencies on accu-rate element detection and adds visual clutter that does not reflect natural web perception [48]. More recent work removes these aids entirely, building agents that operate on raw screenshots and predict actions as pixel coordinates [28, 34, 1, 5, 9, 24, 8]. We follow this direction and train visual web agents with screenshot input and coordinate-based actions. 
+
+Data and Environments for Web Agents. Several efforts collect supervised fine-tuning (SFT) trajectories through human annotation or model-generated rollouts. Fara [5] develops a multi-agent data generation system that produces 145K trajectories across 70K domains. MolmoWeb [9] combines over 100K synthetic task 2trajectories with 30K+ human demonstrations and GUI perception data. OpenCUA [36] and AgentTrek [40] similarly collect demonstration data for web tasks. While valuable, SFT data alone provides limited support for the exploration and trial-and-error learning that RL training enables. Synthetic environments offer an alternative by enabling RL training in controlled settings. WebArena [50] and VisualWebArena [18] provide self-hosted websites that simulate e-commerce, forums, and content man-agement systems. WebRL [27] and AgentGym-RL [39] build on these for RL training, yet they cover only a handful of domains and do not capture the diversity of the real web. Recent work has explored scaling task generation. InstaV3 [33] develops an LLM-based pipeline to generate web navigation tasks across 146K live websites. WebGym [6] sources several datasets for RL training on live websites, but suffers from reproducibility issues and training instability due to timeouts and bot detection. Our framework addresses this through caching and LLM-based synthesis while remaining grounded in real websites and web navigation skills.  
+
+> Evaluating Web Agents.
+
+Evaluation benchmarks for web agents span visual grounding and end-to-end task completion. For visual grounding, benchmarks like ScreenSpot-v2 [38], ScreenSpot-Pro [19], and MMBench-GUI [37] evaluate an agent’s ability to localize and interact with UI elements. For task completion, bench-marks vary in their use of simulated versus real environments. World of Bits [30] was an early effort that cached HTTP traffic to create reproducible offline approximations of websites, though limited to simple mini-tasks. WebArena [50] and VisualWebArena [18] evaluate agents on self-hosted websites with programmatic success checking. While reproducible, they suffer from a sim-to-real gap. Benchmarks on real websites include GAIA [22], WebVoyager [11], and Mind2Web [7], which test agents on live web tasks but face reproducibility challenges as websites change over time. WebVoyager additionally suffers from limited task diversity, with up to 51% of tasks solvable via search shortcuts. Online-Mind2Web [41] addresses these issues with a more realistic setup that evaluates agents on live websites using an LLM-as-Judge for task success. DeepShop [21] and WebTailBench [5] further test agents on e-commerce and long-tail web tasks, respectively. 
+
+3 Framework 
+
+Figure 2 provides an overview of our framework. We first describe the agent formulation for visual web navigation (Section 3.1), then detail the two environment construction mechanisms: HTTP-level caching (Section 3.2) and LLM-based synthesis (Section 3.3). 
+
+3.1 Agent Formulation 
+
+We formulate web navigation as a partially observable Markov decision process (POMDP) defined by the tuple (S, A, O, T, R ), where S is the state space of the browser, A is the action space, O is the observation space, T (st+1 | st, a t) is the transition function governing how the browser state changes in response to an action (implemented via Playwright), and R is the reward function (defined in Section 4.1). At each timestep 
+
+t, the agent receives an observation ot ∈ O and selects an action at ∈ A conditioned on the task instruction 
+
+τ and history o≤t. See Figure 3 for an example trajectory.  
+
+> Observation Space.
+
+Each observation ot = ( st, u t) consists of a browser screenshot st rendered at 1280 × 720 
+
+pixels and the current URL ut. Unlike approaches that rely on accessibility trees or DOM structures, our agents operate purely on visual input.  
+
+> Action Space.
+
+We adopt a coordinate-based action space following recent work on visual web agents. Coordinate-based actions ( click , hover ) take pixel positions (x, y ) as arguments, while other actions take task-specific arguments (text, keys, direction, etc.). The stop action terminates the episode and optionally returns a response. Please see Table 6 for the full action space.  
+
+> Policy.
+
+The agent policy πθ (at | o≤t, τ ) is parameterized by a vision-language model and follows a ReAct-style [45] framework. At each step, the model produces a reasoning trace rt analyzing the current observation, then selects an action at. Both reasoning traces and actions are appended to the history for subsequent steps. 3Interactive web env. 
+
+Complete session replica 
+
+Website builder 
+
+coding agent </> 
+
+> Generate
+> image assets
+> Understand
+> screenshots
+> Update
+> memory
+> Serve site &
+> run tests
+
+Input seeds 
+
+Targeted web nav. capability 
+
+> Navigation, search, form input, dropdown,
+> cart management, date selection, …
+> Travel, education, gaming, automotive,
+> music, beauty, real estate, fitness, …
+> Skeuomorphic, Risograph Print, Pixel Art
+> Retro, Art Deco, Synthwave, Bauhaus, …
+
+Website category (optional) 
+
+Visual language (optional) 
+
+Weblica-Synth: LLM-based Environment Synthesis 
+
+Tool use 
+
+Iterate until: 
+
+Functionality ☑ Tasks ☑ Design ☑
+
+Weblica-Cache: HTTP-Level 
+
+Lossless HTTP-level 
+
+caching using 
+
+Playwright 
+
+Capture & cache all 
+
+requests / responses 
+
+> recording:
+> /search?q=cats&_t=111&sess=abc
+
+Record browsing session 
+
+All HTTP requests & 
+
+responses cached 
+
+Validated through 
+
+playback testing 
+
+Fuzzy-match cache misses: 
+
+Identify volatile parameters: 
+
+Final cache rules:                     
+
+> playback:
+> /search?q=cats&_t=999&sess=xyz
+> q: cats == cats →STABLE ✔
+> _t: 111 != 999 →VOLATILE ✘
+> sess: abc != xyz →VOLATILE ✘
+> exclude_params: ["_t", "sess"]
+
+Generate cache rules Figure 2 Framework overview. Weblica-Cache (top) : We record a browsing session capturing all HTTP traffic, then identify volatile parameters (e.g., timestamps, session tokens) that cause cache misses during playback. These are used to generate site-specific caching rules that strip volatile parameters from cache keys, enabling deterministic replay under complete network isolation. Weblica-Synth (bottom) : We task coding agents to generate web environments parameterized by a navigation capability, website category, and visual style. The agent writes framework-free HTML, CSS, and JavaScript and iterates using tools (e.g., image generation, screenshot validation) until the website and tasks are functional. We apply both approaches at scale to create diverse offline training environments (see Figure 1 for samples). 
+
+We use Qwen3-VL-Instruct as our base model, which supports coordinate-based action prediction without set-of-marks or other visual annotations. 
+
+3.2 HTTP-Level Caching 
+
+Recording and replay. We implement HTTP-level caching using Playwright to record and replay web interactions. During recording, we capture all HTTP traffic and index responses by normalized request signatures. The key challenge is handling volatile parameters (timestamps, session tokens) that change between visits and cause cache misses. We address this with a rule-based normalization system that filters such parameters from URLs, headers, and POST bodies, with domain-specific rules and a multi-level fallback for progressive matching. 
+
+Automated rule generation. Developing caching rules for each website requires analyzing its traffic patterns. We automate this with a pipeline: first, we record a browsing session performed by a Qwen3-VL-32B-Instruct agent, capturing all request parameters without filtering. A subsequent playback reveals cache misses, which we fuzzy-match against the recording to identify which parameters changed across visits. These reports are used to synthesize site-specific caching rules and synthetic responses for non-essential endpoints (e.g., analytics). Generated rules are validated through playback with complete network isolation. Only sessions where the agent successfully completes the task under cached conditions are retained for training. This automated approach captures the full fidelity of real web content, including dynamic layouts and UI 4Task : On the My Profile page, update the rider number from '42' to '77' and change the team name from 'Weekend Warriors MX' to 
+
+'Desert Racing Team'. Save the changes. 
+
+Step 1 click [860, 55]     
+
+> Reasoning: Click My Profile to open the profile page
+> Criterion 1/5 ✓→Navigates to the My Profile page
+
+Step 2 scroll down  
+
+> Reasoning: Scroll down to reveal editable profile fields
+
+Step 3 click [350, 240]  
+
+> Reasoning: Click the rider number field to edit it
+
+Step 4 type "77" Enter     
+
+> Reasoning: Type 77 to replace the current rider number
+> Criterion 2/5 ✓→Overwrites the rider number field from
+> '42' to '77'
+> "77"
+
+Step 5 click [600, 400]  
+
+> Reasoning: Click the team name field to edit it
+
+Step 6 type "Desert Racing Team" Enter       
+
+> Reasoning: Type Desert Racing Team to replace the team name
+> Criterion 3/5 ✓→Overwrites the team name field from
+> 'Weekend Warriors MX' to 'Desert Racing Team'
+> "Desert Racing Team"
+
+Step 7 scroll down  
+
+> Reasoning: Scroll down to find the Save Profile button
+
+Step 8 click [700, 368]     
+
+> Reasoning: Click Save Profile to submit the profile changes
+> Criterion 4/5 ✓→Clicks Save Profile button
+
+Step 9 stop [Profile updated successfully!]     
+
+> Reasoning: Stop after confirming the success message and updating
+> the profile
+> Criterion 5/5 ✓→Success message is displayed.
+
+Result: ✓ Success (5/5 criteria met) Figure 3 Example trajectory of Weblica-8B solving a data entry task in a Weblica-Synth environment, evaluated by an LLM judge against task-specific criteria (more examples in Appendix B). 
+
+interactions, and scales to thousands of domains. 
+
+Environments and tasks. We leverage the InstaV3 [33] dataset as our task pool, which provides web navigation tasks across 146K websites generated through an LLM-based pipeline. We match these tasks to cached environments and verify solvability under cached conditions, retaining 15.6K cached environments and tasks. We call the resulting collection Weblica-Cache .
+
+3.3 LLM-Based Environment Synthesis 
+
+Recent agentic coding tools such as Claude Code [3] have demonstrated strong autonomous coding capabil-ities. Given task descriptions and verification criteria, these systems can work independently until success requirements are satisfied. We leverage such tools to generate synthetic web environments at scale, enabling on-demand creation of functionality that is difficult to extract via caching alone, e.g. stateful tasks. 
+
+Capability extraction. We target the set of broad web navigation capabilities used across common websites and reflected in benchmarks like Online-Mind2Web [41]. To identify these capabilities, we first collect tra-jectories from Qwen3-VL-32B-Instruct attempting the Online-Mind2Web tasks. We then use GPT-5.2 [25] to analyze the successful and failed trajectory screenshots and extract coarse web interaction capabilities apparent in each. This yields 19,721 fine-grained capabilities ( e.g., tab interface navigation, open dropdown menu, etc. ), which we aggregate into 144 higher-level capability groups ( e.g., navigation, form input, date selection, map interaction ). 5Diverse website generation. We use Claude Code (Opus 4.5 [4]) to automatically generate self-contained web environments, writing static HTML, JavaScript, and CSS without any external framework dependencies. Each generation is parameterized by a target capability group, a website category randomly sampled from a pool of 1,160 domains ( e.g., aviation, banking, yoga studio, zoology, etc. ), and a visual style sampled from 961 options ( e.g., Editorial, Minimalist, Skeuomorphic, Duotone, etc. ). See Figure 19 for an overview of the distribution of capabilities, domains, and visual styles. Sampling website categories and visual styles is important for diversity, as we found that without them, generated websites converge to a narrow visual style and content. For each website we generate at least 10 tasks of varying difficulty that require performing the target capability and other interactions present on the site. The websites are static and have no backend, and we use JavaScript’s localStorage feature to save values (e.g., items in cart) during a session. We use Z-Image-Turbo [32] to automatically generate relevant visual assets for each website, such as product images, banners, etc. To ensure quality, we instruct Claude Code to self-validate each site by taking screenshots via Playwright and iterating until the output satisfies the desired quality, i.e., that the website and tasks are functional and that there are no CSS issues. 
+
+Environment server. Serving synthetically generated websites instead of training on the real web also enables much faster environment interactions, with environment setup/reset and action-to-screenshot times around 50 to 150ms. Hosting environments locally removes the need to wait for the network to stabilize, and we additionally use Playwright’s animation skipping feature. Together, these speed up Playwright by an order of magnitude (from ∼1.5s to 50-150ms per action), leading to an overall 30-40% speed improvement in end-to-end RL training. 
+
+Environments and tasks. In total, we generated 310 sites covering the higher-level capability groups, and 2500 sites targeting the fine-grained capabilities sorted by frequency. We call the resulting collection of synthetic web environments Weblica-Synth . From this full set, we reserve 2560 web environments for training covering 44,227 tasks ( Weblica -train), and 250 sites for validation covering 500 tasks ( Weblica -val). Please see Figure 1 as well as Figures 8 to 10 for random examples of synthetically generated websites. 
+
+4 Training 
+
+We describe our training pipeline below. Please see Appendix C for further details. 
+
+4.1 Data and Reward  
+
+> RL Data.
+
+We describe task sourcing for RL environments in Section 3.2 and Section 3.3. Please see Ap-pendix D.1 for environment statistics.  
+
+> LLM-as-Judge Reward.
+
+As many web navigation tasks are open-ended and cannot be evaluated programmati-cally or via string matching, we implement an LLM-as-judge [49] reward mechanism. Given a task description, the agent’s action sequence, and resulting screenshots, we prompt GPT-4o [16] to assess whether the agent successfully completed the task. This enables training on the full diversity of web tasks beyond those with programmatic verification. We validate the LLM judge by measuring agreement with human evaluations, finding 88% agreement (see Appendix C.4 for details).  
+
+> SFT Data.
+
+We generate supervised fine-tuning data by collecting trajectories from a Qwen3-VL-32B-Instruct agent on InstaV3 queries. As not all rollouts succeed due to agent failures or website-specific issues such as changed task criteria or timeouts, we filter trajectories using the LLM judge to retain only successful completions. To increase coverage, we sample multiple rollouts per query with diverse sampling parameters, yielding 51.7K SFT trajectories in total. Please see Figure 18 for the trajectory length distribution. 
+
+4.2 Post-Training Stages  
+
+> SFT Warm-Start.
+
+We fine-tune the base VLM on verified trajectories before RL training. This provides a strong initialization that already exhibits reasonable web navigation behavior. We ablate the role of SFT by comparing warm-started RL against cold-start RL that trains directly from the base model in Section 5.4. 6Table 1 Comparison across web navigation benchmarks. Avg. is the mean over the three live benchmarks. Baseline results are reported from [5, 9]. Italic Online-Mind2Web results are from the auto-eval leaderboard. With only 60 total steps compared to ≥100 for baselines, Weblica-8B already achieves the best average among non-proprietary models (above dashed line), and further improves with additional test-time compute (below dashed line). We bold                                                                                       
+
+> the best non-proprietary result per column and underline the second best. †Fara-7B and MolmoWeb-8B allow up to 5 and 10 retries per trajectory.
+> Live Web Navigation Synthetic
+> Model Total # Steps Online-Mind2Web DeepShop WebTailBench Avg. Weblica -val
+> API-only
+> OpenAI CUA 100 58.3 24.7 25.7 36.2 –Gemini CUA 100 57.3 62.0 63.0 60.8 –Yutori Navigator [31] –64.7 ––––
+> Open-weight
+> Qwen3-VL-Instruct-8B 30 28.6 24.1 21.8 24.8 56.9 UI-TARS-1.5-7B [28] 100 31.3 11.6 19.5 20.8 –GLM-4.1V-9B-Thinking [13] 100 33.9 32.0 22.4 29.4 –Fara-7B [5] ≥100 †34.1 26.2 38.4 32.9 –MolmoWeb-8B [9] ≥100 †35.3 42.3 49.5 42.4 –
+> Ours (pass@k)
+> Weblica-8B (k=1) 30 39.2 34.2 33.5 35.6 70.6
+> Weblica-8B (k=2) 60 50.3 45.4 47.0 47.6 79.0
+> Weblica-8B (k=4) 120 60.5 55.9 60.3 58.9 84.7
+> Weblica-8B (k=8) 240 68.8 65.8 72.2 68.9 88.6
+> RL Training.
+
+We train using Dr. GRPO [20], a variant of Group Relative Policy Optimization (GRPO) [29], with the LLM-as-Judge reward on our diverse environment suite. During RL, we oversample rollouts and filter to retain groups with mixed success signals, similar to DAPO [46], and apply fallback mechanisms to handle errors or timeouts, ensuring stable training. 
+
+5 Experiments 
+
+We evaluate Weblica on web navigation and UI grounding benchmarks. After describing our setup (Sec-tion 5.1), we present main results against existing agents (Section 5.2), analyze test-time scaling (Section 5.3), and ablate training stages, environment choices, and the effect on grounding (Section 5.4). 
+
+5.1 Setup  
+
+> Environments.
+
+Our training environment consists of Weblica-Cache and Weblica-Synth environments, covering diverse domains including e-commerce, information, entertainment, and government services. We subsample 10K tasks from each, yielding 20K tasks for RL training.  
+
+> Evaluation.
+
+We evaluate on four web navigation benchmarks. Online-Mind2Web (OM2W) [41] tests agents on diverse live websites. DeepShop [21] focuses on e-commerce tasks. WebTailBench (WTB) [5] tests agents on long-tail web tasks. We use the official judges provided by each benchmark for evaluation. For WebTailBench, we follow MolmoWeb [9] and use the WebVoyager [11] judge. We also evaluate on Weblica -val, 500 held-out tasks on 250 unseen synthesized environments, to measure in-distribution generalization. We study test-time scaling by running k ∈ { 1, 2, 4, 8} independent attempts and reporting pass@ k, where total step budget scales linearly with k. Unlike retry-based evaluation in prior work [5, 9], where failures attributed to the environment are selectively discarded, this provides a more reliable estimate of task success and a transparent measure of total test-time compute. We repeat each experiment three times and report mean accuracy; standard deviations are reported in plots and in Appendix A. We additionally evaluate UI grounding on MMBench-GUI [37], ScreenSpot-v2 [38], and ScreenSpot-Pro [19] (Section 5.4). 71 2 4 8      
+
+> Number of attempts (k)
+> 20%
+> 30%
+> 40%
+> 50%
+> 60%
+> 70%
+> Accuracy (pass@k)
+> (a) Test-time scaling
+> Base (15 steps)
+> Base (30 steps)
+> Ours (15 steps)
+> Ours (30 steps)
+> 20% 30% 40% 50% 60% 70%
+> Accuracy (pass@1)
+> WEBLICA-val
+> WebTailBench
+> DeepShop
+> Online-Mind2Web
+> (b) Environment ablation
+> Base
+> Cache
+> Synth Figure 4
+
+(a) Test-time scaling on Online-Mind2Web. Weblica-8B benefits from both increasing the action budget (steps per episode) and parallel attempts (pass@ k). The base Qwen3-VL-8B, in contrast, shows minimal gains from longer episodes, suggesting that RL training enables the model to effectively leverage additional steps. (b) Environ-ment ablation across four benchmarks. Both training configurations improve substantially over the base model, with synthesized environments outperforming cache-only on most benchmarks. 
+
+Baselines. We compare against open-weight models including UI-TARS-1.5-7B [28], GLM-4.1V-9B-Thinking [13], Fara-7B [5], and MolmoWeb-8B [9], as well as API-based agents including OpenAI computer-use-preview, Gemini computer-use-preview, and Yutori Navigator [31]. We also report the base Qwen3-VL-Instruct-8B as a reference. 
+
+5.2 Main Results 
+
+Table 1 presents results across four benchmarks and Figure 3 shows a qualitative example (more in Ap-pendix B). We summarize the key observations below. 
+
+Training on Weblica data improves the base model by 44%. At pass@1 with 30 steps, Weblica-8B improves the base Qwen3-VL-8B from 24.8% to 35.6% average across the three live benchmarks, an absolute gain of 10.8 percentage points. On Weblica -val, our held-out evaluation set of synthesized environments, training improves the base from 56.9% to 70.6%. We observe consistent improvements at 2B and 4B model sizes as well (Figure 1 and Appendix A.1). 
+
+Weblica-8B outperforms open-weight baselines with less test-time compute. With only 60 total steps, Weblica-8B surpasses the best open-weight baseline average (47.6% vs 42.4% for MolmoWeb-8B at ≥100 steps), and scales to 58.9% and 68.9% with 120 and 240 steps respectively. 
+
+Weblica-8B is competitive with API models. At pass@1 with only 30 steps, Weblica-8B already matches Ope-nAI computer-use-preview (35.6% vs 36.2% at 100 steps). Additional test-time compute leads to further improvements: with 120 total steps, Weblica-8B reaches 58.9%, approaching Gemini computer-use-preview (60.8%), and with 240 steps reaches 68.9%. These results demonstrate the effectiveness of training on syn-thetic Weblica environments, producing strong visual web agents without relying on large-scale human demonstrations. 
+
+5.3 Test-Time Scaling 
+
+We study how test-time compute scaling affects performance through two axes: the number of parallel attempts (pass@ k) and the per-episode action budget. Figure 4a compares Weblica-8B and the base Qwen3-VL-8B on Online-Mind2Web. Weblica-8B improves consistently along both axes: increasing the action budget from 15 to 30 steps improves pass@1 from 32.6% to 39.2%, and pass@8 at 30 steps per attempt reaches 68.8%. In contrast, the base model shows minimal gains from a larger action budget, with its 15-and 30-step curves nearly overlapping. This gap suggests that RL training is key to unlocking effective use of longer episodes. 81 2 4 8       
+
+> Number of attempts (k)
+> 10%
+> 20%
+> 30%
+> 40%
+> 50%
+> 60%
+> 70%
+> Accuracy (pass@k)
+> 2B
+> Base
+> + SFT
+> + RL
+> + SFT + RL
+> 1248
+> Number of attempts (k)
+> 4B
+> 1248
+> Number of attempts (k)
+> 8B Figure 5
+
+Training stage ablation on Online-Mind2Web across three model sizes. Both SFT and RL individually improve over the base model, but their combination performs best at all scales. 
+
+5.4 Analysis 
+
+Environment Type. We compare the effect of training with Weblica-Cache only versus Weblica-Synth 
+
+only. Figure 4b shows pass@1 results across all four benchmarks. Both configurations improve substantially over the base model. Synthesized environments outperform cache-only on most benchmarks, with the largest gains on Online-Mind2Web (39.2% vs 35.3%) and WebTailBench (33.5% vs 30.2%), while cache-only performs slightly better on DeepShop (35.8% vs 34.2%). Our initial attempts with different mixture ratios of cached and synthesized environments did not yield further improvements; we expect that designing effective training curricula across environment types could lead to additional gains. 
+
+Training Stages and Model Size. Figure 5 compares the contribution of each training stage across model sizes on Online-Mind2Web. Both SFT and RL provide consistent gains at all scales. At 2B, the full SFT+RL pipeline improves pass@1 from 13.3% to 24.1%, at 4B from 23.2% to 35.2%, and at 8B from 28.6% to 39.2%. RL on top of SFT provides a larger improvement than SFT alone at every scale. Comparing SFT →RL with Base →RL shows that SFT initialization is critical for smaller models, but SFT data has diminishing returns at larger scales.  
+
+> Table 2
+
+Weblica-8B preserves grounding despite no grounding-specific training data.                
+
+> Model MMBench-GUI ScreenSpot-v2 ScreenSpot-Pro Fara-7B —89.3 —MolmoWeb-Ground-8B —91.8 —Qwen3-VL-Instruct-8B 82.85 93.95 54.71
+> Weblica-8B 83.74 94.50 55.28
+
+Effect on Grounding. As visual grounding is a core capability for web agents, we evaluate whether our train-ing pipeline affects it, given that our training data contains no grounding-specific data. Table 2 shows that grounding is preserved after training, with modest improvements across all three benchmarks. Since grounding performance remains comparable, the gains on web navigation benchmarks stem from improved navigation behavior rather than better visual grounding. 
+
+6 Conclusion and Limitations 
+
+We presented Weblica , a framework for building scalable and reproducible training environments for visual web agents. Weblica combines HTTP-level caching of real websites with LLM-based synthesis of interactive environments, enabling large-scale RL training without the instability of live web interaction. Our best model, 
+
+Weblica-8B , achieves strong results across several web navigation benchmarks compared to open-weight 9baselines of similar size, and scales favorably with additional test-time compute. We outline some limitations of our work and future directions. 
+
+• Cached environments provide a narrow and partial view of live websites. They are static snapshots that do not reflect updates over time, and do not capture the full complexity of dynamic web applications. While we observe clear gains from training on cached environments, further exploration of methods to close this gap is an interesting direction. 
+
+• Synthesized environments capture core navigation patterns but do not yet model all aspects of real websites. A sim-to-real gap remains, which could be further closed with stronger generative models that produce more faithful and diverse website designs. 
+
+• Single-turn tasks. Our current setup evaluates agents on isolated tasks with a fixed goal defined at the start of the episode. Real-world web usage involves multi-turn sessions with evolving goals, human-in-the-loop interaction where the user provides feedback or corrections mid-session, and personalization aspects such as adapting to user preferences and maintaining memory across sessions. Extending to these settings is an exciting direction. 
+
+• Training. We obtain promising gains using a vanilla RL training formulation. Further exploration of the RL framework, including long-horizon RL and scaling RL compute [17], and richer SFT data such as error recovery trajectories are interesting directions for improving web agent training. 
+
+• Beyond web. Our framework currently targets web navigation. Extending it to other GUI environ-ments such as mobile and desktop applications to build generalist computer-use agents is a promising direction. 
+
+Acknowledgements 
+
+We thank Jesse Allardice, Mingfei Gao, Rui Tian, and Ege Özsoy for their help with the project, and Andrew Szot, Alexander Toshev, and Kaixin Ma for feedback and discussions. 
+
+> Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries and regions.
+
+10 References 
+
+[1] Mathieu Andreux, Breno Baldas Skuk, Hamza Benchekroun, Emilien Biré, Antoine Bonnet, Riaz Bordie, Nathan Bout, Matthias Brunel, Pierre-Louis Cedoz, Antoine Chassang, et al. Surfer-h meets holo1: Cost-efficient web agent powered by open weights. arXiv preprint arXiv:2506.02865 , 2025. [2] Anthropic. Claude computer use. https://www.anthropic.com/news/3-5-models-and-computer-use , 2024. Accessed: 2026-04-30. [3] Anthropic. Claude code. https://www.anthropic.com/claude-code , 2025. Accessed: 2026-04-30. [4] Anthropic. Introducing Claude Opus 4.5. https://www.anthropic.com/news/claude-opus-4-5 , November 2025. Accessed: 2026-04-30. [5] Ahmed Awadallah, Yash Lara, Raghav Magazine, Hussein Mozannar, Akshay Nambi, Yash Pandya, Aravind Rajeswaran, Corby Rosset, Alexey Taymanov, Vibhav Vineet, et al. Fara-7b: An efficient agentic model for computer use. arXiv preprint arXiv:2511.19663 , 2025. [6] Hao Bai, Alexey Taymanov, Tong Zhang, Aviral Kumar, and Spencer Whitehead. Webgym: Scaling training environments for visual web agents with realistic tasks. arXiv preprint arXiv:2601.02439 , 2026. [7] Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web: Towards a generalist agent for the web. Advances in Neural Information Processing Systems , 36:28091–28114, 2023. [8] Google. Gemini computer use. https://ai.google.dev/gemini-api/docs/computer-use . Accessed: 2026-04-30. [9] Tanmay Gupta, Piper Wolters, Zixian Ma, Peter Sushko, Rock Yuren Pang, Diego Llanes, Yue Yang, Taira Anderson, Boyuan Zheng, Zhongzheng Ren, et al. Molmoweb: Open visual web agent and open data for the open web. arXiv preprint arXiv:2604.08516 , 2026. [10] Izzeddin Gur, Hiroki Furuta, Austin Huang, Mustafa Safdari, Yutaka Matsuo, Douglas Eck, and Aleksandra Faust. A real-world webagent with planning, long context understanding, and program synthesis. arXiv preprint arXiv:2307.12856 , 2023. [11] Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu, Yong Dai, Hongming Zhang, Zhenzhong Lan, and Dong Yu. Webvoyager: Building an end-to-end web agent with large multimodal models. arXiv preprint arXiv:2401.13919 ,2024. [12] Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, et al. Cogagent: A visual language model for gui agents. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 14281–14290, 2024. [13] Wenyi Hong, Wenmeng Yu, Xiaotao Gu, Guo Wang, Guobing Gan, Haomiao Tang, Jiale Cheng, Ji Qi, Junhui Ji, Lihang Pan, et al. Glm-4.1 v-thinking: Towards versatile multimodal reasoning with scalable reinforcement learning. arXiv e-prints , pages arXiv–2507, 2025. [14] Thomas Hubert, Rishi Mehta, Laurent Sartran, Miklós Z Horváth, Goran Žužić, Eric Wieser, Aja Huang, Julian Schrittwieser, Yannick Schroecker, Hussain Masoom, et al. Olympiad-level formal mathematical reasoning with reinforcement learning. Nature , pages 1–3, 2025. [15] Binyuan Hui, Jian Yang, Zeyu Cui, Jiaxi Yang, Dayiheng Liu, Lei Zhang, Tianyu Liu, Jiajun Zhang, Bowen Yu, Keming Lu, et al. Qwen2. 5-coder technical report. arXiv preprint arXiv:2409.12186 , 2024. [16] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card. arXiv preprint arXiv:2410.21276 , 2024. [17] Devvrit Khatri, Lovish Madaan, Rishabh Tiwari, Rachit Bansal, Sai Surya Duvvuri, Manzil Zaheer, Inderjit S Dhillon, David Brandfonbrener, and Rishabh Agarwal. The art of scaling reinforcement learning compute for llms. arXiv preprint arXiv:2510.13786 , 2025. [18] Jing Yu Koh, Robert Lo, Lawrence Jang, Vikram Duvvur, Ming Lim, Po-Yu Huang, Graham Neubig, Shuyan Zhou, Russ Salakhutdinov, and Daniel Fried. Visualwebarena: Evaluating multimodal agents on realistic visual web tasks. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 881–905, 2024. 
+
+11 [19] Kaixin Li, Ziyang Meng, Hongzhan Lin, Ziyang Luo, Yuchen Tian, Jing Ma, Zhiyong Huang, and Tat-Seng Chua. Screenspot-pro: Gui grounding for professional high-resolution computer use. In Proceedings of the 33rd ACM International Conference on Multimedia , pages 8778–8786, 2025. [20] Zichen Liu, Changyu Chen, Wenjun Li, Penghui Qi, Tianyu Pang, Chao Du, Wee Sun Lee, and Min Lin. Under-standing r1-zero-like training: A critical perspective. arXiv preprint arXiv:2503.20783 , 2025. [21] Yougang Lyu, Xiaoyu Zhang, Lingyong Yan, Maarten de Rijke, Zhaochun Ren, and Xiuying Chen. Deepshop: A benchmark for deep research shopping agents. arXiv preprint arXiv:2506.02839 , 2025. [22] Grégoire Mialon, Clémentine Fourrier, Thomas Wolf, Yann LeCun, and Thomas Scialom. Gaia: a benchmark for general ai assistants. In The Twelfth International Conference on Learning Representations , 2023. [23] Alexander Novikov, Ngân V˜ u, Marvin Eisenberger, Emilien Dupont, Po-Sen Huang, Adam Zsolt Wagner, Sergey Shirobokov, Borislav Kozlovskii, Francisco JR Ruiz, Abbas Mehrabian, et al. Alphaevolve: A coding agent for scientific and algorithmic discovery. arXiv preprint arXiv:2506.13131 , 2025. [24] OpenAI. Computer use. https://developers.openai.com/api/docs/guides/tools-computer-use . Accessed: 2026-04-30. [25] OpenAI. Introducing GPT-5.2. https://openai.com/index/introducing-gpt-5-2/ , December 2025. Accessed: 2026-04-30. [26] OpenAI. Codex. https://chatgpt.com/codex/ , 2025. Accessed: 2026-04-30. [27] Zehan Qi, Xiao Liu, Iat Long Iong, Hanyu Lai, Xueqiao Sun, Wenyi Zhao, Yu Yang, Xinyue Yang, Jiadai Sun, Shuntian Yao, et al. Webrl: Training llm web agents via self-evolving online curriculum reinforcement learning. 
+
+arXiv preprint arXiv:2411.02337 , 2024. [28] Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, et al. Ui-tars: Pioneering automated gui interaction with native agents. arXiv preprint arXiv:2501.12326 , 2025. [29] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, et al. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. 
+
+arXiv preprint arXiv:2402.03300 , 2024. [30] Tianlin Shi, Andrej Karpathy, Linxi Fan, Jonathan Hernandez, and Percy Liang. World of bits: An open-domain platform for web-based agents. In International Conference on Machine Learning , pages 3135–3144. PMLR, 2017. [31] The Yutori Team. Introducing navigator. https://yutori.com/blog/introducing-navigator , 2025. Yutori Blog. [32] Z-Image Team, Huanqia Cai, Sihan Cao, Ruoyi Du, Peng Gao, Steven Hoi, Zhaohui Hou, Shijie Huang, Dengyang Jiang, Xin Jin, Liangchen Li, Zhen Li, Zhong-Yu Li, David Liu, Dongyang Liu, Junhan Shi, Qilong Wu, Fengyi Yu, Chi Zhang, Shifeng Zhang, and Shilin Zhou. Z-image: An efficient image generation foundation model with single-stream diffusion transformer. ArXiv , abs/2511.22699, 2025. URL https://api.semanticscholar.org/CorpusID:283438115 .[33] Brandon Trabucco, Gunnar Sigurdsson, Robinson Piramuthu, and Ruslan Salakhutdinov. Insta: Towards internet-scale training for agents. arXiv preprint arXiv:2502.06776 , 2025. [34] Haoming Wang, Haoyang Zou, Huatong Song, Jiazhan Feng, Junjie Fang, Junting Lu, Longxiang Liu, Qinyu Luo, Shihao Liang, Shijue Huang, et al. Ui-tars-2 technical report: Advancing gui agent with multi-turn reinforcement learning. arXiv preprint arXiv:2509.02544 , 2025. [35] Xingyao Wang, Boxuan Li, Yufan Song, Frank F Xu, Xiangru Tang, Mingchen Zhuge, Jiayi Pan, Yueqi Song, Bowen Li, Jaskirat Singh, et al. Openhands: An open platform for ai software developers as generalist agents. 
+
+arXiv preprint arXiv:2407.16741 , 2024. [36] Xinyuan Wang, Bowen Wang, Dunjie Lu, Junlin Yang, Tianbao Xie, Junli Wang, Jiaqi Deng, Xiaole Guo, Yiheng Xu, Chen Henry Wu, et al. Opencua: Open foundations for computer-use agents. arXiv preprint arXiv:2508.09123 , 2025. [37] Xuehui Wang, Zhenyu Wu, JingJing Xie, Zichen Ding, Bowen Yang, Zehao Li, Zhaoyang Liu, Qingyun Li, Xuan Dong, Zhe Chen, et al. Mmbench-gui: Hierarchical multi-platform evaluation framework for gui agents. arXiv preprint arXiv:2507.19478 , 2025. [38] Zhiyong Wu, Zhenyu Wu, Fangzhi Xu, Yian Wang, Qiushi Sun, Chengyou Jia, Kanzhi Cheng, Zichen Ding, Liheng Chen, Paul Pu Liang, et al. Os-atlas: A foundation action model for generalist gui agents. arXiv preprint arXiv:2410.23218 , 2024. 
+
+12 [39] Zhiheng Xi, Jixuan Huang, Chenyang Liao, Baodai Huang, Honglin Guo, Jiaqi Liu, Rui Zheng, Junjie Ye, Jiazheng Zhang, Wenxiang Chen, et al. Agentgym-rl: Training llm agents for long-horizon decision making through multi-turn reinforcement learning. arXiv preprint arXiv:2509.08755 , 2025. [40] Yiheng Xu, Dunjie Lu, Zhennan Shen, Junli Wang, Zekun Wang, Yuchen Mao, Caiming Xiong, and Tao Yu. Agenttrek: Agent trajectory synthesis via guiding replay with web tutorials. arXiv preprint arXiv:2412.09605 ,2024. [41] Tianci Xue, Weijian Qi, Tianneng Shi, Chan Hee Song, Boyu Gou, Dawn Song, Huan Sun, and Yu Su. An illusion of progress? assessing the current state of web agents. arXiv preprint arXiv:2504.01382 , 2025. [42] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. [43] Jianwei Yang, Hao Zhang, Feng Li, Xueyan Zou, Chunyuan Li, and Jianfeng Gao. Set-of-mark prompting unleashes extraordinary visual grounding in gpt-4v. arXiv preprint arXiv:2310.11441 , 2023. [44] Shunyu Yao, Howard Chen, John Yang, and Karthik Narasimhan. Webshop: Towards scalable real-world web interaction with grounded language agents. Advances in Neural Information Processing Systems , 35:20744–20757, 2022. [45] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan, and Yuan Cao. React: Synergizing reasoning and acting in language models. In The eleventh international conference on learning representations , 2022. [46] Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu Yue, Weinan Dai, Tiantian Fan, Gaohong Liu, Lingjun Liu, et al. Dapo: An open-source llm reinforcement learning system at scale. arXiv preprint arXiv:2503.14476 , 2025. [47] Yutori. The bitter lesson for web agents. https://yutori.com/blog/the-bitter-lesson-for-web-agents , December 2025. Ac-cessed: 2026-04-30. [48] Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun, and Yu Su. Gpt-4v (ision) is a generalist web agent, if grounded. arXiv preprint arXiv:2401.01614 , 2024. [49] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information processing systems , 36:46595–46623, 2023. [50] Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan Bisk, Daniel Fried, et al. Webarena: A realistic web environment for building autonomous agents. arXiv preprint arXiv:2307.13854 , 2023. 
+
+13 Appendix 
+
+A Additional Quantitative Results 15 
+
+A.1 Results across model sizes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 A.2 Downstream performance during training . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+B Additional Qualitative Results 15 
+
+B.1 Weblica-Synth visualizations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 B.2 Solved trajectory examples . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 
+
+C Additional Training Details 25 
+
+C.1 Training hyperparameters . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25 C.2 Compute . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25 C.3 Action space . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25 C.4 Training reward judge prompt . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25 
+
+D Data Statistics 27 
+
+D.1 Environments . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27 D.2 SFT Trajectories . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27 14 A Additional Quantitative Results 
+
+A.1 Results across model sizes 
+
+Figure 6 shows pass@k results across all three model sizes and four benchmarks, with corresponding numerical values in Table 3. Training consistently improves over the base model at all scales and evaluation points. 1 2 4 8                                   
+
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 2B
+> Accuracy (pass@k)
+> Online-Mind2Web
+> Qwen3-VL
+> WEBLICA
+> 1248
+> DeepShop
+> 1248
+> WebTailBench
+> 1248
+> WEBLICA-val
+> 1248
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 4B
+> Accuracy (pass@k)
+> 124812481248
+> 1248
+> k
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 8B
+> Accuracy (pass@k)
+> 1248
+> k
+> 1248
+> k
+> 1248
+> k
+
+Figure 6 Pass@k accuracy for Weblica-2B , Weblica-4B , and Weblica-8B (orange) compared to their respective Qwen3-VL-Instruct base models (gray) across four benchmarks. 
+
+A.2 Downstream performance during training 
+
+Figure 7 shows steady improvement in pass@1 accuracy on Online-Mind2Web and Weblica -val throughout RL training for Weblica-8B for a sample training run. 
+
+B Additional Qualitative Results 
+
+B.1 Weblica-Synth visualizations 
+
+We provide additional random sample screenshots of Weblica-Synth synthetically generated web environ-ments in Figures 8 to 10. The generated pages target a broad distribution of web capabilities and are visually diverse. 15 Table 3 Pass@k accuracy across model sizes and benchmarks. 
+
+pass@1 pass@2 pass@4 pass@8 
+
+Model size: 2B 
+
+Online-Mind2Web Qwen3-VL 13.3 ± 0.3 20.1 ± 0.6 28.6 ± 0.9 38.2 ± 1.3 
+
+Weblica-2B 24.1 ± 0.8 33.9 ± 1.1 44.7 ± 1.2 55.6 ± 2.2 DeepShop Qwen3-VL 3.3 ± 0.4 6.3 ± 0.8 11.6 ± 1.3 19.6 ± 1.9 
+
+Weblica-2B 18.0 ± 0.6 27.8 ± 0.5 38.8 ± 0.7 50.2 ± 0.8 WebTailBench Qwen3-VL 8.2 ± 0.2 13.3 ± 0.4 19.9 ± 0.7 27.5 ± 0.6 
+
+Weblica-2B 17.0 ± 0.4 27.3 ± 0.8 40.0 ± 1.4 53.8 ± 1.9 
+
+Weblica -val Qwen3-VL 30.0 ± 0.3 40.5 ± 0.1 50.1 ± 0.3 58.1 ± 0.6 
+
+Weblica-2B 50.1 ± 0.6 62.7 ± 0.5 72.9 ± 0.2 80.3 ± 0.2 
+
+Model size: 4B 
+
+Online-Mind2Web Qwen3-VL 23.2 ± 0.2 31.3 ± 0.4 39.4 ± 0.3 46.9 ± 0.2 
+
+Weblica-4B 35.2 ± 0.3 46.0 ± 0.6 55.8 ± 1.0 64.1 ± 1.6 DeepShop Qwen3-VL 17.1 ± 0.5 25.5 ± 0.9 33.8 ± 1.5 41.8 ± 2.7 
+
+Weblica-4B 27.8 ± 0.5 38.9 ± 1.5 49.7 ± 2.7 60.0 ± 3.1 WebTailBench Qwen3-VL 16.0 ± 0.7 22.8 ± 0.9 30.2 ± 1.2 37.7 ± 1.4 
+
+Weblica-4B 23.8 ± 0.4 35.4 ± 0.3 47.9 ± 0.3 59.6 ± 0.3 
+
+Weblica -val Qwen3-VL 51.6 ± 0.7 61.4 ± 0.7 69.1 ± 0.7 74.9 ± 0.9 
+
+Weblica-4B 64.2 ± 0.5 74.5 ± 0.3 81.3 ± 0.2 86.2 ± 0.6 
+
+Model size: 8B 
+
+Online-Mind2Web Qwen3-VL 28.6 ± 0.4 37.6 ± 0.2 46.3 ± 0.3 54.4 ± 1.7 
+
+Weblica-8B 39.2 ± 0.9 50.3 ± 0.7 60.5 ± 0.9 68.8 ± 1.7 DeepShop Qwen3-VL 24.1 ± 0.8 33.5 ± 1.2 41.6 ± 2.0 49.1 ± 3.4 
+
+Weblica-8B 34.2 ± 1.7 45.4 ± 2.3 55.9 ± 3.1 65.8 ± 3.8 WebTailBench Qwen3-VL 21.8 ± 0.2 31.5 ± 0.5 42.0 ± 1.2 52.4 ± 1.8 
+
+Weblica-8B 33.5 ± 0.9 47.0 ± 1.1 60.3 ± 1.3 72.2 ± 1.7 
+
+Weblica -val Qwen3-VL 56.9 ± 0.7 65.4 ± 0.6 72.5 ± 0.7 77.9 ± 1.0 
+
+Weblica-8B 70.6 ± 0.5 79.0 ± 0.7 84.7 ± 1.1 88.6 ± 1.5 0 5k 10k 15k 20k 25k       
+
+> Train rollouts
+> 28%
+> 30%
+> 32%
+> 34%
+> 36%
+> 38%
+> 40%
+> 42%
+> 44%
+> Accuracy (pass@1)
+> Online-Mind2Web
+> 05k 10k 15k 20k 25k
+> Train rollouts
+> 54%
+> 58%
+> 62%
+> 66%
+> 70%
+> 74%
+> Accuracy (pass@1)
+> WEBLICA-val
+> Figure 7
+
+Pass@1 accuracy on Online-Mind2Web (left) and Weblica -val (right) during RL training for Weblica-8B .Each training step uses 1024 rollouts. The first data point (0 rollouts) is the SFT-initialized model before RL. 
+
+16 Figure 8 Weblica-Synth samples : Additional visualizations of synthetically generated web environments, cap-turing a broad set of web capabilities. 
+
+17 Figure 9 Weblica-Synth samples : Figure 8 cont. 
+
+18 Figure 10 Weblica-Synth samples : Figure 8 and Figure 9 cont. 
+
+19 B.2 Solved trajectory examples 
+
+In Figures 11 to 17 we show trajectory visualizations of Weblica-8B solving Weblica -val tasks of various difficulties, and displaying different visual grounding and web navigation skills. Task: Search for error reference 'ERR-2026-001240' in the Error Log. What does this error describe and which equipment does it affect? 
+
+Step 1 click [298, 950] 
+
+Reasoning: Click the Errors tab to open the error log page 
+
+Criterion 1/4 ✓ → Navigates to the Error Log page 
+
+> "ERR-2026-001240"
+
+Step 2 type "ERR-2026-001240" Enter 
+
+Reasoning: Type the error reference to find the matching log entry 
+
+Criterion 2/4 ✓ → Uses the search function to find 
+
+ERR-2026-001240 
+
+Step 3 stop [ERR-2026-001240 describes...] 
+
+Reasoning: Stop after reading the error description and affected 
+
+equipment 
+
+Criterion 3/4 ✓ → Identifies it as a SCADA system scheduled 
+
+maintenance reminder 
+
+Criterion 4/4 ✓ → States that it affects the SCADA Control 
+
+Panel SCP-1 equipment 
+
+Result: ✓ Success (4/4 criteria met) 
+
+Figure 11 Example trajectory of Weblica-8B solving a Weblica -val task. Task: Which stylist at Präzision Hair Studio specializes in children's cuts? Find their name and list the days they are available. 
+
+Step 1 click [945, 65] 
+
+Reasoning: Click BOOK to open navigation toward stylist 
+
+information 
+
+Step 2 click [67, 706] 
+
+Reasoning: Click STYLISTS to reach the page listing salon staff 
+
+Criterion 1/3 ✓ → Navigates to the stylists page 
+
+Step 3 click [337, 513] 
+
+Reasoning: Click CUTS SPECIALIST to filter stylists by cutting 
+
+expertise 
+
+Step 4 scroll down 
+
+Reasoning: Scroll down to find a stylist explicitly mentioning 
+
+children's cuts 
+
+Step 5 stop [Maria Klein specializes...] 
+
+Reasoning: Stop after identifying Maria Klein and her available days 
+
+Criterion 2/3 ✓ → Identifies Maria Klein as the children's 
+
+cuts specialist 
+
+Criterion 3/3 ✓ → States her availability as Monday, Wednesday, 
+
+Friday, and Saturday 
+
+Result: ✓ Success (3/3 criteria met) 
+
+Figure 12 Example trajectory of Weblica-8B solving a Weblica -val task. 
+
+20 Task: Configure cookie settings to enable analytics and preference cookies but keep marketing cookies disabled, then save your preferences. 
+
+Step 1 click [244, 840] 
+
+Reasoning: Click Cookie Settings to open cookie preferences. 
+
+Criterion 1/7 ✓ → The 'Cookie Settings' button is clicked on the 
+
+cookie banner 
+
+Step 2 click [743, 158] 
+
+Reasoning: Click the close button to dismiss the subscription popup. 
+
+Step 3 click [273, 475] 
+
+Reasoning: Click Analytics to enable analytics cookies. 
+
+Criterion 2/7 ✓ → The cookie settings modal opens 
+
+Criterion 3/7 ✓ → Analytics cookies toggle is turned ON 
+
+Step 4 click [273, 720] 
+
+Reasoning: Click Preference to enable preference cookies. 
+
+Criterion 4/7 ✓ → Preference cookies toggle is turned ON 
+
+Step 5 click [334, 840] 
+
+Reasoning: Click Save Preferences to save the selected cookie settings. 
+
+Criterion 5/7 ✓ → Marketing cookies toggle remains OFF 
+
+Criterion 6/7 ✓ → The 'Save Preferences' button is clicked 
+
+Step 6 stop [Cookie preferences configured & saved] 
+
+Reasoning: Stop after confirming preferences were saved and the 
+
+modal closed. 
+
+Criterion 7/7 ✓ → A success toast appears and the modal closes Result: ✓ Success (7/7 criteria met) Figure 13 Example trajectory of Weblica-8B solving a Weblica -val task. Task: Find the address of Deep Blue Dive Center. 
+
+Step 1 click [672, 138] 
+
+Reasoning: Click the close button to dismiss the popup blocking 
+
+the site. 
+
+Step 2 click [700, 165] 
+
+Reasoning: Click CONTACT to open the page with the business 
+
+address. 
+
+Criterion 1/2 ✓ → Navigates to the contact page, about page, 
+
+or footer section 
+
+Step 3 scroll down 
+
+Reasoning: Scroll down to reveal the contact details section. 
+
+Step 4 scroll down 
+
+Reasoning: Scroll down to continue searching for the physical address. 
+
+Step 5 scroll down 
+
+Reasoning: Scroll down to reach the Find Us section near the bottom. 
+
+Step 6 stop [123 Ocean Drive, Coral Bay, FL 33040] 
+
+Reasoning: Stop after locating the address in the Find Us section. 
+
+Criterion 2/2 ✓ → States the address as '123 Ocean Drive, Coral Bay, 
+
+FL 33040' or equivalent 
+
+Result: ✓ Success (2/2 criteria met) 
+
+Figure 14 Example trajectory of Weblica-8B solving a Weblica -val task. This synthetic website was designed to contain substantial visual clutter, such as popups and ad banners, yet the agent successfully navigates the page. 
+
+21 Task: Using the keyboard, navigate to the Find Mediator page and use the dropdown filters to search for mediators with 15+ years of 
+
+experience. How many results match? 
+
+Step 1 click [414, 950] 
+
+Reasoning: Click Find Mediator to open the mediator search page 
+
+Criterion 1/5 ✓ → Navigates to the Find Mediator 
+
+(mediators.html) page 
+
+Step 2 click [675, 425] 
+
+Reasoning: Click the Experience dropdown to focus and open 
+
+filter options 
+
+Step 3 press [ArrowDown] 
+
+Reasoning: Press ArrowDown to move through experience options 
+
+Criterion 2/5 ✓ → Uses keyboard navigation to access the 
+
+Experience dropdown 
+
+Step 4 press [ArrowDown] 
+
+Reasoning: Press ArrowDown to continue toward 15+ Years 
+
+Step 5 press [ArrowDown] 
+
+Reasoning: Press ArrowDown to highlight 15+ Years 
+
+Step 6 press [Enter] 
+
+Reasoning: Press Enter to select 15+ Years and apply the filter 
+
+Criterion 3/5 ✓ → Selects '15+ Years' from the experience filter 
+
+Criterion 4/5 ✓ → Clicks or activates the Search Mediators button 
+
+Step 7 stop [12] 
+
+Reasoning: Stop after reading that 12 mediators match the criteria 
+
+Criterion 5/5 ✓ → States the number of mediators matching 
+
+the criteria 
+
+Result: ✓ Success (5/5 criteria met) Figure 15 Example trajectory of Weblica-8B solving a Weblica -val task. Although the agent could select the correct dropdown entry directly via clicking, Weblica-Synth tasks are designed to train web navigation capabilities broadly; in this case, the task explicitly requires completion through keyboard navigation. 
+
+22 Task: Send a message to Nahual Fitness asking about membership pricing. Use the name 'John Doe' and email 'john.doe@example.com'. 
+
+Step 1 click [946, 62] 
+
+Reasoning: Click Contact to open the page with the inquiry form 
+
+Criterion 1/6 ✓ → Navigates to the Contact page  
+
+> "John Doe"
+
+Step 2 type "John Doe" Enter 
+
+Reasoning: Type the name to identify the sender 
+
+Criterion 2/6 ✓ → Fills in name as 'John Doe' 
+
+> "john.doe@example.com"
+
+Step 3 type "john.doe@example.com" Enter 
+
+Reasoning: Type the email to provide a reply address 
+
+Criterion 3/6 ✓ → Fills in email as 'john.doe@example.com' 
+
+Step 4 click [660, 957] 
+
+Reasoning: Click the subject dropdown to choose an inquiry topic 
+
+Step 5 scroll down 
+
+Reasoning: Scroll to find the relevant subject option 
+
+Step 6 scroll down 
+
+Reasoning: Scroll to continue locating the correct subject option 
+
+Step 7 scroll down 
+
+Reasoning: Scroll to reveal the membership-related subject option 
+
+Step 8 click [941, 477] 
+
+Reasoning: Click the dropdown to display available subject choices 
+
+Step 9 click [602, 578] 
+
+Reasoning: Click Membership Inquiry to set the subject 
+
+Criterion 4/6 ✓ → Selects 'Membership Inquiry' as the subject     
+
+> "Could you please provide ..."
+
+Step 10 type "Could you please provi..." Enter 
+
+Reasoning: Type a message asking about membership pricing 
+
+Criterion 5/6 ✓ → Enters a message about membership pricing 
+
+Step 11 click [749, 816] 
+
+Reasoning: Click Send Message to submit the completed form 
+
+Step 12 stop [Message sent successfully!] 
+
+Reasoning: Confirm the success message to verify submission 
+
+Criterion 6/6 ✓ → Submits the form and sees success 
+
+confirmation message 
+
+Result: ✓ Success (6/6 criteria met) Figure 16 Example trajectory of Weblica-8B solving a Weblica -val task. The agent attempts to open the dropdown menu but, as it lies near the bottom of the page, must first scroll down to reveal it. 
+
+23 Step 1 click [959, 222] 
+
+Reasoning: Click the menu icon to try opening navigation to 
+
+Medications 
+
+Step 2 click [741, 98] 
+
+Reasoning: Click the close button to dismiss the unrelated history 
+
+dialog 
+
+Step 3 click [959, 150] 
+
+Reasoning: Click the side plus icon to try accessing medication tools 
+
+Step 4 click [741, 117] 
+
+Reasoning: Click the close button to dismiss the unrelated pain 
+
+entry modal 
+
+Step 5 click [796, 990] 
+
+Reasoning: Click Manage Medications to open the Medications section 
+
+Criterion 1/9 ✓ → Navigates to the Medications section 
+
+> "Ibuprofen"
+
+Step 6 type "Ibuprofen" Enter 
+
+Reasoning: Type Ibuprofen to search the medications list 
+
+Criterion 2/9 ✓ → Enters 'Ibuprofen' in the search field 
+
+Step 7 click [380, 420] 
+
+Reasoning: Click the clear icon to reset the search field 
+
+Criterion 3/9 ✓ → Clears the search field 
+
+Step 8 click [465, 204] 
+
+Reasoning: Click + Add Medication to open the new medication form 
+
+Criterion 4/9 ✓ → Clicks '+ Add Medication' button 
+
+> "Meloxicam"
+
+Step 9 type "Meloxicam" Enter 
+
+Reasoning: Type Meloxicam to enter the medication name 
+
+Criterion 5/9 ✓ → Enters 'Meloxicam' as medication name 
+
+> "15mg"
+
+Step 10 type "15mg" Enter 
+
+Reasoning: Type 15mg to enter the dosage 
+
+Criterion 6/9 ✓ → Enters '15mg' as dosage    
+
+> "Once daily with food"
+
+Step 11 type "Once daily with food" Enter 
+
+Reasoning: Type Once daily with food to enter the frequency 
+
+Criterion 7/9 ✓ → Enters 'Once daily with food' as frequency 
+
+Step 12 click [685, 875] 
+
+Reasoning: Click Add Medication to save the new medication 
+
+Criterion 8/9 ✓ → Clicks 'Add Medication' to save 
+
+Step 13 stop [Medication added successfully!] 
+
+Reasoning: Stop after confirming the medication was added 
+
+successfully 
+
+Criterion 9/9 ✓ → Success message confirms medication was added 
+
+Result: ✓ Success (9/9 criteria met) 
+
+Task: Search for 'Ibuprofen' in the Medications section. Clear the search and then add a new medication: name 'Meloxicam', dosage 
+
+'15mg', frequency 'Once daily with food'. Save the medication. Figure 17 Example trajectory of Weblica-8B solving a Weblica -val task. The agent initially opens two incorrect menus before identifying Manage Medications at the bottom of the screen and successfully editing the medication. 
+
+24 C Additional Training Details 
+
+C.1 Training hyperparameters 
+
+We performed a lightweight hyperparameter exploration for both SFT and RL stages. Tables 4 and 5 list the values explored.    
+
+> Table 4 SFT hyperparameters. Bold values indicate selected configurations that performed similarly.
+
+Hyperparameter Values Base model Qwen3-VL-8B-Instruct Trainable components Language model only (vision tower + projector frozen) Learning rate 1e-5, 1e-6 
+
+LR schedule Cosine Warmup ratio 0.1 Epochs 1, 2, 3
+
+Image resolution 640 ×360, 1280 ×720 
+
+Cutoff length 80,000 Effective batch size 8Precision bf16    
+
+> Table 5 RL hyperparameters. Bold values indicate selected configurations that performed similarly.
+
+Hyperparameter Values Base model Qwen3-VL-8B-Instruct, SFT model 
+
+Algorithm Dr. GRPO Learning rate 1e-5 , 5e-6 , 1e-6 LR schedule Constant KL coefficient 0, 0.005 , 0.01 , 0.02, 0.03, 0.05 Batch size 64, 128 , 256 
+
+Rollouts per prompt ( n) 4, 8, 16 Rounds ( R) 15, 25 , 35 PPO mini-batch size 32 Max grad norm 1.0 Precision bf16 Image resolution 1280 ×720 Max model context length 80,000 Max new tokens per action 512 
+
+C.2 Compute 
+
+All SFT and RL experiments are conducted on 8 NVIDIA B200 GPUs. Environments are served locally on the same node. Each RL training step generates 1024 rollouts (256 prompts × 4 rollouts per prompt), each with up to 25 interaction rounds, completing in approximately 28 minutes with our local environment setup. 
+
+C.3 Action space 
+
+Table 6 lists the full action space used by our visual web agent. 
+
+C.4 Training reward judge prompt 
+
+During RL training, we use a VLM-based judge (GPT-4o) to evaluate whether the agent successfully com-pleted each task. The judge receives the full trajectory (screenshots and actions) and evaluates against 25 Table 6 Action space of visual web agent. Coordinate-based actions take pixel positions as arguments. 
+
+Action Description 
+
+click(x, y) Click at pixel coordinates 
+
+hover(x, y) Hover at pixel coordinates 
+
+type(text, [x, y], [enter]) Type text, optionally at coordinates and press enter 
+
+press(key) Press a keyboard key 
+
+scroll(direction, [amount]) Scroll in a given direction 
+
+go_back() Navigate back in history 
+
+go_forward() Navigate forward in history 
+
+wait() Wait for page to load 
+
+stop(response) Submit response and end episode 
+
+task-specific criteria. Samples labeled as “website failure” are discarded from the training batch. The prompt is shown below. 
+
+Training Judge Prompt 
+
+System: You are an expert evaluator for web navigation tasks. Analyze the provided trajectory steps and determine if the agent successfully completed the following task: {task} Respond with one of the following based on the task-specific criteria below: - ‘correct’ – The agent successfully completed the task - ‘incorrect’ – The agent failed to complete the task due to its own mistakes - ‘website failure’ – The agent was making reasonable progress but was blocked by technical issues beyond its control Task-specific evaluation criteria: {criteria} Technical issues that qualify for ‘website failure’: - Page timeouts or loading failures - Blank or empty pages that fail to render - Connection errors or server errors (5xx responses) - CAPTCHA or bot detection blocking the agent - Pages stuck in infinite loading states - Elements that fail to become interactive despite multiple attempts To determine if a website issue occurred, look for these indicators in the trajectory: - The agent repeatedly tries the same reasonable action without success - Screenshots show loading spinners, error messages, or blank content - The agent uses ‘wait’ actions multiple times without page progress - The agent’s actions are correct but the page state doesn’t change as expected Important: Only use ‘website failure’ when the agent was on a reasonable path toward completing the task. If the agent made fundamental mistakes before encountering technical issues, respond with ‘incorrect’. These are the actions the agent can take: 
+
+[Action space description omitted for brevity; see Table 6] 
+
+User: Step 1 - Screenshot: [image] 
+
+Step 1 - Agent Action: [action] 
+
+Step 2 - Screenshot: [image] 
+
+Step 2 - Agent Action: [action] 
+
+... Based on these trajectory steps, did the agent successfully complete the task? First respond with your decision followed by your reasoning. 
+
+26 0 2 4 6 8 10 12 14 16 
+
+Trajectory length  
+
+> 0
+> 1000
+> 2000
+> 3000
+> 4000
+> 5000
+> 6000
+> 7000
+> Count
+> Mean (6.3)
+> Median (6.0) Figure 18
+
+Distribution of trajectory lengths in the SFT training data. 
+
+D Data Statistics 
+
+D.1 Environments 
+
+Figure 19 shows the distribution of synthesized environments across capability, domain, and visual style categories. 
+
+D.2 SFT Trajectories 
+
+Figure 18 shows the distribution of trajectory lengths across the 51.7K SFT training trajectories. 27 Business & Finance 10.6% 
+
+Retail & Shopping 8.4% 
+
+Food & Dining 7.23% 
+
+Science & Engineering 7.09% 
+
+Sports & Recreation 6.81% 
+
+Technology & Software 6.6% 
+
+Legal & Government 5.96% 
+
+Health & Medical 5.82% 
+
+Education & Learning 5.25% 
+
+Home & Living 4.75% 
+
+Arts & Culture 4.47% 
+
+Crafts & Hobbies 4.29% 
+
+Travel & Tourism 4.01% 
+
+Events & Celebrations 3.44% 
+
+Entertainment & Media 3.05% 
+
+Community & Nonprofit 2.87% 
+
+Automotive & Transport 2.34% 
+
+Real Estate 1.81% 
+
+Fitness & Wellness 1.77% 
+
+Pets & Animals 1.63% 
+
+Insurance & Risk 0.674% 
+
+Other 0.567% 
+
+Architecture & Design 0.532% Navigation & Browsing 16.8% 
+
+Filtering & Sorting 12.1% 
+
+Forms & Input 9.75% 
+
+Error & Recovery 7.87% 
+
+Search & Discovery 7.55% 
+
+Lists & Results 5.92% 
+
+Content & Media 5.67% 
+
+Authentication & Access 5.57% 
+
+Modals & Overlays 4.54% 
+
+E-Commerce & Cart 4.22% 
+
+Click & Interaction 3.83% 
+
+Calendar & Booking 3.4% 
+
+Map & Location 3.37% 
+
+Workflow & Multi-step 2.8% 
+
+Ads & Promotions 2.73% 
+
+Settings & Preferences 1.77% 
+
+Chat & Communication 1.28% 
+
+Accessibility 0.461% 
+
+Other 0.319% Corporate & Professional 15.8% 
+
+Luxury & Premium 9.47% 
+
+Nature & Organic 8.79% 
+
+Retro & Vintage 7.91% 
+
+Bold & Dramatic 7.62% 
+
+Futuristic & Sci-Fi 7.06% 
+
+Dark & Neon 6.45% 
+
+Warm & Cozy 6.38% 
+
+Colorful & Playful 4.18% 
+
+Cultural & Ethnic 3.9% 
+
+Minimalist & Clean 3.79% 
+
+Industrial & Mechanical 3.4% 
+
+Pastel & Soft 2.98% 
+
+Medical & Clinical 2.91% 
+
+Geometric & Abstract 2.52% 
+
+Cool & Arctic 2.09% 
+
+Nautical & Maritime 1.67% 
+
+Rustic & Western 1.21% 
+
+Gothic & Victorian 0.922% 
+
+Tropical & Exotic 0.922% Visual styles 
+
+Domains Capabilities Figure 19 Weblica-Synth site grouping : Distribution of synthetic web browsing tasks grouped across capability categories (top left), domain categories (top right), and visual style categories (bottom). 
+
+28
