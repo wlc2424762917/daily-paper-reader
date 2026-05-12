@@ -1,0 +1,966 @@
+Title: Demystifying and Detecting Agentic Workflow Injection Vulnerabilities in GitHub Actions
+
+URL Source: https://arxiv.org/pdf/2605.07135v1
+
+Published Time: Mon, 11 May 2026 00:32:57 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Demystifying and Detecting Agentic Workflow Injection Vulnerabilities in GitHub Actions 
+
+Shenao Wang ∗,§, Xinyi Hou ∗,§, Zhao Liu †, Yanjie Zhao ∗, Xiao Cheng ‡,Quanchen Zou †, Xiangzheng Zhang †, and Haoyu Wang ∗
+
+> ∗
+
+Huazhong University of Science and Technology, 
+
+> †
+
+360 AI Security Lab, ‡Macquarie University 
+
+{shenaowang, xinyihou, yanjie zhao, haoyuwang }@hust.edu.cn, 
+
+{liuzhao3, zouquanchen, zhangxiangzheng }@360.cn, xiao.cheng@mq.edu.au 
+
+Abstract —GitHub Actions is increasingly used to deploy LLM-based agents for repository-centric tasks such as issue triage, pull-request review, code modification, and release assistance. These agentic workflows extend traditional CI/CD automation with agentic capabilities but also create a new injection surface. In this paper, we introduce Agentic Workflow Injection (AWI), a workflow-level injection flaw where untrusted GitHub event context, such as issue bodies, pull-request descriptions, or com-ments, is incorporated into agent prompts or agent-consumed inputs and converted into attacker-influenced behavior through agent tools or downstream workflow logic. We identify two core AWI patterns: Prompt-to-Agent (P2A), where untrusted content reaches an agent prompt boundary, and Prompt-to-Script (P2S), where attacker influence propagates through model-or agent-derived outputs into later scripts. We present the first systematic study of AWI in GitHub Actions. We characterize 1,033 real-world AI-assisted actions and extract AWI-specific taint specifications, including prompt boundaries, derived out-puts, agentic capabilities, and access-control interfaces. Based on these specifications, we design T AINT AWI, a taint-analysis tool that tracks flows from untrusted event context to agent prompt inputs and security-sensitive workflow sinks. Applying TAINT AWI to 13,392 real-world agentic workflows from 10,792 repositories, we report 519 potential AWI vulnerabilities, of which 496 are confirmed exploitable under our threat model, yielding a precision of 95.6%. Among them, 343 are previously unknown zero-day vulnerabilities. We prioritized disclosure for 187 zero-day cases, received 26 maintainer responses, and 24 cases have been accepted or fixed at the time of writing. 
+
+I. I NTRODUCTION 
+
+GitHub Actions [1] has become a central automation plat-form for modern software development, where repository maintainers define workflows to build, test, review, triage, and release software through reusable actions and repository-defined scripts [2]. Traditionally, these workflows execute deterministic commands written by maintainers. But this ecosystem is now undergoing a significant shift. An in-creasing number of workflows now embed Large Language Models (LLMs) and LLM-based agents through AI-assisted actions such as codex-action , claude-code-action ,and run-gemini-cli [3], [4], [5], [6]. We refer to such workflows as agentic workflows [7]. These agentic workflows 
+
+allow LLM agents to interpret natural-language instructions, reason over repository context, invoke tools, post comments, 
+
+> §
+
+Equal Contribution. 
+
+apply labels, edit files, and interact with GitHub APIs under workflow permissions. While these agentic capabilities can substantially improve developer productivity, they also broaden the attack surface of CI/CD systems. Recent security reports [8], [9] have shown that agentic workflows in GitHub Actions can expose privi-leged agents to attacker-controlled inputs, including issue text, pull-request metadata, commit content, and other collaboration artifacts. Once incorporated into prompts or other agent-facing contexts, such inputs can shape how agents invoke tools, issue commands, and interact with workflow resources. For example, Aikido documented PromptPwnd cases in which malicious issues, pull requests, or commit content reached agents with shell-execution or repository-editing capabilities, enabling secret leakage or unauthorized repository actions [8]. Snyk further analyzed Clinejection , where issue-driven prompt injection was chained with GitHub Actions cache poisoning to compromise a downstream release workflow and enable unau-thorized package publication [9]. Taken together, these cases suggest a broader class of security risks in which untrusted collaboration inputs can affect agentic CI/CD workflows. To address this emerging risk, we introduce a new type of vulnerability, called Agentic Workflow Injection (AWI ). AWI arises when event contexts controlled by a low-privilege GitHub user, such as issue text, pull-request descriptions, or comments, are exposed to agents in GitHub workflows. We identify two representative AWI patterns. In Prompt-to-Agent (P2A) AWI, untrusted content reaches an agent prompt boundary and may steer the agent’s privileged capabilities. In 
+
+Prompt-to-Script (P2S) AWI, attacker influence first passes through a model- or agent-derived output, which is later consumed by downstream workflow logics. Intuitively, AWI can be viewed as the intersection of prompt injection [10], [11], [12], [13], [14] and script injection [15], [16], [17], [18] in agentic workflows. However, AWI is not fully captured by either class alone. Unlike conventional prompt injection, AWI targets a CI/CD workflow agent rather than LLM chatbots [14] or traditional LLM-integrated applications [12], [10], [13]. Unlike traditional script injection, AWI does not require syn-tactic control over an interpreter. Instead, it relies on semantic influence over an agent or over agent-derived data that later drives privileged workflow operations. 
+
+> arXiv:2605.07135v1 [cs.CR] 8 May 2026
+
+Existing techniques are not sufficient for detecting AWI in agentic GitHub Actions workflows. Prior work on prompt-injection vulnerabilities has studied prompt-to-code [13], [10], prompt-to-SQL [11], prompt-to-anything [12], and cross-tool attacks [19], [20]. However, these techniques were not de-signed for CI/CD workflows and therefore do not capture workflow-specific execution semantics, such as event contexts, action input/output interfaces, and cross-step or cross-job data channels. Therefore, they are difficult to apply directly to AWI detection. Meanwhile, prior CI/CD security research has studied over-privileged workflows [21], [22], [23], GitHub Ac-tions taint analysis [24], and workflow security scanners [25]. These tools focus on deterministic workflows and do not model agent prompts, derived outputs, or taint propagation through LLM boundaries. Consequently, we still lack a systematic understanding of how AWI arises in agentic actions and workflows, how prevalent such vulnerabilities are in practice, and how to detect them effectively at the ecosystem scale. To address this gap, we design T AINT AWI, a static ana-lyzer for detecting AWI vulnerabilities in agentic workflows. TAINT AWI first characterizes reusable AI-assisted actions by inferring action-level taint specifications, including agentic capabilities, prompt boundaries, derived outputs, and access-control interfaces. It then lifts workflow YAML files into a semantic intermediate representation (IR), analogous to how a compiler lifts source code into an IR that preserves execution semantics, normalizing raw YAML syntax into structured objects that capture trigger entry points, job-level control flow, and step-level data interfaces. From this IR, T AINT AWI constructs an Agentic Workflow Dependency Graph (AWDG) that captures cross-boundary control and data dependency. Finally, T AINT AWI performs AWI-oriented taint propagation and reachability analysis to detect P2A and P2S vulnerabilities. In summary, this paper makes the following contributions:  
+
+> •
+
+AWI Characterization. We introduce Agentic Workflow Injection (AWI), define its threat model, and characterize two core patterns. We further analyze 1,033 AI-assisted GitHub Actions to identify AWI-relevant attack surfaces that shape downstream workflow risks, finding that only 21 provide explicit caller-identity access control.  
+
+> •
+
+Practical Detection. We design TAINT AWI, a static analyzer for detecting AWI in GitHub Actions work-flows. T AINT AWI combines action-level taint specifica-tions, workflow dependency modeling, and agent-specific taint propagation to detect P2A and P2S vulnerabilities.  
+
+> •
+
+Empirical Evaluation. We evaluate T AINT AWI on 13,392 real-world agentic workflows from 10,792 repositories. TAINT AWI reports 519 potential AWI vulnerabilities, con-firms 496 exploitable cases with 95.6% precision, and identifies 343 previously unknown zero-day vulnerabilities. We prioritized disclosure for 187 zero-day cases, received 26 maintainer responses, and reported 24 cases accepted or fixed at the time of writing. Workflow Run                      
+
+> action.yaml Code Scripts
+> Action
+> Event Trigger
+> Pull Request
+> Issue/Comment
+> Workflow Run
+> Schedule
+> Agent Runtime
+> Claude Code
+> Codex CLI
+> Gemini CLI Github Action
+> Marketplace
+> Agentic Action
+> Variables
+> Contexts
+> Data Model
+> Expressions
+> Job 1
+> Step1: run
+> Step2: uses
+> Step3: run
+> Job 2
+> Job 3
+> 1
+> 2
+> 3
+> Github -hosted Runners
+> Fig. 1. GitHub Actions execution model and agentic extensions. Solid boxes denote the core workflow components. Dashed boxes denote optional work-flow elements. Orange components highlight agentic workflow extensions.
+
+II. B ACKGROUND 
+
+A. GitHub Actions Execution Model 
+
+GitHub Actions is an event-driven CI/CD framework in which repository maintainers specify automation logic as 
+
+workflows in YAML files under .github/workflows/ [1]. 
+
+Workflow Structure. As illustrated in Figure 1, workflows are triggered by repository events, including collaboration events (e.g., pull_request , issues ), scheduled events, manual events (e.g., workflow_dispatch ), and workflow-composition events (e.g., workflow_run ) [26]. A workflow run instantiates one or more jobs , each running on a designated 
+
+runner and consisting of ordered steps [1], [27]. A step either executes commands via run or invokes a reusable action via 
+
+uses [27]. Actions may be local, imported from external repositories, or obtained from the GitHub Marketplace [28]. 
+
+Data Model. GitHub Actions exposes workflow data through 
+
+variables , contexts , and expressions . Variables store con-figuration values at scopes such as repository, environment, or workflow scope [29]. Contexts are structured runtime objects that describe the workflow run, triggering event, jobs, and steps [30]. Workflow authors access these values using ex-pressions of the form ${{ <expression> }} [31], which may appear in conditions, environment assignments, action inputs, and inline scripts. The github context is security-relevant because it includes the triggering event payload. For example, github.event may expose user-controlled fields such as issue.title/body , comment.body ,and pull_request.title/body [32]. Once referenced, these values are materialized into workflow fields and con-sumed by shell scripts, action parameters, environment vari-ables, or downstream jobs. This forms a data-flow chan-nel from externally influenced event payloads to maintainer-defined workflow logic. 2B. Agentic Actions and Workflows 
+
+Recent GitHub Actions increasingly integrate LLM agents to automate repository-centric software engineering tasks, such as issue triage, pull-request review, code modification, test debugging, and release assistance [7], [6]. We refer to such agent-invoking actions as agentic actions , and to workflows that incorporate them as agentic workflows .
+
+Agentic Actions. As highlighted in Figure 1, an agentic action is a reusable GitHub Action that invokes an LLM agent within a workflow. Representative examples include 
+
+claude-code-action [4], codex-action [3], and 
+
+run-gemini-cli [5]. Some workflows also invoke agent command-line interfaces (CLI) directly through run steps. Although these CLI-based integrations are not actions in the strict terminology, they expose a similar agentic interface and therefore serve the same role. Agentic actions typically ex-pose a workflow-configurable prompt interface , through which maintainers provide tasks or constraints via action inputs, prompt files, environment variables, or command-line argu-ments. The agent interprets these instructions together with repository state and workflow context and may act through capabilities such as file editing, shell execution, commenting, or labeling [20]. 
+
+Agentic Workflows. An agentic workflow incorporates one or more agentic actions or CLI-based agent steps. It typically constructs an agent-facing task from maintainer-written in-structions and runtime workflow data, such as repository files, issue or pull-request content, comments, logs, diffs, and step outputs. Once invoked, the agent executes within the work-flow environment and may inherit workspace access, token permissions, and external credentials. As a result, workflow inputs are no longer consumed only by deterministic scripts or action parameters; they may also be interpreted by an agentic layer with access to privileged workflow capabilities. Untrusted repository content can therefore become part of the agent-facing context and influence tool use, generated outputs, or downstream workflow logic under the workflow’s authority. III. P ROBLEM STATEMENT 
+
+This section defines the problem of AWI in GitHub Actions. We first state our threat model and scope, and then present a real-world motivating example that illustrates how untrusted GitHub event context can be integrated into the agent prompt and converted into attacker-influenced workflow behavior. 
+
+A. Definition of AWI 
+
+We define Agentic Workflow Injection (AWI) as a workflow-level injection flaw where untrusted GitHub event context is incorporated into an agent-facing prompt or other agent-consumed input, and then influences agent behavior or down-stream workflow logic under the workflow’s authority. Unlike traditional GitHub Actions script injection, AWI relies on semantic influence rather than syntactically valid code injec-tion. Natural-language content from issues, pull requests, or comments may be interpreted as instructions when mixed with maintainer-written prompts. 
+
+B. Threat Model and Scope 
+
+Assumptions. We consider GitHub repositories that invoke LLM agents through agentic actions or CLI-based agent steps. These workflows execute within the configured workflow environment and may inherit workspace access, permissions, credentials, and exposed agent capabilities. We do not assume compromise of GitHub, the runner infrastructure, the LLM provider, or maintainer accounts. When an agentic action or CLI enforces sandboxing or tool policies, we treat these mechanisms as part of the configured execution boundary. AWI remains relevant within this boundary because attacker-influenced prompts may cause the agent to exercise its per-mitted capabilities. 
+
+Attacker Capabilities. The attacker is an external GitHub user or a low-privilege contributor who can interact with the repository through normal collaboration channels, but cannot modify workflow files, repository settings, protected branches, or secrets. Depending on the workflow trigger, the attacker may create issues, submit pull requests, or post comments. These inputs may appear in GitHub event contexts and be incorporated into agent-facing prompts. The attacker can therefore craft natural-language content that conflicts with maintainer-written instructions and steers the agent, or downstream workflow logic, toward attacker-desired opera-tions such as labeling issues, posting comments, modifying files, executing shell commands, or calling GitHub APIs. 
+
+Scope. We focus on vulnerabilities caused by unsafe composi-tions of agentic actions and downstream workflows. In scope are workflows where untrusted repository content is incorpo-rated into an agent-facing prompt, prompt file, command-line argument, environment variable, or workspace file consumed by an LLM agent. We also consider action-level design choices that amplify this risk, such as broad tool capabilities, weak invocation gating for non-write users, and insufficient separa-tion between trusted task instructions and untrusted content. Out of scope are traditional GitHub Actions vulnerabilities without an LLM agent, including script injection [15], [33], artifact poisoning [34], and cache poisoning [35], as well as attacks requiring runner compromise, sandbox escape, or vulnerabilities in the action implementation itself. 
+
+C. Motivating Example 
+
+Figure 2 shows a simplified AWI case adapted from 
+
+issue-labeler.yml in openai/codex . The example combines a reusable agentic action and a downstream issue-labeling workflow. On the action side (#Snip.1), openai/ codex-action exposes three interfaces relevant to the AWI path: a configurable prompt input (#Snip. 1, L2–6), an 
+
+allow-users option for invocation control (#Snip. 1, L19– 22), and a final-message output that can be consumed by later workflow steps (#Snip. 1, L23–26). The workflow side (#Snip.2) shows how these interfaces are composed in a concrete issue-labeling task. 
+
+Vulnerable Composition. In the get-labels job, the work-flow invokes openai/codex-action (#Snip. 2, L10–11) and passes issue title and body fields into the action’s prompt 
+
+3name : "Codex Exec Action"                                                                                                           
+
+> inputs :
+> prompt:
+> description :"Prompt to pass to Codex."
+> required: false
+> default: ""
+> output -file:
+> description :"File where the Codex message is written."
+> required: false
+> default: ""
+> openai -api -key:
+> description: “OpenAI API key used by Codex.”
+> required: false
+> default: ""
+> model:
+> description: "Model the agent should use."
+> required: false
+> default: "”
+> ···
+> allow -users:
+> description :"GitHub users who can run this action."
+> required: false
+> default: ""
+> outputs :
+> final -message:
+> description :"Raw output emitted by `codex exec`."
+> value: ${{ steps.run_codex.outputs['final -message'] }}
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 11
+> 12
+> 13
+> 14
+> 15
+> 16
+> 17
+> 18
+> 19
+> 20
+> 21
+> 22
+> 23
+> 24
+> 25
+> 26
+> 27
+> name :Issue Labeler
+> on :
+> issues :
+> types :[opened]
+> jobs :
+> get -labels :
+> outputs :
+> labels :${{ steps.codex.outputs.final -message }}
+> steps :
+> -id :codex
+> uses :openai/codex -action @v1
+> with :
+> allow -users: "*"
+> prompt: |
+> Choose labels for this issue.
+> Issue title: ${{ github.event.issue.title }}
+> Issue body: ${{ github.event.issue.body }}
+> Return JSON: {"labels": ["..."]}
+> apply -labels :
+> needs :get -labels
+> if: ${{ needs.get -labels.result != 'skipped' }}
+> steps :
+> -name :Apply labels
+> env :
+> ISSUE_NUMBER :${{ github.event.issue.number }}
+> LABELS :${{ needs.g et -labels.outputs. labels }}
+> run :|
+> labels= $(echo "$ LABELS "|jq -r'.labels[]')
+> for label in $labels ;do
+> gh issue edit "$ISSUE_NUMBER" --add -label "$label"
+> done
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 11
+> 12
+> 13
+> 14
+> 15
+> 16
+> 17
+> 18
+> 19
+> 20
+> 21
+> 22
+> 23
+> 24
+> 25
+> 26
+> 27
+> 28
+> 29
+> 30
+> 31
+> SRC: issue.title/body
+
+1
+
+5 SNK#2: gh issue   
+
+> SNK#1: Agent Prompt
+
+2 
+
+> Agent Output
+
+4 Step Context 
+
+3
+
+issue -labeler.yml action.yml     
+
+> Prompt Args
+> Output Args
+> Access Control
+> Output Args
+
+#Snip.1: Action Manifest 
+
+openai/codex -action 
+
+#Snip.2: Vul Workflow 
+
+openai/codex Fig. 2. A simplified motivating example adapted from issue-labeler.yml in openai/codex .
+
+input (#Snip. 2, L14–17). The action’s final-message 
+
+output is forwarded as the job output labels (#Snip. 2, L7–8). The subsequent apply-labels job consumes this value through needs.get-labels.outputs.labels 
+
+(#Snip. 2, L25) and runs gh issue edit to apply the labels selected by Codex (#Snip. 2, L26–30). This vulnerable composition exposes two core AWI patterns. 
+
+• Prompt-to-Agent (P2A). The first vulnerable path starts from the action input used as an agent prompt. The issue title and body are embedded into the prompt input of openai/codex-action (#Snip. 2, L14–17), plac-ing issue-author-controlled content alongside maintainer-written labeling instructions. If the agent interprets such content as instructions rather than task data, the attacker may steer the agent’s decisions or tool use. 
+
+• Prompt-to-Script (P2S). The second vulnerable path starts from the action output consumed by workflow logic. The action’s final-message output is for-warded as the job output labels (#Snip. 2, L7–8), consumed by the apply-labels job through LABELS 
+
+(#Snip. 2, L25–26), parsed in the shell script, and used to drive gh issue edit (#Snip. 2, L28–30). Here, at-tacker influence is reflected in the agent-generated output and materialized by conventional workflow logic. IV. A GENTIC ACTION SECURITY ANALYSIS 
+
+Agentic actions define how downstream workflows interact with LLM-based agents. In this section, we analyze the action-level properties that shape AWI risks and characterize their presence in real-world AI-assisted GitHub Actions. 
+
+A. Security Properties 
+
+We identify four properties that determine how a reusable action can participate in an AWI path and provide action-specific semantics for downstream workflow analysis. 
+
+Prop.#1: Agentic Capability. We first distinguish plain LLM wrappers from agentic actions with operational capabilities. Plain LLM actions typically return text, while agentic actions may read or edit files, execute shell commands, invoke GitHub CLI/API commands, post comments, or apply labels. Such ca-pabilities determine whether prompt influence can be directly materialized inside the action, forming a P2A path. 
+
+Prop.#2: Prompt Configurability. AWI requires an agent-facing instruction channel. Reusable actions often expose this channel through action inputs, prompt files, environment variables, command-line arguments, or workspace files. When downstream workflows combine maintainer-written instruc-tions with event-controlled fields, these interfaces become the entry point for untrusted GitHub event context. 
+
+Prop.#3: Access Control. Invocation controls determine who can reach the LLM or agent execution path, such as user allowlists, bot allowlists, write-access checks, maintainer ap-proval, or options for non-write users. If a low-privilege user can both supply event content and trigger the action, the workflow exposes a direct attacker-reachable path. 
+
+Prop.#4: Output Exposure. Agent-generated results may be exposed to later workflow steps through outputs, generated files, structured JSON, artifacts, comments, or command ar-guments. When downstream logic treats these values as trusted control data, attacker influence can propagate beyond the agent and be materialized by conventional workflow logic, leading to Prompt-to-Script AWI. These properties are not vulnerabilities by themselves. They become AWI-relevant when downstream workflows compose them with untrusted event context in ways that expose agent behavior or workflow logic to attacker influence. 
+
+B. Characterizing Agentic Actions in the Wild 
+
+To understand how these properties appear in practice, we analyze AI-assisted actions in the GitHub Actions Market-place [6]. Our goal is not to measure vulnerable workflows 4TABLE I OVERALL CHARACTERIZATION OF CANDIDATE AI-ASSISTED ACTIONS .                    
+
+> Item # Actions Ratio Action Type
+> Agentic 160 15.5% LLM-assisted 572 55.4% Non-LLM 301 29.1%
+> AWI-Relevant Interfaces
+> Prompt boundary 453 43.9% Derived output 371 35.9% Access control 21 2.0%
+> AWI-Relevant Candidates
+> Total candidates 292 28.3% Agentic candidates 113 10.9% LLM-assisted candidates 179 17.3%
+
+yet, but to build an action-level understanding of which reusable actions may expose AWI-relevant interfaces. This characterization provides the action-level semantics that guide our subsequent workflow-level taint analysis. We collect candidate AI-assisted actions from the 
+
+ai-assisted category in the GitHub Actions Market-place [6] and supplementary keyword-based GitHub searches. After deduplication and relevance filtering, the final set contains 1,035 unique action repositories. We also collect downstream workflows that reuse these actions by searching 
+
+.github/workflows/ files for uses: <action>@ ref-erences, obtaining 13,392 downstream workflows. For each candidate repository, we collect action metadata, documenta-tion, package metadata, and source-file context when available. Among the 1,035 candidates, 1,033 contain analyzable action metadata files. We use an LLM-assisted analyzer to infer the four properties in § IV-A, including action type, prompt boundaries, derived outputs, and access-control interfaces. The inference focuses on the action metadata interface exposed to workflow authors rather than on providing runtime be-havior. The detailed collection and inference procedure is provided in § X-A. To validate the inference, the first two authors independently review a random sample of 100 inferred records and compare each extracted field against the action metadata, documentation, and examples. The LLM-inferred fields agree with the manual labels in 95.9% of the reviewed fields. Disagreements are resolved through discussion. For widely adopted actions with over 100 downstream workflow references, we perform a complete manual review to obtain the final action-specific semantics used later. 
+
+C. Key Findings 
+
+Overall Findings. As shown in Table I, composition-facing interfaces are common, while action-level access controls are rare. Of the 1,033 analyzable actions, 453 expose prompt boundaries and 371 expose model- or agent-derived outputs, but only 21 define explicit caller-identity controls. Among them, 160 actions are agentic and 572 are LLM-assisted. We treat an agentic action as AWI-relevant candidate when it exposes a valid prompt boundary, because attacker-controlled event context can influence the agent execution path. For LLM-assisted actions, we require both a prompt boundary and a derived output, so that model-authored content can reach downstream workflow logic. This leaves 292 AWI-relevant candidates for workflow-level analysis, including 113 agentic actions and 179 LLM-assisted actions. 
+
+Widely-Adopted Actions. Observed reuse is concentrated in a small number of actions. The most prominent case is anthropics/claude-code-action , which appears in 5,212 downstream workflows. We therefore manually re-view agentic and LLM-assisted actions with at least 100 downstream workflow references. As shown in Table II, 10 actions meet this threshold and together account for 7,258 references. These widely adopted actions are domi-nated by coding-agent integrations, including anthropics/ claude-code-action , openai/codex-action , and 
+
+google-gha/run-gemini-cli . They commonly ex-pose workflow-configurable prompt inputs, such as prompt ,
+
+prompt-file , system_prompt , or action-specific in-struction fields, and often expose derived outputs, such as 
+
+final-message , summary , structured_output , or generated files, that downstream workflow steps can consume. 
+
+Access-Control Gap. We further find that action-level access control is uncommon and often optional. Among the 10 widely adopted actions in Table II, only anthropics/ claude-code-action and openai/codex-action 
+
+expose explicit caller-identity controls. Even then, protec-tion depends on downstream configuration: a workflow may omit the gate or set it permissively, as in Figure 2, where 
+
+allow-users: "*" allows non-maintainers to reach the agent execution path. The remaining eight actions expose no explicit caller gate, so access control must be enforced by workflow logic such as trigger restrictions, permission checks, maintainer approval, or repository-specific guards. Thus, the same reusable action can be safe in a well-gated workflow but attacker-reachable when untrusted GitHub event context flows into its prompt without adequate checks. V. D ESIGN OF TAINT AWI In § IV, we identify the action-level attack surface that shapes AWI risks. Building on those action-level specifica-tions, this section presents T AINT AWI, a static analyzer for detecting AWI vulnerabilities in downstream agentic work-flows, with an overview shown in Figure 3. TAINT AWI first infers action-level taint specifications for reusable AI-assisted actions (§ V-A), then parses downstream GitHub Actions workflows into a workflow IR (§ V-B), constructs an Agentic Workflow Dependency Graph (AWDG) (§ V-C), and performs AWI-specific taint propagation and reachability analysis (§ V-D) to report P2A and P2S vulnerabilities. 
+
+A. AWI Taint Specification 
+
+We formulate AWI detection as a taint analysis problem over GitHub Actions workflows. At this stage, T AINT AWI defines the security-relevant taint specification. Following the 5TABLE II WIDELY -ADOPTED AGENTIC AND LLM-ASSISTED ACTIONS WITH AT LEAST 100 DOWNSTREAM WORKFLOW REFERENCES .                                                         
+
+> Action Type #Workflow #Stars Prompt Input Derived Output Access Control
+> anthropics/claude-code-action Agentic 5,212 7,366 prompt execution_file structured_output allowed_bots allowed_non_write_users actions/ai-inference LLM 795 471 prompt ,prompt-file system-prompt system-prompt-file response response-file
+> ✗
+> openai/codex-action Agentic 492 947 prompt prompt-file final-message output-file allow-users allow-bots allow-bot-users testdriverai/action Agentic 300 5prompt summary link markdown
+> ✗
+> google-gha/run-gemini-cli Agentic 244 1,963 prompt summary ✗
+> anthropics/cc-base-action Agentic 227 804 prompt ,prompt_file system_prompt append_system_prompt execution_file structured_output
+> ✗
+> austenstone/copilot-cli Agentic 195 17 prompt logs-path session-path
+> ✗
+> 0xJord4n/aixion LLM 157 15 prompt ,system system_path messages ,content content_path text save_path
+> ✗
+> grll/claude-code-action Agentic 125 450 custom_instructions direct_prompt execution_file ✗
+> mistricky/ccc LLM 111 22 from_tag to_ref result ✗
+
+§V-B Workflow IR Construction 
+
+(Online Analysis) 
+
+§V-C AWDG Generation §V-D AWI Detection 
+
+workflow.yml 
+
+Reusable 
+
+Action 
+
+§V-A Taint Specification 
+
+(Offline Analysis) 
+
+LLM Inference 
+
+> Agenticity
+> Prompt
+> Output
+
+Marketplace 
+
+Downsteam 
+
+Repository snk 
+
+src 
+
+prompt src 
+
+Taint Spec 
+
+Registry  
+
+> jobs/steps
+> with/run
+> permission
+> needs
+> outputs
+> triggers
+
+Workflow IR     
+
+> Access Control
+> Workflow IR
+> Job IR
+> Step IR
+
+YAML 
+
+Parser   
+
+> Control Deps
+> General Data Deps
+
+[Intra -procedure] 
+
+Local Analysis [Inter -procedule] 
+
+Cross -boundary Resolution  
+
+> Script -Level Data Deps
+
+Agentic -interface annotation     
+
+> Cross -Step Analysis
+> Cross -Job Analysis
+> Cross -Workflow Analysis
+> snk
+> src
+> prompt src
+> Prompt -Boundary
+> Derived -Output
+> AWI Spec
+
+Taint Propagation Rules   
+
+> Prompt -to -Agent AWI
+> Prompt -to -Script AWI
+
+Reachability Analysis     
+
+> Action: Access Control
+> Workflow: Exec Conditions
+
+AWI Reports AWDG 
+
+Fig. 3. Overview of T AINT AWI analysis pipeline. 
+
+conventional source-sink-sanitizer abstraction, we define an AWI taint specification as: 
+
+T = ⟨Src, Snk, San ⟩,
+
+where Src denotes attacker-controllable workflow values, Snk 
+
+denotes security-relevant locations or operations where at-tacker influence can materialize, and San denotes sanitizers or guards that block exploitability. Table III summarizes rep-resentative categories modeled by T AINT AWI, with additional examples provided in § X-B. 
+
+Taint Sources. Src contains workflow values that may be influenced by external or low-privilege GitHub users under our threat model. TAINT AWI initializes taint from trigger-dependent GitHub event contexts. For collaboration events, such sources include issue, pull-request, comment, review, and discussion fields, such as issue.title , issue.body , comment.body ,
+
+pull_request.title , and pull_request.body .For pull-request and push-related workflows, TAINT AWI also models contributor-controlled branch names, commit messages, and related metadata. In addition, serialized event objects, such as toJson(github.event) and 
+
+toJson(github.event.issue) , are also treated as sources because they may carry multiple attacker-controlled fields into a prompt or script through a single expression. 
+
+Taint Sinks. Snk contains locations where attacker influence can materialize as AWI. We distinguish two sink classes according to the two AWI patterns. 
+
+P2A sinks are agent-facing prompt interfaces exposed by agentic actions. These include action inputs that are in-terpreted as natural-language prompts, tasks, instructions, user messages, or system prompts. Such sinks are action-specific and are obtained from the action-level specifications in § IV. For example, openai/codex-action.prompt 
+
+and anthropics/claude-code-action.prompt are modeled as P2A sinks because tainted data reaching these 6TABLE III AWI TAINT SPECIFICATION USED BY TAINT AWI.                 
+
+> Type Category Examples
+> Src
+> Issue Context github.event.issue.body
+> Pull-Request Context github.event.pull_request.body
+> Comment/Review Context github.event.comment.body
+> Branch/Commit Context github.event.head_commit.message
+> Serialized Event Context toJson(github.event)
+> Snk
+> P2A Sinks <agentic-action>.prompt
+> P2S Sinks run: gh issue edit ... ,
+> git push ...
+> San
+> Action-level Guards allow-users ,
+> allowed_non_write_users
+> Workflow-level Guards if: sender == ... ,
+> author_association
+
+inputs can directly influence the agent’s behavior. 
+
+P2S sinks are downstream workflow operations that con-sume model- or agent-derived data and can modify repos-itory, workflow, runner, or external state. Examples include shell steps that invoke gh issue edit , gh pr edit ,
+
+gh api , or git push . For P2S, T AINT AWI also models derived action outputs as semantic taint bridges. When tainted data reaches an agent-facing prompt input, T AINT AWI over-approximates the corresponding model- or agent-derived out-puts of the same action invocation as attacker-influenced and continues propagation from these outputs. T AINT AWI then tracks whether these derived outputs flow into a P2S sink. 
+
+Sanitizers and Guards. San contains mechanisms that inval-idate an otherwise tainted AWI path. We distinguish action-level guards and workflow-level guards. 
+
+Action-level guards are access controls provided by agentic actions, such as codex-action.allow-users and 
+
+claude-code-action.allowed_non_write_users .These guards restrict which users or bots may cause the agentic action to run. Their effectiveness depends on the downstream workflow configuration; permissive settings such as allowing all users do not sanitize an AWI path. 
+
+Workflow-level guards are checks implemented by the downstream workflow itself. These include sender allowlists, bot checks, author-association checks, trusted-label gates, maintainer approval, or other if conditions that prevent low-privilege users from reaching the agent execution path. We do not treat prompt-only defenses as sanitizers. Instructions such as “ignore prompt injection attempts” remain part of the same natural-language context being attacked and do not enforce a semantic boundary between trusted workflow instructions and untrusted repository content. 
+
+AWI Detection Conditions. Under this specification, TAINT AWI reports a Prompt-to-Agent (P2A) vulnerability when taint from Src reaches a P2A sink without an effective sanitizer, and the target action is agentic. In this case, attacker-controlled event context may be interpreted as agent instruc-tions and converted into tool use within the workflow’s exe-cution boundary. T AINT AWI reports a Prompt-to-Script (P2S) vulnerability when taint from Src reaches the agent prompt, propagates through a model- or agent-derived output, and then reaches a P2S sink without adequate sanitization. This condi-tion captures workflows that treat agent-generated outputs as trusted control data for privileged downstream operations. 
+
+B. Workflow IR Construction 
+
+GitHub Actions workflows are written as YAML files, which mix trigger declarations, job permissions, action inputs, inline scripts, environment variables, outputs, and conditional expressions. These fields have different execution semantics and different roles in taint propagation. T AINT AWI therefore first lifts each workflow into a workflow intermediate represen-tation (IR) that preserves the GitHub Actions semantics needed for AWI analysis. As shown in Listing 1, the IR is organized as a three-level hierarchy of workflow, job, and step objects.                                                 
+
+> WorkflowIR :trigger_events: list [str ]inputs: dict [str ,Any ]env: dict [str ,Any ]permissions: dict [str ,Any ]jobs: list [JobIR ]expressions: list [ExpressionRef ]
+> JobIR :job_id: str
+> needs: list [str ]if_cond: str |None
+> env: dict [str ,Any ]permissions: dict [str ,Any ]outputs: dict [str ,Any ]uses: str |None #reusable workflow call
+> with_block: dict [str ,Any ]steps: list [StepIR ]
+> StepIR :key: str
+> step_id: str |None
+> uses: str |None
+> run: str |None
+> with_block: dict [str ,Any ]env: dict [str ,Any ]if_cond: str |None
+> Listing 1. Core schema of the workflow IR.
+
+WorkflowIR. A WorkflowIR object represents one work-flow file. It records the trigger events declared by on , workflow inputs from manual or reusable-workflow interfaces, top-level 
+
+env and permissions , the list of jobs, and extracted expression references. This level captures the workflow entry points and global configuration. The trigger events determine which GitHub event contexts may become taint sources, while workflow inputs and top-level environment variables define data channels that can be referenced by jobs and steps. 
+
+JobIR. A JobIR object represents either a normal job or a reusable workflow invocation. It records the job iden-tifier, needs dependencies, job-level if condition, env ,
+
+permissions , declared job outputs, optional uses target for reusable workflow calls, with inputs, and the ordered list of steps. This level captures job-level execution structure and cross-job data channels. In particular, needs and job outputs provide the interface through which data can flow from one job to another, while job conditions and permissions are later used for reachability and impact reasoning. 
+
+StepIR. A StepIR object represents an individual workflow step. It records a stable step key, optional step id, uses action, inline run script, with inputs, step-level env , and step-level if condition. This level captures the workflow’s main execution sites. For uses steps, T AINT AWI later matches the 7issue .opened                                
+
+> Env: LEBELS
+> Env: ISSUE_NUM
+> Job: get -labels
+> Trigger: issues
+> Step: Codex
+> Output: labels
+> steps.codex.outputs.final -message
+> Step: get -label.0
+> Action: actions/checkout@v6
+> github.event.issue.number
+> Event Cxt: issues
+> Guard: if
+> Action: openai/codex -action@v1
+> With: allow -users
+> Needs:
+> get -labels
+> Job: apply -labels
+> needs.result
+> != "skipped "
+> Step: Apply labels
+> lables
+> Run: apply -label.0
+> need.get -labels.output.labels
+> Bash: gh issue edit
+> With: prompt
+> github.event.issue.title
+> github.event.issue.body
+> Legends: Expr Action Var Control Flow Script Source Sink Taint Path Data Flow Fig. 4. Agentic Workflow Dependency Graph (AWDG) for the motivating example in Figure 2.
+
+invoked action against the action taint specification registry to identify prompt inputs, derived outputs, and action-level guards. For run steps, it preserves the script body for later script-level dependency extraction and taint propagation. The resulting IR normalizes raw workflow YAML into analysis-ready workflow semantics: WorkflowIR captures entry points and global configuration, JobIR captures job-level control and cross-job interfaces, and StepIR captures action invocations and inline scripts. 
+
+C. Agentic Workflow Dependency Graph Generation 
+
+To capture control and data flows in GitHub Actions work-flows, T AINT AWI constructs the Agentic Workflow Depen-dency Graph (AWDG). As illustrated in Figure 4, the AWDG is a directed graph where nodes represent workflow-level values or execution sites, and edges represent potential control flow or data flow. It connects event contexts, expressions, environment variables, action inputs, inline scripts, step out-puts, job outputs, files, reusable action invocations, and action-specific prompt/output interfaces. T AINT AWI later performs AWI taint propagation over this graph. Formally, for a workflow W , T AINT AWI builds an AWDG: 
+
+GW = ( V, E cf , E df , α ),
+
+where V is the set of graph nodes, Ecf ⊆ V × V is the set of control-flow edges, Edf ⊆ V × V is the set of data-flow edges, and α stores node attributes such as job id, step id, field name, action reference, expression text, and source location. A control-flow edge (u, v ) ∈ Ecf indicates that execution may proceed from u to v, such as from a workflow trigger to a job, from one step to the next step, or from a producer job to a consumer job through needs . A data-flow edge (u, v ) ∈ Edf 
+
+indicates that the value represented by u may flow into the value or operation represented by v, se.g., from an event field to an action input, from an action output to a job output, or from an environment variable to an inline script. 
+
+Workflow-local Analysis. TAINT AWI first constructs control-flow and data-flow edges that can be recovered within a single workflow file. As shown in Figure 4, the workflow-local layer includes the execution structure of the two jobs, their steps, and the fields inside each step. T AINT AWI recovers local control flow from triggers, jobs, steps, needs , and if con-ditions, and connects the corresponding execution nodes with control-flow edges. It then extracts general data-flow edges from GitHub Actions expressions and data-carrying fields. For example, in Figure 4, github.event.issue.title 
+
+and github.event.issue.body flow into the prompt 
+
+field of the openai/codex-action invocation through expression interpolation. Similarly, references to env , vars ,
+
+steps , needs , and inputs are resolved to their cor-responding producer nodes whenever possible. For inline 
+
+run steps, T AINT AWI further performs lightweight script-level data-flow analysis to capture common shell flows, in-cluding variable assignments, environment reads, command arguments, file writes, and writes to output channels such as $GITHUB_OUTPUT . In the example, this analysis con-nects the LABELS environment variable to the shell variable 
+
+labels and then to the gh issue edit command. 
+
+Cross-boundary Data Resolution. TAINT AWI then connects flows that cross step, job, or workflow boundaries. In Figure 4, the output of the openai/codex-action step is first exposed as a step output, then promoted to the get-labels 
+
+job output, and finally consumed by the apply-labels 
+
+job through needs.get-labels.outputs.labels . To model such paths, T AINT AWI resolves step-output references of the form steps.<id>.outputs.<name> , job-output references of the form needs.<job>.outputs.<name> ,and caller–callee bindings in reusable workflow calls. These cross-boundary edges make multi-hop propagation explicit, allowing taint to flow from an upstream agent invocation to downstream scripts, actions, or reusable workflows. 
+
+Agentic-interface Annotation. Finally, T AINT AWI enriches the graph with action-specific AWI semantics from § V-A. For each reusable action invocation, T AINT AWI normalizes the action reference and looks up its registered specification. If an input matches a registered prompt boundary, the corresponding node is annotated as an agent-facing prompt boundary. In Figure 4, the prompt input of openai/codex-action 
+
+8is therefore marked as a prompt-boundary node. If an output or file-backed result matches a registered derived output, TAINT AWI annotates it as model- or agent-derived; for the motivating example, this marks final-message as an agent-derived output that may carry attacker influence forward. If the action exposes access-control fields, T AINT AWI records their configured values as guard metadata on the invocation. 
+
+D. Taint Propagation and Vulnerability Detection 
+
+Given the AWDG, T AINT AWI performs AWI-oriented taint propagation and then checks whether the resulting taint paths are reachable under the workflow and action guards. 
+
+Taint Propagation Rules. Let τ (v) ∈ {⊤ , ⊥} denote the taint state of node v, where ⊤ means tainted. Let Src denote attacker-controllable workflow sources, P rompt (A) denote the registered prompt-boundary inputs of an action invocation 
+
+A, and Output (A) denote the registered model- or agent-derived outputs of A. We write u ; v if there exists a data-flow path from u to v in the AWDG. Figure 5 summarizes the propagation and detection rules used by T AINT AWI. The first two rules propagate attacker-controlled data through the AWDG. Rule 3 detects Prompt-to-Agent AWI. A prompt input is a P2A sink only when it belongs to an agentic action, because only agentic actions expose operational capabilities such as tool use, shell execution, file modification, or GitHub API operations. Thus, if tainted GitHub event context reaches a registered prompt boundary of an agentic action, T AINT AWI reports a P2A path. Rules 4 and 5 capture Prompt-to-Script AWI. Once a tainted value reaches a registered prompt bound-ary of an AI-assisted action, T AINT AWI treats the registered model- or agent-derived outputs of the same invocation as tainted. This over-approximates the model boundary, since the output may be semantically influenced by the tainted prompt even when there is no syntactic data copy. T AINT AWI then continues propagation from these outputs through downstream workflow logic. If a tainted derived output reaches a security-sensitive downstream sink, such as a shell command, GitHub CLI operation, action input, configuration file, or API call, TAINT AWI reports a P2S path. 
+
+Reachability Analysis. Not every taint path is exploitable. Af-ter propagation, T AINT AWI checks whether the reported path is reachable by an attacker under the workflow’s execution conditions and the action’s invocation guards. This step filters paths that are present in the AWDG but are unreachable under the threat model in § III-B. At the action level, TAINT AWI examines guard fields recorded in the action specification, such as allow-users ,
+
+allow-bots , and allowed_non_write_users . Aguard is effective only when it prevents the attacker-controlled actor from reaching the action invocation. Permissive con-figurations, such as wildcard allowlists, are not treated as sanitizers. At the workflow level, T AINT AWI examines trigger events, job-level and step-level if conditions, permission settings, and dependency constraints. For example, workflows triggered by issues , issue_comment , or public pull-request events are considered attacker-reachable unless they                                                                                              
+
+> Notations:
+> •GW= ( V, E cf , E df , α ): AWDG of workflow W.
+> •u, v, w ∈V: AWDG nodes.
+> •u;v: there exists a data-flow path from uto vin GW.
+> •τ(u)∈ {⊤ ,⊥} : taint state of node u.
+> •Src : attacker-controllable workflow sources.
+> •A: the agentic or AI-assisted action.
+> •P rompt (A): prompt-boundary inputs of action invocation A.
+> •Output (A): model- or agent-derived outputs of action invocation A.
+> •Snk P2A: prompt sinks of agentic actions.
+> •Snk P2S: downstream workflow sinks.
+> Rules:
+> 1. Source Initialization:
+> u∈Src →τ(u) = ⊤
+> 2. Workflow Data Propagation:
+> τ(u) = ⊤, u ;v→τ(v) = ⊤
+> 3. Prompt-to-Agent Detection:
+> Snk P2A={u| ∃ A, u ∈P rompt (A)∧A∈Agentic },τ(u) = ⊤, u ∈Snk P2A→P2A
+> 4. Model/Agent Output Bridging:
+> τ(u) = ⊤, u ∈P rompt (A), v ∈Output (A)→τ(v) = ⊤
+> 5. Prompt-to-Script AWI:
+> τ(v) = ⊤, v ∈Output (A), v ;w, w ∈Snk P2S→P2S
+> Fig. 5. AWI taint propagation and vulnerability detection rules.
+
+contain an effective maintainer-only condition, approval gate, or equivalent access check. TAINT AWI reports a vulnerability only when two condi-tions hold. First, an AWI taint path exists in the AWDG. Sec-ond, the path remains attacker-reachable after applying action-level and workflow-level guards. The final report records the AWI pattern, the source event context, the affected action or downstream sink, the propagation path, and the missing, permissive, or insufficient guards. VI. E VALUATION 
+
+In this section, we evaluate T AINT AWI with the following research questions (RQs): 
+
+RQ1 [Zero-day] How many zero-day vulnerabilities can TAINT AWI detect but state-of-the-art tools cannot? 
+
+RQ2 [Effectiveness] How effective is T AINT AWI in detecting AWI vulnerabilities, in terms of detection performance, component contribution, and scalability? 
+
+RQ3 [Characteristics] What are the characteristics of the detected AWI vulnerabilities, and how do they manifest in real-world workflows? 
+
+A. Experimental Setup 
+
+Implementation. We implement the prototype of T AINT AWI in Python. The implementation follows the design in § V, including action-level taint specifications, workflow IR con-struction, AWDG generation, and AWI detection. It also per-forms lightweight analysis for embedded scripts. For shell run 
+
+steps, T AINT AWI tracks taint through environment variables, local assignments, $GITHUB_OUTPUT , $GITHUB_ENV , and file-write bridges, followed by rule-based sink refinement. For actions/github-script , it uses YASA [36] to analyze inline JavaScript after mapping GitHub expressions 9TABLE IV DISCLOSURE STATUS OF REPORTED ZERO -DAY AWI VULNERABILITIES WITH MAINTAINER FEEDBACK .                                                                                                                                                                  
+
+> Repository Workflow #Stars Action Taint Source Sink Pattern Status
+> openai/codex issue-labeler.yml 75,373 codex-action Issue title/body P2A, P2S Acknowledged
+> dyad-sh/dyad claude-triage.yml 20,273 claude-code-base-action Issue title/body P2A Fixed
+> OWASP/mastg moderator.yml 12,811 ai-inference Issue/PR title/body P2S Fixed
+> MIC-DKFZ/nnUNet issue-triage.yml 8,289 claude-code-action Issue title/body P2A Fixed, CVE-2026-44246
+> meshtastic/firmware models_issue_triage.yml 7,189 ai-inference Issue title/body P2S Accepted
+> meshtastic/firmware models_pr_triage.yml 7,189 ai-inference PR title/body P2S Accepted
+> InternLM/xtuner claude-general.yml 5,112 claude-code-action Comment body P2A Fixed, CVE-2026-42848
+> google-github-actions/run-gemini-cli gemini-scheduled-triage.yml 1,974 run-gemini-cli Issue title/body P2A Acknowledged
+> Lifailon/lazyjournal issue-analysis.yml 1,216 ai-inference Issue title/body P2S Fixed, CVE Pending
+> Lifailon/lazyjournal pr-check.yml 1,216 ai-inference PR title/body P2S Fixed, CVE Pending
+> commons-app/apps-android-commons pr_unrelated_changes.yml 1,156 ai-inference PR title/body P2S Fixed
+> Loukky/gfwlist-by-loukky summary.yml 374 ai-inference Issue title/body P2S Fixed
+> Devsur11/M5Gotchi summary.yml 120 ai-inference Issue title/body P2S Fixed
+> ViewTechOrg/Checker-Scammer summary.yml 81 ai-inference Issue title/body P2S Fixed
+> UnoSite/IsItPayday summary.yml 17 ai-inference Issue title/body P2S Fixed, CVE Pending
+> RicardoRyn/plotfig summary_new_issues.yml 9ai-inference Issue title/body P2S Fixed
+> dev-asterix/PgStudio summary.yml 6ai-inference Issue title/body P2S Accepted, CVE Pending
+> CI-Till-Krempel/Decide-O-Mat gemini-issue-triager.yml 5run-gemini-cli Issue title/body P2A Fixed
+> Exonymos/SeriesScape summary.yml 4ai-inference Issue title/body P2S Fixed, CVE Pending
+> flow-pie/chamaa.api summary.yml 4ai-inference Issue title/body P2S Fixed
+> HereLiesAz/IDEaz jules-issue-handler.yml 3run-gemini-cli Issue body P2A Fixed
+> Leo***Benitez/vision-unlearning ai_issue_copilot.yml 3ai-inference Issue title/body P2S Fixed, CVE Pending
+> issdandavis/SCBE-AETHERMOORE ai-issue-summary.yml 3ai-inference Issue title/body P2S Fixed, CVE Pending
+> OmniBlocks/scratch-gui spam-guard.yml 2ai-inference Comment body P2S Fixed
+> OmniBlocks/scratch-gui ulti.yaml 2ai-inference Issue title/body P2S Fixed
+> k70***ash1/ai-gen-commit-msg auto-commit-message.yml 0ai-inference PR title/body P2S Fixed
+
+and process.env references to taint sources. Excluding third-party libraries and evaluation scripts, the online analyzer contains 3.6 KLoC of Python, and the full implementation contains about 4.5 KLoC. 
+
+Running Environment. All experiments are conducted on a single Ubuntu 22.04.5 LTS server with 256 CPU cores and 1.0 TiB memory. We use Python 3.9.15 and run T AINT AWI in a single-machine setting. 
+
+Datasets. Our evaluation focuses on GitHub Actions work-flows that use the AI-assisted or agentic actions characterized in § IV-B. The resulting corpus contains 13,392 workflows that directly invoke at least one agentic or AI-assisted action. 
+
+Baselines. Since AWI is an emerging vulnerability class, existing detection support remains limited. We compare TAINT AWI with two AWI-relevant baseline tools: (1) P ROMPT 
+
+INJECTION SCANNER [37] (PIS CANNER for short), a heuristic workflow scanner that detects unsafe patterns where AI agents process untrusted user input; and (2) Aikido’s O PEN GREP 
+
+RULES [38] (O PEN GREP for short), a lightweight pattern-matching baseline for workflow prompt injection. We run both tools with their original rules and settings without modifica-tion. We also include two workflow taint-analysis baselines, ARGUS [24] and CODE QL [39]. Since they are general GitHub Actions taint analyzers rather than AWI-specific tools, we supply them with the same agentic-action prompt sink specifications used by T AINT AWI so that they can detect P2A source-to-prompt flows. We do not add derived-output speci-fications or P2S propagation rules to these baselines, because doing so would require implementing the core AWI-specific semantics introduced by T AINT AWI. All baseline reports are normalized to workflow-level alerts before comparison. 
+
+B. RQ1: Zero-day Vulnerabilities 
+
+Overall Result. TAINT AWI initially reported 519 potential AWI vulnerabilities in real-world GitHub Actions workflows. We manually reviewed all reported cases and found that 496 were exploitable under our threat model, while 23 were false positives, corresponding to a precision of 95.6%. Among the 496 confirmed TP cases, 153 had already been reported by the community but remained unfixed at the time of our analysis. The remaining 343 cases were previously unknown zero-day vulnerabilities. For responsible disclosure, we prioritized 187 zero-day cases whose repositories either had GitHub stars or had at least one successful workflow-run history, since these cases are more likely to correspond to actively used repositories and functional workflows. Among them, 102 repositories did not provide an available private disclosure channel. For these cases, we avoided publishing technical details and first asked maintainers to add a security policy or provide a private reporting channel. For the remaining 85 cases, we formally reported the vulnerabilities through GitHub Security Advisories, emails, or repository-specific disclosure channels. At the time of writing, we have received 26 main-tainer responses. Among them, 24 cases have been accepted by maintainers or fixed following our reports. Table IV sum-marizes these fixed or accepted zero-day cases. These fixed or accepted cases affect 23 unique repositories with over 130K GitHub stars in total, and involve multiple AI-assisted ac-tions, including openai/codex-action , anthropics/ claude-code-action , google-github-actions/ run-gemini-cli , and actions/ai-inference . Rep-resentative case studies, including P2S AWI paths in real-world workflows, are provided in § X-C. 
+
+Comparison with SOTA. Table V compares TAINT AWI with four full-corpus baselines. Since real-world vulnerability detection lacks complete ground truth, we do not report full precision or recall. Instead, we report workflow-level alerts on the full agentic-workflow corpus to reflect reporting burden, and measure coverage over the 496 TP AWI cases confirmed from T AINT AWI’s reports. Overall, T AINT AWI reports 519 10 TABLE V COMPARISON WITH SOTA BASELINES .                               
+
+> Tool #Alerts #TP Cov. #P2A #P2S #Missed
+> PIS CANNER 2,079 78 78 0418
+> OPEN GREP 1,658 73 73 0423 ARGUS 831 66 66 0430 CODE QL 1,486 76 76 0420 TAINT AWI 519 496 103 419 0
+> Note. #Report denotes raw reports on the full corpus, where fewer reports indicate lower reporting burden. #TP Cov. denotes covered cases among the 496 confirmed exploitable AWI reports. #P2A and #P2S break down covered confirmed cases by pattern. #Missed denotes confirmed cases missed compared with T AINT AWI.
+
+alerts, among which 496 are confirmed exploitable cases. PIS CANNER and O PEN GREP report 2,079 and 1,658 alerts, respectively, but cover only 78 and 73 confirmed cases. PIS- 
+
+> CANNER
+
+heuristically identifies AI-like uses: or run steps using LLM-related keywords and checks whether untrusted GitHub expressions reach their inputs. O PEN GREP mainly matches untrusted expressions directly embedded in prompt: 
+
+fields and selected risky Claude Code configurations. Thus, they can catch some direct source-to-prompt exposures, but do not build workflow-wide dependency graphs or model-derived outputs. A RGUS and C ODE QL report 831 and 1,486 alerts, and cover 66 and 76 confirmed cases after being supplied with the same agentic-action prompt sink specifications. These taint baselines recover some P2A flows once AI prompt inputs are modeled as sinks, but still stop at the prompt boundary. As a result, they miss P2S cases where such outputs are later consumed by downstream scripts. By modeling both prompt-boundary flows and derived-output propagation, T AINT AWI covers 418 additional TPs over the strongest baseline. 
+
+C. RQ2: Effectiveness 
+
+FPs & FNs. We evaluate detection performance from both false-positive and false-negative perspectives. For false posi-tives, as reported in § VI-B, T AINT AWI reports 519 cases, among which 496 are confirmed exploitable under our threat model, and 23 are false positives, corresponding to a precision of 95.6%. Evaluating false negatives is more challenging because real-world GitHub Actions workflows do not have the complete ground truth. We therefore estimate potential false negatives from baseline-only reports, i.e., cases reported by a baseline but not by T AINT AWI. Specifically, we randomly sample 100 baseline-only reports from each of PIS CANNER ,OPEN GREP , A RGUS , and C ODE QL, resulting in 400 sampled cases in total. After manual review, we identify 13 false negatives of T AINT AWI. These missed cases mainly arise from incomplete taint specifications, incomplete script-level sink patterns, and limited script-level propagation semantics. 
+
+Component Contribution. We conduct an ablation study over the 496 confirmed TP cases to evaluate the contribution of each major design component in T AINT AWI. Specifically, we include four ablation variants. w/o Derived-output Bridging 
+
+disables the output bridging rule, so taint reaching an agent prompt is not propagated to the corresponding model- or                              
+
+> TABLE VI ABLATION STUDY OF TAINT AWI OVER CONFIRMED AWI CASES .
+> Variant #Report #Covered #P2A #P2S
+> Full T AINT AWI 519 496 103 419
+> w/o Derived-output Bridging 117 103 103 0
+> w/o Workflow Bridges 102 89 89 0
+> w/o Script Analysis 462 442 89 372
+> w/o Guard Analysis 881 496 103 419
+> Note. This ablation is evaluated over the confirmed TP AWI cases, not the full workflow corpus. #Report denotes reports produced within this TP-side ablation run. #Covered denotes covered cases among the 496 confirmed cases. #P2A and #P2S are not mutually exclusive.
+
+agent-derived outputs. w/o Workflow Bridges removes AWDG edges that connect data across workflow state channels, such as step outputs, job outputs, and reusable-workflow bindings. 
+
+w/o Script Analysis disables data-flow analysis from embedded shell scripts and github-script . w/o Guard Analysis 
+
+disables action-level and workflow-level guard filtering, so guarded taint paths may be reported even when they are not attacker-reachable. As shown in Table VI, derived-output bridging is essential for P2S detection. Without this component, T AINT AWI covers only 103 cases and detects no P2S cases, reducing coverage from 496 to 103. Removing workflow bridges further reduces coverage to 89 cases, showing that many AWI paths rely on workflow data channels. Script analysis also contributes substantially. Disabling it reduces coverage from 496 to 442 and P2S coverage from 419 to 372, indicating that many paths pass through shell scripts or github-script before reaching downstream sinks. Finally, disabling guard analysis increases reports from 519 to 881, suggesting that reachability analysis helps control false positives. 
+
+Efficiency. We evaluate the efficiency of the online analyzer of T AINT AWI on 13,392 agentic workflows. The measured online phase includes workflow IR construction, AWDG gen-eration, taint propagation, and vulnerability detection, but excludes offline action-specification construction, corpus col-lection, and manual validation. TAINT AWI completes the online analysis in 12.32 minutes on a single server with 256 logical CPU cores and 1008 GB memory. The mean and median analysis times are 0.054 and 0.008 seconds per workflow, respectively. The maximum per-workflow time is 11.360 seconds. Overall, the analyzer achieves a throughput of 18.12 workflows per second. During the run, it reaches a sampled peak resident set size (RSS) of 0.276 GB and uses 1.11 CPU cores on average. These results show that the online analysis of T AINT AWI is practical for large-scale analysis of AI-assisted GitHub Actions workflows. 
+
+D. RQ3: Characteristics 
+
+In this RQ, we characterize AWI from both defensive and vulnerable perspectives. We first examine AWI-relevant taint paths that are blocked by action-level or workflow-level guards, which reflects whether workflow developers have adopted access-control hardening for agentic workflows. We then characterize the 496 confirmed exploitable AWI cases 11 TABLE VII CHARACTERISTICS OF AWI-RELEVANT TAINT PATHS AND CONFIRMED                                                       
+
+> AWI CASES .
+> Aspect Category #Count Ratio Guarded Taint Paths
+> Guard Action-level guard only 306 34.7% Workflow-level guard only 27 3.1% Both guards 29 3.3% Any effective guard 362 41.1%
+> AWI Pattern
+> Source Issue title/body 429 86.5% Pull-request title/body 50 10.1% Comment/review body 24 4.8% Branch/commit metadata 18 3.6% Sink Prompt-to-Agent (P2A) 103 20.8% Prompt-to-Script (P2S) 419 84.5% Both P2A and P2S 26 5.2% Path Short path ( ≤5 nodes) 242 48.8% Medium path (6–10 nodes) 205 41.3% Long path ( >10 nodes) 49 9.9%
+> Security Impact
+> Effect GitHub write/API operation 391 78.8% Shell/tool execution 307 61.9% File/workspace write 81 16.3% Network egress 40.8%
+> Ecosystem Distribution
+> Action
+> ai-inference 393 79.2%
+> run-gemini-cli 31 6.2%
+> codex-action 14 2.8%
+> claude-code-base-action 20 4.0%
+> claude-code-action 13 2.6%
+> iflow-cli-action 12 2.4% Other actions 13 2.6%
+
+from three aspects: how AWI paths are formed, how attacker influence is materialized, and where vulnerable designs ap-pear in the ecosystem. Table VII summarizes these results. Guarded-path statistics are computed over 881 workflows with AWI-relevant taint paths before reachability analysis, while all other rows are computed over the 496 confirmed exploitable cases. Categories are not mutually exclusive. 
+
+Guarded Taint Paths. We first examine workflows that contain AWI-relevant taint paths but are not reported as vulnerabilities because the paths are blocked by effective guards. Among 881 workflows with AWI-relevant taint paths before guard filtering, 362 (41.1%) contain an effective guard. Specifically, 306 workflows (34.7%) use only action-level guards, such as caller allowlists or non-write-user restrictions; 27 (3.1%) use only workflow-level guards, such as author-association checks, trusted-label gates, or maintainer-only con-ditions; and 29 (3.3%) use both. This result shows that guard placement is highly uneven: action-level guards are much more common than workflow-level guards. In other words, downstream workflows rarely add their own access-control boundary, highlighting the importance of secure-by-default guard mechanisms in reusable agentic actions. 
+
+AWI Patterns. Among the 496 confirmed exploitable cases, most originate from ordinary collaboration inputs. Issue title/-body is the dominant source, appearing in 429 cases (86.5%), followed by pull-request fields in 50 cases (10.1%) and com-ment/review bodies in 24 cases (4.8%). P2S is the dominant sink pattern, appearing in 419 cases (84.5%), while P2A appears in 103 cases (20.8%). The path-length distribution further shows that AWI is often not a purely local prompt-construction bug: 205 cases (41.3%) have medium-length paths and 49 cases (9.9%) have long paths, reflecting multi-hop propagation across GitHub event contexts, agent interfaces, outputs, and downstream workflow logic. 
+
+Security Impact. The impact of AWI is mainly reflected in state-changing workflow operations. GitHub write/API op-erations appear in 391 cases (78.8%), including issue or PR labeling, commenting, editing, and other repository state changes. Shell or tool execution appears in 307 cases (61.9%), and file/workspace writes appear in 81 cases (16.3%). These results show that AWI can affect not only model responses, but also CI/CD operations executed with workflow authority. 
+
+Ecosystem Distribution. The 496 confirmed cases span 440 unique repositories with 421,098 GitHub stars in total, suggesting that AWI-prone designs appear in actively used projects rather than isolated toy examples. They involve multiple AI-assisted actions, with the largest cluster from 
+
+actions/ai-inference with 393 cases (79.2%). This concentration shows how unsafe compositions can emerge when reusable AI actions are combined with untrusted col-laboration inputs and downstream automation logic. VII. D ISCUSSION 
+
+A. Security Implications 
+
+For Action Developers. Our findings suggest that reusable agentic actions should be treated as security-sensitive work-flow primitives. Once an action exposes prompt inputs, tool capabilities, or model-derived outputs, downstream work-flows inherit the same trust-boundary problem. However, our action characterization in § IV-B shows that only 21 of 1,033 AI-assisted actions provide explicit caller-identity access control. Even google-github-actions/ run-gemini-cli , developed by Google, did not originally provide a default caller-gating mechanism, and its official ex-ample workflow gemini-scheduled-triage.yml ex-posed an AWI path before our responsible disclosure. Al-though this issue has been fixed in the latest version, it suggests that workflow protection is often treated as a downstream user’s responsibility. Unfortunately, our findings in § VI-D reveal that relying on workflow authors to implement guards is fragile. Only 56 of 881 workflows (6.4%) with AWI taint paths contain an effective workflow-level guard, whereas 335 workflows (38.0%) benefit from action-level guards. There-fore, action developers should implement secure-by-default guard mechanisms in reusable agentic actions. First, agentic actions should provide built-in access control, such as write-permission checks, caller allowlists, or explicit opt-in for non-write users. Second, actions should separate trusted instruc-tions from untrusted repository content in their interfaces. Third, if possible, actions should expose typed or constrained outputs, such as validated label sets, instead of free-form model responses. These mechanisms have been well adopted by claude-code-action [40] and codex-action [41]. 12 For Workflow Developers. Workflow developers should treat GitHub event context as untrusted whenever it can be influenced by external users. Many vulnerable workflows directly rely on prompt-level protection, such as asking the agent to ignore prompt injection. Such soft constraints are insufficient because they are interpreted by the same model that receives the adversarial content. Developers should instead enforce workflow-level access control, such as actor-permission checks, maintainer-applied labels, approval gates, trusted trigger conditions, and least-privilege permissions. For public workflows such as issue triage, developers should avoid directly interpolating github.event.issue.title or 
+
+github.event.issue.body into maintainer-written prompts. A safer pattern is to pass only a stable identifier, such as github.event.issue.number , and let the agent retrieve the issue content through constrained commands such as gh issue view . In addition, model-derived outputs should be validated with strict allowlists or typed schemas before being consumed by downstream workflows. 
+
+B. Limitations 
+
+Static Over-approximation. TAINT AWI is a static analyzer and therefore over-approximates possible workflow execu-tions. It may report paths that are syntactically feasible but dif-ficult to exploit in practice due to repository-specific policies, unavailable secrets, failed workflow runs, or undocumented runtime behavior of third-party actions. We mitigate this issue with reachability analysis and manual validation for reported cases, but fully modeling GitHub’s runtime behavior and each action’s internal implementation remains challenging. 
+
+Incomplete Action Semantics. TAINT AWI relies on action-level taint specifications, including prompt inputs, derived outputs, access-control options, and agentic capabilities. In this work, we focus on popular agentic actions that appear in real-world workflows. However, the GitHub Actions ecosystem evolves quickly, and long-tail or newly released actions may expose prompt or output interfaces that are not yet modeled. Missing or outdated specifications can lead to false negatives. 
+
+Limited Embedded-script Analysis. GitHub workflows can embed or invoke scripts written in multiple languages. TAINT AWI currently performs lightweight analysis for com-mon shell run steps and uses YASA to analyze inline JavaScript in actions/github-script . This design is sufficient to recover many practical AWI paths, but it does not provide complete data flow analysis. In particular, complex shell semantics, cross-file scripts, and dynamically generated commands may be missed. We view more complete multi-language script analysis as important future work. VIII. R ELATED WORK 
+
+Security of GitHub Actions and CI/CD Workflow. Existing work on GitHub Actions security has focused on work-flow misconfiguration, injection risks, and automated analysis. Koishybayev et al. [21] characterized the security properties of GitHub CI workflows and showed that over-privileged permis-sions, untrusted triggers, and third-party action dependencies are widespread in practice. Benedetti et al. [23] demonstrated the prevalence of workflow security weaknesses through au-tomated assessment, while Muralee et al. [24] introduced ARGUS, a staged static taint analysis framework for detecting code-injection vulnerabilities in GitHub workflows and ac-tions. Recent work revisited workflow security practices over time [22], compared the scope and effectiveness of workflow scanners [25], and analyzed failed workflow executions to build a taxonomy of failure causes [2]. Practitioner guidance from GitHub Security Lab, GitHub Docs, OpenSSF, and Ken Muse documented concrete attack vectors such as pwn requests, untrusted input expansion, and shell-script injec-tion [16], [32], [15], [17], [18]. Most of this literature studies traditional, deterministic workflows. Recent incident reports such as PromptPwnd and Clinejection show that introducing agentic capabilities can expose new vulnerabilities in GitHub workflows [8], [9]. However, these reports are case-driven and do not provide a systematic understanding of the real-world prevalence and impact of this vulnerability class. 
+
+Emerging Attack Surfaces in LLM-Integrated Systems. 
+
+LLM integration allows untrusted natural-language input to influence tool calls, code execution, and other external ac-tions [42], [43], [44], [45]. Empirical studies have identified prompt-to-code execution [13], prompt-to-SQL injection [11], prompt-to-anything vulnerabilities [12], and broader taint-style attacks in tool-using agents [10]. Follow-up work further studied prompt injection in tool selection [14], cross-tool harvesting and pollution [20], and multi-tool vulnerabilities in LLM agents [19], while benchmarks and auditing frameworks began to systematize agent security evaluation [46], [47]. Emerging auditing and scanning tools also reflect growing practical concern about this class of risks [48], [37], [38]. However, existing studies primarily examine LLM-integrated applications and agents in general settings, leaving their interaction with CI/CD workflow semantics underexplored. Our work fills this gap by systematically studying how LLM capabilities in real-world GitHub Actions workflows enable untrusted inputs to affect downstream workflow behavior. IX. C ONCLUSION 
+
+This paper introduced Agentic Workflow Injection (AWI), a workflow-level injection vulnerability in agentic GitHub Actions workflows. We identified two core AWI patterns and designed T AINT AWI. We characterized 1,033 real-world AI-assisted actions and found that many expose prompt bound-aries or model-derived outputs, while few provide caller-identity access control. On 13,392 agentic workflows from 10,792 repositories, T AINT AWI reported 519 potential AWI vulnerabilities, of which 496 were confirmed exploitable under our threat model, including 343 previously unknown zero-day vulnerabilities. Our findings show that AWI is a practical risk arising from reusable agentic actions, highlighting the need for secure-by-default action interfaces and safer workflow composition practices. 13 REFERENCES [1] GitHub, “Understanding github actions,” https://docs.github.com/en/ actions/get-started/understand-github-actions, 2026, accessed: 2026-05-06. [2] L. Zheng, S. Li, X. Huang, J. Huang, B. Lin, J. Chen, and J. Xuan, “Why do github actions workflows fail? an empirical study,” ACM Trans. Softw. Eng. Methodol. , vol. 35, no. 5, Apr. 2026. [Online]. Available: https://doi.org/10.1145/3749371 [3] OpenAI, “codex-action,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.com/openai/codex-action [4] Anthropic, “claude-code-action,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.com/anthropics/claude-code-action [5] Google, “run-gemini-cli,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.com/google-github-actions/run-gemini-cli [6] GitHub, “Marketplace: Ai assisted actions,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.com/marketplace?type=actions& category=ai-assisted [7] ——, “Github agentic workflows,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.github.com/gh-aw/ [8] R. Daelman, “Promptpwnd: Prompt injection vulnerabilities in github actions using ai agents,” https://www.aikido.dev/blog/ promptpwnd-github-actions-ai-agents, 2025, accessed: 2026-05-06. [9] S. Thoemmes, “How “clinejection” turned an ai bot into a supply chain attack,” https://snyk.io/blog/ cline-supply-chain-attack-prompt-injection-github-actions/, 2026, accessed: 2026-05-06. [10] F. Liu, Y. Zhang, J. Luo, J. Dai, T. Chen, L. Yuan, Z. Yu, Y. Shi, K. Li, C. Zhou, H. Chen, and M. Yang, “Make agent defeat agent: automatic detection of taint-style vulnerabilities in llm-based agents,” in 
+
+Proceedings of the 34th USENIX Conference on Security Symposium ,ser. SEC ’25. USA: USENIX Association, 2025. [11] R. Pedro, M. E. Coimbra, D. Castro, P. Carreira, and N. Santos, “ Prompt-to-SQL Injections in LLM-Integrated Web Applications: Risks and Defenses ,” in 2025 IEEE/ACM 47th International Conference on Software Engineering (ICSE) . Los Alamitos, CA, USA: IEEE Computer Society, May 2025, pp. 76–88. [Online]. Available: https://doi.ieeecomputersociety.org/10.1109/ICSE55347.2025.00007 [12] J. He, S. Wang, Y. Zhao, X. Hou, Z. Liu, Q. Zou, and H. Wang, “Taintp2x: Detecting taint-style prompt-to-anything injection vulnerabilities in llm-integrated applications,” in Proceedings of the IEEE/ACM 48th International Conference on Software Engineering ,2026. [Online]. Available: https://doi.org/10.1145/3744916.3773199 [13] T. Liu, Z. Deng, G. Meng, Y. Li, and K. Chen, “Demystifying rce vulnerabilities in llm-integrated apps,” in Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security , ser. CCS ’24. New York, NY, USA: Association for Computing Machinery, 2024, p. 1716–1730. [Online]. Available: https://doi.org/10.1145/3658644.3690338 [14] J. Shi, Z. Yuan, G. Tie, P. Zhou, N. Z. Gong, and L. Sun, “Prompt injection attack to tool selection in LLM agents,” CoRR , vol. abs/2504.19793, 2025. [Online]. Available: https://doi.org/10.48550/ arXiv.2504.19793 [15] GitHub Docs, “Script injections,” https://docs.github.com/en/actions/ concepts/security/script-injections, 2026, accessed: 2026-05-06. [16] J. Lobaˇ cevski, “Keeping your github actions and workflows secure part 1: Preventing pwn requests,” https://securitylab.github.com/resources/ github-actions-preventing-pwn-requests/, 2021, accessed: 2026-05-06. [17] Open Source Security Foundation, “Mitigating attack vectors in github workflows,” https://openssf.org/blog/2024/08/12/ mitigating-attack-vectors-in-github-workflows/, 2024, accessed: 2026-05-06. [18] K. Muse, “Github actions injection attacks,” https://www.kenmuse.com/ blog/github-actions-injection-attacks/, 2023, accessed: 2026-05-06. [19] J. Wu, Z. Yao, Y. Nan, and Z. Zheng, “Chainfuzzer: Greybox fuzzing for workflow-level multi-tool vulnerabilities in LLM agents,” 
+
+CoRR , vol. abs/2603.12614, 2026. [Online]. Available: https://doi.org/ 10.48550/arXiv.2603.12614 [20] Z. Li, J. Cui, X. Liao, and L. Xing, “Les dissonances: Cross-tool harvesting and polluting in pool-of-tools empowered llm agents,” 2025. [Online]. Available: https://arxiv.org/abs/2504.03111 [21] I. Koishybayev, A. Nahapetyan, R. Zachariah, S. Muralee, B. Reaves, A. Kapravelos, and A. Machiry, “Characterizing the security of github CI workflows,” in 31st USENIX Security Symposium, USENIX Security 2022, Boston, MA, USA, August 10-12, 2022 , K. R. B. Butler and K. Thomas, Eds. USENIX Association, 2022, pp. 2747–2763. [Online]. Available: https://www.usenix.org/conference/ usenixsecurity22/presentation/koishybayev [22] J. Huang and B. Lin, “Revisiting security practices for github actions workflows,” in 2025 IEEE/ACM 33rd International Conference on Program Comprehension (ICPC) , 2025, pp. 73–77. [23] G. Benedetti, L. Verderame, and A. Merlo, “Automatic security assessment of github actions workflows,” in Proceedings of the 2022 ACM Workshop on Software Supply Chain Offensive Research and Ecosystem Defenses . ACM, Nov. 2022, p. 37–45. [Online]. Available: http://dx.doi.org/10.1145/3560835.3564554 [24] S. Muralee, I. Koishybayev, A. Nahapetyan, G. Tystahl, B. Reaves, A. Bianchi, W. Enck, A. Kapravelos, and A. Machiry, “Argus: aframework for staged static taint analysis of github workflows and actions,” in Proceedings of the 32nd USENIX Conference on Security Symposium , ser. SEC ’23. USA: USENIX Association, 2023. [25] M. Fares, Y. Gamage, and B. Baudry, “Unpacking security scanners for github actions workflows,” CoRR , vol. abs/2601.14455, 2026. [Online]. Available: https://doi.org/10.48550/arXiv.2601.14455 [26] GitHub, “Events that trigger workflows,” 2026, accessed: 2026-05-06. [Online]. Available: https://docs.github.com/en/actions/reference/ workflows-and-actions/events-that-trigger-workflows [27] ——, “Workflow syntax for github actions,” 2026, accessed: 2026-05-06. [Online]. Available: https://docs.github.com/en/actions/reference/ workflows-and-actions/workflow-syntax [28] ——, “Github action marketplace,” 2026, accessed: 2026-05-06. [Online]. Available: https://github.com/marketplace?type=actions [29] GitHub Docs, “Variables,” https://docs.github.com/en/actions/concepts/ workflows-and-actions/variables, 2026, accessed: 2026-05-06. [30] ——, “Contexts,” https://docs.github.com/en/actions/concepts/ workflows-and-actions/contexts, 2026, accessed: 2026-05-06. [31] ——, “Expressions,” https://docs.github.com/en/actions/concepts/ workflows-and-actions/expressions, 2026, accessed: 2026-05-06. [32] J. Lobaˇ cevski, “Keeping your github actions and workflows se-cure part 2: Untrusted input,” https://securitylab.github.com/research/ github-actions-untrusted-input/, 2021, accessed: 2026-05-06. [33] HackTricks Cloud, “Context Script Injections,” https://cloud.hacktricks. wiki/en/pentesting-ci-cd/github-security/abusing-github-actions/ gh-actions-context-script-injections.html, accessed: 2026-05-06. [34] ——, “Artifact Poisoning,” https://cloud.hacktricks.wiki/ en/pentesting-ci-cd/github-security/abusing-github-actions/ gh-actions-artifact-poisoning.html, accessed: 2026-05-06. [35] ——, “Cache Poisoning,” https://cloud.hacktricks.wiki/ en/pentesting-ci-cd/github-security/abusing-github-actions/ gh-actions-cache-poisoning.html, accessed: 2026-05-06. [36] Y. Wang, S. Wang, J. Zhao, S. Shi, T. Li, Y. Cheng, L. Bian, K. Yu, Y. Zhao, and H. Wang, “YASA: scalable multi-language taint analysis on the unified AST at ant group,” CoRR , vol. abs/2601.17390, 2026. [Online]. Available: https://doi.org/10.48550/arXiv.2601.17390 [37] alexh-scrt, “Prompt Injection Scanner,” https://github.com/alexh-scrt/ prompt-injection-scanner, accessed: 2026-05-06. [38] Aikido Security, “Aikido OpenGrep Rules,” https://github.com/ AikidoSec/opengrep-rules, accessed: 2026-05-06. [39] GitHub, “CodeQL Actions Query Pack,” https://github.com/github/ codeql/tree/main/actions/ql, accessed: 2026-05-06. [40] Anthropic, “Claude Code Action Security Policy,” https: //github.com/anthropics/claude-code-action/blob/main/docs/security.md, accessed: 2026-05-06. [41] OpenAI, “Codex Action Security Policy,” https://github.com/openai/ codex-action/blob/main/docs/security.md, accessed: 2026-05-06. [42] I. Weber, “Large language models as software components: Ataxonomy for llm-integrated applications,” CoRR , vol. abs/2406.10300, 2024. [Online]. Available: https://doi.org/10.48550/arXiv.2406.10300 [43] L. Wang, C. Ma, X. Feng, Z. Zhang, H. Yang, J. Zhang, Z. Chen, J. Tang, X. Chen, Y. Lin, W. X. Zhao, Z. Wei, and J. Wen, “A survey on large language model based autonomous agents,” Frontiers Comput. Sci. , vol. 18, no. 6, p. 186345, 2024. [Online]. Available: https://doi.org/10.1007/s11704-024-40231-1 [44] F. He, T. Zhu, D. Ye, B. Liu, W. Zhou, and P. S. Yu, “The emerged security and privacy of LLM agent: A survey with case studies,” CoRR , vol. abs/2407.19354, 2024. [Online]. Available: https://doi.org/10.48550/arXiv.2407.19354 
+
+14 [45] Z. Deng, Y. Guo, C. Han, W. Ma, J. Xiong, S. Wen, and Y. Xiang, “Ai agents under threat: A survey of key security challenges and future pathways,” ACM Comput. Surv. , vol. 57, no. 7, Feb. 2025. [Online]. Available: https://doi.org/10.1145/3716628 [46] H. Zhang, J. Huang, K. Mei, Y. Yao, Z. Wang, C. Zhan, H. Wang, and Y. Zhang, “Agent security bench (ASB): formalizing and benchmarking attacks and defenses in llm-based agents,” CoRR , vol. abs/2410.02644, 2024. [Online]. Available: https://doi.org/10.48550/arXiv.2410.02644 [47] H. Luo, S. Dai, C. Ni, X. Li, G. Zhang, K. Wang, T. Liu, and H. Salam, “Agentauditor: Human-level safety and security evaluation for LLM agents,” in The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2026. [Online]. Available: https://openreview.net/forum?id=2KKqp7MWJM [48] Trail of Bits, “Agentic Actions Auditor,” https://github.com/trailofbits/ skills/tree/main/plugins/agentic-actions-auditor, accessed: 2026-05-06. 
+
+X. A PPENDIX 
+
+A. Dataset Collection and Property Inference 
+
+This appendix details the dataset construction and property inference process used in our characterization and evaluation. We collect candidate AI-assisted actions, gather downstream workflows that invoke them, and infer security-relevant action properties for subsequent taint analysis. 
+
+Candidate Action and Workflow Collection. We col-lect candidate actions with potential agentic or LLM-based behavior from two sources. We crawl the ai-assisted 
+
+category in the GitHub Actions Marketplace [6], obtaining 1,027 marketplace records. To cover emerging actions outside the Marketplace, the first two authors also conduct indepen-dent keyword-based GitHub searches using terms such as LLM, AI agent, and GitHub Action. After deduplication and relevance filtering, this adds 8 actions, including openai/ codex-action and xiaoju111a/kimi-actions , re-sulting in 1,035 unique action repositories. For each re-solved candidate action, we search workflow files under 
+
+.github/workflows/ that invoke the action through ref-erences of the form uses: <action>@ . We search both 
+
+.yml and .yaml files, exclude forked repositories, and recursively split oversized queries by file-size ranges to reduce GitHub code-search truncation. This process yields 14,223 search hits, corresponding to 14,174 unique downstream work-flow files from 10,851 repositories. After resolving repository snapshots, our final corpus contains 78,477 workflow files from 10,792 repositories, covering 230,723 action invocations. Among them, 13,392 workflows directly invoke at least one queried AI-assisted action and serve as the primary workflow-level evaluation set. 
+
+Security Property Inference. For each candidate repos-itory, we collect the artifacts that describe how the ac-tion is configured and used, including action.yml or 
+
+action.yaml , README files, package.json , and repository files when available. Among the 1,035 candidate repositories, 1,033 contain analyzable action metadata files and are included in the inference step. We then use an LLM-assisted analyzer to characterize the four security-relevant properties defined above. Listing 2 shows the simplified prompt. The LLM is given action metadata, documentation excerpts, package metadata, and source-file context, and is required to return a fixed-schema record. The inference focuses                                                                                                        
+
+> [Task]
+> Analyze the GitHub Action repository and infer security-relevant action properties. This is asemantic classification task, not avulnerability detection task.
+> [Input Context]
+> Use only evidence from: -action.yml/action.yaml -README -package metadata -source files
+> [Output Schema]
+> Return exactly one JSON object with these fields: 1) action: exact action name; 2) is_agentic: one of agent, llm, or no; 3) prompt_boundaries: model-readable prompt or instruction interfaces; 4) derived_outputs: model-authored outputs or files consumed downstream; 5) access_control: caller-identity access-control interfaces.
+> [Decision Rules]
+> -prompt_boundaries include only inputs that become natural-language prompts, tasks, or instructions. -derived_outputs include only model-or agent-authored values that can be consumed by later workflow steps. -access_control includes only caller allowlists, write-access gates, or equivalent identity checks. -If evidence is uncertain, leave the field empty.
+> Listing 2. Simplified prompt used for security property inference.
+
+on the action metadata interface exposed to workflow authors. We classify an action as agent only when the LLM is given an agent-style control loop or tool calling capabilities. We classify an action as llm when it exposes plain inference, chat, summarization, or review behavior without clear agentic tool use. For prompt interface, we record only inputs or doc-umented environment variables whose values directly become natural-language prompts, task descriptions, user messages, or system prompts. For derived output interface, we record only model- or agent-authored values that can be consumed by later workflow steps. For access control interface, we record only caller-identity gates, such as user allowlists, bot allowlists, non-write-user controls, or write-access checks. 
+
+Manual Validation. We validate the LLM-assisted infer-ence results through manual review to ensure the accuracy of the extracted properties. The first two authors indepen-dently review a random sample of 100 inferred records and compare each extracted field against the action metadata, documentation, and examples. The LLM-inferred fields agree with the manual labels in 95.9% of the reviewed fields. Disagreements are resolved through discussion and used to refine the extraction criteria. For widely-adopted actions with over 100 downstream workflow references (22 of 1033), we perform a complete manual review to obtain the final action-specific semantics used in later taint analysis. 
+
+B. AWI Taint Specification Patterns 
+
+Table VIII expands the AWI taint specification in Table III with representative sources, sinks, and sanitizers used by TAINT AWI to model attacker-controlled workflow context, AI-facing prompt interfaces, downstream workflow operations, and access-control guards. 15 TABLE VIII AWI TAINT SPECIFICATION USED BY TAINT AWI. 
+
+Type Category Representative Examples 
+
+Src 
+
+Issue Context github.event.issue.title , github.event.issue.body 
+
+Pull-Request Context github.event.pull_request.title , github.event.pull_request.body 
+
+Comment/Review Context github.event.comment.body , github.event.review.body 
+
+Branch/Commit Context github.event.pull_request.head.ref , github.event.head_commit.message 
+
+Serialized Event Context toJson(github.event) , toJson(github.event.issue) 
+
+Snk 
+
+P2A Sinks 
+
+anthropics/claude-code-action.prompt openai/codex-action.prompt google-github-actions/run-gemini-cli.prompt 
+
+P2S Sinks 
+
+run: gh issue edit ... run: gh pr edit ... run: gh api ... run: git push ... 
+
+San 
+
+Action-level Guards 
+
+anthropics/claude-code-action.allowed_non_write_users anthropics/claude-code-action.allowed_bots openai/codex-action.allow-users openai/codex-action.allow-bots 
+
+Workflow-level Guards 
+
+if: github.event.sender.login == ... if: github.event.sender.type == ’Bot’ if: github.event.pull_request.author_association == ’COLLABORATOR’ 
+
+C. Case Studies 
+
+This appendix provides representative case studies for the AWI vulnerabilities identified in § VI-B. They illustrate how attacker-controlled issue content can enter AI prompts, in-fluence model-generated outputs, and later reach privileged workflow logic, leading to Prompt-to-Script AWI in real-world GitHub Actions workflows. 
+
+Case#1: Prompt-to-Script AWI in run-gemini-cli. 
+
+Listing 3 shows a simplified snippet adapted from the example workflow gemini-scheduled-triage.yml 
+
+in google-github-actions/run-gemini-cli .The workflow collects attacker-controlled issue metadata and exposes it through issues_to_triage (L6–L8), then injects this value into Gemini’s prompt via echo $ISSUES_TO_TRIAGE (L15–L18). Gemini’s structured output is forwarded to the apply-labels job through 
+
+needs.triage.outputs.triaged_issues (L27– L28) and used in github.rest.issues.setLabels 
+
+(L31–L35). This forms a Prompt-to-Script AWI path because the downstream script trusts the model-produced 
+
+issue_number and labels_to_set under write permissions. Although the workflow validates labels, it does not verify that issue_number belongs to the originally triaged issues, allowing an injected issue to relabel an unintended issue or PR. 
+
+Implications. At the time of writing, the affected repository 
+
+google-github-actions/run-gemini-cli has 1,974 stars, and the vulnerable workflow is an official example provided by the repository. As a result, the pattern can be copied by downstream users. Based on our findings, more than 100 downstream workflows adopted this example or closely related variants. We responsibly disclosed this issue through Google AI VRP, and Google updated the affected workflow in PR#505. In the same report, we also discussed the need for secure-by-default action-level access controls. Google subsequently updated its trust and security guidelines to include this concern.                                                                         
+
+> 1jobs :
+> 2triage:
+> 3outputs:
+> 4triaged: ${{ steps .gemini.outputs.summary }}
+> 5steps :
+> 6-id: find_issues
+> 7run :|
+> 8gh issue list --json number,title,body > issues.json
+> 9echo "issues=$(cat issues.json)" >> " $GITHUB_OUTPUT"
+> 10 11 -id: gemini
+> 12 uses :google-github-actions/ run -gemini-cli@v0
+> 13 env :
+> 14 ISSUES: ${{ steps .find_issues.outputs.issues }}
+> 15 with :
+> 16 prompt :|
+> 17 Issues to triage:
+> 18 !‘{echo $ISSUES}‘
+> 19 20 Return JSON with issue_number and labels_to_set.
+> 21 22 apply-labels:
+> 23 needs: triage
+> 24 steps :
+> 25 -uses :actions/github-script@v8
+> 26 env :
+> 27 TRIAGED: ${{ needs.triage.outputs.triaged }}
+> 28 with :
+> 29 script: |
+> 30 for (const issue of JSON.parse(process. env .TRIAGED)) {
+> 31 await github.rest.issues.setLabels({
+> 32 issue_number: issue.issue_number,
+> 33 labels: issue.labels_to_set,
+> 34 ...
+> 35 });
+> 36 }
+
+Listing 3. Prompt-to-Script AWI in gemini-scheduled-triage.yml .
+
+Case#2: Prompt-to-Script AWI resulting in command execution in GitHub’s summary.yml . Listing 4 shows 
+
+summary.yml in the actions/starter-workflows ,GitHub’s official workflow template repository. A public event (issues.opened ) supplies attacker-controlled issue title 16 and body to the prompt of the actions/ai-inference 
+
+action (L23–L26), and the generated response is then interpolated into gh issue comment $ISSUE_NUMBER --body ’$ steps.inference.outputs.response ’ (L30). Because GitHub expression interpolation occurs before Bash parses the script, a model-generated single quote can terminate the intended --body string and cause the remainder of the response to be interpreted as shell syntax. With issues: write permission and GH_TOKEN exposed to the shell step, this creates a P2S command-execution sink from untrusted issue content to privileged shell execution. 
+
+Implications. At the time of writing, the official template repository actions/starter-workflows has 11,535 GitHub stars. Although GitHub updated summary.yml 
+
+in late February 2026 to replace direct interpolation with gh issue comment $ISSUE_NUMBER --body "$RESPONSE" . However, among the 519 AWI findings reported by T AINT AWI, 93 downstream workflows reused the older pre-fix version of summary.yml and inherited the same vulnerable prompt-to-shell path. We responsibly disclosed these vulnerabilities to the affected repositories and recommended updating to the patched template.                                                                                 
+
+> 1name :Summarize new issues
+> 23on :
+> 4issues:
+> 5types: [opened]
+> 67jobs :
+> 8summary:
+> 9runs-on :ubuntu-latest
+> 10 permissions :
+> 11 issues: write
+> 12 models: read
+> 13 contents: read
+> 14 15 steps :
+> 16 -name :Checkout repository
+> 17 uses :actions/checkout@v4
+> 18 19 -name :Run AI inference
+> 20 id: inference
+> 21 uses :actions/ai-inference@v1
+> 22 with :
+> 23 prompt :|
+> 24 Summarize the following GitHub issue in one paragraph:
+> 25 Title: ${{ github.event.issue.title }}
+> 26 Body: ${{ github.event.issue.body }}
+> 27 28 -name :Comment with AI summary
+> 29 run :|
+> 30 gh issue comment $ISSUE_NUMBER --body ’${{ steps.inference.outputs.response }}’
+> 31 env :
+> 32 GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+> 33 ISSUE_NUMBER: ${{ github.event.issue.number }}
+> 34 RESPONSE: ${{ steps .inference.outputs.response }}
+
+Listing 4. Prompt-to-Script AWI resulting in command execution in 
+
+summary.yml .
+
+17
