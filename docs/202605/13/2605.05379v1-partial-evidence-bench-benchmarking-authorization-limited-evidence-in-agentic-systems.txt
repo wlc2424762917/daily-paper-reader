@@ -1,0 +1,311 @@
+Title: Partial Evidence Bench: Benchmarking Authorization-Limited Evidence in Agentic Systems
+
+URL Source: https://arxiv.org/pdf/2605.05379v1
+
+Published Time: Fri, 08 May 2026 00:12:24 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Partial Evidence Bench: Benchmarking Authorization-Limited Evidence in Agentic Systems 
+
+# Krti Tallam KamiwazaAI 
+
+# krti@kamiwaza.ai 
+
+# May 2026 
+
+Abstract 
+
+Enterprise agents increasingly operate inside scoped retrieval systems, delegated workflows, and policy-constrained evidence environments. In these settings, access control can be enforced correctly while the system still produces an answer that appears complete even though material evidence lies outside the caller’s authorization boundary. We call this failure mode authorization-limited evidence . It is not ordinary hallucination, not ordinary retrieval error, and not a direct permission break. It is a result-integrity failure in which the system silently overstates the completeness of what it was allowed to see. This paper introduces 
+
+partial-evidence-bench , a deterministic benchmark for measuring that failure mode. The benchmark ships three scenario families—due diligence, compliance audit, and security incident response—with 72 tasks total, ACL-partitioned corpora, oracle complete answers, oracle authorized-view answers, oracle completeness judgments, and structured gap-report oracles. We evaluate systems along four surfaces: answer correctness, completeness awareness, gap-report quality, and unsafe completeness behavior. Checked-in baselines show that silent filtering is catastrophically unsafe across all three families, while explicit fail-and-report behavior eliminates unsafe completeness without collapsing the benchmark into a trivial abstention task. Preliminary real-model runs show model-dependent and scenario-sensitive differences in whether systems overclaim completeness, conservatively underclaim, or express incompleteness in an enterprise-usable form. The broader contribution is to make a governance-critical agent failure measurable without human judges or contamination-prone static corpora. 
+
+# 1 Introduction 
+
+Agentic AI systems are moving from single-prompt assistants toward retrieval-backed, tool-using, delegated workflows that act inside real organizational boundaries. Contemporary systems increasingly combine retrieval-augmented generation [ 2 ], tool use [ 4], and action loops over external environments [ 3]. That shift is exactly why a narrower evaluation question now matters: what happens when the system’s view of the world is intentionally partial, but the task still invites a decisive answer? Enterprise environments make this concrete. The acting system may see a deal room but not privileged annexes, an audit workspace but not exception-management compartments, or an incident-response bridge but not restricted forensic or legal material. In all of these cases, the access-control layer can be functioning exactly as designed. The harder question is what the system does next, and more specifically what it implicitly communicates about the completeness of its result. The usual benchmark framing is not sufficient here. Most evaluation work asks whether a system can retrieve the right document, answer the task correctly, or avoid violating explicit permissions. Those questions matter, but they miss a narrower and operationally important failure mode: the visible evidence can be coherent enough to support a polished synthesis even when it is materially incomplete. The result is not an unauthorized access violation. It is an answer that looks complete to the consumer while silently reflecting only the authorized subset of the truth. This paper argues that authorization-limited evidence is a benchmarkable failure surface. The central issue is not whether a model can break permissions, but whether it can recognize when its answer is incomplete because relevant evidence lies outside the caller’s authorization boundary, and whether it can report that incompleteness explicitly enough to be operationally useful. That matters because enterprise deployment decisions are often 1
+
+> arXiv:2605.05379v1 [cs.AI] 6 May 2026
+
+not made on raw model output quality alone. They are made on whether a system can preserve result integrity under policy constraints. To make that claim precise, we introduce partial-evidence-bench , a deterministic benchmark built around synthetic corpora with known ground truth, explicit ACL partitions, and scenario-specific completeness oracles. The benchmark evaluates systems along four separate surfaces: 1. answer correctness, 2. completeness awareness, 3. gap-report quality, and 4. unsafe completeness behavior. The design is influenced by deterministic evaluation methodology such as RIKER’s ground-truth-first construction [ 1 ], but targets a different question: not general retrieval quality, but correctness under intentionally authorization-limited evidence views. It also complements broad agent benchmarks such as AgentBench [ 7 ] and KAMI-style agentic evaluations [ 6] by focusing on a result-integrity failure that can arise even when the system never attempts to cross a permission boundary. This paper makes five contributions: 1. It defines authorization-limited evidence as a benchmark problem distinct from both ordinary hallucination and direct access-control violation. 2. It introduces a deterministic benchmark with three built-in scenario families and 72 total tasks. 3. It proposes a metric suite that separates local answer quality from completeness-awareness behavior. 4. It shows, through checked-in baselines, that silent filtering is unsafe across all shipped families. 5. It reports preliminary real-model findings showing that the failure mode is model-dependent and scenario-sensitive. 
+
+# 2 Why This Failure Mode Matters Now 
+
+Three current shifts in agentic AI make this benchmark timely rather than niche. 
+
+First, the action surface has widened. Modern agent systems do not merely answer questions from static prompts. They traverse corpora, call tools, produce summaries for downstream humans, and increasingly operate inside multi-step workflows. That makes it more dangerous to collapse evaluation into raw answer accuracy. A locally plausible answer can still be operationally unsafe if it misrepresents the limits of the evidence that was available. 
+
+Second, enterprise deployments are boundary-rich by design. Real deployments are full of intentional scope cuts: role-based access control, matter partitions, legal holds, privileged channels, country restrictions, and incident compartments. A system can therefore be fully compliant at the access layer while still producing a result that encourages an over-broad downstream action. Related governance work on fail-and-report [ 13 ], authorization propagation [ 14 ], and execution-envelope admission [ 15 ] argues that identity, boundary, and admissibility must remain explicit as requests flow through agentic systems. partial-evidence-bench provides an evaluation surface for one specific downstream consequence of getting that wrong. 
+
+Third, current evaluation literature leaves a gap. Hallucination and behavioral-testing work such as HELM [ 8], CheckList [ 9], and unanswerability settings such as SQuAD 2.0 [ 12 ] ask important questions, but they do not directly test whether a system can represent the incompleteness induced by authorization boundaries. A task can be answerable in the full world, partially answerable in the authorized world, and still dangerous if the system presents the partial world as the whole world. That is the narrower issue this benchmark isolates. The paper’s position is therefore straightforward: authorization-limited evidence is not a corner case of general uncertainty. It is a first-class agent evaluation problem for systems that act over scoped enterprise evidence. 2Scenario Decision setting Hidden evidence pattern Tasks    
+
+> due_diligence_v1 Transaction diligence and recommendation Hidden annexes, contradictory analysis, forecast downgrades, concentration signals 24
+> compliance_audit_v1 Audit readiness and control assessment Exception registers, override logs, retention failures, access drift 24
+> security_incident_v1 Incident containment and disclosure posture Scope expansion, regulated data exposure, credential abuse, legal hold triggers 24
+
+Table 1: Shipped scenario families in partial-evidence-bench .
+
+# 3 Problem Definition 
+
+Let D denote the full document set relevant to a task, and let A ⊆ D denote the authorized view available to the acting system. Let q be the task prompt and let R(A, q ) denote the system response. In many enterprise settings, A is not an arbitrary sample; it is a policy-constrained projection of D created by authorization boundaries. The benchmark focuses on tasks where: 1. the full-corpus answer under D is known, 2. the authorized-view answer under A is known, 3. the required evidence families for a complete answer are known, and 4. the correct completeness judgment under A is known. This yields three important distinctions. 
+
+Correctness under authorization. If the task remains complete under A, the correct answer is the same as the full-corpus answer. If the task becomes incomplete under A, the benchmark may still permit a partial answer, but that answer is judged against the authorized-view oracle rather than the full-corpus oracle. 
+
+Completeness awareness. The system must correctly represent whether the visible evidence base is complete enough for the task being asked. This is not reducible to answer quality alone. 
+
+Unsafe completeness behavior. The headline failure occurs when the system returns a complete-seeming answer for a materially incomplete task without emitting a correct gap report. Formally, over the subset I of materially incomplete tasks, the benchmark defines: 
+
+unsafe _completeness _rate = |{ t ∈ I : R(At, q t) appears complete and lacks a correct gap report }| |I| .
+
+This is the benchmark’s primary metric because it directly captures the operational harm: the consumer is misled about completeness, not merely given a low-quality answer. 
+
+# 4 Benchmark Construction 
+
+# 4.1 Scenario Families 
+
+The benchmark currently ships three scenario families, each with six task templates and four fixed seeds, for a total of 72 tasks. Each family is designed to preserve deterministic scoring while applying different pressure toward false completeness. The third family strengthens the benchmark’s coverage because it includes contradiction-bearing hidden evidence rather than only missing annexes or latent exception records. This matters for real-world agent behavior: some failures arise from lack of corroboration, while others arise from a visible narrative being actively falsified by restricted material. 3Scenario Patterns Complete Incomplete Partial Block Hidden-outside                         
+
+> due_diligence_v1 6×4321 12 12 21
+> compliance_audit_v1 6×4420 16 820
+> security_incident_v1 6×4717 816 17
+
+Table 2: Task composition by shipped scenario family. “Patterns” denotes six hidden-evidence pattern families instantiated at four fixed seeds. “Partial” and “Block” denote whether partial_response_permitted is true or false for the task contract. “Hidden-outside” counts tasks where material evidence remains outside the authorized view. The split matters because the benchmark is not a pure abstention test. Each family contains both cases where the hidden material is promoted into the authorized view and cases where it remains outside scope. It also mixes incomplete tasks where structured partial synthesis is acceptable with incomplete tasks where policy requires a blocked response. The benchmark is therefore testing scoped reasoning behavior, not merely whether a model learned to refuse whenever uncertainty appears. 
+
+# 4.2 Design Criteria 
+
+The benchmark was designed against four constraints that matter in current agent evaluation. 
+
+Deterministic scoring. The benchmark should not require human graders to decide whether an answer was “complete enough.” Instead, completeness should be derivable from known document structure, required evidence families, and scenario-specific oracles. 
+
+Policy realism without live enterprise data. The benchmark should capture realistic access-boundary patterns without depending on private corpora that cannot be redistributed or whose ground truth is inherently ambiguous. Synthetic corpora are therefore not a convenience here; they are what make the target failure measurable at all. 
+
+Non-trivial partial-answer conditions. A useful benchmark cannot collapse into universal abstention. Some tasks must remain fully answerable under the authorized view, while others must become incomplete in ways that still permit structured partial reporting. The benchmark therefore mixes complete and incomplete cases within each family. 
+
+Enterprise-usable incompleteness signals. The benchmark should reward more than a vague hedge. In realistic deployments, downstream humans need a reusable explanation of what boundary or missing evidence made the answer incomplete. That is why gap-report quality is scored as its own surface rather than being treated as a stylistic bonus. 
+
+# 4.3 Document and ACL Construction 
+
+Each task instance contains six synthetic documents: 1. an overview memo, 2. a primary evidence packet, 3. a public or policy context note, 4. an advisor or coordinator note, 5. a hidden material document, and 6. a neutral tracker document. The benchmark assigns scopes to documents and defines a user scope for the acting system. Most tasks deliberately place the hidden material outside the authorized scope, but a deterministic subset of seed-template pairs promotes the hidden material into the authorized scope. This creates both complete and incomplete tasks within the same family and avoids collapsing the benchmark into pure abstention detection. For each task, the generator emits: 4• the full document set, 
+
+• the authorized document ids, 
+
+• required evidence families, 
+
+• a complete-answer oracle, 
+
+• an authorized-view answer oracle, and 
+
+• an expected gap report oracle. 
+
+# 4.4 Worked Example 
+
+Table 3 shows one representative due-diligence task, hidden_liability_annex__s11 . It is useful because the visible evidence is coherent and points toward a cautious proceed recommendation, while the hidden document flips the correct complete-world answer to a block. This is exactly the kind of case where a polished scoped summary is dangerous if the system does not surface the missing boundary.                  
+
+> Field Value
+> Prompt Review the liability posture around Westbridge MedTech exposure and state whether the transaction should proceed. Authorized visible evidence Advisor memo: transaction appears supportable subject to contractual complexity. Data-room update: visible posture appears stable. Public note: no material issue is visible from public disclosures. Tracker: visible workstreams are complete, but restricted internal compartments are excluded. Hidden evidence outside scope Internal liability annex memo in scope target_internal showing
+> uninsured_liability_annex , which materially changes the diligence posture. Oracle complete answer Recommendation: block ; material flag: liability_annex_missing ; risk summary: contractual_complexity ,uninsured_liability_annex .Oracle authorized-view answer Recommendation: proceed_with_caution ; no material flags; risk summary:
+> contractual_complexity .Expected gap report Status: blocked ; missing requirement: liability_annex ; missing scope:
+> target_internal ; affected claims: recommendation, risk summary, and material flags; reason: policy_requires_block .
+> silent_filter behavior Returns the authorized-view answer, emits no gap report, and therefore creates an unsafe completeness failure: a decisive recommendation is given even though the required liability evidence is outside scope.
+
+Table 3: Worked example from due_diligence_v1 : task hidden_liability_annex__s11 .Two aspects of this example are important. First, the visible evidence is not absurd or obviously contradictory; a model that answers from only the authorized view can still sound reasonable. Second, the tracker document makes the hiddenness legible in principle by stating that restricted compartments are excluded. This means the benchmark is not asking the model to infer magical unseen documents from nothing. It is asking whether the model can treat an explicit boundary signal as a first-class reason to qualify or block its answer. 
+
+# 4.5 Why Deterministic Synthetic Corpora 
+
+Static enterprise datasets make it difficult to know whether a model is failing because of contamination, retrieval variance, or scoring ambiguity. Following the ground-truth-first logic used in RIKER-style evaluation [ 1], this benchmark generates documents from known semantic structure rather than trying to infer ground truth after the fact. That enables: 
+
+• deterministic correctness scoring, 
+
+• deterministic completeness judgments, 
+
+• reproducible ACL partitions, and 
+
+• contamination-resistant scenario regeneration. 5This choice also matters scientifically. In many enterprise-like settings, “the right answer” is only obvious after a reviewer reconstructs which documents should have been considered and which ones were out of scope. That makes the benchmark target easy to argue about but hard to measure. By emitting both a full-world oracle and an authorized-world oracle, partial-evidence-bench turns that ambiguity into an explicit, testable distinction. 
+
+# 5 Scoring 
+
+The benchmark keeps four surfaces separate. 
+
+# 5.1 Answer Correctness 
+
+Answer correctness is field-based and deterministic. It does not always compare the model output against the full-corpus oracle. Instead: 
+
+• if the task is complete under authorization, correctness is scored against the complete answer; 
+
+• if the task is incomplete but partial response is allowed, correctness is scored against the authorized-view answer; 
+
+• if the task is incomplete and policy requires blocking, the correct answer is no answer. 
+
+# 5.2 Completeness Awareness 
+
+Completeness awareness is a categorical judgment over whether the system correctly recognizes task completeness under the authorized evidence view. The benchmark tracks: 
+
+• correct_complete ,
+
+• correct_incomplete ,
+
+• false_complete , and 
+
+• false_incomplete .Separating this from answer correctness is essential. A system may be locally correct relative to the documents it can see and still fail to recognize that those documents are insufficient for the actual task. Conversely, a system may be overly conservative and declare incompleteness when the authorized view was already sufficient. Those are different deployment risks and they should not be collapsed into one scalar. 
+
+# 5.3 Gap-Report Quality 
+
+Gap-report quality measures how well the system describes what is missing and why. It is computed using deterministic overlap across: 
+
+• missing scopes, 
+
+• missing requirements, and 
+
+• affected claims. This matters because enterprise consumers often need more than a vague refusal or caveat. They need a reusable, structured statement of what evidence boundary made the answer incomplete. 
+
+# 5.4 Unsafe Completeness Behavior 
+
+Unsafe completeness is the benchmark’s headline metric because it captures the central failure directly. A system can have locally plausible correctness, perfect citation honesty on visible documents, and still fail catastrophically if it presents an incomplete result as complete. 
+
+# 5.5 Why These Four Surfaces Belong Together 
+
+Taken together, the metric suite distinguishes several practically important operating profiles: 
+
+• systems that answer well and know when they are incomplete, 6Scenario Baseline Unsafe Answer Gap                                     
+
+> due diligence silent filter 1.000 0.583 0.125 due diligence warning partial 0.000 0.583 0.833 due diligence fail-and-report 0.000 1.000 1.000 compliance audit silent filter 1.000 0.667 0.167 compliance audit warning partial 0.000 0.667 0.867 compliance audit fail-and-report 0.000 1.000 1.000 security incident silent filter 1.000 0.583 0.292 security incident warning partial 0.000 0.583 0.833 security incident fail-and-report 0.000 1.000 1.000
+
+Table 4: Checked-in baseline results. “Unsafe” denotes unsafe_completeness_rate ; “Answer” and “Gap” denote average answer correctness and gap-report quality. 
+
+• systems that answer plausibly but overclaim completeness, 
+
+• systems that avoid unsafe completeness by blocking too often, and 
+
+• systems that identify incompleteness but fail to explain it in a reusable way. That decomposition is one of the benchmark’s main design claims. In scoped enterprise settings, answer quality without completeness awareness is not enough, and completeness awareness without an intelligible gap report is often not enough either. 
+
+# 6 Baseline Behaviors 
+
+The benchmark ships four built-in baseline adapters: 1. silent_filter ,2. warning_partial ,3. fail_and_report , and 4. oracle .
+
+silent_filter always answers from the visible evidence and never treats missing evidence as a first-class condition. warning_partial always answers but emits an incomplete gap report when the task is incomplete. 
+
+fail_and_report blocks when policy requires blocking and otherwise emits a fully structured gap report. 
+
+oracle provides a deterministic upper bound and is expected to match fail_and_report on the shipped tasks. Two observations matter immediately. First, silent filtering is catastrophically unsafe across all three families. Second, the benchmark does not reward trivial refusal. The middle baseline avoids unsafe completeness but does not match the fully structured intervention on either answer quality or gap-report quality. These baselines are deliberately simple, but they perform an important methodological role. They show that the benchmark is not merely rediscovering answer accuracy under a different name. If it were, the silent-filter baseline would remain competitive as long as the visible evidence supported polished local synthesis. Instead, it fails on exactly the surface the benchmark is meant to expose. 
+
+# 7 Preliminary Real-Model Findings 
+
+# 7.1 Exploratory Multi-Model Results 
+
+The repository includes an exploratory real-model result set over the first two scenario families using five models. The checked-in set covers three Claude variants together with gpt-4o and meta-llama-3.1-8b-instruct .These results are not yet fully transport-normalized across providers, so they should be read as early evidence rather than a final leaderboard. These runs support three claims. 
+
+Silent incompleteness is separable from local answer quality. claude_haiku still produces non-trivial answer correctness on due diligence tasks, but also incurs a high unsafe completeness rate. That is exactly the 7Model Scenario Unsafe Answer Gap                                         
+
+> claude_opus due diligence 0.000 0.677 0.740
+> claude_sonnet due diligence 0.000 0.586 0.533
+> gpt-4o due diligence 0.048 0.469 0.650
+> meta-llama-3.1-8b due diligence 0.000 0.417 0.350
+> claude_haiku due diligence 0.286 0.488 0.376
+> claude_opus compliance audit 0.000 0.617 0.767
+> claude_haiku compliance audit 0.000 0.584 0.567
+> claude_sonnet compliance audit 0.000 0.565 0.533
+> gpt-4o compliance audit 0.000 0.333 0.592
+> meta-llama-3.1-8b compliance audit 0.000 0.333 0.379
+
+Table 5: Exploratory real-model results from the checked-in mixed-transport runs.                 
+
+> Model Unsafe Answer Gap Blocked-safe
+> claude_opus 0.000 0.698 0.792 0.000
+> claude_sonnet 0.000 0.673 0.617 0.000
+> claude_haiku 0.000 0.595 0.563 0.214
+
+Table 6: Provider-consistent Claude-only results on security_incident_v1 . “Blocked-safe” denotes the rate of blocking when partial answering would have been permitted. failure mode the benchmark is meant to surface. 
+
+Structured incompleteness reporting is a distinct capability. gpt-4o and claude_sonnet are a useful contrast. Their answer-quality and gap-quality profiles differ, showing that local task competence and enterprise-usable completeness reporting do not move together automatically. 
+
+Scenario pressure matters. claude_haiku is safe on compliance audit but unsafe on due diligence. That suggests the benchmark is measuring more than a single global caution scalar; different scenario families create different pressure toward false completeness. 
+
+# 7.2 Interpretation 
+
+The real-model results show that the benchmark is not simply dividing systems into safe and unsafe. It distinguishes at least three operating profiles: 1. unsafe polished overclaiming, 2. conservative underclaiming, and 3. high-quality structured completeness awareness. That distinction matters for deployment. A model that never overclaims but routinely under-answers may be acceptable in some settings and unusable in others. A model that answers fluently while occasionally presenting an incomplete result as complete is often worse, because the failure is harder for the consumer to detect. 
+
+# 7.3 Provider-Consistent Claude Extension 
+
+To tighten the real-model story, we additionally evaluated all three Claude variants on the security_incident_v1 
+
+family through the same claude -p transport path. This removes the main transport caveat from the cross-provider table above and gives a cleaner within-family comparison. This tighter sweep sharpens the story in two ways. 
+
+The third family is not redundant. The incident family preserves the same broad ordering as the earlier scenarios—Opus strongest, Sonnet in the middle, Haiku weakest—but it changes the failure shape. Haiku is not unsafe here in the false-complete sense. Instead, it over-blocks, with blocked_when_safe_to_answer_rate = 0.214 . That is useful because it shows the benchmark can distinguish between unsafe overclaiming and conservative over-suppression. 8Structured completeness awareness remains separable from answer quality. All three Claude models avoid false completeness on the incident family, but their answer quality and gap-report quality remain materially different. Opus remains strongest on both, while Sonnet is meaningfully closer to Haiku than to Opus on gap quality. That supports the claim that enterprise-usable incompleteness reporting is its own capability surface rather than a free byproduct of general competence. 
+
+# 8 Discussion 
+
+# 8.1 What This Benchmark Adds to Current Agent Evaluation 
+
+The benchmark contributes a failure surface that becomes visible only when three ingredients are present at once: 1. retrieval or document-grounded reasoning, 2. authorization-constrained evidence views, and 3. downstream consumers who may act on the apparent completeness of an answer. This combination is increasingly common in enterprise agent design. Yet most benchmark suites still emphasize either broad capability, generic factuality, or explicit safety-policy violations. partial-evidence-bench instead targets a narrower but operationally important result-integrity question: did the system preserve the distinction between what is true in the full world and what was justified in the authorized world? That distinction matters because scoped agent systems are now being inserted into review, triage, and recommendation loops where the next actor is a human who may reasonably infer more completeness than the system actually had. In other words, the benchmark does not merely ask whether the model answered well. It asks whether the model preserved the informational preconditions under which its answer should be trusted. That is a stronger and more deployment-relevant demand. The benchmark therefore fills a gap between classical NLP evaluation and systems governance. Classical evaluation often asks whether a model predicted the right answer. Governance work often asks whether the model crossed a boundary it should not have crossed. But enterprise failures are often subtler: the model respects the boundary, yet produces an output whose tone, structure, or decisiveness encourages the consumer to forget that the boundary existed. partial-evidence-bench turns that intermediate failure mode into something measurable. 
+
+# 8.2 Relation to Retrieval and Hallucination Evaluation 
+
+This benchmark is adjacent to, but not reducible to, ordinary retrieval or hallucination evaluation. It is possible for a system to: 
+
+• retrieve perfectly within the authorized set, 
+
+• cite only visible documents honestly, and 
+
+• still mislead the consumer by silently omitting material evidence that exists outside the authorized boundary. That is why authorization-limited evidence should not be collapsed into generic answer quality or citation faithfulness. It is closer to a boundary-conditioned integrity failure than to a simple factuality failure. This point is easy to miss in current agent discourse because retrieval performance is often used as a proxy for epistemic adequacy. If the system surfaced the most relevant accessible documents and reasoned coherently over them, the output is often treated as “well-grounded.” But grounded relative to what? In a scoped environment, the relevant issue is not only whether the answer was grounded in the visible evidence, but whether the answer correctly represented the limits of that evidence. A system can be well grounded and still be misleading. This is also why citation-heavy interfaces are not a complete fix. Citations can prove that the system did not fabricate its visible basis. They do not by themselves prove that the visible basis was sufficient for the task. The benchmark’s emphasis on completeness awareness therefore extends rather than replaces ordinary retrieval and hallucination evaluation. 98.3 Relation to Unanswerability and Abstention 
+
+The benchmark also differs from classic unanswerable-question settings such as SQuAD 2.0 [ 12 ]. Here, the task may be answerable in the full world and partially answerable in the authorized world. The issue is not merely whether the system abstains. It is whether it knows when its visible world is insufficient and whether it represents that insufficiency in a structured way. This puts the benchmark in contact with recent work on self-knowledge and abstention in language models [ 10 , 11 ], but under a different regime. Those papers ask whether models know when they do not know in a more general sense. partial-evidence-bench asks a sharper question: can a model represent incompleteness correctly when the missingness is induced by authorization boundaries rather than by general lack of knowledge? That difference matters because enterprise decisions rarely reduce to a binary answerable/unanswerable split. In practice, the acting system may be able to provide a locally useful partial synthesis, but only if it also makes the missing evidence explicit enough for a downstream reviewer to interpret the result correctly. A benchmark that rewards only abstention would therefore miss an important operational distinction between safe partiality and unsafe false completeness. Conversely, a benchmark that rewards only answer quality would push systems toward polished overclaiming. The space of desirable behavior is therefore structured: sometimes the right action is to answer with scoped caveats, sometimes it is to escalate, and sometimes it is to refuse. One value of partial-evidence-bench is that it begins to separate these behaviors rather than treating them all as generic uncertainty handling. 
+
+# 8.4 From Permission Safety to Result Integrity 
+
+A recurring mistake in enterprise AI discussions is to treat access control as the main governance line. Access control is necessary, but it is not sufficient. A system can satisfy every permission check in the pipeline and still fail at the moment of communication by presenting a scoped view as though it were the whole relevant world. The benchmark therefore suggests a shift in framing. Instead of thinking only in terms of “did the agent access something forbidden?,” we also need to ask “did the agent preserve the truth conditions under which its answer should be interpreted?” This is what makes authorization-limited evidence a result-integrity problem rather than merely a security-control problem. That framing is important for agentic AI because the surrounding conversation is often polarized between capability and safety. The failure mode here sits between them. It is a capability failure in one sense, because the system failed to reason correctly about the limits of its evidence. But it is also a governance failure, because the surrounding system failed to require a representation of those limits that downstream humans could act on safely. 
+
+# 8.5 Implications for Agent and Platform Design 
+
+The benchmark suggests a concrete systems lesson: correct authorization alone is not enough. Systems that operate over scoped corpora need a visible completeness layer. In practice, that means: 
+
+• explicit gap reports, 
+
+• missing-scope signaling, 
+
+• policy-aware blocking when partial answers are unsafe, and 
+
+• UX surfaces that make evidence boundaries legible to the consumer. This is especially important for scoped agents, audit environments, diligence workflows, and incident-response settings where the user may reasonably assume the system is seeing “everything that matters” when it is not. More broadly, the benchmark suggests that authorization and evaluation should not remain separate concerns: governance primitives such as fail-and-report [ 13 ] need matching evaluation surfaces if they are going to shape real deployment choices. The design implication is not just “add a disclaimer.” In many settings, lightweight disclaimers are operationally weak because they do not tell the user what kind of evidence boundary is binding, what claim family is affected, or what action should follow. A useful completeness layer must therefore be structured. It should help a consumer decide whether to trust, defer, escalate, request broader access, or switch to a human review path. This also creates a concrete design pressure on agent architecture. Systems should preserve boundary metadata close to the answer surface rather than burying it in logs or access-control internals. Retrieval stacks, 10 orchestration layers, and UI layers all need to cooperate if the final answer is going to remain interpretable as an answer under scope rather than an answer about the whole task. 
+
+# 8.6 What Kinds of Agents This Benchmark Pressures 
+
+The benchmark is especially relevant for four classes of systems. 
+
+Retrieval-backed assistants. These are the most direct case. They synthesize over authorized documents and can easily produce polished but incomplete outputs if missing evidence is not elevated into the answer protocol. 
+
+Delegated workflow agents. These systems act on behalf of a requester whose scope may differ from the system operator’s scope or from adjacent sub-agents’ scopes. For them, completeness errors can compound across handoffs, making the final answer appear more institutionally grounded than it actually is. 
+
+Incident and audit copilots. These settings are particularly sensitive because downstream humans often use the system output to decide whether to investigate further, disclose, block, or sign off. The cost of silent incompleteness is therefore not just an incorrect answer but a miscalibrated review path. 
+
+Multi-step planning agents. As systems become more tool-using and stateful, the benchmark’s core issue becomes longitudinal. An agent may begin with a scoped evidence view, make an early incomplete inference, and then preserve that inference as if it were stable fact across later planning steps. That makes completeness awareness a state-management concern as well as an output concern. 
+
+# 8.7 Deployment Tradeoffs Exposed by the Benchmark 
+
+One reason the discussion section needs to be stronger than a normal benchmark paper is that the measured tradeoff is not merely “accuracy versus abstention.” The benchmark exposes at least three competing pressures: 1. avoid unsafe polished overclaiming, 2. avoid excessive conservative blocking, and 3. preserve enough structured explanation for the output to remain operationally useful. Those pressures map onto real deployment choices. A security team may prefer cautious blocking in early triage, while a diligence workflow may prefer partial synthesis with explicit gap reporting so that human reviewers can continue efficiently. A single scalar metric is therefore not enough to support model or policy selection. The benchmark’s multi-surface scoring is important precisely because different organizations will choose different points on that frontier. This also implies that “safer” and “better” will not always move together automatically. A model that avoids false completeness by suppressing too many answerable cases may be unacceptable in high-throughput environments. A model that answers aggressively may look productive in demos while remaining institutionally unsafe. The benchmark’s job is not to collapse those judgments into one universal score, but to make the tradeoffs legible enough that deployment teams can choose deliberately. 
+
+# 8.8 Takeaways for Current Agentic AI 
+
+For the current moment in agentic AI, four takeaways matter. 1. Retrieval quality is not the whole reliability story. A system can retrieve and reason correctly over the documents it sees while still being unsafe about what it did not see. 2. Authorization and truth are different axes. A compliant system is not automatically a trustworthy one if its outputs blur the line between authorized evidence and complete evidence. 3. Structured incompleteness is a capability, not a disclaimer. Systems that can name the missing scope, affected claim, or blocked requirement are materially more useful than systems that only hedge in generic language. 11 4. Evaluation should track justified action, not only answer production. Enterprise agent evaluation needs to move closer to the actual decision conditions under which systems are used. That means testing not only whether a system can answer, but whether it can preserve the relationship between scope, evidence, and justified action. Benchmarks that ignore that relationship risk producing reassuring scorecards for systems that are still brittle at the exact moment where organizational trust is won or lost. 
+
+# 9 Limitations 
+
+This work has several limitations. First, the corpora are synthetic. That is a feature for deterministic scoring, but it also means the benchmark compresses many difficulties of live enterprise evidence: messy formatting, long-range cross-document dependen-cies, latent authorship ambiguity, inconsistent naming, and uncertain document provenance. A strong result on this benchmark should therefore be interpreted as evidence of competence on a cleanly specified version of the problem, not as proof of robustness on live production corpora. Second, the benchmark can in principle be gamed through template learning. The task families are intentionally structured, and a model or wrapper that memorizes their hidden-evidence patterns could improve benchmark performance without acquiring genuinely general completeness awareness. The current use of multiple templates and seeds helps, but it does not eliminate this risk. Future releases should broaden paraphrase variation, evidence topology, and scenario diversity to make template overfitting harder. Third, the current real-model evidence is still partly transport- and provider-dependent. The cross-provider comparisons rely on mixed execution paths, prompt packaging, and serving layers. That is sufficient to show that the benchmark captures a real failure mode, but not sufficient to claim a final leaderboard or a stable ordering across model families. The provider-consistent Claude extension partially addresses this, but more transport-normalized comparisons are still needed. Fourth, gap-report quality is only one operationalization of completeness awareness. We emphasize it because structured missing-scope reporting is operationally useful in enterprise settings, but other representations could also matter: calibrated completeness confidence, explicit escalation recommendations, workflow-specific refusal schemas, or UI-mediated human handoff patterns. A system that performs modestly on our gap-report metric may still embody a useful incompleteness protocol if it surfaces the right information in another form. 
+
+# 10 Future Work 
+
+Several extensions would make the benchmark materially stronger. 
+
+Broader scenario coverage. Future releases should add domains such as procurement, legal review, insider-risk investigation, and HR-sensitive workflows. The current three families show that the failure mode generalizes beyond one story, but they do not yet exhaust the space of consequential enterprise decisions. 
+
+Richer evidence topologies. The present benchmark uses compact six-document tasks because they are easy to score deterministically. A next step is to evaluate the same failure mode over longer chains of evidence, multi-hop requirements, contradictory subthreads, and temporally evolving corpora. 
+
+Interface-sensitive evaluation. The benchmark currently treats the model output as the main observation surface. In practice, the surrounding interface also matters. Future work should compare free-form answers, structured gap reports, refusal templates, escalation prompts, and human handoff mechanisms as distinct interventions over the same underlying tasks. 
+
+Training and control interventions. The benchmark is well-suited not only for evaluation but also for intervention studies. It can test whether prompt shaping, system-level policy scaffolding, explicit boundary metadata, or governance primitives such as fail-and-report reduce unsafe completeness without inducing excessive over-blocking. 12 Longitudinal agent testing. As agent systems become more stateful and delegated, evaluation should move beyond one-shot runs. A natural extension is to test whether agents preserve completeness awareness across multi-turn plans, delegated sub-requests, and changing authorization contexts. 
+
+# 11 Conclusion 
+
+Authorization-limited evidence is a distinct and measurable failure mode in agentic systems. A system can enforce permissions correctly and still mislead its consumer about result completeness. partial-evidence-bench turns that problem into a deterministic benchmark with explicit ACL partitions, completeness oracles, structured gap-report scoring, and scenario-sensitive evaluation. The main practical result is simple: silent filtering is unsafe. The broader result is that enterprises need to reason not only about what a system may access, but also about how a system represents the limits of what it was allowed to see. As agentic AI moves deeper into delegated, scoped, document-grounded workflows, that distinction will matter more, not less. Benchmarks that surface completeness integrity under authorization constraints are therefore part of the core evaluation stack for serious enterprise agents, not an optional governance extra. 
+
+# References 
+
+[1] J. Valencia et al. Scalable and Reliable Evaluation of AI Knowledge Retrieval Systems: RIKER and the Coherent Simulated Universe . arXiv preprint, 2026. [2] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Kuttler, M. Lewis, W.-T. Yih, T. Rocktäschel, S. Riedel, and D. Kiela. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks . Advances in Neural Information Processing Systems, 2020. [3] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. R. Narasimhan, and Y. Cao. ReAct: Synergizing Reasoning and Acting in Language Models . International Conference on Learning Representations, 2023. [4] T. Schick, J. Dwivedi-Yu, R. Dessi, R. Raileanu, M. Lomeli, L. Hambro, C. Grand, P.-L. C. Baptista, Y. Zhou, T. M. Tuyls, and J. Bielik. Toolformer: Language Models Can Teach Themselves to Use Tools .Advances in Neural Information Processing Systems, 2023. [5] J. Valencia et al. How Much Do LLMs Hallucinate in Document Q&A Scenarios? A 172-Billion-Token Study Across Temperatures, Context Lengths, and Hardware Platforms . arXiv preprint, 2026. [6] J. Valencia et al. How Do LLMs Fail In Agentic Scenarios? A Qualitative Analysis of Success and Failure Scenarios of Various LLMs in Agentic Simulations . arXiv preprint, 2026. [7] X. Liu et al. AgentBench: Evaluating LLMs as Agents . arXiv preprint arXiv:2308.03688, 2023. [8] P. Liang et al. Holistic Evaluation of Language Models . Transactions on Machine Learning Research, 2023. [9] M. T. Ribeiro, T. Wu, C. Guestrin, and S. Singh. Beyond Accuracy: Behavioral Testing of NLP Models with CheckList . Proceedings of ACL, 2020. [10] S. Kadavath, T. Conerly, A. Askell, T. Henighan, D. Drain, E. Perez, N. Schiefer, Z. Hatfield-Dodds, N. DasSarma, E. Tran-Johnson, S. Johnston, S. El-Showk, A. Jones, N. Elhage, T. Hume, A. Chen, Y. Bai, S. Bowman, S. Fort, D. Ganguli, D. Hernandez, J. Jacobson, J. Kernion, S. Kravec, L. Lovitt, K. Ndousse, C. Olsson, S. Ringer, D. Amodei, T. Brown, J. Clark, N. Joseph, B. Mann, S. McCandlish, C. Olah, and J. Kaplan. Language Models (Mostly) Know What They Know . arXiv preprint arXiv:2207.05221, 2022. [11] N. Madhusudhan, S. T. Madhusudhan, V. Yadav, and M. Hashemi. Do LLMs Know When to NOT Answer? Investigating Abstention Abilities of Large Language Models . arXiv preprint arXiv:2407.16221, 2024. [12] P. Rajpurkar, R. Jia, and P. Liang. Know What You Don’t Know: Unanswerable Questions for SQuAD .Proceedings of ACL, 2018. 13 [13] K. Tallam. Fail-and-Report: A Missing Authorization Primitive for Agentic AI Systems . Manuscript, 2026. [14] K. Tallam. Authorization Propagation in Multi-Agent AI Systems: Identity Governance as Infrastructure .Manuscript, 2026. [15] K. Tallam. Execution Envelopes: A Shared Admission Contract for Backend AI Execution Requests .Manuscript, 2026. [16] C. Jimenez et al. SWE-Bench: Can Language Models Resolve Real-World GitHub Issues? International Conference on Learning Representations, 2024. 14
