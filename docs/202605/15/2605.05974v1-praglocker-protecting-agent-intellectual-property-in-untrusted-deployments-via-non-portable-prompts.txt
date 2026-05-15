@@ -1,0 +1,619 @@
+Title: PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts
+
+URL Source: https://arxiv.org/pdf/2605.05974v1
+
+Published Time: Fri, 08 May 2026 00:55:57 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+# PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Qinfeng Li 1 * Yuntai Bao 1 * Jianghui Hu 2 * Wenqi Zhang 3 Jintao Chen 1 Huifeng Zhu 4 Yier Jin 5
+
+Xuhong Zhang 3 #
+
+## Abstract 
+
+LLM agents rely on prompts to implement task-specific capabilities based on foundation LLMs, making agent prompts valuable intellectual prop-erty. However, in untrusted deployments, adver-saries can copy and reuse these prompts with other proprietary LLMs, causing economic losses. To protect these prompts, we identify four key chal-lenges: proactivity, runtime protection, usability, and non-portability that existing approaches fail to address. We present PragLocker, a prompt pro-tection scheme that satisfies these requirements. PragLocker constructs function-preserving obfus-cated prompts by anchoring semantics with code symbols and then using target-model feedback to inject noise, yielding prompts that only work on the target LLM. Experiments across multiple agent systems, datasets, and foundation LLMs show that PragLocker substantially reduces cross-LLM portability, maintains target performance, and remains robust against adaptive attackers. 
+
+## 1. Introduction 
+
+In recent years, amid the rapid adoption of large language models (LLMs), intelligent LLM agents, such as Cur-sor (Cursor, 2025), Manus (Manus AI, 2026), and Za-pier (Zapier, 2025), have emerged as autonomous executors of complex tasks. These agents, serving as a key interface between LLM capabilities and real-world applications, im-plement task capabilities largely through an agent system prompt that specifies tasks, policies, and tool-use on top of a foundation LLM (OpenAI, 2025b; Anthropic, 2025). 
+
+> *
+
+Equal contribution . # Corresponding author. 1Zhejiang University 2Chang’an University 3Innovation and Management Center, School of Software Technology (Ningbo), Zhejiang Uni-versity 4Washington University in St. Louis 5University of Science and Technology of China. Correspondence to: Xuhong Zhang <zhangxuhong@zju.edu.cn>. 
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). 
+
+As a result, prompt design becomes a key determinant of agent behavior and performance, constituting a core com-petitive asset. In particular, many agents may invoke the same underlying LLM (e.g., proprietary ones like ChatGPT or Gemini) (OpenAI, 2022; Team et al., 2023), yet yield substantially different functionality and quality. However, as highly valuable intellectual property (IP), prompts are vulnerable to theft after deployment, leading to substantial economic losses. Specifically, crafting a high-quality agent prompt typically requires significant expert knowledge and continual real-world iteration, making it a highly valuable asset (Sahoo et al., 2024; Yang et al., 2025a). However, in practice, agents often run on user devices (Cur-sor, 2025), cloud services (Spector, 2025), or multi-tenant infrastructures (Cloud, 2011), where adversaries (e.g., ma-licious end users or insider cloud operators) may copy and misuse the prompt (Hui et al., 2024; Wang et al., 2024a). Worse still, prompts are typically written in natural lan-guage; once leaked, they can be easily reused on any other, even stronger, proprietary LLM. Once leaked, an attacker can reuse the prompt with other LLMs to build a similar or even stronger agent, undermining the original agent’s com-petitive advantage and causing substantial losses. There-fore, effectively protecting these prompts in the deployment of agent systems has become a critical issue. Unfortunately, as shown in Table 1, traditional solutions struggle to protect the prompt of untrusted environment-deployed agents as they fail to satisfy the diverse require-ments. First, passive protection methods, e.g., prompt wa-termarking (Yang et al., 2025b; Yao et al., 2024), primarily verify ownership after misuse. Thus, they do not proactively prevent prompt theft, rendering these methods vulnerable: once a prompt is stolen, it may be freely exploited without detection. In contrast, proactive protections aim to prevent unauthorized usage. For example, encryption-based pro-tection (Rana et al., 2023; The Kubernetes Authors, 2025)) keeps confidential information encrypted during transmis-sion, distribution, and storage. However, at runtime, the prompt must be submitted to black-box LLM API (OpenAI, 2025a; Google, 2025) in plaintext; therefore, encryption can only protect the prompt at rest, not during inference. 1                       
+
+> arXiv:2605.05974v1 [cs.CR] 7 May 2026 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts
+> Table 1. Comparison with existing solutions. ✓/✗illustrates whether the method can achieve the corresponding property.
+> Solutions (exemplar) Proactivity Runtime security Usability Non-Portability Prompt Watermarking (Yang et al., 2025b) ✗✓✓✗
+> Encryption-based Protection (The Kubernetes Authors, 2025)) ✓✗✓✗
+> Prompt Obfuscation (Pape et al., 2025) ✓✓✗✗
+> PragLocker (ours) ✓✓✓✓
+
+Alternatively, a potential method is prompt obfusca-tion (Pape et al., 2025), which replaces the original system prompt with an obfuscated yet function-preserving variant. However, existing prompt obfuscation techniques are not directly applicable to agent prompt protection: they either remain portable across LLMs or require white-box access to the underlying model. Specifically, EmojiPrompt (Lin et al., 2025) encodes prompts into emojis to degrade human readability, but other LLMs can still decode and follow such surface-level encodings, so it does not prevent cross-model reuse. A closer line of work constructs prompts that appear noise-like and less portable while preserving utility on a target model; e.g., Pape et al. (2025) obfuscates prompts via reversible semantic transformations in the model’s represen-tation space. However, many real-world agents (e.g., Cursor and Copilot) rely on proprietary black-box LLMs, where developers only have API-level access, making such white-box methods inapplicable. Fundamentally, constructing a prompt that is usable on the target LLM yet non-portable is challenging , especially in black-box settings, where one can only rely on input-output feedback. The problem is further exacerbated by intra-family transfer: intra-family LLMs of-ten behave similarly (McGovern et al., 2025), further weak-ening the behavioral separation needed for non-portability. Considering the limitations of existing defense strategies, we identify four key challenges (C) in protecting prompts for agents deployed in untrusted environments. C1 (Proac-tivity): ensuring the prompt cannot be misused even if phys-ically obtained by an attacker. C2 (Runtime protection): en-suring protection not only during deployment but also during inference. C3 (Usability): the protected prompt must pre-serve the agent’s performance on the target LLM. C4 (Non-Portability): simultaneously, the protected prompt must be human-unintelligible and ineffective on other LLMs. In this paper, we propose PragLocker (Ag ent Pr ompt 
+
+Locker ), a black-box prompt obfuscation scheme. Pra-gLocker obfuscates the system prompt before deployment, so the original prompt is never released in plaintext (ad-dressing C1 ). This obfuscated prompt remains behavior-preserving on the target LLM and can be used directly with-out deobfuscation (addressing C2 ). PragLocker is grounded in a key question: Does there exist such an obfuscated prompt that preserve same behavior on a target LLM while failing on other LLMs? We answer yes with a theoretical motivation: there exists a perturbed prompt that makes the target LLM produce the same next token while causing a different next token on other LLMs. Despite our theoretical insights, practical construction re-mains challenging. To obtain such prompts under the black-box constraint, PragLocker proceeds in two phases. First, it performs an initialization transformation that converts the prompt into a code-symbol form, yielding an initial non-natural-language, utility-preserving concealment. However, this transformed prompt does not yet satisfy our goals: it can still be understood by other LLMs (many models can interpret code and symbols). To address this issue, Pra-gLocker introduces a second phase, noise-injected prompt optimization . Specifically, analogous to black-box discrete optimization, we progressively inject character-level noise into the prompt as the optimization to reproduce the target LLM’s original outputs. As a result, the noise is guided solely by target-LLM feedback; the resulting obfuscated prompt becomes model-specific: it preserves performance on the target LLM (addressing C3 ) while appearing noise-like and ineffective on other LLMs (addressing C4 ). We evaluate PragLocker across diverse agent systems, foun-dation LLMs, and tasks, demonstrating strong protection without sacrificing task performance. Our obfuscated prompts exhibit near-zero portability across LLMs, even between FP16 and 4-bit variants of the same LLM. More-over, even target LLM itself cannot reliably interpret the obfuscated prompt, which instead behaves like a model-conditioned trigger without retaining recoverable text-level information. The contributions of this work are as follows: • To our knowledge, we are the first to study prompt pro-tection for agents under untrusted deployment, where adversaries may copy and obtain the deployed prompt. We identify prompts as the primary embodiment of agent IP and distill four requirements for protection. • We propose PragLocker, a black-box prompt protection scheme that replaces the system prompt with an obfus-cated prompt that works on the target LLM but fails on others. We further provide a theoretical motivation by proving an existence theorem for such model-specific, function-preserving obfuscated prompts. • To construct such prompts under pure black-box access, PragLocker uses a two-phase pipeline: an initialization transformation followed by noise injection , optimizing 2PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+obfuscated prompts without model internals. • Experiments across agent systems, datasets, and LLMs show that PragLocker preserves target performance, sharply reduces cross-model portability, and with-stands adaptive attacks. We also report ablations and case studies to validate key design choices. 
+
+## 2. Preliminaries 
+
+2.1. LLM Agent 
+
+LLM agents (Wang et al., 2024b) are task-oriented systems built on top of foundation LLMs. Concretely, an agent is mainly defined by (i) a system prompt that specifies tasks, policies, and tool-use, and (ii) an underlying LLM that ex-ecutes prompt-conditioned reasoning and generation. In practice, many commercial agents (Cursor, 2025; Fried-man, 2021) are built on the same proprietary black-box foundation models, making the system prompt the domi-nant portion of the agent developer’s IP . In addition, agents are frequently deployed in heterogeneous and potentially untrusted environments (Cloud, 2011; Spector, 2025), in-cluding third-party hosting platforms, multi-tenant clouds, and end-user devices, which increases the exposure surface of the deployed prompt and elevates prompt confidentiality and integrity as central security concerns. 
+
+2.2. Related Work Prompt Watermarking. Prompt watermarking embeds a signature into a prompt to provide ownership evidence, enabling verification after theft. For example, Prompt-CARE (Yao et al., 2024) applies small, utility-preserving perturbations and detects infringement via a predefined verification protocol (e.g., trigger queries) that yields sta-tistically distinguishable response patterns. More recent work (e.g., PromptCOS (Yang et al., 2025b)) moves to-ward content-only auditing by jointly optimizing the system prompt with verification queries and target “signal” outputs, then testing suspected prompts via output-similarity based verification. 
+
+Encryption-based Protection. Conventional encryption (e.g., storing the system prompt as an encrypted file/se-cret (The Kubernetes Authors, 2025)) protects confidential-ity at rest and in transit, but inference requires decryption into plaintext and transmission to the LLM, allowing the execution host to extract the prompt post-decryption (Kar-vandi et al., 2024). TEEs offer attested isolation (e.g., SGX/TDX (Costan & Devadas, 2016), GPU confidential computing (Nertney, 2023)) to reduce runtime exposure, yet are often incompatible with LLM agents: many rely on proprietary black-box API LLMs (OpenAI, 2025a; Google, 2025), so the model cannot run inside the same trusted en-vironment and the decrypted prompt must still be sent to external services, undermining confidentiality. 
+
+Confidentiality Infrastructure. Confidential-inference in-frastructure protects prompt privacy by providing an attested TEE/CVM endpoint so prompts are decrypted and processed only inside a protected runtime, sometimes with split/parti-tioned execution to maintain serving efficiency (Gim et al., 2024; Yuan et al., 2025; Su & Zhang). However, it requires third-party platform cooperation (attestation/key release, correct routing) and thus is outside our threat model: a malicious platform can still access the prompt in plaintext. 
+
+Prompt Obfuscation. Prompt obfuscation replaces the original system prompt with an obfuscated yet function-preserving variant. For example, EmojiPrompt (Lin et al., 2025) encodes sensitive text into emoji-based representa-tions. However, such surface-level obfuscation does not prevent reuse on other LLMs , offering no defense against cross-model misuse. Pape et al. (2025) optimizes prompts in the model’s representation space to retain utility while con-cealing the underlying instructions. These methods, how-ever, require model-internal access, which is unavailable in black-box agent deployments. 
+
+Prompt Optimization. Soft prompt tuning is a well-founded approach to parameter-efficient fine-tuning, which trains task-specific embeddings as prompt prefix to task queries using gradient-based optimization (Lester et al., 2021). Historically, discrete prompt optimization is a dif-ficult problem (Shin et al., 2020; Singh et al., 2023) and gradient-free optimization is even harder (Deng et al., 2022; Zhang et al., 2024). We position our technical objective as gradient-free discrete optimization that optimizes for task performance, obfuscation, and non-portability constraints. 
+
+2.3. Threat Model 
+
+We consider two parties: the defender is the party that owns the deployed agent, and the attacker aims to steal the prompt. 
+
+Defender. The defender deploys an LLM agent as a service (e.g., on third-party hosting or end-user devices) and ac-cesses the target LLM only via a black-box API. The target LLM is trusted not to exfiltrate prompts, while the deploy-ment environment is untrusted. The defender’s goal is to proactively provide runtime protection for the agent system prompt while preserving on-target usability, such that even if the deployed prompt is obtained, it cannot be reused to reproduce comparable behavior on non-target LLMs. 
+
+Adversary. The adversary can obtain the deployed prompt. An attack succeeds if the stolen (or recovered) prompt en-ables similar agent functionality on a different model. Be-yond naïve copying, the adversary may use limited compute and data to mount adaptive recovery attacks (e.g., deobfus-cation optimization) to reconstruct a usable prompt. 3PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+## 3. Our Design: PragLocker 
+
+3.1. Problem Formulation 
+
+Let the prompt space be P ⊂ {V , V2, . . . } where V is model vocabulary, the protected agent prompt be x ∈ P 
+
+and θ be model parameters. Our objective is to identify another prompt ˜x ∈ P that satisfy the following criteria: (1) Obfuscation (C2) : ˜x is distant from x in prompt space; (2) Usability (C3) : ˜x is functionally equivalent to x; (3) 
+
+Non-portability (C4) : the utility objective is satisfied only on the target LLM, not other LLMs. 
+
+3.2. Theoretical Motivation 
+
+In this subsection, we explain the theoretical motivation for the feasibility of PragLocker, i.e. to identify an alternative prompt to the original prompt that simultaneously satisfy the criteria of obfuscation, usability and non-portability. We defer detailed discussions to Appendix Section A. 
+
+Roadmap. We define functional equivalence for single-token generation, prove the existence of local stability re-gions that allow for obfuscation, and discuss non-portability 
+
+across models. 
+
+Local Obfuscation and Utility. Let h = Embed( x) ∈
+
+Rn×d be the embeddings for prompt x. We seek an ob-fuscated prompt ˜x with embeddings ˜h = h + δ such that output behavior is preserved under greedy decoding. 
+
+Definition 3.1 (Functional equivalence) . Embeddings ˜h and 
+
+h are equivalent w.r.t. query qi if arg max y f (y|˜h, qi) = arg max y f (y|h, qi).Trivially, equivalence holds if the correct-class margin 
+
+m(˜h, qi, y i) := f (˜h, qi)yi − max k̸ =yi f (˜h, qi)k remains positive. Since f (·; θ) is a composition of continuous func-tions (layers, activations), m(·) is continuous. Thus, for any h where m > 0, there exists an ϵ-ball Bϵ(h) within a 
+
+stability region Sx = {h′ | ∀ qi ∈ Q , m (h′, qi, y i) > 0}
+
+where utility is perfectly preserved. 
+
+Theorem 3.2 (Existence of obfuscated prompts) . For a prompt x, there exists ˜x̸ = x such that ˜h ∈ Sx (Utility) and 
+
+d(˜ x, x) ≥ d0 (Obfuscation). Proof sketch. Transformer attention often exhibits low sen-sitivity to specific tokens (attention dilution). By perturbing 
+
+k such tokens, the cumulative shift ∥∆h∥ ≤ P 
+
+> j∈K
+
+∥δj ∥
+
+can be kept within ϵ to maintain utility, while the distance 
+
+d(˜ x, x) grows with k to satisfy the obfuscation bound d0.
+
+Non-portability. Non-portability arises from manifold mis-match : the stability region Sx(θ) is highly dependent on the specific geometry of the loss landscape defined by 
+
+θ. A perturbation δ optimized to stay within the deci-sion boundaries of model θ is unlikely to reside within the distinct stability region Sx(θ′) of a different model, as 
+
+P (˜h ∈ Sx(θ′)) ≪ P (˜h ∈ Sx(θ)) in high-dimensional space. 
+
+Remark (Between our theoretical motivation and method design) . Although our methodology is not entirely aligned with our discussions above, we point out that these analyses serve as a theoretical lens that motivates our method design, showcasing the possibility of identifying prompts that satisfy the obfuscation, utility, and non-portability criteria. 
+
+3.3. PragLocker Methodology Overview. As is shown in Figure 1, PragLocker consists of two components: prompt initialization and obfuscation optimization. Prompt initialization primarily contributes to our utility objective, while obfuscation optimization is used to achieve obfuscation and non-portability objectives. 
+
+Prompt Initialization. Our prompt initialization strategy consists of two key design considerations. First, we use the original prompt x as the warm-start, which is essential for ensuring that the obfuscated prompt achieves the same level of performance as the original task prompt. Second, we prompt the target LLM to to encode x in a code-symbol form, such that the encoded prompt ( ˜x0) is no longer written in natural language while having the same semantics as 
+
+x. This approach could be understood as a preliminary obfuscation step conditioned by the target LLM that also creates redundancy, thereby setting the stage for subsequent obfuscation optimization. 
+
+Non-Portable Obfuscation Optimization. Our obfusca-tion strategy is built upon random search (RS) , a black-box, gradient-free, discrete optimization method (Rastrigin, 1963). This approach is reminiscent of evolution strate-gies (Schwefel, 1977; Salimans et al., 2017), and has re-cently been used for gradient-free optimization of jailbreak-ing suffixes (Andriushchenko et al., 2025). RS allows us to optimize textual prompts when there is only API-level access to prompt inputs, responses, and log-probabilities of the target LLM. The intuition for RS to work well in practice is that, although it is convenient for humans to describe task-solving requirements and instruc-tions in natural language, it might not be the most effective and efficient approach (Chang et al., 2024; Li et al., 2025). Therefore, the inherent redundancy of the initialized prompt (˜x0) allows RS to improve model performance while leaving room for obfuscation. We provide an algorithmic description of obfuscation opti-mization in Algorithm 1. Obfuscation optimization might be understood as RS over the entire task prompt x. At each step of obfuscation optimization, we inject textual noise from a predesignated noise set, usually the commonly used set of printable characters. Since each instance of noise might have a mixed effect on either task performance or 4PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts `                                                               
+
+> After 𝑇𝑇 iterations
+> Other LLMs 𝜽𝜽 ′Ineffective / utility collapse
+> Target LLM 𝜽𝜽 Functional equivalence ( Function-preserving, model-specific, non-portable )
+> Final Obfuscated Prompt �𝒙𝒙
+> Phase I: Prompt Initialization
+> Convert prompt into a code-symbol form
+> ( Semantics preserved, Non-natural language )
+> DSL Encode to code-symbol Prompt �𝒙𝒙 𝟎𝟎
+> Still executable on other LLMs (Not sufficient for protection)
+> Original Agent Prompt ( 𝒙𝒙 )
+> Natural-language system prompt
+> ( Human-readable, portable )
+> Phase Il: Black-box Obfuscation Tuning ( Random Search over Entire Prompt )
+> Optimization Signals:
+> • Task Loss ( ℒ𝑡𝑡𝑡𝑡𝑡𝑡𝑡𝑡 )
+> • Distance from 𝑥𝑥 (ℒ𝑑𝑑𝑑𝑑 𝑡𝑡𝑡𝑡 )
+> • Non-language bias ( ℒ𝑛𝑛𝑛𝑛𝑛𝑛−𝑙𝑙 𝑡𝑡𝑛𝑛 𝑙𝑙 )
+> ℒ=ℒ𝑡𝑡𝑡𝑡𝑡𝑡𝑡𝑡 +𝜆𝜆ℒ 𝑑𝑑𝑑𝑑 𝑡𝑡𝑡𝑡 +𝛾𝛾ℒ 𝑛𝑛𝑛𝑛𝑛𝑛−𝑙𝑙 𝑡𝑡𝑛𝑛 𝑙𝑙
+> (character-level entropy 𝐻𝐻 � 𝑥𝑥 )
+> Current Prompt �𝒙𝒙 𝐭𝐭
+> Is ℒ′<ℒ?
+> In-place noise injection
+> �𝑥𝑥 ′𝑡𝑡+1 =�𝑥𝑥 𝑡𝑡 +𝑛𝑛 𝑡𝑡
+> + character-level noise 𝑛𝑛 𝑡𝑡
+> Target LLM 𝜽𝜽
+> Yes →Accept noise No →Reject noise
+> �𝑥𝑥 𝑡𝑡+1 =�𝑥𝑥 ′𝑡𝑡+1 �𝑥𝑥 𝑡𝑡+1 =�𝑥𝑥 𝑡𝑡
+> API-only black-box
+> �𝒙𝒙 𝟎𝟎 :<γ -7 δoperator="assistant-role">
+> <process mode="helpful-assistant"/>
+> </ γ-7 δ>
+> 𝒙𝒙 : You are a helpful assistant.
+> �𝒙𝒙 :<γ -7 δ§4er@"a §§ 1∫t~r0 ℓ">
+> <p ⟂0c ε§§ m∅d≈="h€lƒμ1-a5 §†"/>
+> </ γ· 7δ>
+> Phase I
+> Phase II
+> PragLocker Snapshots
+
+Figure 1. A pipeline of PragLocker. PragLocker transforms a plaintext prompt into a model-specific obfuscated form through a two-phase process: (i) a code-symbol initialization that preserves task semantics, and (ii) noise-injected black-box optimization driven by target LLM feedback. The final obfuscated prompt remains usable at runtime on the target LLM but resists reuse or recovery on other models. 
+
+textual readability, we constrain the accepted set of noise with a custom objective function to ensure that the final obfuscated prompt is a piece of non-natural text that retains task performance. 
+
+Optimization Objective. The objective function for obfus-cation optimization consists of three terms: 
+
+L = Ltask + λLdist + γLnon-lang , where 
+
+Ltask = − log p(y|q, ˜x),
+
+Ldist = − log σ(Dist(˜ x, x)) ,
+
+Lnon-lang = −H(˜ x),
+
+(1) where λ, γ ∈ R are constant coefficients and σ(·) is the sig-moid function; Ltask implements the utility constraint, Ldist 
+
+implements the obfuscation constraint while Lnon-lang imple-ments both obfuscation and non-portability constraints. Particularly, Ldist ensures that the final obfuscated prompt differs from the original prompt by maximizing their edit distance where Dist( ·) is Levenshtein distance (Lcvenshtcin, 1966); Lnon-lang pushes the obfuscated prompt away from the natural language distribution by minimizing Shannon en-tropy: H(˜ x) = − P
+
+c∈A vc log vc where A is alphabet and 
+
+vc is the frequency of character c appearing in ˜x. Lnon-lang 
+
+is motivated by the fact that natural language prompts are inherently portable. By pushing the obfuscated prompt away from the natural language distribution, we make it dedicated for model-specific intricacies of the loss landscape, thereby implicitly minimizing its inter-model portability. 
+
+## 4. Experiments 
+
+4.1. Experimental Settings Agents. We evaluate PragLocker across diverse agent do-mains by considering three representative agents with dif-ferent tasks and designs: LessonL (Liu et al., 2025) (multi-agent programming with a shared lesson bank), ReadA-gent (Lee et al., 2024) (long-context reading with episodic memory and gist-level compression), and A-MEM (Xu et al., 2025) (long-term memory via structured notes and dynamic indexing). Each agent is instantiated with three 
+
+Algorithm 1 PragLocker algorithm. 
+
+Input: Base LLM p(·), agent prompt x, task training set 
+
+D, training steps T , noise set N , loss function L(·)
+
+Output: Obfuscated agent prompt ˜x
+
+˜x0 ← Init( x) {Initialization} 
+
+t ← 0
+
+while t < T do 
+
+(qt, yt) ∼ D 
+
+nt ∼ N {Sample character-level noise} 
+
+˜x′
+
+t+1 ← ˜xt + nt {In-place noise injection} 
+
+lt ← L (p(yt|qt, ˜xt), yt)
+
+l′
+
+t ← L (p(yt|qt, ˜x′
+
+t+1 ), yt)
+
+if l′
+
+t < l t then 
+
+˜xt+1 ← ˜x′
+
+t+1 {Accept update if loss is lower} 
+
+else 
+
+˜xt+1 ← ˜xt {Discard update otherwise} 
+
+end if 
+
+t ← t + 1 
+
+end while 
+
+proprietary backbone LLMs: GPT-4o (GPT-4o) (OpenAI, 2024), Gemini 2 Flash Preview (Gemini 2) (Google, 2025), and DeepSeek Chat (DeepSeek) (DeepSeek, n.d.). 
+
+Dataset and Metrics. We evaluate each agent on two established benchmarks and report their standard metrics: LessonL uses HumanEval (Chen, 2021) and MBPP (Austin et al., 2021) (pass@1); ReadAgent uses NarrativeQA (Koˇ cisk `y et al., 2018) (token-level F1) and QuALITY (Pang et al., 2022) (accuracy); A-MEM uses LoCoMo (Maharana et al., 2024) and DialSim (Kim et al., 2024) (token-level F1, open-ended QA). 
+
+Baselines. We compare against two controlled baselines (PragLocker ablations), since existing prompt protection/ob-fuscation methods rely on assumptions mismatched to our black-box untrusted-deployment setting. Specifically, 
+
+PragLocker tune performs only the optimization stage, skip-ping the initialization transformation; PragLocker code ap-plies only the transformation that rewrites the prompt into a code-like representation, without subsequent optimization. 5PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Table 2. Measuring prompt non-portability across different underlying LLMs. For each Target LLM , we develop a prompt and then simulate prompt theft by evaluating its performance when copied and reused on other LLMs. We report performance for each agent–task pair under four settings: Without protection , PragLocker (ours) , and two variants PragLocker tune and PragLocker code . We report the Mean Portability Loss , which is calculated by summing all metrics and expressing it as a multiple of without protection.                                                                                                                                                                                                                                      
+
+> Agent Tasks Target LLM Without protection PragLocker (Ours) PragLocker tune PragLocker code
+> GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek LessonL HumanEval GPT-4o -98.78 97.56 -3.04 1.22 -92.07 90.85 -95.73 94.51 Gemini 2 93.90 -97.56 0.61 -1.22 85.36 -89.63 92.07 -95.12 DeepSeek 93.90 98.78 -0.61 2.44 -82.93 93.29 -90.24 95.73 -MBPP GPT-4o -97.33 94.56 -1.03 0.72 -87.26 85.21 -96.50 93.94 Gemini 2 91.89 -94.56 0.51 -0.62 81.21 -84.29 91.37 -93.43 DeepSeek 91.89 97.33 -0.62 0.92 -80.59 87.78 -91.47 96.71 -ReadAgent NarrativeQA GPT-4o -20.81 24.22 -9.89 10.16 -12.83 12.43 -22.61 22.74 Gemini 2 23.52 -24.22 10.11 -10.13 11.46 -12.32 21.87 -23.50 DeepSeek 23.52 20.81 -9.14 8.07 -11.10 11.95 -21.17 23.72 -QUALITY GPT-4o -80.90 75.90 -50.68 53.41 -65.95 65.86 -80.23 84.96 Gemini 2 86.19 -88.06 52.20 -54.44 62.63 -64.54 85.31 -87.11 DeepSeek 86.19 75.90 -51.12 48.56 -63.03 66.12 -84.15 80.50 -A-Mem LoCoMo GPT-4o -22.85 25.62 -0.08 0.12 -15.76 16.13 -21.73 23.95 Gemini 2 24.61 -25.62 0.06 -0.14 11.98 -15.22 24.03 -25.48 DeepSeek 24.61 22.85 -0.06 0.10 -12.87 16.61 -24.70 22.46 -DialSim GPT-4o -2.17 3.62 -0.04 0.10 -1.28 2.08 -2.08 3.41 Gemini 2 2.86 -3.62 0.07 -0.11 1.45 -2.59 2.46 -3.53 DeepSeek 2.86 2.17 -0.06 0.04 -1.57 1.36 -2.79 2.15 -
+> Cross-LLM Portability Ratio ( ↓)1.00 ×0.20 ×0.82 ×0.99 ×
+
+Table 3. Performance preservation of PragLocker-protected prompts. We compare the original prompt with its PragLocker-protected counterpart on the target LLM.                                              
+
+> Agent Tasks Without protection After protection
+> GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek LessonL HumanEval 93.90 98.78 97.56 94.51 99.39 98.17 MBPP 91.89 97.33 94.56 91.99 97.54 94.46 ReadAgent NarrativeQA 23.52 20.81 24.22 23.61 20.93 25.81 QUALITY 86.19 75.90 88.06 86.03 76.13 87.97 A-Mem LoCoMo 24.61 22.85 25.62 25.11 23.01 26.80 DialSim 2.86 2.17 3.62 2.84 2.31 3.70
+> Performance Preservation ( ↑)1.00 ×1.01 ×
+
+4.2. Main Results Non-Portability. We first evaluate whether PragLocker resists cross-model misuse after prompt theft. We simulate an attacker who obtains the deployed (obfuscated) prompt and reuses it on other LLMs. As shown in Table 2, prompts are highly portable without protection : copying a prompt to a different underlying LLM preserves strong performance (e.g., a HumanEval prompt achieves 98.78 on Gemini 2 and 97.56 on DeepSeek). In contrast, PragLocker makes stolen prompts largely unusable , driving performance close to zero across agents and tasks (e.g., 3.04/1.22), and achieves the lowest relative mean portability (0.2 ×), compared to 1 ×
+
+without protection. Moreover, full PragLocker outperforms the simplified baselines: PragLocker code remains nearly as portable as no protection (0.99 ×), whereas PragLocker tune 
+
+only partially reduces portability (0.82 ×). 
+
+Performance Preservation. We further assess whether Pra-gLocker preserves the agent’s utility by replacing the origi-nal system prompt with the protected prompt and re-running the same tasks. As Table 3 shows negligible degradation: protected performance closely matches the original across agents/tasks (relative mean 1.01 × vs. 1 ×). The slight gain likely stems from the feedback-guided tuning stage, which can refine redundant or suboptimal phrasing in the original prompt while maintaining its intended functionality. 
+
+4.3. Case Studies 
+
+We present a concise case study illustrating how PragLocker converts a human-readable system prompt into a protected prompt for a keyword-extraction subtask from ReadAgent. We provide an executable code implementation of this case study in the Supplementary Material. Specifically, taking DeepSeek as the target model, the protected prompt pre-serves utility: it follows the intended instruction and returns relevant keywords in the required JSON structure, matching the behavior of the original prompt. However, directly transferring the same protected prompt to GPT-4o fails: the model interprets the obfuscated markup as malformed or noisy input. Moreover, the protected prompt is unreadable and structurally perturbed, leaving at most sparse, non-actionable fragments, which makes reconstruct-ing the original prompt from the deployed artifact highly impractical. This challenge compounds for more complex tasks, where obfuscation becomes even more effective. 
+
+4.4. Further Analysis Ablation Study. We conduct a stage-wise ablation to iso-late the contributions of code transformation and noise-injected optimization under the same evaluation protocol. As shown in Table 2, the two stages play distinct roles and are most effective when combined. PragLocker code ,which only rewrites the prompt into a code-like representa-tion, offers little protection against cross-model reuse: its mean portability degradation remains 0.99 × as code-form prompts are still broadly executable across other LLMs; 6PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Original Prompt       
+
+> Given the following question, generate several keywords, using
+> ','as the separator. // line 1 Question: {How does photosynthesis work?} // line 2 Format your response as a JSON object with a "keywords" field containing the selected text. // line 3 Example response format: // line 4 {{"keywords": "keyword1, keyword2, keyword3"}} // line 5
+
+DeepSeek Output 
+
+> {"keywords": "photosynthesis, process, plants, sunlight, carbon dioxide, water, glucose, oxygen, chlorophyll, chloroplasts"}
+
+GPT-4o Output 
+
+> {"keywords": "photosynthesis, process, light energy, chlorophyll, carbon dioxide, water, glucose, oxygen, plants"}
+
+PragLocker Protected Prompt (DeepSeek as target model)           
+
+> <γ-7 δS4erator="lexosy6thmnzeparatorI"cosmy*X>+<input t3pid"quer {" val="{How does photosynthesis work?}"/>_<<r6cesGOaode=" keyword-exzract"vcout="$ynQeiw" scoring="tf4gf"/> // line 1 <Jutput Vo%0qt="$son" '>// line 2 <:/eld name="k*ywor$s< type="CBncat<nate9" separatorM",/" VEndVnq="d,rect"/> // line 3 </%utput> // line 4 <exa.p;e-template> // line 5 <json>{"keywo6Rs": " α1, α2, α3"O</json> // line 6 S/exaKple-template> // line 7 B/ γ,7 δ>x x x -H< x xjxrx|x // line 8
+
+DeepSeek Output 
+
+> {"keywords": "photosynthesis, process, sunlight, chlorophyll, carbon dioxide, water, oxygen, glucose, plants, energy"}
+
+GPT-4o Output 
+
+> {It looks like your input includes a mix of structured markup and placeholder-like syntax....}
+
+Figure 2. Case study: the original prompt and the protected prompt on DeepSeek (target model) vs. GPT-4o; task: keyword extraction. 
+
+Table 4. Comparison of inter-family and intra-family portability. Left: inter-family transfer. Right: intra-family transfer within the Qwen2.5 Instruct family (Qwen2.5-7B-Instruct (Qwen-7B) / Qwen2.5-14B-Instruct (-14B) / Qwen2.5-14B-Instruct-bnb-4bit (-14B-4bit)).                                                          
+
+> Tasks Target LLM Original performance Inter-family portability Target LLM Original performance Intra-family portability
+> GPT-4o Gemini 2 DeepSeek Qwen-7B -14B -14B-4bit NarrativeQA GPT-4o 23.52 -9.89 10.16 Qwen-7B 16.21 -8.12 8.97 Gemini 2 20.81 10.11 -10.13 -14B 19.36 6.55 -7.12 DeepSeek 24.22 9.14 8.07 --14B-4bit 18.98 5.96 7.54 -QUALITY GPT-4o 86.19 -50.68 53.41 Qwen-7B 67.60 -44.57 48.92 Gemini 2 75.90 52.20 -54.44 -14B 74.84 43.45 -46.75 DeepSeek 88.06 51.12 48.56 --14B-4bit 72.07 41.14 43.23 -
+
+however, we interpret this stage as primarily providing a structured initialization that further expands the optimiza-tion search space for the subsequent tuning stage. Specifi-cally, PragLocker tune (optimization-only) reduces portabil-ity to 0.82 × but remains far weaker than full PragLocker (0.2×). Overall, strong resistance requires both stages: code transformation supplies an obfuscating scaffold and opti-mization room, while optimization ultimately converts it into a strongly non-portable prompt representation. 
+
+Intra-Family Portability. As PragLocker is optimized from target-LLM I/O feedback, a natural concern is whether behaviorally similar sibling models permit intra-family reuse. We therefore evaluate pairwise portability within the Qwen2.5 Instruct family (Qwen-7B / -14B / -14B-4bit). Table 4 indicates strong non-portability under both scale shifts and quantization shifts, and exhibits no qualitative difference from inter-family portability on the left side of the table: on NarrativeQA, although the original perfor-mance is 16.21 (Qwen-7B), 19.36 (-14B), and 18.98 (-14B-4bit), transferring protected prompts across siblings drops to only 5.96–8.97 (e.g., 7B →14B: 8.12; 14B →7B: 6.55; 14B →14B-4bit: 7.12). We attribute this robustness to our noise-injected optimization objective, which tightly cou-ples the protected prompt to the target model’s idiosyncratic feedback dynamics, so that even modest distributional shifts 0 25 50 75 100   
+
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Depth (%)
+> Cosine similarity
+> Model Qwen2.5-7B Qwen2.5-14B
+
+Figure 3. Layerwise hidden state cosine similarity between ob-fuscated prompt and original prompt; non-portability direction: Qwen2.5-7B → Qwen2.5-14B; 95% confidence interval is shown. 
+
+(scaling or quantization) substantially degrade reuse. 
+
+Hidden-State Alignment. To probe the mechanistic origin of non-portability, we compare how the prompt pair (orig-inal, obfuscated) is represented inside the target versus a non-target model. We use a protected prompt optimized on Qwen2.5-7B (target) and run the original and obfuscated prompts separately through the model. At each transformer layer ℓ, we extract their hidden states and compute the cosine similarity between the resulting representations as a layer-wise alignment score. We then feed the identical prompt pair into Qwen2.5-14B (non-target) to repeat the measurement. 7PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Table 5. Adaptive-attack evaluation results. We report task performance under three adaptive attackers: (i) Deobfuscation , which optimizes the obfuscated prompt with an inverted objective; (ii) LLM-assisted recovery , which queries the target LLM to reconstruct the original prompt; and (iii) Naive self-prompting , where the target LLM synthesizes a fresh prompt for itself using only task input–output pairs.                                                                                                                                                                                                                                          
+
+> Agent Tasks Target LLM PragLocker (Ours) LLM-assisted recovery Deobfuscation Naive prompt
+> GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek GPT-4o Gemini 2 DeepSeek LessonL HumanEval GPT-4o -3.04 1.22 -86.59 87.20 -3.04 1.83 -94.51 95.12 Gemini 2 0.61 -1.22 82.32 -85.37 0.61 -1.22 90.85 -93.90 DeepSeek 0.61 2.44 -84.15 87.02 -1.22 2.44 -91.68 95.73 -MBPP GPT-4o -1.03 0.72 -83.16 84.29 -1.13 1.33 -90.24 90.45 Gemini 2 0.51 -0.62 79.57 -82.34 0.72 -0.62 85.22 -90.14 DeepSeek 0.62 0.92 -82.03 83.68 -1.32 0.92 -85.73 90.97 -ReadAgent NarrativeQA GPT-4o -9.89 10.16 -5.46 6.87 -10.21 10.34 -17.38 21.32 Gemini 2 10.11 -10.13 4.64 -5.29 10.26 -10.36 19.28 -21.05 DeepSeek 9.14 8.07 -6.71 6.33 -9.28 8.20 -21.03 18.85 -QUALITY GPT-4o -50.68 53.41 -21.82 39.06 -51.13 54.20 -72.11 83.97 Gemini 2 52.20 -54.44 31.82 -34.57 53.54 -54.88 82.34 -82.87 DeepSeek 51.12 48.56 -38.56 26.79 -51.36 51.22 -84.29 72.61 -A-Mem LoCoMo GPT-4o -0.08 0.12 -14.08 16.23 -0.39 0.47 19.21 22.86 Gemini 2 0.06 -0.14 12.89 -14.94 0.25 -0.55 18.23 -20.47 DeepSeek 0.06 0.10 -16.43 14.57 -0.30 0.37 -22.69 20.33 DialSim GPT-4o -0.04 0.10 -1.22 1.75 -0.06 0.15 -2.07 2.56 Gemini 2 0.07 -0.11 1.41 -1.56 0.12 -0.18 2.13 -2.29 DeepSeek 0.06 0.04 -1.33 1.31 -0.10 0.05 -2.45 2.04 -
+> Relative Attack Gain ( ↓)1×3.49 ×1.03 ×4.78 ×
+
+Figure 3 reveals a clear trajectory divergence across depth. The two models behave similarly in early layers, but their alignment patterns separate as depth increases: after a mid-layer dip, Qwen2.5-7B exhibits a stronger recovery and reaches substantially higher similarity in the later layers, whereas Qwen2.5-14B remains less aligned. This sug-gests that PragLocker’s functionality preservation is realized through a target-specific internal pathway—its obfuscated prompt is mapped to representations that converge back to-ward those induced by the original prompt only in the target model—providing mechanistic evidence that non-portability is formed predominantly in deeper representations rather than in shallow token-level processing. 
+
+Token-Only Feedback. Our default implementation uses token log-probabilities to compute the cross-entropy task loss in Eq. (1). To test whether this feedback is necessary, we evaluate a stricter token-only setting, where the opti-mizer only observes decoded outputs and uses the task met-ric as the black-box objective. Since this signal is sparser, we double the optimization epochs. As shown in Table 6, PragLocker remains effective under token-only feedback. The optimized prompts preserve target utility, achieving 85.85%, 71.31%, and 82.05% accuracy on GPT-4o, Gemini-2-Flash, and DeepSeek-Chat, respectively, while still show-ing clear cross-model degradation. For example, the GPT-4o-optimized prompt drops from 85.85% on GPT-4o to 58.16% on Gemini-2-Flash and 63.50% on DeepSeek-Chat. These results show that log-probabilities are helpful but not required; PragLocker can operate with token-only black-box feedback at the cost of more optimization rounds. 
+
+4.5. Adaptive Attacks LLM-Assisted Prompt Recovery. In this section, we test whether the obfuscated prompt can be recovered at the text level. Specifically, we simulate a sophisticated 
+
+Table 6. Token-only feedback evaluation of ReadAgent on QuAL-ITY. The prompt is optimized using only decoded token outputs, without access to token log-probabilities.                
+
+> Agent Tasks Target LLM GPT-4o Gemini 2 DeepSeek
+> ReadAgent QuALITY gpt-4o 85.85 58.16 63.50 gemini-2-flash 59.67 71.31 60.82 deepseek-chat 58.56 55.24 82.05
+
+attacker who queries the target LLM itself to (i) interpret the obfuscated prompt and reconstruct a natural-language instruction prompt, which is then (ii) substituted back into the agent system (more details are provided in Section D.1). Strikingly, as shown in Table 5, even the target LLM it-self fails to reliably recover the underlying instructions ,the recovered prompts remain unusable and do not restore transferable functionality. Specifically, LLM-assisted re-covery yields only marginal gains over directly reusing the PragLocker-protected prompt (from 1× to 3.49 × in relative mean performance). This suggests that, after obfuscation, the protected prompt behaves less like a text-level seman-tic instruction and more like a model-conditioned trigger :its utility is encoded in the target model’s idiosyncratic response dynamics, leaving little recoverable text-level se-mantics even to the target LLM itself. 
+
+Deobfuscation Attack. We also consider a sophisticated at-tacker who knows our obfuscation pipeline and is given the same task instructions, input–output examples, and evalua-tion metrics as the defender. Under this setting, the attacker starts from the deployed obfuscated prompt ˜x and attempts to “deobfuscate” it by iteratively re-optimizing the prompt toward a more portable, human-readable instruction. Con-cretely, the attacker drops Ldist , keeps Ltask , flips the sign of 
+
+Lnon-lang , and then iteratively tunes the prompt accordingly to push it back toward the natural-language distribution. For comparison, we also include a naive prompt baseline, where 8PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+the attacker provides the task query and ground-truth out-puts and asks the target LLM to synthesize a fresh prompt for solving the task (details of the deobfuscation and naive prompt attacks are provided in Section D.2). As shown in Table 5, this attack is largely ineffective: Rela-tive Mean Performance improves by only 1.03 ×, and per-task metrics remain near unusable, far from approaching the unprotected prompt’s portability. Notably, it is even weaker than the naive prompt baseline ( 4.78 ×), suggesting that at-tackers are better off directly eliciting a new prompt themself from the LLM than attempting to invert our obfuscation. 
+
+## 5. Limitation and Discussion 
+
+Tokenizer Compatibility. PragLocker injects character-level noise, which requires the target LLM’s tokenizer to have broad character coverage so that perturbed text still maps to valid subword/byte tokens (instead of unknown/re-jected tokens). This assumption generally holds for main-stream production API LLMs (e.g., GPT-series (OpenAI, 2022), Google Gemini (Team et al., 2023)). 
+
+Prompt-Length Overhead. PragLocker can lengthen the system prompt and increase the prefill cost. In practice, the obfuscated prompt is a fixed prefix, so its KV states can be cached and reused across requests rather than recomputed each time. Thus, the extra cost is largely amortized per cached context, limiting its impact on end-to-end latency. 
+
+Comparison with White-Box Defenses. PragLocker is designed for black-box prompt protection in proprietary LLM deployments, where the defender accesses the tar-get model only through APIs. As a result, this work does not extensively compare against prompt-protection methods developed under stronger assumptions, such as white-box gradient access or model adaptation. These methods operate in a partially different regime and are therefore not directly comparable to our setting. 
+
+Protection scope. PragLocker protects a specific and prac-tically important component of agent IP: deployed prompts, which often encode task instructions, control logic, and format constraints in prompt-based agents. Its goal is to reduce the direct cross-model reusability of leaked prompts, rather than eliminate all routes to reproducing agent behav-ior. Broader behavior-reproduction attacks, such as imita-tion, prompt induction, or distillation from examples, follow a different attack path and are therefore largely orthogonal to PragLocker. 
+
+## 6. Conclusions 
+
+We study system-prompt theft in untrusted LLM-agent de-ployments, where a leaked prompt can be readily reused across models. Specifically, we identify prompts as the primary embodiment of agent IP and distill four require-ments for protection. We propose PragLocker, a black-box protection method that transforms a prompt into a model-conditioned, non-portable form via structured initialization and noise-injected optimization. Experiments show that PragLocker strongly reduces portability to other LLMs, re-maining robust to LLM-assisted recovery attempts. 
+
+## Acknowledgements 
+
+This work was supported by the Key R&D Program of Ningbo under Grant No.2024Z115. 
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of machine learning. There are many potential societal consequences of our work, none of which we feel must be specifically highlighted here. 
+
+## References 
+
+Andriushchenko, M., Croce, F., and Flammarion, N. Jail-breaking leading safety-aligned LLMs with simple adap-tive attacks. In The Thirteenth International Confer-ence on Learning Representations , 2025. URL https: //openreview.net/forum?id=hXA8wqRdyV .Anthropic. Giving claude a role with a system prompt (claude docs), 2025. URL https://platform.claude. com/docs/en/build-with-claude/prompt-enginee ring/system-prompts .Austin, J., Odena, A., Nye, M., Bosma, M., Michalewski, H., Dohan, D., Jiang, E., Cai, C., Terry, M., Le, Q., et al. Program synthesis with large language models. arXiv preprint arXiv:2108.07732 , 2021. Chang, K., Xu, S., Wang, C., Luo, Y., Liu, X., Xiao, T., and Zhu, J. Efficient prompting methods for large language models: A survey. arXiv preprint arXiv:2404.01077 ,2024. Chen, M. Evaluating large language models trained on code. 
+
+arXiv preprint arXiv:2107.03374 , 2021. Cloud, H. The nist definition of cloud computing. National institute of science and technology, special publication ,800(2011):145, 2011. Costan, V. and Devadas, S. Intel sgx explained. Cryptology ePrint Archive , 2016. Cursor. Features · cursor, 2025. URL https://cursor.c om/features .DeepSeek. Deepseek chat, n.d. URL https://chat.dee pseek.com/ . Accessed: 2026-01-28. 9PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Deng, M., Wang, J., Hsieh, C.-P., Wang, Y., Guo, H., Shu, T., Song, M., Xing, E., and Hu, Z. Rlprompt: Optimizing discrete text prompts with reinforcement learning. In 
+
+Proceedings of the 2022 conference on empirical methods in natural language processing , pp. 3369–3391, 2022. Friedman, N. Introducing GitHub copilot: your AI pair programmer, June 2021. URL https://github.com/f eatures/copilot . Updated Feb 23, 2022. Gim, I., Li, C., and Zhong, L. Confidential prompting: Protecting user prompts from cloud llm providers. arXiv preprint arXiv:2409.19134 , 2024. Google. Gemini models | gemini api | google ai for devel-opers, 2025. URL https://ai.google.dev/gemini -api/docs/models . Last updated 2025-12-18 (UTC). Accessed 2025-12-25. Hui, B., Yuan, H., Gong, N., Burlina, P., and Cao, Y. Pleak: Prompt leaking attacks against large language model ap-plications. In Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security ,pp. 3600–3614, 2024. Karvandi, M. S., Meghdadizanjani, S., Arasteh, S., Mon-fared, S. K., Fallah, M. K., Gorgin, S., Lee, J.-A., and van der Kouwe, E. The reversing machine: reconstructing memory assumptions. arXiv preprint arXiv:2405.00298 ,2024. Kim, J., Chay, W., Hwang, H., Kyung, D., Chung, H., Cho, E., Jo, Y., and Choi, E. Dialsim: A real-time simulator for evaluating long-term multi-party dialogue understanding of conversation systems. arXiv preprint arXiv:2406.13144 , 2024. Koˇ cisk `y, T., Schwarz, J., Blunsom, P., Dyer, C., Hermann, K. M., Melis, G., and Grefenstette, E. The narrativeqa reading comprehension challenge. Transactions of the Association for Computational Linguistics , 6:317–328, 2018. Lcvenshtcin, V. Binary coors capable or ‘correcting dele-tions, insertions, and reversals. In Soviet physics-doklady ,volume 10, 1966. Lee, K.-H., Chen, X., Furuta, H., Canny, J., and Fischer, I. A human-inspired reading agent with gist memory of very long contexts. arXiv preprint arXiv:2402.09727 , 2024. Lester, B., Al-Rfou, R., and Constant, N. The power of scale for parameter-efficient prompt tuning. arXiv preprint arXiv:2104.08691 , 2021. Li, Z., Liu, Y., Su, Y., and Collier, N. Prompt compression for large language models: A survey. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) ,pp. 7182–7195, 2025. Lin, S., Hua, W., Wang, Z., Jin, M., Fan, L., and Zhang, Y. Emojiprompt: Generative prompt obfuscation for privacy-preserving communication with cloud-based llms. In 
+
+Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pp. 12342–12361, 2025. Liu, Y., Deng, R., Kaler, T., Chen, X., Leiserson, C. E., Ma, Y., and Chen, J. Lessons learned: A multi-agent framework for code llms to learn and improve. arXiv preprint arXiv:2505.23946 , 2025. Maharana, A., Lee, D.-H., Tulyakov, S., Bansal, M., Bar-bieri, F., and Fang, Y. Evaluating very long-term conversational memory of llm agents. arXiv preprint arXiv:2402.17753 , 2024. Manus AI. Manus: Hands on ai. https://manus.im/ ,2026. Accessed: 2026-01-08. McGovern, H. E., Stureborg, R., Suhara, Y., et al. Your large language models are leaving fingerprints. In Pro-ceedings of the 1st Workshop on GenAI Content Detection (GenAIDetect) , pp. 85–95, 2025. Nertney, R. Confidential compute on nvidia hopper h100. Technical Report WP-11459-001, NVIDIA, July 2023. URL https://images.nvidia.com/aem-dam/en-zz/ Solutions/data-center/HCC-Whitepaper-v1.0.pd f. Version 1.0. Accessed 2025-12-25. Nikolaou, G., Mencattini, T., Crisostomi, D., Santilli, A., Panagakis, Y., and Rodolà, E. Language mod-els are injective and hence invertible. arXiv preprint arXiv:2510.15511 , 2025. OpenAI. Introducing chatgpt, November 2022. URL https: //openai.com/index/chatgpt/ .OpenAI. Hello gpt-4o, May 2024. URL https://openai .com/index/hello-gpt-4o/ . Accessed: 2026-01-28. OpenAI. Api reference: Introduction, 2025a. URL https: //platform.openai.com/docs/api-reference/int roduction . Accessed 2025-12-25. OpenAI. Text generation (openai api guide), 2025b. URL 
+
+https://platform.openai.com/docs/guides/text .Pang, R. Y., Parrish, A., Joshi, N., Nangia, N., Phang, J., Chen, A., Padmakumar, V., Ma, J., Thompson, J., He, H., et al. Quality: Question answering with long input texts, yes! In Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies , pp. 5336– 5358, 2022. 10 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Pape, D., Mavali, S., Eisenhofer, T., and Schönherr, L. Prompt obfuscation for large language models. In 34th USENIX Security Symposium (USENIX Security 25) , pp. 2323–2342, 2025. Rana, S., Khoda Parast, F., Kelly, B., Wang, Y., and Kent, K. B. A comprehensive survey of cryptogra-phy key management systems. Journal of Informa-tion Security and Applications , 74:103607, 2023. doi: 10.1016/j.jisa.2023.103607. Rastrigin, L. The convergence of the random search method in the extremal control of a many parameter system. Au-tomaton & Remote Control , 24:1337–1342, 1963. Sahoo, P., Singh, A. K., Saha, S., Jain, V., Mondal, S., and Chadha, A. A systematic survey of prompt engineering in large language models: Techniques and applications. 
+
+arXiv preprint arXiv:2402.07927 , 2024. URL https: //arxiv.org/abs/2402.07927 .Salimans, T., Ho, J., Chen, X., Sidor, S., and Sutskever, I. Evolution strategies as a scalable alternative to rein-forcement learning. arXiv preprint arXiv:1703.03864 ,2017. Schwefel, H.-P. Evolutionsstrategien für die numerische optimierung. In Numerische Optimierung von Computer-Modellen Mittels der Evolutionsstrategie: Mit Einer Ver-gleichenden Einführung in Die Hill-Climbing-und Zu-fallsstrategie , pp. 123–176. Springer, 1977. Shin, T., Razeghi, Y., Logan IV, R. L., Wallace, E., and Singh, S. Autoprompt: Eliciting knowledge from lan-guage models with automatically generated prompts. 
+
+arXiv preprint arXiv:2010.15980 , 2020. Singh, C., Morris, J. X., Aneja, J., Rush, A. M., and Gao, J. Explaining data patterns in natural language with lan-guage models. In Proceedings of the 6th BlackboxNLP Workshop: Analyzing and Interpreting Neural Networks for NLP , pp. 31–55, 2023. Spector, S. Zapier agents: Work hand in hand with AI agents, November 2025. URL https://zapier.com/b log/zapier-agents-guide/ . Most recently updated Nov 2025. Su, J. and Zhang, W. Runtime attestation for secure llm serving in cloud-native trusted execution environments. In Machine Learning for Computer Architecture and Sys-tems 2025 .Team, G., Anil, R., Borgeaud, S., Alayrac, J.-B., Yu, J., Sori-cut, R., Schalkwyk, J., Dai, A. M., Hauth, A., Millican, K., et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 , 2023. The Kubernetes Authors. Encrypting confidential data at rest, May 2025. URL https://kubernetes.io/docs /tasks/administer-cluster/encrypt-data/ . Last modified May 09, 2025. Accessed 2025-12-25. Wang, J., Yang, T., Xie, R., and Dhingra, B. Raccoon: Prompt extraction benchmark of llm-integrated applica-tions. In Findings of the Association for Computational Linguistics: ACL 2024 , pp. 13349–13365, 2024a. URL 
+
+https://aclanthology.org/2024.findings-acl.7 91/ .Wang, L., Ma, C., Feng, X., Zhang, Z., Yang, H., Zhang, J., Chen, Z., Tang, J., Chen, X., Lin, Y., Zhao, W. X., Wei, Z., and Wen, J.-R. A survey on large language model based autonomous agents. Frontiers of Computer Science ,2024b. doi: 10.1007/s11704-024-40231-1. Xu, W., Liang, Z., Mei, K., Gao, H., Tan, J., and Zhang, Y. A-mem: Agentic memory for llm agents. arXiv preprint arXiv:2502.12110 , 2025. Yang, Y., Li, C., Li, Q., Ma, O., Wang, H., Wang, Z., Gao, Y., Chen, W., and Ji, S. {PRSA }: Prompt stealing attacks against {Real-World } prompt services. In 34th USENIX security symposium (USENIX Security 25) , pp. 2283– 2302, 2025a. Yang, Y., Li, Y., Yao, H., Huang, E., Shao, S., Wang, Y., Wang, Z., Tao, D., and Qin, Z. Promptcos: Towards content-only system prompt copyright auditing for llms. 
+
+arXiv preprint arXiv:2509.03117 , 2025b. Yao, H., Lou, J., Qin, Z., and Ren, K. Promptcare: Prompt copyright protection by watermark injection and verifica-tion. In 2024 IEEE Symposium on Security and Privacy (SP) , pp. 845–861. IEEE, 2024. Yuan, M., Zhang, L., Zeng, L., Jiang, S., Yang, B., Duan, D., and Xing, G. Scx: Stateless kv-cache encoding for cloud-scale confidential transformer serving. In Proceedings of the ACM SIGCOMM 2025 Conference , pp. 39–54, 2025. Zapier. Build AI teammates with zapier agents, 2025. URL 
+
+https://zapier.com/agents .Zhang, W., Tang, K., Wu, H., Wang, M., Shen, Y., Hou, G., Tan, Z., Li, P., Zhuang, Y., and Lu, W. Agent-pro: Learn-ing to evolve via policy-level reflection and optimization. 
+
+arXiv preprint arXiv:2402.17574 , 2024. 11 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+## Appendix 
+
+▶ A Discussions on Theoretical Motivation for PragLocker . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 
+
+▶ B Details on Main Experiment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+▶ C Details on Case Study . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+▶ D Details on Adaptive Attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+▷ D.1 LLM-Assisted Prompt Recovery. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+▷ D.2 Deobfuscation Attack. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 
+
+▶ E Discussions on PragLocker Methodology . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 12 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts                                                 
+
+> Table 7. Glossary. Symbol Meaning
+> d∈RModel dimension.
+> VModel vocabulary.
+> P ⊂ {V ,V2, . . . }Prompt space.
+> x∈ P Original agent prompt.
+> ˜x∈ P Obfuscated prompt for target prompt x.
+> Embed( ·)Embedding layer.
+> h∈RdModel embeddings; h= Embed( x).
+> δPerturbation to embeddings.
+> qAn instance of task query, often used together with the agent prompt.
+> QSet of task queries.
+> f(·)∈R|V| Model output logits.
+> y∈ V An output token; y∼f(·).
+> θModel parameters.
+> m(·)Correct-class margin function.
+> SxStability region of prompt x.
+> Bϵ(h)ϵ-ball of embeddings h;Bϵ(h) = {h′|∥ h′−h∥2< ϵ }.
+> d(·,·)Distance between two prompts; edit distance by default.
+> Init( ·)Prompt initialization for obfuscation optimization.
+> L(·)Objective function for obfuscation optimization.
+
+## A. Discussions on Theoretical Motivation for PragLocker 
+
+In this section, we provide details that extend our discussions in Section 3.2. We will show the existence of obfuscated prompts that satisfy our criteria of obfuscation, utility and non-portability. 
+
+Roadmap. We start with defining the notion of “functional equivalence” in the setting of single-token generation ( utility of embeddings ). We show that there always exists embeddings that is different from yet functionally equivalent to embeddings of the original prompt ( local obfuscation and utility ). We then show that an obfuscated prompt satisfying the utility constraint often fails to transfer to another model with parameters different from the target model ( non-portability ). Finally, we extend our theoretical results to the scenario of open-ended, autoregressive generation. Let output logits of the target model be f (·; θ). Let original agent prompt embeddings be h = Embed( x) ∈ Rn×d, i.e. embeddings with length n := |x| and dimension d. The obfuscated embeddings ( ˜h) can be obtained by adding noise δ to h,such that ˜h = h + δ. We assume ˜x has the same length as x, which can always be achieved via padding either ˜x or x at initialization. For the moment, we focus on embeddings in continuous space, not prompts in discrete space. By saying that embeddings ˜h is functionally equivalent to h, we refer to sampled model responses: for ∀qi, ˜yi ∼
+
+f (·| ˜h, qi), y i ∼ f (·| h, qi) where ˜yi, y i ∈ V , we have ˜yi = yi. We adopt a relaxed definition of functional equivalence based on discrete output behavior and restrict sampling strategy to greedy decoding: 
+
+Definition A.1 (Functional equivalence of embeddings) . We say the embeddings ˜h and h of two prompts ( x, ˜x) are functionally equivalent with respect to a query qi if the same outputs are obtained: 
+
+˜yi = arg max 
+
+> y
+
+f (y|˜h, qi), y i = arg max 
+
+> y
+
+f (y|h, qi). (2) This definition is less restrictive and more practical than representation-level equivalence, since in practice we do not care about hidden states, only final discrete outputs. Following our definition of functional equivalence, we now establish the conditions under which such equivalent prompts exist and satisfy our objectives. 
+
+Local obfuscation and utility. To prove that we can find an obfuscated prompt that preserves utility, we first establish the geometric properties of the model’s decision boundary in the embedding space. 
+
+Lemma A.2 (Equivalent condition for functional equivalence) . Let yi = arg max y f (y|h, qi) be the target output for the original prompt. For an obfuscated embedding ˜h to be functionally equivalent to h, it is sufficient that the correct-class 
+
+13 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+margin is strictly positive: 
+
+m(˜h, qi, y i) := f (˜h, qi)yi − max  
+
+> k̸=yi
+
+f (˜h, qi)k > 0
+
+Proof. If m(˜h, qi, y i) > 0, then f (˜h, qi)yi > f (˜h, qi)k for all k̸ = yi. Consequently, the argmax operation under greedy decoding yields ˜yi = yi, satisfying Definition A.1. We next show that this condition holds not just for a single point, but for a region surrounding . 
+
+Lemma A.3 (Continuity of the margin function) . The margin function m(h, qi, y i) is continuous with respect to the input embeddings h.Proof. The neural network f (·; θ) is a composition of continuous functions (linear transformations, layer normalizations, and activations like GeLU/Softmax). The operations max( ·) and subtraction are also continuous. Therefore, their composition 
+
+m(·) is continuous with respect to h.Using continuity, we define the region in embedding space where utility is preserved. 
+
+Definition A.4 (Stability region) . We define the stability region Sx as the set of all embeddings that maintain positive margins for the target outputs across a query set Q:
+
+Sx = {h′ | ∀ qi ∈ Q , m (h′, qi, y i) > 0}
+
+Since m(h, . . . ) > 0 for the original prompt (assuming the model is confident) and m is continuous, there exists an ϵ > 0
+
+such that the open ball Bϵ(h) ⊂ Sx. Any embedding vector within this ball preserves utility. 
+
+Theorem A.5 (Existence of obfuscated prompts) . Given a task prompt x, there exists a prompt ˜x̸ = x such that: 1. ˜x is functionally equivalent to x (Utility). 2. The distance in prompt space d(˜ x, x) ≥ d0 for some constant d0 > 0
+
+(Obfuscation). Proof. Let ∆h be the perturbation in embedding space caused by modifying x to ˜x. We require h + ∆ h ∈ Bϵ(h) to satisfy utility. The total perturbation can be decomposed into token-wise perturbations. Let ˜x differ from x at a set of indices K. The norm of the embedding shift is bounded by the sum of individual token shifts: ∥∆h∥ ≤ P 
+
+> j∈K
+
+∥δj ∥.Due to the attention mechanism in Transformer architectures, specific tokens often exhibit low sensitivity (gradient 
+
+∇xj L ≈ 0), particularly in long contexts (attention dilution). We can select a set of k such tokens to replace or perturb such that Pkj=1 ∥δj ∥ < ϵ .While the embedding perturbation is bounded within ϵ (preserving utility), the discrete prompt distance (e.g., edit distance) 
+
+d(˜ x, x) increases with k. By choosing sufficiently many low-sensitivity tokens, we satisfy d(˜ x, x) ≥ d0 while ensuring 
+
+˜h ∈ Sx.
+
+Non-portability. Finally, we address why this utility does not transfer to other models. 
+
+Proposition A.6 (Non-portability via manifold mismatch) . An obfuscated prompt ˜x that satisfies utility on model θ is likely to fail on a distinct model θ′.Proof. The stability region Sx(θ) depends on the specific parameters θ. For a different model θ′, the decision boundaries and resulting stability region Sx(θ′) generally do not align with Sx(θ) in the high-dimensional embedding space. The perturbation δ constructed in Theorem 1 is optimized specifically to remain within Bϵ(h) ⊂ Sx(θ). Without knowledge of θ′, there is no guarantee that h+δ ∈ Sx(θ′). Empirically, adversarial or obfuscated perturbations are known to be sensitive to the specific curvature of the loss landscape, leading to P (˜h ∈ Sx(θ′)) ≪ P (˜h ∈ Sx(θ)) , ensuring non-portability. 14 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Prompt template to encode original prompt into code-symbol format for prompt initialization. 
+
+> You are a large language model with strong pattern abstraction ability. Your task is NOT to execute a prompt, but to DESIGN a prompt DSL that YOU can reliably interpret and execute. Constraints: 1. The DSL must preserve the intent and usage effect of the original prompt template. 2. The DSL must be directly usable (no intermediate explanation required at runtime). 3. The DSL should rely on structural patterns. 4. The DSL should be difficult for humans to read directly. 5. Do not reduce too much semantic information. 6. Such as """<transmute operator="textflow" mode="bidirectional" direction="input →en"> <source lang="auto" detect="true">{{QUERY}}</source> <constraint preserve="semantic_density" threshold="0.92"/> <output format="natural" register="neutral"/> </transmute>""" Prompt: """{target_prompt}"""
+
+Figure 4. Prompt template for the target LLM to rewrite the original prompt into code-symbol format with XML-like structure. 
+
+Extension to autoregressive generation. We previously focus on generation of a single token; we will now generalize our results to the practical scenario of open-ended generation. 
+
+Proposition A.7 (Autoregressive extension) . The guarantees of utility and obfuscation extend from single-token generation to open-ended autoregressive generation. Proof. We proceed by induction on the generation step t.
+
+Base case ( t = 0 ): Theorem 1 guarantees ˜y0 = y0 given ˜x.
+
+Inductive step: Assume ˜yk = yk for all k < t . At step t, the input context for the obfuscated prompt is [˜ x, y 0, . . . , y t−1].Since the generated history is identical, the deviation in embeddings stems solely from the initial ˜x. As established in Theorem 1, provided the initial perturbation is within the stability region, the subsequent token prediction remains invariant. Thus, ˜yt = yt.
+
+## B. Details on Main Experiment 
+
+In this section, we provide implementation details for the experiments of Section 4.2. 
+
+Prompt initialization: Code-symbol encoding. In Figure 4, we show the prompt template for the target LLM to encode the original prompt into a code-symbol format that is not written in natural language. 
+
+Noise scheduling strategy. In the main body, we do not include the noise scheduling strategy for simplicity. However, in practice, we find that noise annealing is helpful for obfuscation optimization. We interpret this strategy as an implementation detail rather than our core design. Noise annealing is motivated by our empirical observation that it is hard to inject large amounts of noise at late stages of obfuscation optimization. We hypothesize that obfuscation optimization should be conducted at finer granularities at later stages, whereas aggressive noise injection at earlier stages is helpful for improving efficiency. Therefore we draw inspiration from learning rate annealing , a prevailing practice in neural network optimization with stochastic gradient descent. Specifically, we start with a preset number of random characters to inject sampled noise into, which we call the initial noise size (analogous to initial learning rate). After each epoch, we adopt a linear schedule and decrease the number of noise by a constant, which we term the noise schedule rate (analogous to learning rate decay rate). We also designate a minimum noise size such that optimization does not stop completely at late stages of obfuscation optimization. 
+
+Caveat on obfuscation optimization on API LLMs. In practice, obfuscation optimization is hindered by the lack of acc to full logprobs for API LLMs such as GPT-4o and DeepSeek-chat. For example, DeepSeek API 1 only returns the top logprobs of at most 20 tokens ( top_logprobs argument). This slightly complicates the computation of the task loss. 
+
+> 1
+
+https://api-docs.deepseek.com/api/create-chat-completion 
+
+15 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts               
+
+> Table 8. Hyperparameters for PragLocker in main experiment. Hyperparameter Value
+> λ0.1
+> γ0.1 Epochs 50 Candidates per epoch 20 Noise set ASCII characters (0–127) Initial noise size 1/4prompt length Noise schedule rate 8Minimum noise size 4Top-klogprobs 10 Default logprob -100.0
+
+The algorithm for computing cross-entropy task loss is shown in Algorithm 2. We set a default logprob (often -100.0) for label tokens missing from the returned top-k logprobs. We take advantage of the top-logprobs functionality of API LLMs while balancing efficiency and performance. As is shown in Table 8, we let k = 10 since a large k can greatly slow down API response rate while a small k decreases the precision of loss computation. 
+
+Algorithm 2 Computation of task loss for API LLMs. 
+
+Input: Base LLM p(·), obfuscated prompt ˜xt at the t-th step, query qt at the t-th step, labels yt at the t-th step, number of top logprobs k, default logprob ldef 
+
+Output: Task loss lt
+
+logps ← p(·| qt, ˜xt)
+
+lt ← 0
+
+i = 1 
+
+while i ≤ | yt| do if yt[i] in top-k logprobs then 
+
+lt ← lt − logps[ i][ yt[i]] 
+
+else 
+
+lt ← lt − ldef 
+
+end if 
+
+i ← i + 1 
+
+end while 
+
+lt ← lt/|yt|
+
+Hyperparameters. We show the hyperparameters of our main experiment in Table 8. 
+
+## C. Details on Case Study 
+
+Reproducibility. In Section 4.3 of the main body, we present an obfuscated prompt and its corresponding original prompt as well as model responses from the target model and non-target model. In order to facilitate reproduction and to support the authenticity of our results, we have provided an executable demonstration of the case study in the supplementary material . We encourage readers to execute the Python script for themselves, which requires access to the DeepSeek API 2.
+
+## D. Details on Adaptive Attacks 
+
+In this section, we provide implementation details for the adaptive attack experiments of Section 4.5. 
+
+D.1. LLM-Assisted Prompt Recovery 
+
+We show the prompt template for LLM-assisted prompt recovery in Figure 5. The LLM is provided with the obfuscated prompt and instructed to guess the original prompt. Although we acknowledge that this implementation is simple, we 
+
+> 2https://api-docs.deepseek.com/
+
+16 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts 
+
+Prompt template for LLM-assisted prompt recovery. 
+
+> What is the original prompt for the following prompt? Prompt: """{obfuscated_prompt}"""
+
+Figure 5. Prompt template for LLM-assisted prompt recovery. 
+
+Prompt template for naive prompt baseline (LLM-assisted prompt induction). 
+
+> You are given a small set of input-output examples produced by an agent. Your task is to write a SINGLE system prompt that, when used to initialize an LLM agent, will reproduce the same behavior on similar inputs. [Optional] Task context: {task_description} Examples: {io_pairs} # Each example should follow: # Input: ... # Output: ... Requirements for the system prompt: - Output ONLY the system prompt text (no explanations, no markdown). - The prompt should specify the agent 's role, goals, constraints, and tool-use policy if needed. - Be concise but complete; preserve the behavior implied by the examples. - Do NOT refer to these examples explicitly in the final prompt. System prompt:
+
+Figure 6. Template used to construct the naive prompt baseline via LLM-assisted prompt induction from observed input-output behavior. 
+
+emphasize that this strategy directly supports our claim that even the target LLM for which the obfuscated prompt was optimized fails to fully interpret the obfuscated prompt. 
+
+D.2. Deobfuscation Attack Deobfuscation optimization. We show the hyperparameters for deobfuscation attack in Table 9. All hyperparameters are consistent with those of obfuscation optimization, except for the coefficient of the optimization objective. The objective function for the deobfuscation attack includes only Ltask and Lnon-lang terms, not Ldist , since the original prompt is inaccessible for the attacker. We also invert the coefficient for the Lnon-lang term since the attacker aims to recover the original prompt written in natural language. 
+
+Naive Prompt Baseline. We also consider a naive baseline where the attacker re-synthesizes a system prompt from task behavior, rather than deobfuscating the deployed prompt. Specifically, the attacker collects a small set of representative input–output pairs via black-box queries and uses an LLM to draft a prompt that reproduces the observed functionality. The drafted prompt is evaluated directly without any adaptive tuning or optimization. The concrete induction template used to generate the naive prompt is provided in Figure 6. 
+
+## E. Discussions on PragLocker Methodology 
+
+On PragLocker vs. prompt compression techniques. Historically, prompt compression is motivated by maintaining task performance comparable to original prompts with less memory and computational cost. PragLocker might be reminiscent of hard prompt compression methods , according to the taxonomy of Li et al. (2025). However, these methods focus on removing redundancy from the original prompts and often require auxiliary compression models. Furthermore, hard prompt compression methods do not take obfuscation into consideration. All these properties clearly distinguish PragLocker from 17 PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts             
+
+> Table 9. Hyperparameters for deobfuscation attack. Hyperparameter Value
+> γ-0.1 Epochs 50 Candidates per epoch 20 Noise set ASCII characters (0–127) Initial noise size 1/4prompt length Noise schedule rate 8Minimum noise size 4Top-klogprobs 10
+
+prompt compression techniques. 
+
+Concerns of invertibility. A recent paper claims that transformer language models are almost surely injective and thus invertible (i.e. to recover the input token sequence given hidden state activations) (Nikolaou et al., 2025), which seems to challenge our prompt protection method. However, we argue that the arguments of this paper do not fundamentally undermine the validity of PragLocker; instead, it strengthens the security of PragLocker .Given a task query q and a prompt x, there are countless hidden states that yield the same greedy output as h = f<l (x)
+
+where f<l (·) is the first l layers of the LM, since the latent space is continuous and the LM has inherent robustness with respect to infinitesimal perturbations to hidden states. All these functionally equivalent hidden states belong to a set of activations: Bϵ = {h′|∥ h′ − h∥2 < ϵ }, where ϵ > 0 is a small constant that ensures greedy model outputs are the same. Suppose it is possible to trace back each hidden state of Bϵ back to input token sequences, then there are infinite number of prompts (assuming model context size is intractably large and we use paddings to handle various prompt lengths) that lead to the same model outputs, since |Bϵ| is infinite. This makes the prompt inversion attack intractable, since it is impossible for the attacker to identify the prompt x among the almost infinite set of functionally equivalent prompts. 18

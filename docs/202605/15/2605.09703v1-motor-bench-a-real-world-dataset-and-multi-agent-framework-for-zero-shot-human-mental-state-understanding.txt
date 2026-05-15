@@ -1,0 +1,207 @@
+Title: MOTOR-Bench: A Real-world Dataset and Multi-agent Framework for Zero-shot Human Mental State Understanding
+
+URL Source: https://arxiv.org/pdf/2605.09703v1
+
+Published Time: Tue, 12 May 2026 02:16:45 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# MOTOR-Bench: A Real-world Dataset and Multi-agent Framework for Zero-shot Human Mental State Understanding 
+
+# Xiaoyu Yuan University of Oulu 
+
+Xiaoyu.Yuan@oulu.fi 
+
+# Niklas Heikkala University of Oulu 
+
+niklas.heikkala@oulu.fi 
+
+# Tiina T¨ orm¨ anen University of Oulu 
+
+tiina.tormanen@oulu.fi 
+
+# Hanna J¨ arvenoja University of Oulu 
+
+hanna.jarvenoja@oulu.fi 
+
+# Guoying Zhao University of Oulu 
+
+guoying.zhao@oulu.fi 
+
+# Haoyu Chen University of Oulu 
+
+chen.haoyu@oulu.fi 
+
+# Abstract 
+
+Understanding human mental states from natural behavior is crucial for intelligent systems in the real world. However, most current research focuses on predicting isolated men-tal state labels, lacking structured annotations of complex interpersonal interactions. To support structured analysis, we introduce MOTOR-Bench , a carefully-designed bench-mark with a real-world dataset MOTOR-dataset , contain-ing 1,440 multimodal video clips in collaborative learn-ing scenarios, reflecting key real-world data challenges in-cluding natural class imbalance, visual noise, and domain-specific language. Each sample is labeled by educational experts based on self-regulated learning theory. We further evaluate several state-of-the-art multimodal large language models and multi-agent systems in a zero-shot setting on our MOTOR-Bench. However, their performance on this task remains limited, suggesting that existing methods still strug-gle with structured reasoning from observable behavior to deeper mental states. To address this challenge, we pro-pose a reasoning multi-agent framework, named MOTOR-MAS . It coordinates multiple agents through a structured agent coordination mechanism to infer explicit behaviors, internal cognitions, and psychological emotions. Experi-mental results show that our MOTOR-MAS outperforms the best single-model benchmark by 15.93 points in Macro-F1 scores for the three labels of behavior, cognition, and emo-tion, and outperforms the general multi-agent benchmark by 10.2 points in internal cognition prediction. 
+
+# 1. Introduction 
+
+Inferring human mental states from natural behavior is im-portant, but difficult, for intelligent systems in real-world settings [1–4]. In education, social interaction, and health-
+
+Figure 1. Three paradigms for inferring visual mental states. (a) Black-box multimodal language models typically rely on surface-level visual cues. (b) General multi-agent frameworks assign tasks to specific agents but lack structured coordination among agents. (c) MOTOR-MAS integrates reasoning across behavior, cognition, and emotion for more reliable mental state inferences. 
+
+care, people communicate through speech, gestures, and fa-cial expressions while also expressing thoughts and emo-tions [5–9]. Yet outward behavior does not always re-veal what a person is thinking or feeling , which is a long-standing problem in the field [10, 11]. For example, some-one may smile while saying, “I really have no idea what I’m thinking.” In this case, the visible cue is the smile, which may appear positive at first glance. However, the utter-ance itself expresses confusion and uncertainty, suggesting a negative cognitive state. These signals do not align: a 
+
+> arXiv:2605.09703v1 [cs.CV] 10 May 2026
+
+seemingly positive expression can co-occur with a negative underlying cognitive state. This makes mental state under-standing more challenging than predicting a single isolated label. Thus, inspired by the success of learning science the-ories in explaining collaborative learning processes [12– 14], we study mental state inference in collaborative learn-ing environments by introducing a new benchmark, named 
+
+MOTOR-Bench . Specifically, due to the inherent nature of mental states (abstract and difficult to define) in general settings, we choose to study them in a concrete interaction context where participants naturally express understanding, confusion, and intentions through multimodal behaviors. Based on this idea, we introduce the MOTOR-dataset ,a real-world dataset consisting of 1,440 multimodal video clips collected from classroom collaborative learning ac-tivities. Unlike most existing work that predicts only one type of mental state label from visual or multimodal sig-nals, we annotate each sample with three complementary dimensions: behavior , cognition , and emotion . The dataset also reflects practical challenges such as visual noise, class imbalance, and domain-specific language. We evaluate several state-of-the-art multimodal large language models (MLLMs), including Gemini [15], In-ternVL [16, 17], and AffectGPT [18], as well as the gen-eral multi-agent framework CAMEL [19] on our MOTOR-bench, in a zero-shot setting. Although these models per-form well on many vision-language tasks, they struggle with real-world mental state inference. On the MOTOR-Bench, the best-performing MLLM, InternVL-3.5 [17], reaches only 26.84 Macro-F1 [20] averaged over behavior, cognition, and emotion prediction. CAMEL performs better overall, with 39.28 Macro-F1, but still achieves only 29.61 on cognition prediction. These results show that specific mental state inference remains difficult in real-world inter-actions as shown in Fig. 1. Thus, we further propose MOTOR-MAS , a customized reasoning-based multi-agent framework for structured men-tal state inference. Instead of predicting each dimension independently, MOTOR-MAS predicts behavior, cognition, and emotion through coordinated specialized agents. In-termediate predictions from earlier stages are used to sup-port subsequent predictions, enabling structured reasoning across behavior, cognition, and emotion. Experiments show that our MOTOR-MAS improves per-formance substantially on the MOTOR benchmark. It achieves a Macro-F1 score of 42.77, outperforming the strongest single-model baseline by 15.93 points. Compared with the general multi-agent baseline, it also improves cog-nition prediction by 10.2 points. These results suggest that structured coordination among specialized agents is effec-tive for mental state inference in real-world collaborative learning scenarios. 
+
+# 2. Related Work 
+
+2.1. Mental State Understanding in AI 
+
+Mental state understanding in AI is commonly studied by inferring latent human states from observable signals such as language, facial expression, speech, and interaction con-text [21, 22]. Early work mainly focused on affective com-puting and unimodal or weakly multimodal cues, showing that internal states can often be approximated from exter-nal behavior, but usually along a single dimension such as emotion or sentiment [21, 22]. Recent work has shifted toward richer multimodal set-tings that combine text, audio, and visual information. Datasets such as CMU-MOSEI support multimodal sen-timent and emotion analysis in open-domain videos [23]. MELD further models emotion in multi-party conversa-tion and highlights the importance of contextual interac-tion cues [24]. These studies are closely related to our task, but most still focus on predicting one state dimension at a time. In contrast, our setting models behavior, cognition, and emotion together as a structured inference problem in collaborative learning. 
+
+2.2. Multi-Agent Frameworks: Structure or Scale 
+
+In multi-agent architectures, role specialization is more ef-fective than scaling. Nevertheless, how to classify the roles of the agents and how the agents interact still require further exploration. CAMEL [19] shows that assigning different dialogue roles can achieve collaborative problem-solving beyond single-agent benchmarks, while MetaGPT [25] fur-ther structures agent communication through standardized operational procedures. These frameworks demonstrate that collaboration is helpful, but their structure stems from heuristics of task decomposition rather than domain theory. Increasing the number of agents does not solve this limita-tion. Qian et al. discovered that performance follows a rea-sonable growth pattern and tends to saturate before reaching its theoretical limit [26]. Yang et al. [27] provides a formal explanation: homogeneous agents produce correlated out-puts, thus the evidence contributed by newly added agents diminishes. Two different agents can achieve the same pro-cessing power as sixteen homogeneous agents, indicating that the structure of information is far more important than the number of agents. However, these frameworks are not designed specifically for structured mental state understanding. In particular, they do not provide task-specific mechanisms for coordi-nating information across behavior, cognition, and emotion. MOTOR-MAS addresses this problem by allowing domain knowledge to guide the design of agent communication: concepts related to self-regulated learning guide how infor-mation flows between agents. Figure 2. Dataset characteristics and flow analysis. (a) Example of a collaborative learning segment with video frames, transcript, and behavior–cognition–emotion labels. (b) Flow patterns across behavior, cognition, and emotion are shown with Sankey diagrams. (c) Class distributions across the three dimensions. 
+
+2.3. Learning Science for Mental State Analysis 
+
+Learning science research has examined how behavior, cog-nition, and emotion interact in collaborative learning. Work on self-regulated learning, in particular, describes how learners monitor progress, evaluate their situation, and ad-just their actions during task-oriented interaction [28]. Ed-ucational researchers have also developed coding schemes that label collaborative episodes in terms of behavioral, cog-nitive, and emotional dimensions [12, 13, 29]. These stud-ies are closely related to mental state analysis, but they are rarely translated into AI benchmarks or multimodal reason-ing systems for real-world scenarios. This has led to a gap between learning-based annotation frameworks and compu-tational systems for natural collaborative interactions. Our work helps bridge this gap by introducing the MOTOR-Bench, a real-world benchmark for behavioral, cognitive, and emotional analysis, and the MOTOR-MAS, a structured multi-agent framework tailored for this scenario. 
+
+# 3. The MOTOR-Bench 
+
+Most multimodal datasets for emotion or mental state anal-ysis focus on general-domain settings such as movies or clinical interviews. These settings differ substantially from collaborative learning. In collaborative learning environ-ments, people interact more frequently, and their emotions are more subtle. To study mental state inference in this setting, we build the MOTOR-Bench [12, 13, 30], a real-world benchmark collected from classroom collaboration. 
+
+3.1. Task Definition and Label Space 
+
+We formulate mental state understanding in collaborative learning as a structured prediction task over three dimen-sions: behavior, cognition, and emotion. Following prior SRL-based coding frameworks [12, 28], we define a label space that captures both observable interactions and inter-nal mental states. The behavior dimension B is derived from the be-havioral coding axis in the original framework. Here, 
+
+Monitoring refers to interactions that increase awareness of the group’s current state, including task understanding, progress, and ongoing emotional and motivational condi-tions. Controlling refers to attempts to influence or reg-ulate these states. Episodes that contain inseparable ele-ments of both are labeled as Mixed . We therefore define 
+
+B ∈ { Monitoring , Controlling , Mixed }.The cognition and emotion dimensions describe inter-nal aspects of regulation [28]. The cognition dimension 
+
+C captures the learner’s metacognitive evaluation of the ongoing task. It indicates whether the learner expresses a positive, negative, mixed, or absent evaluation. We de-fine C ∈ { Positive , Negative , Mixed , Neutral }. The emo-tion dimension E captures the affective state expressed during collaboration. It reflects whether the learner’s emo-tion is positive, negative, mixed, or neutral. We define 
+
+E ∈ { Positive , Negative , Mixed , Neutral }.These three dimensions preserve the structure of the original annotation framework while making the output space suitable for structured prediction. 
+
+3.2. Data Collection 
+
+Figure 2(a) shows an example from the MOTOR-dataset. Each sample contains synchronized video frames, a Finnish transcript, and behavior–cognition–emotion labels. The dataset includes 1,440 video clips collected from a nature-based collaborative learning activity at a university in a Eu-ropean country [30]. The participants were 30 groups of secondary school students engaged in inquiry-based science experiments. Each clip contains about 6.10 seconds of in-teraction between 2 to 4 students. All communication was in Finnish. We transcribed the recordings using Whisper-large-finnish-v3 [31]. On standard Finnish speech benchmarks, CSS10-fi [32] and VoxPopuli-fi [33], this model achieves a word error rate of 14.26%, which we found sufficient for further analysis. All participants, legal guardians, and relevant municipal depart-ments provided informed consent. The study received ap-proval from the relevant institutional ethics review board. Video data was anonymized before analysis. We detected faces with OpenFace 2.0 and applied Gaussian blurring so that no personally identifiable information was retained. 
+
+3.3. Annotation Scheme 
+
+Each clip is annotated with a behavior–cognition–emotion triplet following prior SRL-based coding schemes [12, 13]. Trained educational researchers first labeled a subset of the data independently, then compared results, resolved dis-agreements through discussion, and refined the category de-scriptions before annotating the full dataset. Behavior labels indicate whether an episode reflects 
+
+Monitoring , Controlling , or Mixed . Cognition labels de-scribe the valence of metacognitive evaluation: C Positive ,
+
+C Negative , C Mixed , or C Neutral [12]. Emotion labels are E Positive , E Negative , E Neutral , and E Mixed . Inter-rater reliability was measured on 25% of the data using Co-hen’s kappa. We obtained good agreement for monitoring and controlling behavior ( κ = 0 .73 ) and for the valence of monitoring ( κ = 0 .70 ). 
+
+3.4. Dataset Statistics and Real-world Challenges 
+
+The MOTOR dataset is highly imbalanced, reflecting real collaborative learning. As shown in Fig. 2(c), the dominant classes in behavior, cognition, and emotion are monitoring (56.2%), neutral (47.8%), and neutral (65.6%), respectively. This pattern is not an artifact of collection. In classroom collaboration, most interaction is task-oriented and emo-tionally neutral. Strong evaluative or affective states appear only in part of the discussion. This makes the MOTOR-dataset quite different from entertainment-oriented datasets, where emotionally salient events are much more frequent. Figure 2(b) also shows clear cross-dimensional patterns. Controlling behavior is strongly associated with C Neutral 
+
+(99.1% of controlling instances), while monitoring behav-ior is distributed across several cognitive states: C Neutral 
+
+(38.4%), C Negative (27.0%), C Positive (25.2%), and 
+
+C Mixed (9.4%). We also observe a clear relation between cognition and emotion: C Negative is often paired with 
+
+E Negative , whereas C Neutral most often co-occurs with 
+
+E Neutral . These patterns motivate structured reasoning across the three dimensions. 
+
+# 4. Methodology 
+
+We formulate visual mental state understanding as a struc-tured reasoning problem based on self-regulated learning theory [28], and then implement this framework through a multi-agent architecture. 
+
+4.1. Motivation for Structured Reasoning 
+
+Previous research on collaborative learning has shown that there is a close connection between behavior, cognition, and emotion, rather than fully independent [28]. Observable be-haviors such as monitoring and control often provide useful contextual information for interpreting underlying cognitive states, while emotional responses are often associated with behavioral context and cognitive cues. Based on this perspective, we organize the inference of mental states into a structured reasoning process that spans three dimensions. We first infer behavior based on mul-timodal observations, then use behavioral cues to support cognitive predictions, and finally predict emotions based on both behavior and cognition inputs. This structural se-quence design provides a simple and interpretable approach to modeling the dependencies between behavior, cognition, and emotion in collaborative learning scenarios. 
+
+4.2. MOTOR-MAS: Anchor-and-Derive 
+
+Given a collaborative learning video clip V and its tran-script T , our MOTOR-MAS predicts a structured output tu-ple Y = ( B, C, E ), where B, C, and E denote behavior, cognition, and emotion, respectively. As introduced in Sec-tion 4.1, these three dimensions are closely related in col-laborative learning and are not equally observable from raw multimodal input. In particular, behavior is relatively ex-plicit, whereas cognition and emotion are often more sub-tle and context-dependent. This motivates a staged infer-ence process, in which intermediate predictions from earlier stages are used to support later ones. We implement this staged reasoning process as a struc-tured sequential decomposition over behavior, cognition, and emotion, as shown in Fig. 3. Unlike generic sequen-tial prompting, each agent is equipped with SRL-grounded task specifications that encode the theoretical role of its as-signed dimension, making the information passed between agents semantically structured rather than arbitrary interme-diate outputs. 
+
+X → B, {X, B } → C, {X, B, C } → E,  (1) where X = {V, T } denotes multimodal observations. This formulation reflects a staged reasoning process across the three dimensions. Behavior is inferred directly from mul-timodal input. Cognition is predicted using both the input and the inferred behavior. Emotion is then predicted using the combined context of input, behavior, and cognition. De-composing the joint distribution P (B, C, E |X) according to this ordering yields 
+
+P (C|X) = X
+
+> B
+
+P (C|B, X ) P (B|X), (2) 
+
+P (E|X) = X
+
+> B,C
+
+P (E|C, B, X ) P (C|B, X ) P (B|X). (3) Figure 3. Overview of the MOTOR-MAS. Multimodal input (video and text) is processed sequentially by three specialized agents. The Behavior Agent first predicts observable actions, the Cognition Agent infers cognitive states based on behavior and multimodal context, and the Emotion Agent predicts emotion us-ing both behavior and cognition. The dashed box contrasts this structured reasoning process with a black-box MLLM baseline that predicts directly from raw input. 
+
+This decomposition method directly corresponds to three specialized agents, each responsible for a conditional prob-ability in the structured sequence, as shown in Fig. 3. The Behavior Agent serves as the anchor of the entire framework by estimating P (B|X) to isolate overt learning actions from multimodal input. It categorizes actions into monitoring, controlling, or a combination of both by pri-oritizing directional intent over surface-level linguistic fea-tures. This mechanism functions as an information bottle-neck that filters transient visual noise and prevents spurious associations between raw perceptual signals and latent men-tal states. The Cognition Agent infers latent evaluative states that are not directly observable from raw input by computing 
+
+P (C|B, X ) conditioned on the behavioral anchor provided by the Behavior Agent. It characterizes the valence of metacognitive judgment as positive, negative, mixed, or neutral. Grounding this inference in B reduces the ambigu-ity inherent in interpreting covert cognitive processes from noisy multimodal observations. The Emotion Agent performs structured reasoning by calculating P (E|C, B, X ), which comprehensively consid-ers behavioral anchoring factors and results based on cogni-tive assessment, thereby classifying emotional states. Given the task-oriented nature of collaborative learning, the agent adopts a neutrality-default assumption that is overridden only when explicit emotional markers are present in the transcript or visual features. As shown in Fig. 3, this dis-entangled design ensures that each prediction is consistent with earlier intermediate predictions rather than directly hallucinated from raw visual input. 
+
+# 5. Experiments 
+
+We evaluate MOTOR-MAS through benchmark compari-son and ablation studies. 
+
+5.1. Experimental Setup 
+
+We compare MOTOR-MAS with several strong baselines for multimodal mental state inference. These include InternVL-2.5 [16] and InternVL-3.5 [17] as representative open-source MLLMs, Gemini-1.5-Flash and Gemini-1.5-Pro [15] as proprietary frontier models, and AffectGPT [18] as a domain-specific model for affective computing. We also conducted comparative experiments using the general multi-agent framework CAMEL [19]. All baselines are evaluated in a zero-shot setting with standardized prompts. For the CAMEL baselines, we use the InternVL-3.5-8B checkpoint 1 as the shared backbone to keep the compari-son aligned with MOTOR-MAS. In the 2-agent setting, two agents jointly discuss and predict the labels. In the 3-agent setting, three agents are assigned to behavior, cognition, and emotion prediction, respectively. All CAMEL variants re-ceive the same multimodal input and use the same decoding settings as the MOTOR-MAS. Our MOTOR-MAS also uses the InternVL-3.5-8B checkpoint as the backbone for all three agents. The model runs in bfloat16 with Flash Attention [34]. For each sam-ple, we uniformly select eight video frames and resize them to 448 × 448 following the InternVL preprocessing pipeline [17]. We integrate Finnish transcripts generated by Whisper-large-finnish-v3 [31] into task-specific prompts in-corporating SRL-inspired instructions. We use greedy decoding with a temperature of 0 for all agents. The maximum generation length is 1024 tokens. Final labels for behavior B, cognition C, and emotion E are extracted from the generated text using regular expressions over the predefined label set. We report Macro-F1 as the primary metric because the dataset is highly imbalanced. Accuracy is included as a sec-ondary metric. For each task, we compute per-class preci-sion and recall and then macro-average across classes. All experiments are run on NVIDIA V100 GPUs. 
+
+5.2. Main Results 
+
+Table 1 reports the main results on the MOTOR-Bench. Our MOTOR-MAS achieves 42.77 Macro-F1, outperform-ing the strongest single-model baseline, InternVL-3.5, by 15.93 points. This result shows that black-box MLLMs still struggle with structured mental state inference in real-world interactions. General multi-agent collaboration helps, but it is still not enough. CAMEL with three agents reaches 39.28 Macro-F1, but remains much weaker on cognition predic-tion than MOTOR-MAS (29.61 vs. 39.81). This suggests 
+
+> 1https://huggingface.co/OpenGVLab/InternVL3_5-8B
+
+that simply adding more agents is not sufficient. How inter-mediate information is organized also matters. Performance also differs across the three dimensions. Behavior is the easiest to predict, with 45.23 Macro-F1, likely because many behavioral cues are explicit in the tran-script. Emotion follows at 43.27. Cognition remains the hardest dimension at 39.81, which is consistent with its more latent and context-dependent nature. Overall, these results suggest that structured reasoning is especially useful when the target state is not directly observable.                                      
+
+> Table 1. Comparison with state-of-the-art methods on the MO-TOR dataset (Macro-F1 score). Our MOTOR-MAS is based on InternVL-3.5. The best performances are marked in bold.
+> Method Behavior Cognition Emotion Avg
+> MLLMs
+> InternVL-2.5 [16] 24.71 16.60 31.19 24.17 InternVL-3.5 [17] 25.89 19.21 35.43 26.84 AffectGPT [18] 22.84 11.64 33.32 22.60 Gemini-1.5-Flash [15] 24.59 20.27 23.21 22.69 Gemini-1.5-Pro [15] 25.57 21.71 22.22 23.17
+> Multi-Agent Frameworks
+> CAMEL [19] (2 Agents) 41.99 24.83 28.70 31.84 CAMEL [19] (3 Agents) 42.62 29.61 45.60 39.28 MOTOR-MAS (Ours) 45.23 39.81 43.27 42.77
+
+5.3. Ablation Study 
+
+We ablate the main components of the MOTOR-MAS to understand where the performance gain comes from. The results are shown in Tab. 2 and Fig. 4. 
+
+w/o Multi-Agent. To test the role of the multi-agent de-sign, we remove the agent-level decomposition and ask a single model to predict behavior, cognition, and emotion within one reasoning process. This variant still keeps the sequential order B → C → E, but no longer separates the task into specialized agents. Performance drops from 42.77 to 34.81 Macro-F1, a decrease of 7.96 points. The largest drops appear in cognition (5.59 points) and emotion (13.88 points), suggesting that agent specialization is espe-cially helpful for latent state inference. Behavior also drops by 4.40 points, which indicates that even relatively explicit tasks benefit from dedicated reasoning rather than joint pre-diction in a single pass. 
+
+w/o SRL Priors. To examine the effect of domain knowledge, we remove the SRL-inspired instructions from the prompts and replace them with generic task descrip-tions. This reduces the average Macro-F1 from 42.77 to 33.90, a drop of 8.87 points. The degradation is most vis-ible in behavior (5.58 points) and cognition (7.08 points). This result suggests that prompt-level domain guidance is important for this task, especially when the model needs to infer cognitive states from subtle evidence. The similar                              
+
+> Table 2. Ablation study of the MOTOR-MAS components. ∆rep-resents the drop in Average Macro-F1 compared to the Full Model.
+> Variant Behavior Cognition Emotion Avg ∆
+> Full Model 45.23 39.81 43.27 42.77 -w/o Multi-Agent 40.83 34.22 29.39 34.81 −7.96
+> w/o SRL 39.65 32.73 29.32 33.90 −8.87
+> w/o Video 42.68 37.30 38.44 39.47 −3.30
+> Figure 4. Ablation results. (a) Per-task Macro-F1 across model variants. (b) Performance drop from removing each component; multi-agent structure and SRL priors contribute comparably ( ∼8–
+> 9% each), while video input accounts for a modest 3.3% .
+
+performance drops of w/o Multi-Agent and w/o SRL Priors also indicate that structure and domain guidance contribute in complementary ways. 
+
+w/o Video. We also test a text-only variant to measure the contribution of visual input. Removing video reduces the average Macro-F1 from 42.77 to 39.47, a drop of 3.30 points. The effect is smallest for cognition (2.51 points), moderate for behavior (2.55 points), and largest for emo-tion (4.83 points). This suggests that transcripts carry much of the useful signal, while visual cues remain particularly helpful for emotion prediction. The relatively small drop is also consistent with the nature of the dataset, where class-room videos are often noisy and low-resolution, making text the stronger modality in many cases. 
+
+5.4. Qualitative Analysis 
+
+Figure 5 shows three representative cases that help explain where the MOTOR-MAS succeeds and where it still fails. 
+
+Case (a): Standard Control Behavior. The student says, “ Pour them here and there, then they’ll be easier to put on. ” All three models correctly identify the behavior as control. However, CAMEL and Gemini-1.5-Pro both pre-dict E Positive , apparently treating task-oriented coopera-tion as positive emotion. Our MOTOR-MAS instead pre-dicts E Neutral , which better matches the context. This case shows that even when behavior is easy to identify, emotion prediction can still fail if the model relies too directly on surface cues. 
+
+Case (b): Monitoring with Negative Cognition. The Figure 5. Qualitative comparison on three cases. Green/red indicate correct/incorrect MOTOR-MAS predictions. (a) Standard controlling behavior: baselines conflate cooperation with positive emotion. (b) Monitoring with negative cognition: MOTOR-MAS correctly predicts Neutral emotion; Gemini-1.5-Pro hallucinates Mixed. (c) Ambiguous mixed behavior: all models fail on fine-grained mixed emotion. 
+
+student smiles while saying, “ No, I’m completely fine with what we usually do. At least I don’t know what I’m thinking. ” The MOTOR-MAS correctly predicts E Neutral .Here the model does not simply map negative cognitive content to negative emotion. Instead, it uses the behavioral and cognitive context together. CAMEL reaches the same prediction, while Gemini-1.5-Pro predicts E Mixed , likely reacting to the smile and the negative statement at the same time without separating their roles in the interaction. 
+
+Case (c): Ambiguous Mixed Behavior. The student first hesitates and then proposes a fallback plan: “ I’m a little hesitant, if this doesn’t work, then put everything on. Then we can always take it off. . . ” MOTOR-MAS correctly iden-tifies the behavior as mixed and predicts C Positive , cap-turing the recovery-oriented part of the utterance. CAMEL also detects mixed behavior, but predicts C Negative , fo-cusing too much on the initial hesitation. Gemini-1.5-Pro predicts pure control and misses the evaluative component altogether. All three models fail on E Mixed , which sug-gests that fine-grained mixed emotions remain difficult even when behavior and cognition are handled reasonably well. Overall, these cases suggest that MOTOR-MAS is strongest when later predictions can benefit from earlier in-termediate cues. It is especially helpful for reducing obvi-ous mismatches between behavior, cognition, and emotion. At the same time, subtle mixed emotional states remain challenging and point to an important direction for future work. 
+
+# 6. Conclusion and Limitations 
+
+In this paper, we introduced MOTOR-Bench , a real-world multimodal benchmark for structured mental state infer-ence in collaborative learning. The dataset provides an-notations for behavior, cognition, and emotion, making it possible to study human mental processes under re-alistic conditions such as visual noise and class imbal-ance. Using the MOTOR-dataset, we established a zero-shot benchmark for state-of-the-art MLLMs and multi-agent systems. We also proposed MOTOR-MAS , a struc-tured multi-agent framework that coordinates specialized agents through theory-driven sequential reasoning. On the MOTOR-Bench, MOTOR-MAS achieved a Macro-F1 score of 42.77 , outperforming the strongest single-model baseline by 15.93 points. The absolute scores remain modest, which is expected. Naturalistic classroom data is noisier and more imbalanced than curated datasets, emotional expressions are subtle, and labels are skewed. The task is genuinely hard, and we see this difficulty as part of the benchmark’s value. This work still has several limitations. The current framework operates at the level of individual utterances and does not explicitly model the temporal dynamics of col-laborative interaction. Second, our cue-based implemen-tation relies on zero-shot large multimodal language mod-els and therefore inherits their computational cost. Third, the MOTOR-dataset is collected from Finnish science ed-ucation, representing one concrete instance of real-world collaborative interaction rather than a fully general setting. This choice was deliberate. High-quality expert annotation requires a well-established theoretical coding scheme, and the SRL framework provided exactly this foundation. The results demonstrate that grounding agent coordination in domain theory is an effective strategy for structured mental state inference. This principle is not specific to education. Other structured social contexts, such as clinical consulta-tion or team-based problem-solving, have comparable the-oretical frameworks. Applying this design strategy in those domains is a meaningful direction for future work. Acknowledgments 
+
+This work was supported by the Research Council of Finland project (grant 348765), flagship Profi 7 (grant 352788), EmotionAI (grants 336116, 345122, 359854), Re-search Fellow (371019), EU HORIZON-MSCA-SE AC-Mod (101130271), University of Oulu, and Infotech Oulu. We also wish to acknowledge CSC– IT Center for Science, Finland, for computational resources. Data collection was carried out with the support of the LeaF Research Infras-tructure (https://www.oulu.fi/leaf-eng/), University of Oulu, Finland. 
+
+# References 
+
+[1] Yueyi Yang, Haotian Liu, Fang Kang, Mengqi Zhang, Zheng Lian, Hao Tang, and Haoyu Chen. Saynext-bench: Why do llms struggle with next-utterance prediction? arXiv preprint arXiv:2602.00327 , 2026. [2] Zheng Lian, Licai Sun, Lan Chen, Haoyu Chen, Zebang Cheng, Fan Zhang, Ziyu Jia, Ziyang Ma, Fei Ma, Xiaojiang Peng, et al. Emoprefer: Can large language models under-stand human emotion preferences? International Conference on Learning Representations , 2025. [3] Zheng Lian, Haiyang Sun, Licai Sun, Haoyu Chen, Lan Chen, Hao Gu, Zhuofan Wen, Shun Chen, Siyuan Zhang, Hailiang Yao, et al. Ov-mer: Towards open-vocabulary mul-timodal emotion recognition. International Conference on Machine Learning , 2024. [4] Guoying Zhao, Yante Li, and Qianru Xu. From emotion ai to cognitive ai. International Journal of Network Dynamics and Intelligence , 1(1), 2022. [5] Stefanos Zafeiriou, Athanasios Papaioannou, Irene Kotsia, Mihalis Nicolaou, and Guoying Zhao. Facial affect “in-the-wild”: A survey and a new database. In 2016 IEEE Con-ference on Computer Vision and Pattern Recognition Work-shops (CVPRW) . Institute of Electrical and Electronics En-gineers, 2016. [6] Hajer Guerdelli, Claudio Ferrari, Stefano Berretti, and Al-berto Del Bimbo. Multimodal emotion prediction in interper-sonal videos integrating facial and speech cues. In Proceed-ings of the Computer Vision and Pattern Recognition Con-ference , pages 5681–5690, 2025. [7] Haoyu Chen, Henglin Shi, Xin Liu, Xiaobai Li, and Guoy-ing Zhao. Smg: A micro-gesture dataset towards sponta-neous body gestures for emotional stress state analysis. In-ternational Journal of Computer Vision , 131(6):1346–1366, 2023. [8] Xin Liu, Henglin Shi, Haoyu Chen, Zitong Yu, Xiaobai Li, and Guoying Zhao. imigue: An identity-free video dataset for micro-gesture understanding and emotion analysis. In 
+
+Proceedings of the IEEE/CVF conference on computer vi-sion and pattern recognition , pages 10631–10642, 2021. [9] Haoyu Chen, Xin Liu, Xiaobai Li, Henglin Shi, and Guoy-ing Zhao. Analyze spontaneous gestures for emotional stress state recognition: A micro-gesture dataset and analysis with deep learning. In 2019 14th IEEE International Conference on Automatic Face & Gesture Recognition (FG 2019) , pages 1–8. IEEE, 2019. [10] Trisha Mittal, Pooja Guhan, Uttaran Bhattacharya, Rohan Chandra, Aniket Bera, and Dinesh Manocha. Emoticon: Context-aware multimodal emotion recognition using frege’s principle. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 14234– 14243, 2020. [11] Dhruv Srivastava, Aditya Kumar Singh, and Makarand Tapaswi. How you feelin’? learning emotions and mental states in movie scenes. In Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition , pages 2517–2528, 2023. [12] H. J¨ arvenoja, T. T¨ orm¨ anen, A. Nakata, and L. Morska. Mo-tivational triggers for regulation in collaborative learning. Manuscript submitted for publication, 2026. [13] H. J¨ arvenoja, T. T¨ orm¨ anen, M. Turunen, and E. Lehtoaho. We will succeed: How varying success expectancies and so-cially shared regulation shape students’ collaborative learn-ing. Journal of Computer Assisted Learning , 41(3):e70024, 2025. [14] Miika Sobocinski, Sanna J¨ arvel¨ a, Jonna Malmberg, et al. How does monitoring set the stage for adaptive regulation or maladaptive behavior in collaborative learning? Metacogni-tion and Learning , 15(2):99–127, 2020. [15] Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, et al. Gemini: A family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 , 2023. [16] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, et al. Internvl: Scaling up vision foundation mod-els and aligning for generic visual-linguistic tasks. In Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 24185–24198, 2024. [17] Weiyun Wang, Zhangwei Gao, Lixin Gu, Hengjun Pu, Long Cui, Xingguang Wei, Zhaoyang Liu, Linglin Jing, Shenglong Ye, Jie Shao, et al. Internvl3. 5: Advancing open-source multimodal models in versatility, reasoning, and efficiency. 
+
+arXiv preprint arXiv:2508.18265 , 2025. [18] Zheng Lian, Haoyu Chen, Lan Chen, Haiyang Sun, Licai Sun, Yong Ren, Zebang Cheng, Bin Liu, Rui Liu, Xiaojiang Peng, et al. Affectgpt: A new dataset, model, and benchmark for emotion understanding with multimodal large language models. arXiv preprint arXiv:2501.16566 , 2025. [19] Guohao Li, Hasan Hammoud, Hani Itani, Dmitrii Khizbullin, and Bernard Ghanem. Camel: Communicative agents for” mind” exploration of large language model society. Ad-vances in neural information processing systems , 36:51991– 52008, 2023. [20] Juri Opitz and Sebastian Burst. Macro f1 and macro f1. arXiv preprint arXiv:1911.03347 , 2019. [21] Rosalind W Picard. Affective computing . MIT press, 2000. [22] Soujanya Poria, Erik Cambria, Rajiv Bajpai, and Amir Hus-sain. A review of affective computing: From unimodal anal-ysis to multimodal fusion. Information fusion , 37:98–125, 2017. [23] AmirAli Bagher Zadeh, Paul Pu Liang, Soujanya Poria, Erik Cambria, and Louis-Philippe Morency. Multimodal lan-guage analysis in the wild: Cmu-mosei dataset and inter-pretable dynamic fusion graph. In Proceedings of the 56th Annual Meeting of the Association for Computational Lin-guistics (Volume 1: Long Papers) , pages 2236–2246, 2018. [24] Soujanya Poria, Devamanyu Hazarika, Navonil Majumder, Gautam Naik, Erik Cambria, and Rada Mihalcea. Meld: A multimodal multi-party dataset for emotion recognition in conversations. In Proceedings of the 57th annual meeting of the association for computational linguistics , pages 527– 536, 2019. [25] Sirui Hong, Xiawu Zheng, Jonathan Chen, Yuheng Cheng, Jinlin Zhang, Ceyao Wang, Zili Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, et al. Metagpt: Meta pro-gramming for multi-agent collaborative framework. arXiv preprint arXiv:2308.00352 , 2023. [26] Chen Qian, Zihao Xie, Yifei Wang, Wei Liu, Kunlun Zhu, Hanchen Xia, Yufan Dang, Zhuoyun Du, Weize Chen, Cheng Yang, et al. Scaling large language model-based multi-agent collaboration. arXiv preprint arXiv:2406.07155 ,2024. [27] Yingxuan Yang, Chengrui Qu, Muning Wen, Laixi Shi, Ying Wen, Weinan Zhang, Adam Wierman, and Shangding Gu. Understanding agent scaling in llm-based multi-agent sys-tems via diversity. arXiv preprint arXiv:2602.03794 , 2026. [28] Barry J Zimmerman. Becoming a self-regulated learner: An overview. Theory into practice , 41(2):64–70, 2002. [29] Roger Azevedo, Jennifer G Cromley, and Diane Seibert. Does adaptive scaffolding facilitate students’ ability to regu-late their learning with hypermedia? Contemporary educa-tional psychology , 29(3):344–370, 2004. [30] H. J¨ arvenoja, T. T¨ orm¨ anen, M. Turunen, E. Lehtoaho, and J. Suoraniemi. MotoR multimodal process data of secondary school students’ collaborative learning (version 1), 2024. [31] Finnish-NLP. whisper-large-finnish-v3 (revision ee1a8bf), 2023. [32] Kyubyong Park and Thomas Mulc. Css10: A collection of single speaker speech datasets for 10 languages. arXiv preprint arXiv:1903.11269 , 2019. [33] Changhan Wang, Morgane Riviere, Ann Lee, Anne Wu, Chaitanya Talnikar, Daniel Haziza, Mary Williamson, Juan Pino, and Emmanuel Dupoux. Voxpopuli: A large-scale multilingual speech corpus for representation learning, semi-supervised learning and interpretation. In Proceedings of the 59th Annual Meeting of the Association for Computa-tional Linguistics and the 11th International Joint Confer-ence on Natural Language Processing (Volume 1: Long Pa-pers) , pages 993–1003, 2021. [34] Tri Dao. FlashAttention-2: Faster attention with better par-allelism and work partitioning. In International Conference on Learning Representations (ICLR) , 2024.
