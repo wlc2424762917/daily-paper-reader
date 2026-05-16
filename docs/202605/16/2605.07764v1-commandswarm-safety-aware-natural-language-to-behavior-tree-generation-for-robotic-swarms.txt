@@ -1,0 +1,176 @@
+Title: CommandSwarm: Safety-Aware Natural Language-to-Behavior-Tree Generation for Robotic Swarms
+
+URL Source: https://arxiv.org/pdf/2605.07764v1
+
+Published Time: Mon, 11 May 2026 01:16:28 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# CommandSwarm: Safety-Aware Natural Language-to-Behavior-Tree Generation for Robotic Swarms 
+
+Mohammed Majeed 
+
+SlimX.ai 
+
+Mohammed.Majeed@slimx.ai 
+
+Amjad Yousef Majid 
+
+SlimX.ai 
+
+Amjad.Majid@slimx.ai 
+
+Abstract —Natural-language interfaces can make swarm robotics more accessible to non-expert operators, but they must translate ambiguous user intent into executable swarm behaviors without unsupported actions, malformed programs, or unsafe plans. This paper presents CommandSwarm , a safety-aware language-to-behavior-tree pipeline for generating XML behavior trees (BTs) from speech or text commands. The system combines multilingual translation, command-level safety filtering, constrained prompting, a LoRA-adapted large language model (LLM), and deterministic parser validation against a whitelist of executable swarm primitives. We evaluate eleven open 6.7B–14B parameter LLMs, all using 4-bit quantization, on representative swarm-control scenarios under zero-shot, one-shot, and two-shot prompting. Falcon3-Instruct-10B and Mistral-7B-v3 are the strongest prompt-engineered candidates, reaching BLEU scores above 0.60 and high syntactic validity in few-shot settings. LoRA adaptation of Falcon3-Instruct-10B on a 2,063-example synthetic instruction–BT corpus improves zero-shot BLEU from 0.267 to 0.663, ROUGE-L from 0.366 to 0.692, and parser-accepted syn-tactic validity from 0% to 72%. Translation experiments further show that SeamlessM4T v2-large and EuroLLM-9B provide the best quality-latency trade-offs for the multilingual front end. The results indicate that compact, quantized, domain-adapted LLMs can generate useful swarm BTs when embedded in a validated systems pipeline. They also show that parser acceptance and safety filtering remain necessary execution gates; generation quality alone is not sufficient for autonomous deployment. 
+
+Index Terms —Swarm robotics, large language models, behav-ior trees, human-swarm interaction, natural-language control, robot safety. 
+
+I. I NTRODUCTION 
+
+Robotic swarms use the collective behavior of many rela-tively simple robots to perform tasks that are difficult, costly, or fragile for a single robot, including distributed exploration, monitoring, search, and cooperative transport [1], [2]. Their strength is also a usability challenge: useful global behavior emerges from local sensing, coordination rules, communica-tion assumptions, and execution constraints that are usually designed by specialists. Consequently, programming a swarm often requires explicit behavior design, simulator knowledge, and careful validation before deployment. Large language models (LLMs) offer a promising interface between human intent and robot programs because they can interpret free-form commands and generate structured artifacts such as code, plans, and behavior trees [3], [4]. Recent work has explored LLMs for multi-robot reasoning and swarm coordination [5], [6], and for behavior-tree (BT) generation in robotics [7]–[9]. However, a practical swarm interface must satisfy requirements that are often studied separately: it should support non-expert language, generate executable multi-robot behaviors, run on realistic hardware budgets, and reject mal-formed, unsupported, or unsafe actions before execution. This paper introduces CommandSwarm , an end-to-end pipeline that converts multilingual speech or text commands into XML BTs for swarm control. CommandSwarm first translates or normalizes the user input into English, then checks the command with a safety classifier, constructs a constrained LLM prompt containing the permitted swarm primitives, generates an XML BT, and validates the output with a deterministic parser before execution in the Violet simulator. The design deliberately separates learned generation from execution authority: the LLM proposes a tree, while the parser and whitelist decide whether the tree is executable. The study is organized around three research questions: 1) RQ1: Which compact open LLMs are most reliable for XML BT generation under zero-shot, one-shot, and two-shot prompting? 2) RQ2: Does parameter-efficient domain adaptation improve zero-shot BT generation beyond prompt engineering alone? 3) RQ3: Which multilingual speech/text front-end provides the best quality-latency trade-off for natural-language swarm commands? The paper makes four contributions: 1) A safety-aware language-to-BT architecture for swarms. We define a four-layer CommandSwarm pipeline covering translation, safety filtering, LLM-based BT synthesis, and middleware-level parsing/execution. 2) A systematic benchmark of compact open LLMs. We evaluate eleven 6.7B–14B parameter models under zero-shot, one-shot, and two-shot prompting, with all models quantized to 4 bits for practical comparison. 3) A synthetic instruction–BT adaptation pipeline. We con-struct a 2,063-example synthetic corpus and use LoRA to adapt Falcon3-Instruct-10B, substantially improving zero-shot generation quality and syntactic validity. 
+
+> arXiv:2605.07764v1 [cs.RO] 8 May 2026
+
+4) A multilingual front-end evaluation. We compare Whis-per and SeamlessM4T for speech translation, and Eu-roLLM variants for text translation, using BLEU, ROUGE-L, METEOR, and latency. The results show that prompt engineering alone can pro-duce strong few-shot performance, but domain adaptation is decisive for robust zero-shot operation. More broadly, CommandSwarm demonstrates that reliable natural-language swarm control is a systems problem: translation, prompting, safety classification, parser validation, and action whitelisting must reinforce each other. II. R ELATED WORK 
+
+A. Swarm Robotics and Human-Swarm Interaction 
+
+Swarm robotics studies how groups of robots coordinate through local sensing, local communication, and decentralized control [1], [2], [10], [11]. Although swarm methods are attractive for robustness and scalability, they remain difficult to operate because high-level user intent must be mapped to coordinated low-level behaviors. Natural-language interaction has long been recognized as a way to reduce this barrier [12], but earlier systems lacked the language understanding and structured-generation capabilities needed for flexible behavior synthesis [13], [14]. LLMs have renewed interest in human-swarm interaction. LLM2Swarm explores both indirect and direct integration of LLMs with robot swarms, including controller synthesis and robot-level reasoning [5]. Surveys of LLMs for multi-robot systems identify task allocation, planning, communication, and safety as key opportunities and open challenges [6], [15]. CommandSwarm is aligned with this direction but focuses on a narrower and more deployable objective: converting natural-language commands into parser-validated BTs for swarm scenarios using compact open models. 
+
+B. Behavior Trees for Robot Task Representation 
+
+Behavior trees provide a modular, reactive, and interpretable representation for robot behavior [16], [17]. A BT is composed of control-flow nodes, such as sequences and fallbacks, and execution nodes, such as actions and conditions. This structure is attractive for LLM-generated robot programs because the output can be inspected, parsed, and rejected if it violates the allowed syntax or action set. Recent robotics work has used LLMs to generate BTs from text. LLM-BRAIn fine-tuned an Alpaca-style 7B model for BT generation [7]. LLM-BT uses LLM reasoning and BT updates for adaptive robotic tasks [8]. BTGenBot demonstrated that lightweight 7B models can generate BTs for robotic tasks when fine-tuned and validated [9]; BTGenBot-2 later pushed this line toward smaller models, standardized benchmarking, and validator-based recovery [18]. CommandSwarm differs in three ways: it targets swarm-level behaviors, evaluates a broader set of contemporary open LLMs under the same prompting protocol, and integrates multilingual input plus command-level safety filtering in the same pipeline. 
+
+C. Multilingual Speech and Text Translation 
+
+A natural interface for swarm control should not assume that operators type English commands. Whisper showed that large-scale weak supervision can support robust multilingual speech recognition and translation [19]. SeamlessM4T pro-vides a unified multilingual and multimodal translation model for speech and text tasks [20]. EuroLLM-9B was designed to improve open multilingual LLM support for European languages [21]. CommandSwarm evaluates these components as part of the end-to-end system rather than treating translation as an external preprocessing step. 
+
+D. Safety Guardrails for LLM-Enabled Robots 
+
+LLM-enabled robots require safeguards because natural-language commands can be ambiguous, unsupported, or un-safe. Llama Guard frames safety filtering as prompt/response classification using an explicit risk taxonomy [22]. Robotics-specific work such as RoboGuard argues that safety rules should be grounded in robot context and checked before execu-tion [23]. CommandSwarm follows the same defense-in-depth principle at a lighter system level: the safety layer filters the command, while the parser rejects malformed XML and any node outside the approved action/condition whitelist. Unlike temporal-logic safety controllers, the present implementation does not yet prove runtime safety; it prevents unsupported BTs from reaching execution and leaves formal safety verification as future work. III. C OMMAND SWARM ARCHITECTURE AND 
+
+METHODOLOGY 
+
+A. System Overview 
+
+Figure 1 summarizes CommandSwarm. The pipeline re-ceives a spoken or typed command, normalizes it into English, checks it for safety, generates an XML BT with an LLM, validates the tree against a closed set of swarm primitives, and passes the validated tree to the simulator or robot middleware. 
+
+B. Translation Layer 
+
+The translation layer supports two input modes. For speech, audio captured from a web microphone is resampled and pro-cessed by a speech translation model. We compare Whisper-medium and SeamlessM4T v2-large. For typed text, com-mands are translated or normalized with EuroLLM variants. The output of this layer is a single English command, which avoids requiring the downstream BT generator to handle all languages directly. 
+
+C. Safety Layer 
+
+Before generation, CommandSwarm passes the normalized command to a Llama-Guard-style safety classifier. Commands classified as unsafe or outside the intended operational do-main are rejected before they reach the BT generator. This early filtering is complemented by parser-level validation after generation, creating two independent control points: one at the command level and one at the executable-plan level. In this paper, the safety layer is evaluated as part of the system Figure 1. CommandSwarm system overview. User speech or text is translated into English, filtered for safety, converted by an LLM into an XML BT, and validated by the middleware parser before execution. 
+
+design rather than as an independently benchmarked classifier; the experiments focus on translation quality, BT-generation quality, and parser acceptance. 
+
+D. Behavior-Tree Generation Layer 
+
+The LLM layer converts the safe English command into an XML BT. The prompt contains: (i) a system instruction defining the model role, (ii) the complete list of allowed action and condition nodes, (iii) the required XML skeleton, and (iv) the user command. The key design choice is to expose the action space explicitly. Rather than asking the model to invent robot behaviors, CommandSwarm asks it to arrange a fixed set of primitives into a valid BT.                             
+
+> SYSTEM: Generate only avalid XML behavior tree. INSTRUCTIONS: Use only the listed actions and conditions. REQUIRED FORMAT: <root> ... <BehaviorTree> ... </ BehaviorTree> <TreeNodesModel> ... </TreeNodesModel> </root> USER COMMAND: <translated user command> RESPONSE: XML only.
+> Listing 1. Simplified CommandSwarm prompt structure for XML behavior-tree generation.
+
+The generated tree must contain a single root, a BT ele-ment, and a TreeNodesModel declaration. Structural BT nodes such as Sequence and Fallback are allowed, while action and condition leaves must match the whitelist. Any explanatory text, malformed XML, missing root element, or unsupported node is treated as a failed generation. 
+
+E. Middleware and Execution Layer 
+
+The middleware parses the XML tree and maps its nodes to simulator or robot behaviors. The parser checks XML well-formedness, required attributes, root structure, and node legality. If any unsupported tag or malformed structure is found, execution is aborted and an error is returned. Valid  
+
+> Figure 2. Distribution of behavior names in the synthetic instruction–BT dataset used for LoRA adaptation.
+
+trees are executed by the low-level control layer, where action nodes implement movement, signaling, obstacle avoidance, target search, or coordination behaviors in the Violet simulator. 
+
+F. Synthetic Dataset and LoRA Adaptation 
+
+To improve domain reliability, we generated a synthetic instruction–BT dataset containing 2,063 pairs. The dataset covers diverse user commands and BT structures, including navigation, target search, obstacle handling, formation, signal-ing, and status reporting. Figure 2 illustrates the distribution of behavior names in the synthetic corpus. We fine-tuned the strongest selected model with Low-Rank Adaptation (LoRA), which freezes the base model and trains small low-rank adapter matrices [24]. In our implementa-tion, LoRA adapters are applied to the attention projection modules. This parameter-efficient strategy is appropriate for CommandSwarm because the target task is narrow: the model does not need to learn general robotics from scratch, but to Table I SWARM SCENARIOS USED FOR MODEL SCREENING .      
+
+> ID Scenario
+> 1Detect an obstacle, avoid it, and change color to green. 2Wander until a target is detected, approach it, and signal achieve-ment by changing color to red. 3Check whether the path is clear and form a line at the center. 4Find the goal, signal success by changing color to red, and align movement with other swarm agents. 5Detect the target and freeze movement after reaching it.
+
+reliably express user intent using the permitted BT vocabulary and XML schema. 
+
+G. Output Validation and Failure Categories 
+
+Each generated output is passed through the same validation pipeline. We classify failures into four categories: non-XML responses, malformed XML, structurally incomplete BTs, and unsupported node names. Parser-accepted syntactic validity is therefore a stricter criterion than merely checking that the response contains XML-like text. This distinction is important because a BT can look plausible to a reader while still being non-executable by the middleware. IV. E XPERIMENTAL DESIGN 
+
+A. Simulator and Task Scenarios 
+
+Experiments were conducted with the Violet simulator, a lightweight PyGame-based swarm simulation environment [25]. We use five canonical swarm scenarios that combine sensing, navigation, signaling, and coordination. Table I lists the task descriptions used for model screening. 
+
+B. Translation Evaluation 
+
+We evaluate speech and text translation across nine Euro-pean languages. For speech, we compare Whisper-medium and SeamlessM4T v2-large. For text, we compare EuroLLM-1.7B-Instruct and EuroLLM-9B-Instruct, both in 4-bit quantized form. Translation quality is measured with BLEU, ROUGE-L, and METEOR; latency is measured as average end-to-end inference time per command. Whisper-medium reaches BLEU 0.50, ROUGE-L 0.71, and METEOR 0.75, with an average latency of approximately 5.2s per utterance. SeamlessM4T v2-large obtains BLEU 0.46, ROUGE-L 0.72, and METEOR 0.77, with a lower average latency of approximately 4.0s. For text translation, EuroLLM-1.7B performs poorly in this setup (BLEU 0.02, ROUGE-L 0.39, METEOR 0.43, and approximately 52s per sentence), while EuroLLM-9B achieves BLEU 0.62, ROUGE-L 0.81, METEOR 0.85, and approximately 5.5s per sentence. 
+
+C. LLM Candidates for Behavior-Tree Generation 
+
+We benchmark eleven open-source models, all evaluated with 4-bit quantization and the same prompting protocol. Table II summarizes the candidate set.                         
+
+> Table II LLM S EVALUATED FOR BEHAVIOR -TREE GENERATION .
+> Model Size Precision
+> CodeLlama-7B [26] 7B 4-bit DeepSeek-R1-Distill-Qwen-7B [27] 7B 4-bit DeepSeek-R1-Distill-Llama-8B [27] 8B 4-bit EuroLLM-Instruct-9B [21] 9B 4-bit Falcon3-Instruct-10B [28] 10B 4-bit Meta-Llama-3.1-Instruct-8B [29] 8B 4-bit Mistral-7B-v3 [30] 7B 4-bit Qwen2.5-Coder-Instruct-7B [31] 7B 4-bit DeepSeek-Coder-Base-7B [32] 7B 4-bit DeepSeek-Coder-Instruct-6.7B [32] 6.7B 4-bit Phi-4-14B [33] 14B 4-bit
+
+D. Prompting Conditions and Metrics 
+
+Each model is evaluated under three prompting conditions: zero-shot, one-shot, and two-shot. In zero-shot prompting, the model receives only the system instructions, allowed behavior list, XML format constraints, and target command. In one-shot and two-shot prompting, one or two complete instruction–BT examples are prepended before the target command. We report three metrics. BLEU measures n-gram overlap between the generated BT and a reference tree. ROUGE-L measures longest-common-subsequence similarity. Parser-accepted syntactic correctness is the percentage of outputs that are well-formed XML, have the required BT structure, and use only whitelisted nodes. BLEU and ROUGE-L are useful for measuring structural similarity to the reference, but they are not sufficient indicators of semantic correctness; therefore, parser acceptance is treated as a necessary execution gate. 
+
+E. Two-Stage Model Selection 
+
+The first stage evaluates all eleven models on the five scenario descriptions in Table I. This screening stage is inten-tionally small and is used to identify promising models, not to make final performance claims. The second stage focuses on the three strongest models from stage one: Falcon3-Instruct-10B, Mistral-7B-v3, and Qwen2.5-Coder-Instruct-7B. These models are evaluated on a larger held-out set of 50 examples before selecting Falcon3-Instruct-10B for LoRA adaptation. V. R ESULTS 
+
+A. Stage-One Model Screening 
+
+The first screening stage shows that model choice and prompt design have a major effect on BT generation qual-ity. Figure 4 compares BLEU, ROUGE-L, and syntactic correctness for all eleven models across zero-shot, one-shot, and two-shot prompting. Qwen2.5-Coder-Instruct-7B, Falcon3-Instruct-10B, and Mistral-7B-v3 consistently rank among the strongest models. Few-shot examples are especially important for syntax: several models approach or reach full syntactic validity in one-shot or two-shot settings, whereas zero-shot prompting remains unreliable for many candidates. Figure 3. Translation latency and quality. Top row: Whisper-medium versus SeamlessM4T v2-large for speech translation. Bottom row: EuroLLM-1.7B versus EuroLLM-9B for text translation.  
+
+> Figure 4. Stage-one comparison of eleven 4-bit quantized LLMs under zero-shot, one-shot, and two-shot prompting. Left: BLEU. Middle: ROUGE-L. Right: syntactic correctness.
+
+B. Stage-Two Evaluation of the Top Models 
+
+The second stage evaluates the top three candidates on 50 held-out examples. Figure 5 shows that Falcon3-Instruct-10B and Mistral-7B-v3 retain the strongest overall perfor-mance, while Qwen2.5-Coder-Instruct-7B remains competitive but less consistent. Two-shot prompting provides the highest syntactic reliability, but zero-shot performance still leaves substantial room for improvement. This motivates parameter-efficient fine-tuning rather than relying only on increasingly long prompts. 
+
+C. Effect of LoRA Fine-Tuning 
+
+We compare the fine-tuned Falcon3 model (Falcon3-FT) with the best prompt-engineered Falcon3 baseline on the same 50-example held-out set. Figure 6 and Table III summarize the results. Falcon3-FT improves BLEU in all prompting settings: one-shot BLEU increases from 0.765 to 0.805, two-shot BLEU from 0.761 to 0.777, and zero-shot BLEU from 0.267 to 0.663. The zero-shot gain of 0.396 is the largest improvement. ROUGE-L follows the same trend. One-shot ROUGE-L increases from 0.731 to 0.777, two-shot from 0.715 to 0.748, and zero-shot from 0.366 to 0.692. Parser-accepted syntactic correctness also improves: one-shot validity rises from 86% to 92%, two-shot from 94% to 98%, and zero-shot from 0% to 72%. These results indicate that the LoRA-adapted model internalizes much of the BT schema and action vocabulary that otherwise must be provided through examples. 
+
+D. Translation Results 
+
+The translation experiments show a clear separation be-tween model variants. SeamlessM4T v2-large provides the strongest speech-translation trade-off in this setup: it is faster than Whisper-medium and achieves slightly higher ROUGE-L and METEOR, despite lower BLEU. For text translation, EuroLLM-9B substantially outperforms EuroLLM-1.7B in Figure 5. Stage-two evaluation of the strongest three LLMs on 50 held-out behavior-tree examples. Left: BLEU. Middle: ROUGE-L. Right: syntactic correctness.                                    
+
+> Figure 6. Prompt-engineered Falcon3 versus LoRA-adapted Falcon3-FT on 50 held-out examples. Left: BLEU. Middle: ROUGE-L. Right: syntactic correctness. Table III FALCON 3BASELINE VERSUS LORA-ADAPTED FALCON 3-FT ON THE HELD -OUT 50-EXAMPLE SET .
+> Setting Metric Baseline Falcon3-FT
+> Zero-shot BLEU 0.267 0.663 Zero-shot ROUGE-L 0.366 0.692 Zero-shot Syntax 0% 72% One-shot BLEU 0.765 0.805 One-shot ROUGE-L 0.731 0.777 One-shot Syntax 86% 92% Two-shot BLEU 0.761 0.777 Two-shot ROUGE-L 0.715 0.748 Two-shot Syntax 94% 98%
+
+both quality and latency. These results justify the final Com-mandSwarm configuration: SeamlessM4T for spoken com-mands and EuroLLM-9B for typed multilingual input. 
+
+E. Overall System Interpretation 
+
+The combined results support three conclusions. First, com-pact open models can generate useful BTs, but the best model must be selected empirically. Second, few-shot prompting is effective for enforcing XML form, yet it does not fully solve zero-shot brittleness. Third, lightweight fine-tuning is highly effective when the target output language is narrow and structured. The best CommandSwarm configuration, therefore, combines a compact quantized LLM, constrained prompting, LoRA adaptation, and deterministic parser validation. VI. D ISCUSSION 
+
+A. Answering the Research Questions 
+
+For RQ1, the results show that Falcon3-Instruct-10B and Mistral-7B-v3 are the strongest prompt-engineered candidates among the evaluated compact open models. Qwen2.5-Coder-Instruct-7B is competitive, but less consistent across prompting settings. For RQ2, LoRA adaptation clearly improves zero-shot behavior: the largest gains occur when no examples are provided at inference time. For RQ3, SeamlessM4T v2-large provides the strongest speech front-end trade-off in this setup, while EuroLLM-9B is the best text-translation option among the evaluated variants. 
+
+B. Why Fine-Tuning Helps 
+
+The largest improvements appear in zero-shot generation. This is important for real use because users should not need to provide examples when commanding a swarm. Prompt engi-neering can describe the XML schema and action vocabulary, but the model may still omit required tags, invent unsupported actions, or produce explanatory text. LoRA adaptation exposes the model repeatedly to the target representation, making the XML structure and BT vocabulary part of the model’s task behavior rather than only part of the prompt context. 
+
+C. Prompting and Validation Are Complementary 
+
+The results should not be interpreted as replacing valida-tion with fine-tuning. Even after adaptation, 28% of zero-shot outputs fail parser validation. This confirms that LLM outputs must remain proposals, not executable authority. Com-mandSwarm therefore uses a defense-in-depth design: prompt-ing reduces errors, LoRA adaptation improves the distribution of generated trees, the safety classifier filters commands, and the parser enforces the final execution boundary. 
+
+D. Threats to Validity 
+
+This study has four main threats to validity. First, BLEU and ROUGE-L measure similarity to reference XML but do not fully capture whether an alternative BT would achieve the same behavior. Second, parser acceptance is necessary for execution but not sufficient for semantic correctness in all environments. Third, the experiments are conducted in simulation; physical swarms introduce sensing noise, commu-nication loss, battery constraints, and timing issues. Fourth, the safety classifier is integrated into the architecture but not independently evaluated against adversarial or domain-specific unsafe commands in this paper. These limitations mean that the results support CommandSwarm as a validated generation pipeline for controlled swarm scenarios, not as a complete safety assurance case for real-world autonomy. 
+
+E. Future Work 
+
+Future work will focus on three directions. The first is se-mantic validation, including learned or symbolic validators that check whether a generated BT satisfies the user intent beyond XML syntax. The second is simulator-in-the-loop evaluation, where generated BTs are executed and scored according to task success rather than only text similarity and parser validity. The third is real-robot transfer, starting with small Crazyflie or ePuck swarms to measure latency, communication overhead, and robustness under physical constraints. A fourth direction is hierarchical BT generation, where complex commands are decomposed into validated subtrees to overcome context-window limits and improve reuse. VII. S AFETY AND ETHICAL CONSIDERATIONS 
+
+Natural-language swarm control creates a direct path from user intent to coordinated robot behavior. This raises safety, ac-countability, privacy, and dual-use concerns. CommandSwarm addresses these concerns through layered restrictions rather than relying on the LLM alone. The safety classifier rejects unsafe or out-of-domain commands before generation. The prompt restricts the output to approved behavior primitives. The parser then rejects malformed XML or unlisted nodes before execution. This design improves accountability because every accepted command can be logged together with the translated text, generated BT, parser result, and execution status. Such logs support debugging, auditability, and post-incident analysis. For privacy, audio and text commands should be processed locally when possible, minimized in logs, and stored only under explicit retention policies. For accessibility, multilingual support should be evaluated across accents, languages, and noisy environments rather than only on clean benchmark examples. The current implementation is intended for research, edu-cation, and controlled simulation or laboratory environments. Real-world deployment should require additional safeguards, including operator approval for sensitive tasks, geofencing, emergency stop mechanisms, runtime monitors, and domain-specific risk assessment. The main ethical lesson is that LLM-enabled autonomy should be designed as a constrained toolchain: the language model can help translate intent, but deterministic safety gates must decide what is executable. VIII. C ONCLUSION 
+
+This paper presented CommandSwarm, a safety-aware pipeline for translating multilingual speech or text com-mands into executable XML BTs for robotic swarms. The system combines translation, command-level safety filtering, constrained LLM prompting, LoRA adaptation, and parser-level validation. Across eleven compact open LLMs, Falcon3-Instruct-10B and Mistral-7B-v3 achieved the strongest few-shot BT generation performance. Fine-tuning Falcon3-Instruct-10B with LoRA on 2,063 synthetic instruction–BT pairs produced the largest benefit in the zero-shot setting, raising BLEU from 0.267 to 0.663 and syntactic validity from 0% to 72%. The central finding is that natural-language swarm control becomes substantially more reliable when generation is treated as one component in a validated systems pipeline. Model choice, prompting, domain adaptation, translation, safety fil-tering, and parser validation all contribute to the final behavior. CommandSwarm, therefore, offers a practical step toward accessible human-swarm interaction while preserving a clear boundary between language-model generation and executable robot behavior. REFERENCES [1] M. Brambilla, E. Ferrante, M. Birattari, and M. Dorigo, “Swarm robotics: a review from the swarm engineering perspective,” Swarm Intelligence , vol. 7, no. 1, pp. 1–41, 2013. [2] I. Navarro and F. Matía, “An introduction to swarm robotics,” ISRN Robotics , vol. 2013, p. 608164, 2013. [3] H. Naveed, A. U. Khan, S. Qiu, M. Saqib, S. Anwar, M. Usman, N. Akhtar, N. Barnes, and A. Mian, “A comprehensive overview of large language models,” 2024. [4] A. Matarazzo and R. Torlone, “A survey on large language models with some insights on their capabilities and limitations,” 2025. [5] V. Strobel, M. Dorigo, and M. Fritz, “LLM2Swarm: Robot swarms that responsively reason, plan, and collaborate through LLMs,” in NeurIPS 2024 Workshop on Open-World Agents , 2024. [Online]. Available: https://arxiv.org/abs/2410.11387 [6] P. Li, Z. An, S. Abrar, and L. Zhou, “Large language models for multi-robot systems: A survey,” 2025. [7] A. Lykov and D. Tsetserukou, “LLM-BRAIn: Ai-driven fast generation of robot behaviour tree based on large language model,” 2023. [8] H. Zhou, Y. Lin, L. Yan, J. Zhu, and H. Min, “LLM-BT: Performing robotic adaptive tasks based on large language models and behavior trees,” in 2024 IEEE International Conference on Robotics and Au-tomation (ICRA) , 2024. [9] R. A. Izzo, G. Bardaro, and M. Matteucci, “BTGenBot: Behavior tree generation for robotic tasks with lightweight LLMs,” in 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) .IEEE, 2024, pp. 9684–9690. [10] M. M. Shahzad, Z. Saeed, A. Akhtar, H. Munawar, M. H. Yousaf, N. K. Baloach, and F. Hussain, “A review of swarm robotics in a nutshell,”            
+
+> Drones , vol. 7, no. 4, p. 269, 2023. [11] A. Y. Majid, C. van der Horst, T. van Rietbergen, D. J. Zwart, and R. V. Prasad, “Lightweight audio source localization for swarm robots,” in 2021 IEEE 18th Annual Consumer Communications & Networking Conference , 2021, pp. 1–6. [12] C. Kemke, “From saying to doing: Natural language interaction with artificial agents and robots,” in Human Robot Interaction .IntechOpen, 2007, ch. 9. [13] A. Y. Majid, C. van der Horst, L. de Groot, M. Jonker, R. V. Prasad, and S. Narayana, “Ai-based simultaneous audio localization and com-munication for robots,” in Proceedings of the ACM/IEEE International Conference on Internet of Things Design and Implementation , 2023, pp. 172–183. [14] A. Y. Majid, T. van Rietbergen, and R. V. Prasad, “Challenging con-ventions towards reliable robot navigation using deep reinforcement learning,” Computing&AI Connect , vol. 1, no. 1, pp. 1–10, 2024. [15] A. Y. Majid, S. Saaybi, V. François-Lavet, R. V. Prasad, and C. Verho-even, “Deep reinforcement learning versus evolution strategies: A com-parative survey,” IEEE Transactions on Neural Networks and Learning Systems , vol. 35, no. 9, pp. 11 939–11 957, 2024.
+
+[16] M. Colledanchise and P. Ögren, Behavior Trees in Robotics and AI: An Introduction . CRC Press, 2018. [17] M. Iovino, E. Scukins, J. Styrud, P. Ögren, and C. Smith, “A survey of behavior trees in robotics and ai,” Robotics and Autonomous Systems ,vol. 154, p. 104096, 2022. [18] R. A. Izzo, G. Bardaro, and M. Matteucci, “BTGenBot-2: Efficient behavior tree generation with small language models,” 2026. [19] A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, “Robust speech recognition via large-scale weak super-vision,” 2022. [20] Seamless Communication et al. , “SeamlessM4T: Massively multilingual and multimodal machine translation,” 2023. [21] P. H. Martins, J. Alves, P. Fernandes, N. M. Guerreiro, R. Rei, A. Fara-jian, M. Klimaszewski, D. M. Alves, J. Pombal, M. Faysse, P. Colombo, F. Yvon, B. Haddow, J. G. C. de Souza, A. Birch, and A. F. T. Martins, “EuroLLM-9B: Technical report,” 2025. [22] H. Inan, K. Upasani, J. Chi, R. Rungta, K. Iyer, Y. Mao, M. Tontchev, Q. Hu, B. Fuller, D. Testuggine, and M. Khabsa, “Llama guard: Llm-based input-output safeguard for human-ai conversations,” 2023. [23] Z. Ravichandran, A. Robey, V. Kumar, G. J. Pappas, and H. Hassani, “Safety guardrails for llm-enabled robots,” 2025. [24] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, and W. Chen, “LoRA: Low-rank adaptation of large language models,” 2021. [25] Violet Development Team, “Violet api documentation,” https://api.viol et.m-rots.com/vi, 2025. [26] B. Rozière, J. Gehring, F. Gloeckle, S. Sootla, I. Gat, X. E. Tan, Y. Adi, J. Liu, T. Remez, J. Rapin et al. , “Code llama: Open foundation models for code,” 2024. [27] DeepSeek-AI, “Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning,” 2025. [28] Technology Innovation Institute, “The falcon 3 family of open models,” 2024. [Online]. Available: https://huggingface.co/collections/tiiuae/falc on3-6766a04a1b7be3b5589a4a84 [29] A. Grattafiori, A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur, A. Schelten, A. Vaughan et al. , “The llama 3 herd of models,” 2024. [30] A. Q. Jiang, A. Sablayrolles, A. Mensch, C. Bamford, D. Singh Chaplot, D. de las Casas, F. Bressand, G. Lengyel, G. Lample, L. Saulnier et al. ,“Mistral 7b,” 2023. [31] B. Hui, J. Yang, Z. Cui, J. Yang, D. Liu, L. Zhang, T. Liu, J. Zhang, B. Yu, K. Lu et al. , “Qwen2.5-coder technical report,” 2024. [32] D. Guo, Q. Zhu, D. Yang, Z. Xie, K. Dong, W. Zhang, G. Chen, X. Bi, Y. Wu, Y. K. Li et al. , “Deepseek-coder: When the large language model meets programming – the rise of code intelligence,” 2024. [33] M. Abdin, J. Aneja, H. Behl, S. Bubeck, R. Eldan, S. Gunasekar, M. Harrison, R. J. Hewett, M. Javaheripi, P. Kauffmann et al. , “Phi-4 technical report,” 2024.

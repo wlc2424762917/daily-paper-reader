@@ -1,0 +1,727 @@
+Title: EnvSimBench: A Benchmark for Evaluating and Improving LLM-Based Environment Simulation
+
+URL Source: https://arxiv.org/pdf/2605.07247v1
+
+Published Time: Mon, 11 May 2026 00:42:04 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# EnvSimBench: A Benchmark for Evaluating and Improving LLM-Based Environment Simulation 
+
+Yi Liu TingFeng Hui Wei Zhang Li Sun 
+
+Beijing University of Posts and Telecommunications 
+
+louie@bupt.edu.cn 
+
+Ningxin Su 
+
+The Hong Kong University of Science and Technology 
+
+Jian Wang 
+
+Chongqing University 
+
+Sen Su 
+
+Beijing University of Posts and Telecommunications 
+
+## Abstract 
+
+Scalable AI agents training relies on interactive environments that faithfully simu-late the consequences of agent actions. Manually crafted environments are expen-sive to build, brittle to extend, and fundamentally limited in diversity. A promising direction is to replace manually crafted environments with LLM-simulated coun-terparts. However, this paradigm hinges on an unexamined core assumption: LLMs can accurately simulate environmental feedback . In practice, LLM-simulated environments suffer from hallucinations, logical inconsistencies, and silent state drift—failures that corrupt agent reward signals and compound the construction costs that the paradigm was designed to eliminate. To address this gap, we propose EnvSimBench with four contributions: (1) We provide the first formal definition and operationalization of Environment Simulation Ability (EnvSim Ability) as a quantifiable research objective. (2) We construct EnvSimBench , a rig-orous benchmark covering 400 samples across 167 diverse environments, equipped with verifiable labels and fine-grained difficulty stratification along three axes. (3) Systematic evaluations reveal that all state-of-the-art language models suffer from a universal state change cliff: they achieve near-perfect accuracy on tasks when the environment state remains invariant, yet fail catastrophically when multiple states need simultaneous updates. This finding exposes EnvSim Ability as a critical yet largely unaddressed capability gap. (4) We design a constraint-driven simulation pipeline that substantially reduces hallucination, boosts environment synthesis yield by 6.8%, and cuts costs by over 90%. Overall, EnvSimBench serves as both a diagnostic framework and a practical optimization path for reliable LLM-based environment simulation, establishing a solid foundation for scalable agent training. Code and data are available at:https://github.com/cookieApril/EnvSimBench 
+
+## 1 Introduction 
+
+Large language models (LLMs) are increasingly required to serve as agents across diverse real-world scenarios [ 1, 2, 3]. Recent research efforts [ 4 , 2, 5] have constructed stateful, tool-interactive sandbox environments, delivering improved controllability and stability. Training autonomous agents at scale requires interactive environments that feature rich diversity, high simulation fidelity, and low deployment costs [ 6 , 7, 8]. However, manually designed environments 
+
+> Preprint.
+> arXiv:2605.07247v1 [cs.AI] 8 May 2026
+
+suffer from prohibitive construction costs, poor extensibility, and inherent limitations in scenario coverage, making them ill-suited for large-scale agent training. A compelling recent direction addresses this challenge by replacing manually crafted, executable environments[ 9, 10 , 11 ] with LLM-simulated counterparts, where a language model generates the feedback for each agent action [ 12 , 13 ]. This paradigm dramatically lowers the barrier to environment creation and promises seamless scaling across domains. However, it rests on a foundational assumption that has received surprisingly little scrutiny: LLMs can accurately simulate environmental feedback with sufficient fidelity to be trusted as training substrates. If this assumption fails , agents trained in hallucinated environments optimize against corrupted reward signals, and synthesis pipelines incur compounding failure costs that erode the very cost advantage the paradigm promises, but simulation fidelity has never been systematically characterized. 
+
+In practice, when models attempt to act as simulators, their performance is undermined by specific vulnerabilities. Three concrete failure modes underlie this difficulty: hallucination [ 14 , 15 , 16 ], whereby a model fabricates plausible but incorrect state transitions; logical inconsistency [ 17 , 18 ], whereby inter-field constraints within a single response are violated; and state drift [ 5, 19 , 2 ], whereby the absence of persistent memory causes earlier state changes to be silently lost. These failures are not incidental engineering deficiencies but reflect a fundamental tension between the generative nature of language models and the deterministic, compositional logic of executable environments. Without a framework to precisely measure these failures, they remain invisible to practitioners and unaddressable by researchers. 
+
+To address this gap and establish a rigorous foundation for studying simulation fidelity, we introduce the concept of Environment Simulation Ability(EnvSim Ability) to denote a model’s capacity to accurately predict the state transition and observational feedback induced by an agent action, given the current environment state and the action’s implementation logic. Without a precise, operationalizable definition, neither systematic evaluation nor principled improvement of this capability is possible. To address three failure modes and make EnvSim Ability concretely measurable, we construct En-vSimBench . EnvSimBench converts the inherently partial-observable simulation problem into a fully observable, independently verifiable one. Standard LLM simulators operate under a partially observ-able Markov decision process (POMDP) [ 20 ]: the model must infer the current environment state from conversation history alone, with no explicit access to the ground-truth state or the environment’s transition logic. Our central insight is that recasting simulation as a fully observable Markov decision process (MDP): providing the model with the explicit before-state and the action’s implementation logic as input, and requiring it to predict the resulting state and observation as output, resolves all three issues simultaneously. This reframing is the architectural foundation of EnvSimBench .EnvSimBench makes four contributions, linked by a deliberate logical chain from conceptualization to diagnosis to remedy: 
+
+(I) Formalizing EnvSim Ability. We provide the first formal definition and operationalization of EnvSim Ability as a quantifiable research objective, establishing it as a distinct capability from related skills and providing a conceptual foundation for rigorous evaluation and improvement. 
+
+(II) A rigorous benchmark. Grounded in the POMDP-to-MDP reframing, we construct a benchmark of 400 samples across 167 diverse tool-interactive environments, with verifiable programmatic labels and fine-grained difficulty stratification along three orthogonal axes: action outcome, state-change complexity, and argument cardinality. 
+
+(III) A diagnostic finding: the state-change cliff. Systematic evaluation reveals a universal failure pattern: all models achieve near-perfect accuracy on state-preserving operations yet collapse catastrophically when multiple state variables must update simultaneously. A threshold we term the state-change cliff . This gap is orthogonal to model scale and general reasoning ability. More critically, models that generate superficially correct feedback can simultaneously produce incorrect state transitions, silently corrupting training signals with no observable divergence for the agent. 
+
+(IV) A constraint-driven remedy. Guided by these findings, we propose a constraint-driven simulation paradigm that makes environment schemas and transition logic explicit at each step, substantially reducing hallucination. A simulation model trained under this paradigm surpasses all evaluated frontier LLMs on configuration match, boosts synthesis yield by 6.8%, and cuts costs 2Figure 1: Overview of EnvSimBench. Module A: EnvScaler [ 13 ] environments serve as seed data; a GPT-4o-mini agent collects multi-turn execution trajectories, preprocessed into self-contained single-turn state prediction samples (st, a t, s ′
+
+> t
+
+, o t). Each step is independently verifiable against a programmatic label, decoupling simulation fidelity from state tracking and making EnvSim Ability objectively measurable. Module B: Samples undergo three-axis stratification (action outcome,state-change complexity, argument cardinality) and executor-based labeling, yielding 400 benchmark samples across 167 environments. The three axes allow failures to be precisely localized rather than collapsed into a single score. Module C: Path 1 evaluates seven frontier LLMs under identical conditions. Path 2 trains a specialized 4B simulation model that, when integrated into EnvScaler, improves synthesis yield by 6.8% while cutting costs by over 90%. by over 90%. This demonstrates that targeted specialization is a cost-efficient path to reliable environment simulation. 
+
+## 2 Related Work 
+
+LLM environment simulation and synthesis. Simia [ 12 ] demonstrated that reasoning models can generate plausible tool feedback for agent training, establishing LLM-simulated tool-interactive envi-ronments as a practical substrate for scalable agent training. EnvScaler [ 13 ] extended this direction by demonstrating a fully automated synthesis of tool-interactive environments, substantially reducing construction costs. However, neither work formally defines simulation fidelity as a measurable capability, provides cross-model comparisons of simulation quality, or offers principled evaluation metrics. EnvSimBench addresses all three gaps simultaneously. Relatedly, interactive fiction envi-ronments [ 21 ] and code-execution benchmarks [ 9] use executable environments to evaluate agent behavior; our work inverts this relationship, treating the simulator itself rather than the agent as the object of evaluation. 
+
+Agent benchmarks and tool use. Building on a long line of prior work on language agents [ 22 ,23 , 24 , 25 , 17 , 26 , 27 ], LLM tool utilization [ 4, 28 , 29 ], and task-oriented dialogue systems τ -bench [ 2] and τ 2-bench [ 30 ] established multi-turn, tool-using evaluation paradigms and intro-duced the MDP/POMDP distinction that we adopt as the architectural foundation of our diagnostic framework. ToolSandbox [ 5 ] evaluates stateful tool use with fine-grained state-transition feedback, providing a complementary perspective in which the agent is evaluated against a fixed executable environment; our work evaluates the simulator rather than the agent, and asks whether a language model can replace such executors reliably. APIGen-MT [ 31 ] generates multi-turn training data via LLM simulation; our pipeline shares structural similarities but replaces LLM-generated labels with programmatically verified ground truth, directly addressing the circular validation problem that motivates our work. 3Hallucination and simulation fidelity. Hallucination in language model generation has been extensively studied in open-ended settings [ 14 , 16 ]. Gorilla [ 15 ] demonstrated that language models frequently produce incorrect tool arguments even when the correct API schema is provided. This finding also highlights the importance of our research. Prior work on language model program execution [ 5] shows that prediction accuracy degrades as the number of interdependent state updates increases, underscoring the cumulative effect of state updates across multiple execution rounds. EnvSimBench prevented the cascading dependency identified in this article by using the POMDP-to-MDP pattern. 
+
+## 3 Problem Formulation 
+
+Tool interactive environments. Following EnvScaler, we model an environment as E =(S, A, T , O), where S is the state space, A is the action space, T : S × A → S is the deter-ministic transition function, and O : S × A → Σ∗ is the observation function that returns feedback to the agent. Each environment maintains a persistent configuration that encodes its full state. For example, a mutual fund management system tracks securities, portfolio holdings, and transaction logs; A mobile authentication system tracks OTP records, session states, and verification timestamps. The transition function T is realized through tool definition, and the label (o, s ′) is acquired by executing the real environment. 
+
+State prediction task. Given a tool call a, the pre-execution state s, and the tool’s implementation 
+
+code (a), a model must predict both the resulting observation ˆo and the resulting configuration ˆs′
+
+(represented as a structured list of add/modify/delete operations applied to s). Evaluation uses two binary metrics: Feedback Match (FM) , exact string equality between ˆo and o, and Config Match (CM) , whether the predicted changes, when applied to s, reproduce s′ exactly. Both are verified against ground truth, not another LLM. 
+
+POMDP vs. MDP formulation. Standard LLM simulators operate as POMDPs. Formally, at step t,the model receives only the observation history ht = ( a1, o 1, . . . , a t−1, o t−1, a t) and must implicitly maintain a state bt ≈ P (st | ht) without access to the true state st. The simulation objective is thus: 
+
+ˆot, ˆs′ 
+
+> t
+
+= fθ (ht),
+
+where fθ conflates three distinct sub-problems: state estimation (recovering st from ht), transition reasoning (applying T (st, a t)), and observation generation (computing O(st, a t)). This conflation is the root cause of the three failure modes illustrated in Figure 2: without explicit access to st, the model must hallucinate a plausible belief state, and any error in bt compounds silently across turns, since ht+1 is constructed from the model’s own (potentially incorrect) output ˆot.
+
+Constraint-driven MDP formulation. Our key insight is that state estimation is not intrinsic to simulation, but an artifact of information hiding. We therefore decouple the two by supplying st
+
+directly, converting the POMDP into a fully observable MDP. The simulation objective becomes: 
+
+ˆot, ˆs′ 
+
+> t
+
+= fθ
+
+ st, a t, code (at),
+
+where the prompt supplies (1) the full before-config st as an explicit JSON dictionary, (2) the tool call at, and (3) the implementation code (at) that defines T and O for action at. The model’s task narrows from free-form state propagation to structured code comprehension and state transformation .Crucially, each step is now independent : there is no accumulated history, so estimation errors cannot propagate. Each prediction (ˆ ot, ˆs′
+
+> t
+
+) is independently verifiable against the ground truth (ot, s ′
+
+> t
+
+),enabling objective, LLM-free evaluation. As illustrated in Figure 2, this design directly eliminates all three failure modes: the explicit st removes the source of hallucinated state transitions, the schema encoded in code (at) enforces logical consistency, and the single-turn structure prevents state drift by construction. 
+
+## 4 EnvSimBench and Constraint-Driven Simulation Paradigm 
+
+4.1 Benchmark Construction From trajectories to single-turn samples. The constraint-driven MDP formulation (Section 3) motivates a specific data structure: each benchmark sample must be self-contained , supplying the 4Figure 2: POMDP vs. MDP formulation. Left : Standard simulation; the LLM infers state from conversation history, causing state drift and hallucination. Right : Constraint-driven simulation; the full before-config st, tool call at, and implementation code(a) are provided explicitly, making each step independently verifiable. model with the complete triple (st, a t, code (at)) and requiring it to produce (ˆ ot, ˆs′
+
+> t
+
+) without access to any prior turn. This independence is not merely a design convenience. It is precisely what makes each prediction independently verifiable and prevents estimation errors from compounding across steps, as they inevitably do in the POMDP regime. As illustrated in Figure 4, we operationalize this by collecting multi-turn execution trajectories 
+
+τ = {(at, o t, s t, s ′
+
+> t
+
+)}Tt=1 from 191 tool-interactive seed environments. The subscript t = 0 is excluded by construction: at initialization, no before-state s0 exists in the sense required by the MDP formulation because the environment has not yet undergone any transition. The state that would serve as s0 is the after-state produced by the environment’s initialization routine, with no preceding action to condition on. Ensuring every retained sample (st, a t, s ′
+
+> t
+
+, o t) is a genuine state-transition instance with a well-defined, executor-verified before-state. This process converts each trajectory into a set of independent state prediction samples, each annotated with the ground-truth label (ot, s ′
+
+> t
+
+) produced by the deterministic external executor, not by any language model. 
+
+Three-axis difficulty stratification. To enable fine-grained diagnosis rather than a single aggregate score, we stratify the sample pool along three orthogonal axes, each targeting a distinct source of simulation difficulty.Figure 1 provides an overview of EnvSimBench, and a detailed construction pipeline is described in Appendix B. 
+
+Axis 1 (Action Outcome). Samples are first partitioned by whether the action at succeeds or fails under T . The Failure group ( |∆( st, s ′
+
+> t
+
+)| = 0 with O returning an error signal) tests whether a model correctly withholds state changes when the transition guard is not satisfied. 
+
+Axis 2 (State-Change Complexity). Within the success group, samples are stratified by |∆( st, s ′
+
+> t
+
+)|, the cardinality of the state-change set, into four tiers: No-Change (|∆| = 0 , 80 samples), Simple (|∆| ∈ {1, 2}, 50 samples), Medium (|∆| ∈ { 3, . . . , 6}, 200 samples), and Difficult (|∆| ∈ { 7, . . . , 12 },50 samples). This distribution is not arbitrary: it mirrors the empirical frequency of state-change magnitudes observed across the 191 source environments, which follows an approximately bell-shaped curve concentrated at moderate complexity. By allocating the largest stratum (200 samples) to the Medium tier (where the state-change cliff first manifests) and smaller strata to the extremes, the benchmark both reflects ecological validity and maximizes diagnostic resolution precisely where failures are most consequential. 
+
+Axis 3 (Input Argument Cardinality). For Failure and No-Change samples, a third axis further partitions by the number of arguments supplied to at (zero vs. one or more). This controls for a qualitatively simpler sub-case: when no arguments are provided, the model need not reason about argument-dependent branching in the transition logic, making correct prediction structurally easier regardless of state-change complexity. 5Diversity rule. Within each stratum, samples are selected to maximize the number of distinct environments |E sub | represented. This diversity rule prevents the benchmark from concentrating in a small number of high-trajectory environments and ensures that evaluation generalizes across the full breadth of domain types present in the source collection. The final benchmark comprises 400 samples drawn from 167 distinct environments (Table 1). All ground-truth labels are produced by the deterministic external executor, making the benchmark entirely LLM-free in its construction. Table 1: Benchmark sample distribution.                              
+
+> Group Subgroup Samples Constraint
+> Failure Oreturns error, |∆|= 0 20 No-Change |∆|= 0 , action succeeds 80 40 per argument cardinality Simple |∆| ∈ { 1,2}50 25 per |∆|value Medium |∆| ∈ { 3, . . . , 6}200 50 per |∆|value Difficult |∆| ∈ { 7, . . . , 12 }50 Distributed across |∆|
+
+Evaluation metrics. We adopt two binary metrics per sample. Feedback Match (FM) measures exact equality between the predicted observation ˆot and the ground-truth ot, capturing whether the model’s surface response is correct. Config Match (CM) measures whether the predicted state 
+
+ˆs′
+
+> t
+
+, reconstructed by applying the predicted change operations to st, coincides exactly with the executor-produced s′
+
+> t
+
+. CM is the stricter and more informative metric: it is invariant to output-format conventions and directly reflects whether the model has correctly traced the transition T (st, a t).
+
+4.2 Constraint-Driven Simulation Paradigm MDP prompt structure. Each evaluation prompt instantiates the MDP input triple 
+
+(st, a t, code (at)) in a structured format. The model is required to produce a structured output encoding (ˆ ot, ˆs′
+
+> t
+
+) as a predicted observation string and a set of typed state-change operations 
+
+b∆ = {δ1, . . . , δ k}, where each δi specifies a field path and its new value. The predicted after-state is then recovered as ˆs′ 
+
+> t
+
+= apply ( b∆, s t) and compared against s′ 
+
+> t
+
+to compute CM. 
+
+Reasoning enhancement. Training data is augmented with explicit intermediate derivations, for-matted as structured reasoning traces that walk through the transition logic of code (at) step by step before producing (ˆ ot, b∆) . These traces teach the supervised model to internalize code-execution as a sequential inference process rather than a pattern-matching lookup. 
+
+## 5 Experimental Results and Analysis 
+
+5.1 Evaluation of Frontier LLMs Setup. We evaluate seven frontier language models: DeepSeek-V3.2, Qwen3.5-397B-A17B, GPT-5.4, Gemini-3.1-Pro-Preview, Claude-Sonnet-4.6, MiniMax-M2.7, and GLM-5, all in non-thinking mode via their respective inference APIs, with identical prompts instantiating the MDP triple 
+
+(st, a t, code (at)) . Ground-truth labels are produced entirely by the deterministic external executor. Full evaluation details are provided in Appendix G. 
+
+Failure and No-Change groups. Table 2 shows that CM is near-perfect (97–100%) across all state-preserving operations, confirming that every model correctly withholds predicted state changes when none are warranted. FM exhibits wider variation. Notably, Claude-Sonnet-4.6 achieves only 15% FM on the Failure group despite 100% CM. A divergence that reveals a systematic output-format mismatch : the model omits the enclosing structured response schema and returns only the inner message string. Concretely, whereas the ground-truth observation ot takes the form of a key-value structured response ⟨status : false , msg : ε⟩, the model outputs only ε directly. MiniMax-M2.7 exhibits the same unwrapping behavior on success-type responses. Because this mismatch is an artifact of a formatting convention rather than a reasoning failure, CM remains unaffected. We adopt CM as the primary cross-model reasoning metric throughout. 6Table 2: Results on Failure and No-Change samples. Bold : column-wise maximum; red: column-wise minimum.                                                                    
+
+> Fail No-Chg(0) No-Chg(1) Avg Model FM CM FM CM FM CM FM CM DeepSeek-V3.2 85% 100% 85% 100% 82.5% 100% 84% 100%
+> Qwen3.5-397B-A17B 90% 100% 85% 100% 77.5% 100% 83% 100%
+> GPT-5.4 90% 100% 65% 100% 67.5% 100% 71% 100%
+> Gemini-3.1-Pro-Preview 95% 100% 77.5% 100% 70% 100% 78% 100%
+> Claude-Sonnet-4.6 15% 100% 80% 97.5% 77.5% 100% 66% 99% MiniMax-M2.7 80% 100% 67.5% 97.5% 62.5% 100% 68% 99% GLM-5 90% 100% 77.5% 100% 70% 100% 77% 100%
+
+Table 3: Averaged results on state-changing groups. CM degrades sharply with |∆|. Bold : column-wise maximum; red: column-wise minimum.                                                   
+
+> Simple (avg) Medium (avg) Difficult (avg) Model FM CM FM CM FM CM DeepSeek-V3.2 80% 22% 76.5% 8.5% 26% 4% Qwen3.5-397B-A17B 84% 46% 65.0% 17.0% 42% 24% GPT-5.4 80% 40% 75.0% 17.5% 74% 26% Gemini-3.1-Pro-Preview 96% 48% 68.0% 17.5% 68% 18% Claude-Sonnet-4.6 10% 40% 12.5% 12.0% 12% 16% MiniMax-M2.7 32% 50% 22.0% 16.0% 8% 22% GLM-5 94% 44% 81.5% 14.0% 70% 28%
+
+State-changing groups (Simple / Medium / Difficult). Table 3 summarizes CM and FM across groups requiring actual state updates. CM degrades sharply with |∆|: most models fall below 20% on Medium and approach zero on Difficult, while FM remains substantially higher throughout. This persistent FM–CM gap reveals that models can generate surface-plausible response strings for an action without faithfully tracing the induced state transition T (st, a t). Detailed per-|∆| breakdowns appear in Appendix A. Table 4: Overall results. CM is robust to output-format variation; FM is depressed for models with format-unwrapping behavior (Claude-Sonnet-4.6, MiniMax-M2.7). Bold : column-wise maximum; red: column-wise minimum.                                                   
+
+> Fail+No-Chg State-Change Overall Model FM CM FM CM FM CM DeepSeek-V3.2 84% 100% 68.7% 10.0% 72.5% 32.5% Qwen3.5-397B-A17B 83% 100% 64.3% 23.0% 69.0% 42.3%
+> GPT-5.4 71% 100% 75.7% 22.7% 74.5% 42.0% Gemini-3.1-Pro-Preview 78% 100% 72.7% 22.7% 74.0% 42.0% Claude-Sonnet-4.6 66% 99% 12.0% 17.3% 25.5% 37.8% MiniMax-M2.7 68% 99% 21.3% 22.7% 33.0% 41.8% GLM-5 77% 100% 81.7% 21.3% 80.5% 41.0%
+
+Finding 1: Substantial capability gaps exist across frontier LLMs. Overall CM ranges from 32.5% (DeepSeek-V3.2) to 42.3% (Qwen3.5-397B-A17B), a nearly 10 pp spread that originates entirely 
+
+from state-changing samples, since all models achieve ≥99% CM on state-preserving operations. On state-changing samples, DeepSeek-V3.2 achieves only 10.0% CM while the best frontier models reach 22–23%. This gap is not explained by model scale: DeepSeek-V3.2 scores competitively on standard reasoning benchmarks yet exhibits the largest CM deficit here, suggesting that EnvSim Ability is a capability orthogonal to general reasoning proficiency (strong reasoning does not imply strong simulation). 
+
+Finding 2 (State-change cliff): All models collapse in CM when |∆| ≥ 3. Per-|∆| results in Appendix A reveal a universal threshold. At |∆| = 1 , CM spans 36–72%; by |∆| = 5 , every model 7falls to ≤4%. Across all samples with |∆| ≥ 5, CM rates converge near zero: DeepSeek-V3.2 2.7%, Claude-Sonnet-4.6 6.0%, Gemini-3.1-Pro-Preview 9.3%, MiniMax-M2.7 10.7%, GPT-5.4 12.0%, GLM-5 11.3%. This threshold marks a qualitative transition rather than a gradual decline. Below it ( |∆| ≤ 4), models at least partially track state changes: getting some fields right while missing others. Above it ( |∆| ≥ 5), predictions collapse entirely: many models output b∆ = ∅,reporting no state change at all, even though the corresponding real action actually needs to modify a large number of state fields. A partial CM recovery visible at |∆| = 7 for several models is not evidence of improved capability but reflects a structural artifact: high-|∆| samples that models answer correctly are dominated by bulk-uniform operations whose changes instantiate a single repeating template, a qualitatively easier task than the heterogeneous multi-field updates that cause the cliff (see Appendix A.4). 
+
+Finding 3: FM and CM expose two partially orthogonal failure modes. Format mismatch is model-specific and |∆|-independent: models that omit the enclosing response schema show FM near 10–15% even on state-preserving operations, while CM remains at 97–100%. This failure is absent from the CM column, confirming CM as the more reliable reasoning metric. 
+
+State-tracking failure is universal and |∆|-dependent, manifesting in three sub-patterns: (i) models systematically neglect auxiliary state updates induced as side effects of the primary action; (ii) fields whose values are determined only at execution time(such as clock-generated timestamps), cannot be correctly predicted without actually running the transition logic; and (iii) , most consequentially, a model may produce ˆot = ot while simultaneously computing ˆs′
+
+> t
+
+̸ = s′
+
+> t
+
+, giving the agent no divergence signal whatsoever. On |∆| ≥ 3 samples where CM fails, 50–64% of failures also have FM = 1 for DeepSeek-V3.2, GLM-5, GPT-5.4, and Gemini-3.1-Pro-Preview. This means the environment state is silently corrupted while the agent’s reward signal remains intact. Quantitative breakdowns and cross-model case studies for all three sub-patterns are provided in Appendix D. 
+
+5.2 Evaluation of Small Models: Before and After SFT Setup. We fine-tune Qwen3-4B-Base via full-parameter SFT on 2 ×A800 (80 GB) GPUs, evaluating on an env_id holdout set that excludes all 167 benchmark environments from training. A pre-SFT scaling baseline confirms that specialization is required beyond scale alone (Appendix I). Full hyperparameter details and training method comparisons are provided in Appendix G. Full-parameter SFT substantially improves FM ( 27% → 72 .8% , 2.7×) and corrects output-schema alignment; the state-change cliff persists at the 5K-sample scale, confirming it as a fundamental capability gap. Detailed per-group results and a comparison of training strategies are reported in Appendix J. 
+
+Finding 4: Reasoning-augmented traces do not consistently improve CM at 5K samples. As shown in Table 19, full SFT with structured reasoning traces achieves 30.3% CM, compared with 35.0% without structured reasoning, a 4.7 pp regression. Traces hurt on Simple samples (20% vs. 34%), likely adding distributional noise where transition logic is short, while providing a modest gain on Difficult samples (10% vs. 6%). We speculate that consistent benefits require either substantially more data ( ≥20K samples) or difficulty-conditioned routing that applies traces selectively to complex samples. 
+
+Finding 5 (Data composition): Composition governs generalization more strongly than volume. 
+
+We train Balance2 by mirroring the empirical difficulty distribution of |∆| across source environments: 1,000 failure + 1,000 no-change + 2,000 simple-change + 2,230 complex-change samples (6,230 total). This balanced coverage prevents the model from developing pathological biases toward any single difficulty tier. A full composition ablation comparing alternative data mixtures is provided in Table 17 (Appendix H).Balance2 achieves 45.3% overall CM and 79.5% FM, surpassing all frontier LLMs on CM (+3 .0 pp over Qwen3.5-397B-A17B) and nearly matching the best FM (79.5% vs. 80.5% for GLM-5). The advantage is concentrated in the deployable regime: Balance2 leads by up to 
+
++10 pp at |∆| ∈ { 1, 2, 3, 4}, while all approaches converge near zero at |∆| ≥ 5. Figure 3 visualizes Balance2’s per-|∆| advantage over all frontier models across the Simple and Medium tiers. 
+
+Downstream Validation: EnvScaler Pipeline. We integrate Full-Balance2 into the EnvScaler synthesis pipeline in place of its large-model ensemble. Synthesized environments are retained only if their pass accuracy meets a quality threshold of 0.85. The original pipeline yields 191 passing environments; Full-Balance2 yields 204, a 6.8% improvement in synthesis yield, with approximately 80 1 2 3 4 5 6 7+ 
+
+0% 
+
+10% 
+
+20% 
+
+30% 
+
+40% 
+
+50% 
+
+60% 
+
+70% 
+
+80% 
+
+90% 
+
+100%   
+
+> NO -CHANGE (∆= 0)
+> SIMPLE ( ∆=1 - 2) MEDIUM ( ∆=3 - 6)
+> DIFFICULT (∆=7 - 12)
+> ↑+8 pp
+> ↑+8 pp
+> ↑+8 pp
+> ↑+10 pp
+
+Number of Changed Fields ( ∆)
+
+> Config Match (%)
+> DeepSeek-v3.2
+> GPT-5.4
+> Gemini-3.1-Pro
+> Claude-Sonnet-4.6
+> Qwen3.5-397B
+> GLM-5
+> MiniMax-M2.7
+> Ours (Full-Balance2)
+
+Figure 3: Config Match vs. |∆|: Full-Balance2 vs. frontier LLMs. All frontier models (thin lines) drop sharply at |∆| ≥ 3. Balance2 (violet, thick) outperforms all frontier LLMs at |∆| ∈ { 1, 2, 3, 4}
+
+by up to +10 pp. Both collapse toward near-zero at |∆| ≥ 5.
+
+59 × lower parameter count. This demonstrates that targeted specialization at the 4B scale is Pareto-superior to frontier-model pipelines on both cost and synthesis quality. 
+
+## 6 Discussion and Conclusion 
+
+Why is environment simulation hard? Our results expose two orthogonal failure modes. Format mismatch generates structurally different feedback strings that fail exact matching despite correct semantics, motivating semantic metrics as future complements to FM. State tracking failure affects all models: predicting which nested fields change and to what values requires faithful execution of the tool’s logic, a capability closer to program execution than to language modeling. Our SFT approach partially addresses this, but cases with ∆ ≥ 5 remain challenging. 
+
+Cost-quality trade-off. Full-Balance2 surpasses all frontier LLMs on CM (45.3% vs. 42.3%) and nearly matches the best FM (79.5% vs. 80.5%), while running at dramatically lower cost, both on the benchmark and in the downstream synthesis pipeline. This demonstrates that EnvSimBench enables principled cost-quality comparison and targeted model improvement. 
+
+Limitations. (1) Benchmark sample size and statistical reliability. Fine-grained per-|∆| analysis in the Difficult group rests on strata as small as n = 4 –6, where a single sample shifts CM by 17–25 pp. The Failure group ( n = 20 ) shows the same fragility. Deterministic ground-truth labels do not eliminate selection-induced sampling variance, and bootstrap error bounds should accompany all quantitative findings in future work. (2) Circular downstream evaluation. The synthesis quality filter overlaps in distribution with SFT training data, introducing circular validation. Scarcity of high-|∆| training samples further compounds this; targeted data augmentation for |∆| ≥ 5 remains the primary open challenge. 
+
+Conclusion. We introduced EnvSimBench, a benchmark that reframes LLM environment simulation as a fully observable state prediction task, enabling objective, LLM-free evaluation across 400 samples and 167 diverse tool-interactive environments. Our central finding, the state-change cliff, reveals that simulation fidelity is a capability orthogonal to general reasoning ability and degrades catastrophically 9beyond three simultaneous state updates. A constraint-driven MDP paradigm addresses this by making transition logic explicit, and targeted fine-tuning with balanced data composition produces a 4B model that surpasses all frontier LLMs on Config Match while reducing synthesis costs by over 90×. We release EnvSimBench as a public diagnostic framework and hope it grounds future research on reliable environment simulation, a prerequisite for trustworthy scalable agent training. 
+
+## Acknowledgments and Disclosure of Funding References 
+
+[1] Junyu Luo, Weizhi Zhang, Ye Yuan, Yusheng Zhao, Junwei Yang, Yiyang Gu, Bohan Wu, Binqi Chen, Ziyue Qiao, Qingqing Long, Rongcheng Tu, Xiao Luo, Wei Ju, Zhiping Xiao, Yifan Wang, Meng Xiao, Chenwu Liu, Jingyang Yuan, Shichang Zhang, Yiqiao Jin, Fan Zhang, Xian Wu, Hanqing Zhao, Dacheng Tao, Philip S. Yu, and Ming Zhang. Large language model agent: A survey on methodology, applications and challenges, 2025. [2] Shunyu Yao, Noah Shinn, Pedram Razavi, and Karthik R Narasimhan. τ -bench: A benchmark for tool-agent-user interaction in real-world domains. In The Thirteenth International Conference on Learning Representations , 2025. [3] Cheng Qian, Zuxin Liu, Akshara Prabhakar, Zhiwei Liu, Jianguo Zhang, Haolin Chen, Heng Ji, Weiran Yao, Shelby Heinecke, Silvio Savarese, Caiming Xiong, and Huan Wang. Userbench: An interactive gym environment for user-centric agents, 2025. [4] Shishir G. Patil, Huanzhi Mao, Charlie Cheng-Jie Ji, Fanjia Yan, Vishnu Suresh, Ion Stoica, and Joseph E. Gonzalez. The berkeley function calling leaderboard (bfcl): From tool use to agentic evaluation of large language models. In Advances in Neural Information Processing Systems , 2024. [5] Jiarui Lu, Thomas Holleis, Yizhe Zhang, Bernhard Aumayer, Feng Nan, Felix Bai, Shuang Ma, Shen Ma, Mengyu Li, Guoli Yin, Zirui Wang, and Ruoming Pang. Toolsandbox: A stateful, conversational, interactive evaluation benchmark for llm tool use capabilities, 2025. [6] Yuchen Huang, Sijia Li, Zhiyuan Fan, Minghao LIU, Wei Liu, and Yi R. Fung. Scaling environments for LLM agents: Fundamentals, approaches, and future directions. In Workshop on Scaling Environments for Agents , 2025. [7] DeepSeek-AI, Aixin Liu, Aoxue Mei, Bangcai Lin, Bing Xue, Bingxuan Wang, Bingzheng Xu, Bochao Wu, Bowei Zhang, Chaofan Lin, Chen Dong, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenhao Xu, Chong Ruan, Damai Dai, Daya Guo, Dejian Yang, Deli Chen, Erhang Li, Fangqi Zhou, Fangyun Lin, Fucong Dai, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Hanwei Xu, Hao Li, Haofen Liang, Haoran Wei, Haowei Zhang, Haowen Luo, Haozhe Ji, Honghui Ding, Hongxuan Tang, Huanqi Cao, Huazuo Gao, Hui Qu, Hui Zeng, Jialiang Huang, Jiashi Li, Jiaxin Xu, Jiewen Hu, Jingchang Chen, Jingting Xiang, Jingyang Yuan, Jingyuan Cheng, Jinhua Zhu, Jun Ran, Junguang Jiang, Junjie Qiu, Junlong Li, Junxiao Song, Kai Dong, Kaige Gao, Kang Guan, Kexin Huang, Kexing Zhou, Kezhao Huang, Kuai Yu, Lean Wang, Lecong Zhang, Lei Wang, Liang Zhao, Liangsheng Yin, Lihua Guo, Lingxiao Luo, Linwang Ma, Litong Wang, Liyue Zhang, M. S. Di, M. Y Xu, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Mingxu Zhou, Panpan Huang, Peixin Cong, Peiyi Wang, Qiancheng Wang, Qihao Zhu, Qingyang Li, Qinyu Chen, Qiushi Du, Ruiling Xu, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, Runqiu Yin, Runxin Xu, Ruomeng Shen, Ruoyu Zhang, S. H. Liu, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shaofei Cai, Shaoyuan Chen, Shengding Hu, Shengyu Liu, Shiqiang Hu, Shirong Ma, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, Songyang Zhou, Tao Ni, Tao Yun, Tian Pei, Tian Ye, Tianyuan Yue, Wangding Zeng, Wen Liu, Wenfeng Liang, Wenjie Pang, Wenjing Luo, Wenjun Gao, Wentao Zhang, Xi Gao, Xiangwen Wang, Xiao Bi, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaokang Zhang, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xingkai Yu, Xingyou Li, Xinyu Yang, Xinyuan Li, Xu Chen, Xuecheng Su, Xuehai Pan, Xuheng Lin, Xuwei Fu, Y. Q. Wang, Yang Zhang, Yanhong Xu, Yanru Ma, Yao Li, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Qian, Yi Yu, Yichao Zhang, Yifan Ding, Yifan Shi, Yiliang Xiong, Ying He, Ying Zhou, Yinmin Zhong, Yishi Piao, Yisong Wang, Yixiao Chen, Yixuan Tan, Yixuan Wei, Yiyang Ma, Yiyuan Liu, Yonglun Yang, Yongqiang Guo, Yongtong Wu, Yu Wu, Yuan Cheng, Yuan Ou, Yuanfan Xu, Yuduan Wang, Yue Gong, Yuhan Wu, Yuheng Zou, Yukun Li, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Z. F. Wu, Z. Z. Ren, Zehua Zhao, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhibin Gou, Zhicheng Ma, Zhigang Yan, Zhihong Shao, Zhixian Huang, Zhiyu Wu, Zhuoshu Li, Zhuping Zhang, Zian Xu, Zihao Wang, Zihui Gu, Zijia Zhu, Zilin Li, Zipeng Zhang, Ziwei Xie, Ziyi Gao, Zizheng Pan, Zongqing Yao, Bei Feng, Hui Li, J. L. Cai, Jiaqi Ni, Lei Xu, Meng Li, Ning Tian, R. J. Chen, R. L. Jin, S. S. Li, Shuang Zhou, Tianyu Sun, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xinnan Song, 
+
+10 Xinyi Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, Dongjie Ji, Jian Liang, Jianzhong Guo, Jin Chen, Leyi Xia, Miaojun Wang, Mingming Li, Peng Zhang, Ruyi Chen, Shangmian Sun, Shaoqing Wu, Shengfeng Ye, T. Wang, W. L. Xiao, Wei An, Xianzu Wang, Xiaowen Sun, Xiaoxiang Wang, Ying Tang, Yukun Zha, Zekai Zhang, Zhe Ju, Zhen Zhang, and Zihua Qu. Deepseek-v3.2: Pushing the frontier of open large language models, 2025. [8] Romain Froger, Pierre Andrews, Matteo Bettini, Amar Budhiraja, Ricardo Silveira Cabral, Virginie Do, Emilien Garreau, Jean-Baptiste Gaya, Hugo Laurençon, Maxime Lecanu, Kunal Malkan, Dheeraj Mekala, Pierre Ménard, Gerard Moreno-Torres Bertran, Ulyana Piterbarg, Mikhail Plekhanov, Mathieu Rita, Andrey Rusakov, Vladislav Vorotilov, Mengjue Wang, Ian Yu, Amine Benhalloum, Grégoire Mialon, and Thomas Scialom. Are: Scaling up agent environments and evaluations, 2025. [9] Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and Karthik R Narasimhan. SWE-bench: Can language models resolve real-world github issues? In The Twelfth International Conference on Learning Representations , 2024. [10] Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Yonatan Bisk, Daniel Fried, Uri Alon, and Graham Neubig. Webarena: A realistic web environment for building autonomous agents. In The Twelfth International Conference on Learning Representations , 2024. [11] Mohit Shridhar, Xingdi Yuan, Marc-Alexandre Cote, Yonatan Bisk, Adam Trischler, and Matthew Hausknecht. {ALFW}orld: Aligning text and embodied environments for interactive learning. In 
+
+International Conference on Learning Representations , 2021. [12] Yuetai Li, Huseyin A Inan, Xiang Yue, Wei-Ning Chen, Lukas Wutschitz, Janardhan Kulkarni, Radha Poovendran, Robert Sim, and Saravan Rajmohan. Simulating environments with reasoning models for agent training, 2025. [13] Xiaoshuai Song, Haofei Chang, Guanting Dong, Yutao Zhu, Ji-Rong Wen, and Zhicheng Dou. Envscaler: Scaling tool-interactive environments for llm agent via programmatic synthesis, 2026. [14] Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Ye Jin Bang, Andrea Madotto, and Pascale Fung. Survey of hallucination in natural language generation. ACM Computing Surveys , 55(12):1–38, March 2023. [15] Shishir G Patil, Tianjun Zhang, Xin Wang, and Joseph E Gonzalez. Gorilla: Large language model connected with massive apis. arXiv preprint arXiv:2305.15334 , 2023. [16] Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu, Tingchen Fu, Xinting Huang, Enbo Zhao, Yu Zhang, Chen Xu, Yulong Chen, Longyue Wang, Anh Tuan Luu, Wei Bi, Freda Shi, and Shuming Shi. Siren’s song in the ai ocean: A survey on hallucination in large language models, 2025. [17] Yangjun Ruan, Honghua Dong, Andrew Wang, Silviu Pitis, Yongchao Zhou, Jimmy Ba, Yann Dubois, Chris J. Maddison, and Tatsunori Hashimoto. Identifying the risks of lm agents with an lm-emulated sandbox, 2024. [18] Yanai Elazar, Nora Kassner, Shauli Ravfogel, Abhilasha Ravichander, Eduard Hovy, Hinrich Schütze, and Yoav Goldberg. Measuring and improving consistency in pretrained language models. Transactions of the Association for Computational Linguistics , 9:1012–1031, 2021. [19] Akshara Prabhakar, Zuxin Liu, Ming Zhu, Jianguo Zhang, Tulika Awalgaonkar, Shiyu Wang, Zhiwei Liu, Haolin Chen, Thai Hoang, Juan Carlos Niebles, Shelby Heinecke, Weiran Yao, Huan Wang, Silvio Savarese, and Caiming Xiong. Apigen-mt: Agentic pipeline for multi-turn data generation via simulated agent-human interplay, 2025. [20] Frans A Oliehoek and Christopher Amato. A Concise Introduction to Decentralized POMDPs . Springer, 2016. [21] Matthew Hausknecht, Prithviraj Ammanabrolu, Marc-Alexandre Côté, and Xingdi Yuan. Interactive fiction games: A colossal adventure, 2020. [22] Shunyu Yao, Howard Chen, John Yang, and Karthik Narasimhan. Webshop: Towards scalable real-world web interaction with grounded language agents, 2023. [23] Shuyan Zhou, Frank F. Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan Bisk, Daniel Fried, Uri Alon, and Graham Neubig. Webarena: A realistic web environment for building autonomous agents, 2024. 
+
+11 [24] Carlos E. Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and Karthik Narasimhan. Swe-bench: Can language models resolve real-world github issues?, 2024. [25] Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu Lai, Yu Gu, Hangliang Ding, Kaiwen Men, Kejuan Yang, Shudan Zhang, Xiang Deng, Aohan Zeng, Zhengxiao Du, Chenhui Zhang, Sheng Shen, Tianjun Zhang, Yu Su, Huan Sun, Minlie Huang, Yuxiao Dong, and Jie Tang. Agentbench: Evaluating llms as agents, 2025. [26] Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Samuel Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web: Towards a generalist agent for the web, 2023. [27] Aohan Zeng, Mingdao Liu, Rui Lu, Bowen Wang, Xiao Liu, Yuxiao Dong, and Jie Tang. Agenttuning: Enabling generalized agent abilities for llms, 2023. [28] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang, Bill Qian, Sihan Zhao, Lauren Hong, Runchu Tian, Ruobing Xie, Jie Zhou, Mark Gerstein, dahai li, Zhiyuan Liu, and Maosong Sun. Toolllm: Facilitating large language models to master 16000+ real-world apis. In B. Kim, Y. Yue, S. Chaudhuri, K. Fragkiadaki, M. Khan, and Y. Sun, editors, International Conference on Learning Representations , volume 2024, pages 9695–9717, 2024. [29] Yue Huang, Jiawen Shi, Yuan Li, Chenrui Fan, Siyuan Wu, Qihui Zhang, Yixin Liu, Pan Zhou, Yao Wan, Neil Zhenqiang Gong, and Lichao Sun. Metatool benchmark for large language models: Deciding whether to use tools and which to use. In The Twelfth International Conference on Learning Representations , 2024. [30] Victor Barres, Honghua Dong, Soham Ray, Xujie Si, and Karthik Narasimhan. τ 2-bench: Evaluating conversational agents in a dual-control environment, 2025. [31] Akshara Prabhakar, Zuxin Liu, Ming Zhu, Jianguo Zhang, Tulika Manoj Awalgaonkar, Shiyu Wang, Zhiwei Liu, Haolin Chen, Thai Quoc Hoang, Juan Carlos Niebles, Shelby Heinecke, Weiran Yao, Huan Wang, Silvio Savarese, and Caiming Xiong. APIGen-MT: Agentic pipeline for multi-turn data generation via simulated agent-human interplay. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2026. [32] Yaowei Zheng, Richong Zhang, Junhao Zhang, Yanhan Ye, and Zheyan Luo. LlamaFactory: Unified efficient fine-tuning of 100+ language models. In Yixin Cao, Yang Feng, and Deyi Xiong, editors, 
+
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations) , pages 400–410, Bangkok, Thailand, August 2024. Association for Computational Linguistics. [33] Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase, and Yuxiong He. Zero: memory optimizations toward training trillion parameter models. In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis , SC ’20. IEEE Press, 2020. 
+
+12 A Detailed Per-Delta Experimental Results 
+
+A.1 Simple Group ( ∆ ∈ { 1, 2})
+
+Table 5: Results on Simple Group. Bold : column-wise maximum; red: column-wise minimum. 
+
+∆ = 1 ∆ = 2 Average Model FM CM FM CM FM CM DeepSeek-V3.2 80% 36% 80% 8% 80% 22% Qwen3.5-397B-A17B 84% 64% 84% 28% 84% 46% GPT-5.4 84% 60% 76% 20% 80% 40% Gemini-3.1-Pro-Preview 100% 68% 92% 28% 96% 48% Claude-Sonnet-4.6 8% 56% 12% 24% 10% 40% MiniMax-M2.7 40% 72% 24% 28% 32% 50% GLM-5 96% 64% 92% 24% 94% 44% Full-Balance2 96% 80% 88% 36% 92% 58% 
+
+A.2 Medium Group ( ∆ ∈ { 3, 4, 5, 6})
+
+Table 6: Results on Medium Group. Bold : column-wise maximum; red: column-wise minimum. 
+
+∆ = 3 ∆ = 4 ∆ = 5 ∆ = 6 Avg Model FM CM FM CM FM CM FM CM FM CM DeepSeek-V3.2 86% 24% 88% 6% 74% 4% 58% 0% 76.5% 8.5% Qwen3.5-397B-A17B 78% 30% 62% 30% 60% 2% 60% 6% 65% 17% GPT-5.4 82% 36% 70% 24% 74% 2% 74% 8% 75% 17.5% Gemini-3.1-Pro-Preview 90% 36% 74% 24% 80% 4% 28% 6% 68% 17.5% Claude-Sonnet-4.6 0% 30% 0% 16% 22% 0% 28% 2% 12.5% 12% MiniMax-M2.7 24% 28% 28% 26% 26% 2% 10% 8% 22% 16% GLM-5 90% 28% 86% 22% 90% 2% 60% 4% 81.5% 14% Full-Balance2 92% 44% 98% 40% 94% 2% 74% 8% 89.5% 23.5% 
+
+A.3 Difficult Group ( ∆ ∈ { 7, . . . , 12 })
+
+Table 7: Results on Difficult Group, per ∆ value and averaged. Bold : column-wise maximum; red: column-wise minimum. The CM rebound at ∆ = 7 reflects bulk-uniform operations (see Appendix A.4) 
+
+∆ = 7 ∆ = 8 ∆ = 9 ∆ = 10 ∆ = 11 ∆ = 12 Avg Model FM CM FM CM FM CM FM CM FM CM FM CM FM CM DeepSeek-V3.2 19% 6% 25% 0% 20% 0% 55% 9% 0% 0% 25% 0% 26% 4% Qwen3.5-397B-A17B 63% 38% 38% 25% 0% 0% 45% 18% 33% 17% 25% 25% 42% 24% GPT-5.4 88% 44% 100% 25% 60% 0% 73% 18% 50% 17% 25% 25% 74% 26% Gemini-3.1-Pro-Preview 63% 31% 88% 13% 40% 0% 64% 18% 83% 0% 75% 25% 68% 18% Claude-Sonnet-4.6 19% 13% 25% 25% 0% 0% 9% 18% 0% 17% 0% 25% 12% 16% MiniMax-M2.7 13% 50% 0% 0% 0% 0% 18% 18% 0% 0% 0% 25% 8% 22% GLM-5 75% 44% 63% 25% 60% 20% 73% 18% 83% 17% 50% 25% 70% 28% 
+
+A.4 Non-Monotonicity at |∆| ≥ 7: Bulk-Uniform Operations 
+
+Per-|∆| results show a partial CM recovery at |∆| = 7 , where Gemini 3.1 Pro, GLM-5, MiniMax-M2.7, and GPT-5.4 reach 31–50% CM before collapsing again at |∆| ≥ 8. This rebound is not evidence of improved state-tracking capability. Inspection of the 15 Difficult-group samples on which at least one model achieves CM = True reveals a consistent structural regularity. Every such sample 13 corresponds to a bulk-uniform operation, in which a single tool call produces N structurally identical changes under the same path prefix. Two dominant patterns account for nearly all recoveries. 
+
+Pattern 1: Consecutive date-entry additions. A tool call such as 
+
+block_dates(property_id, start, end) adds one availability record per day across a date range, yielding |∆| = N changes that all follow an identical template: 
+
+availability_calendar.{property_id}.{YYYY-MM-DD} ←{status: blocked} , with keys that are consecutive calendar dates. Sample 376 ( |∆| = 10 ) exemplifies this: all six models answer correctly, because identifying the pattern “add blocked entries for 2025-05-01 through 2025-05-10” reduces the task to enumerating a date sequence. No independent value derivation is required per entry. Samples 397 ( |∆| = 12 ) and 352 ( |∆| = 7 ) follow the same structure and achieve 5/6 and 5/6 correct respectively. 
+
+Pattern 2: Multi-field update on a single object. A call that overwrites all fields of one record (e.g., 
+
+update_reservation ) produces |∆| equal to the number of updatable fields. Still, every change concerns the same object (e.g., reservations.RES2.* ) and its values are read directly from the call arguments. Sample 377 ( |∆| = 10 ) achieves 5/6 correct for exactly this reason: no cross-object inference or runtime-value derivation is required. The contrast with Medium-group failures is instructive. A |∆| = 5 sample such as verify_otp 
+
+requires five heterogeneous updates across three sub-objects, including a clock-generated timestamp whose value is unknowable without executing the transition logic. Each field demands an independent derivation. Bulk-uniform samples collapse this complexity into a single template instantiated N
+
+times, structurally easier despite the larger |∆|.This distinction has a direct implication for benchmark design. The Difficult tier currently conflates two qualitatively different difficulty sources: heterogeneous multi-field updates, which cause a permanent CM collapse, and homogeneous bulk updates, which remain tractable at high |∆|. Future iterations of EnvSimBench should stratify these two sub-types separately to provide more precise diagnostic resolution at the upper end of the complexity axis. 
+
+## B Benchmark Construction Pipeline (Detailed) 
+
+Figure 4 illustrates the full sample-selection pipeline with three-axis stratification and the diversity rule—the pipeline proceeds in three stages. 
+
+Stage 1: trajectory collection. GPT-4o-mini is deployed as an agent across all 191 EnvScaler environments, executing up to 30 steps per environment. At each step t ≥ 1, the Python executor records the complete quadruple (a, o, s, s ′): the tool call, the resulting observation, the before-config, and the after-config, along with the derived change set ∆( s, s ′). Step 0 is discarded (no before-config exists for the initial state). This yields a large pool of candidate single-turn state prediction samples. 
+
+Stage 2: three-axis stratification and filtering. Candidate samples are classified simulta-neously along the three axes described in Section 4. Axis 1 partitions by action outcome (success=True/False ); Axis 2 partitions the success group by |∆| into No-Change, Simple, Medium, and Difficult; Axis 3 further splits Failure and No-Change subgroups by input argument cardinality (0 vs. 1). Each resulting subgroup is then subsampled to its target count (Table 1). 
+
+Stage 3: diversity rule. Within each subgroup, samples are selected greedily to maximize the number of distinct env_id s covered. If the target count exceeds the number of available environments in the subgroup, multiple samples per environment are permitted, prioritizing those with different |∆|
+
+values. This rule ensures that the 400 benchmark samples span 167 distinct environments rather than being concentrated in a few high-trajectory environments, providing broad domain coverage for evaluation. 
+
+## C Performance Visualizations 
+
+C.1 Bar Chart Analysis: Per-Group FM and CM (Figure 5) 
+
+Figure 5 renders FM (filled bars) and CM (hatched bars) side by side for all seven frontier models across the six difficulty subgroups. Reading across panels reveals four visual signatures. 14 Figure 4: Benchmark construction pipeline. Left : Multi-turn trajectories from 191 EnvScaler environments are collected by a GPT-4o-mini agent and preprocessed into single-turn (a, o, s, s ′)
+
+samples; Step 0 (no before-config) is discarded. Center : Three-axis stratification partitions the pool by action outcome, state-change complexity, and input argument cardinality. Right : A diversity rule maximizes distinct env_id s per subgroup, yielding 400 samples across 167 environments with Python-executed ground truth. 
+
+Panels (a) Fail and (b) No-Change: format divergence with perfect state prediction. CM bars are uniformly at or near 100% across all models, forming a flat ceiling, confirming that none hallucinates a state change when none is expected. The striking exception is Claude-Sonnet-4.6 in Panel (a): its FM bar drops to approximately 15% while its CM bar stays at 100%, creating a visually dramatic gap that is immediately identifiable as a format-divergence signature rather than a reasoning failure. MiniMax-M2.7 shows a milder version of the same pattern across both panels. GPT-5.4 presents an interesting mirror image in Panel (b): its FM drops to 65% on No-Change samples (the lowest of all models), not due to format divergence but because it sometimes generates incorrect feedback content 
+
+on zero-argument, no-change calls, a distinct failure mode from Claude’s unwrapping behavior. 
+
+Panel (c) Simple ( |∆| ∈ { 1, 2}): FM–CM gap emerges. The FM–CM gap now appears for all models: FM bars (60–96%) tower above CM bars (22–50%), visualizing that models can routinely generate plausible feedback strings while getting the state transition wrong. Gemini-3.1-Pro-Preview exhibits the tallest CM bar (48%) and the highest FM bar (96%) in this panel, making it the strongest overall performer at low complexity. DeepSeek-V3.2 stands out with the shortest CM bar (22%), far below its FM bar (80%), consistent with its large FM–CM gap identified in Appendix F. 
+
+Panels (d) Medium ( |∆| ∈ { 3–6}) and (e) Difficult ( |∆| ∈ { 7–12 }): the cliff floor. Panel (d) shows the cliff in transition: CM bars have collapsed to roughly 8–17% across all models, while FM bars remain in the 12–82% range. The visual contrast between tall FM bars and nearly absent CM bars is most extreme for GLM-5 (FM 81.5%, CM 14%) and DeepSeek-V3.2 (FM 76.5%, CM 8.5%), both of which generate fluent feedback while almost entirely losing track of state. Panel (e) continues the trend: CM bars for all models are visually indistinguishable from zero (2–28%), confirming that the state-change cliff is a hard performance floor rather than a gradual decline. Interestingly, in Panel (e), GPT-5.4 and GLM-5 maintain relatively taller FM bars (74% and 70% respectively), which at this delta level mostly reflects correct high-level feedback language rather than correct state. The gap between language modeling and code execution is widest here. 
+
+Panel (f) Overall: model ranking summary. The aggregate view makes the cross-model contrast most accessible. GLM-5 has the tallest FM bar (80.5%) but a moderate CM bar (41.0%). Qwen3.5-397B-A17B has the tallest CM bar (42.3%). The two format-divergent models, Claude-Sonnet-4.6 and MiniMax-M2.7, have the shortest FM bars despite having CM bars comparable to the other models. Low FM does not imply low CM. 15 DS-v3.2  
+
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (a) Fail Performance
+> DS-v3.2
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (b) No-Change Performance
+> DS-v3.2
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (c) Simple Group Performance
+> DS-v3.2
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (d) Medium Group Performance
+> DS-v3.2
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (e) Difficult Group Performance
+> DS-v3.2
+> QW3.5
+> GPT-5.4
+> GEM3.1
+> CLA4.6
+> MM-M2.7
+> GLM-5
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 120
+> Percentage (%)
+> (f) Overall Performance
+> Feedback Match Config Match
+
+Figure 5: Frontier LLM performance across difficulty subgroups. FM (filled) and CM (hatched) for all seven models. Panels (a)–(b): near-perfect CM on non-mutating operations; format-divergence gap visible for Claude-Sonnet-4.6 and MiniMax-M2.7. Panels (c)–(e): the FM–CM gap widens as 
+
+|∆| grows, reaching near-zero CM on Difficult samples for all models. Panel (f): GLM-5 leads FM (80.5%); Qwen3.5-397B-A17B leads CM (42.3%). 
+
+C.2 Heatmap Analysis: FM and CM Across All Models and ∆ Levels (Figure 6) 
+
+Figure 6 presents two heatmaps, FM on the left, CM on the right, with models on the x-axis and ∆
+
+values (0 through 7–12) on the y-axis. Color encodes match rate from deep blue (high) to deep red (low). The two panels tell structurally different stories. 
+
+Left panel (FM): two vertical stripes of red. The dominant visual feature is a pair of uniformly red columns for Claude-Sonnet-4.6 and MiniMax-M2.7, spanning every row from ∆ = 0 to ∆ = 7 –12 .This column-uniform pattern is the visual signature of format divergence: the failure is identical in magnitude regardless of state-change complexity, confirming it is a formatting convention mismatch rather than a reasoning deficiency. The remaining five models show a mild top-to-bottom gradient(FM generally decreases slightly as ∆ increases). Still, the dominant pattern is horizontal homogeneity within each column, indicating that FM is primarily a model-level property rather than a complexity-level property. The Qwen3.5-397B-A17B column is notable for being the palest blue in the Simple and Medium rows among the non-divergent models, consistent with its above-average state tracking, which shows up as slightly reduced feedback fluency under complex operations. 
+
+Right panel (CM): horizontal stripes of blue collapsing to red. The dominant visual feature is the sharp horizontal transition: the top two rows ( ∆ = 0 and ∆ = 1 ) are deep blue across all models, indicating near-perfect or high CM; by ∆ = 3 , every column has transitioned toward pink or red; and from ∆ = 5 onward the entire panel is deep red, visually confirming the state-change cliff as a hard threshold rather than a smooth degradation. The transition is steeper than even the bar charts suggest: at ∆ = 2 , most columns already show light blue rather than deep blue (CM at 8–28%), while at 
+
+∆ = 5 the visual drop to near-red is universal. Two columns are worth isolating: the DeepSeek-V3.2 column is among the deepest red starting from ∆ = 2 (consistent with its 8% CM at ∆ = 2 ), while MiniMax-M2.7 shows a slightly paler red at ∆ = 1 and ∆ = 4 than its neighbors, which is consistent with its MiniMax-M2.7 leading CM at Simple (50%) and Medium (16%). 
+
+Comparing the two panels jointly. The most informative comparison is reading the same row across both panels. At ∆ = 5 , the FM panel shows a mixed landscape (blue for GLM-5 and DeepSeek-V3.2, red for the format-divergent models), while the CM panel shows uniform deep red for all models. 16 This asymmetry is the heatmap manifestation of Finding 3, sub-pattern (iii): high FM combined with low CM at the same delta level means models are generating correct-sounding feedback while entirely failing at state tracking. DS-v3.2 QW3.5 GPT-5.4 GEM3.1 CLA4.6 MM-M2.7 GLM-5                                                 
+
+> Frontier Models
+> =0 =1 =2 =3 =4 =5 =6 =7-12
+> Complexity (  Value)
+> 84.0 83.0 71.0 78.0 66.0 68.0 77.0
+> 80.0 84.0 84.0 100.0 8.0 40.0 96.0
+> 80.0 84.0 76.0 92.0 12.0 24.0 92.0
+> 86.0 78.0 82.0 90.0 0.0 24.0 90.0
+> 88.0 62.0 70.0 74.0 0.0 28.0 86.0
+> 74.0 60.0 74.0 80.0 22.0 26.0 90.0
+> 58.0 60.0 74.0 28.0 28.0 10.0 60.0
+> 26.0 42.0 74.0 68.0 12.0 8.0 70.0
+
+(a) Feedback Match: Capability Landscape                                                       
+
+> DS-v3.2 QW3.5 GPT-5.4 GEM3.1 CLA4.6 MM-M2.7 GLM-5
+> Frontier Models
+> =0 =1 =2 =3 =4 =5 =6 =7-12
+> Complexity (  Value)
+> 100.0 100.0 100.0 100.0 99.0 99.0 100.0
+> 36.0 64.0 60.0 68.0 56.0 72.0 64.0
+> 8.0 28.0 20.0 28.0 24.0 28.0 24.0
+> 24.0 30.0 36.0 36.0 30.0 28.0 28.0
+> 6.0 30.0 24.0 24.0 16.0 26.0 22.0
+> 4.0 2.0 2.0 4.0 0.0 2.0 2.0
+> 0.0 6.0 8.0 6.0 2.0 8.0 4.0
+> 4.0 24.0 26.0 18.0 16.0 22.0 28.0
+
+(b) Config Match: The State-Change Cliff 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Match Rate (%)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Match Rate (%)
+
+Figure 6: Heatmap view of FM and CM. Left (FM) : Uniformly red columns for Claude-Sonnet-4.6 and MiniMax-M2.7 across all ∆ The remaining columns show mild top-to-bottom gradients, confirming FM is primarily a model property. Right (CM) : Sharp horizontal transition from deep blue at ∆ ≤ 1 to deep red at ∆ ≥ 5, the state-change cliff as a visual phase boundary. Reading both panels at the same row ( ∆ = 5 ) reveals the FM–CM decoupling that makes simulation failures invisible to agents. 
+
+## D Extended Failure Mode Analysis 
+
+This appendix provides expanded qualitative and quantitative analyses of the three state-tracking fail-ure sub-patterns identified in Finding 3, together with cross-model comparisons on shared benchmark samples. Table 8: Format divergence examples. CM = 100% in all listed cases; FM = 0%. 
+
+Model Predicted feedback Ground-truth feedback 
+
+Claude Security not found {’success’: False, ’error’: ’Security not found’} 
+
+Claude No observations found for station ’ST001’ on 2024-04-19. {’success’: False, ’error’: ’No observations found...’} 
+
+Claude Exactly one of ’delta_memory’ or ’multiplier’ must be provided. {’success’: False, ’error’: ’Exactly one of...’} 
+
+MiniMax User reputation updated successfully. {’success’: True, ’message’: ’User reputation...’} 
+
+MiniMax Movie ’tt0111161’ updated successfully. {’success’: True, ’message’: "Movie ’tt0111161’..."} 
+
+17 D.1 Format Divergence: Full Example Set 
+
+As described in Finding 3, Claude-Sonnet-4.6 and MiniMax-M2.7 systematically unwrap the struc-tured response schema and return only the inner message string. Table 8 enumerates representative cases. In every instance, CM is 100% (state prediction is correct) while FM is 0% (string mismatch). This pattern holds uniformly across all difficulty levels and both success and failure operations. One edge case deserves attention: a second Claude failure-group example predicts "Workout scheduled successfully" where the ground truth is a failure response. Here, beyond the format mismatch, the model also misclassifies the error condition. The rare case where FM = 0 reflects a genuine semantic error rather than a pure formatting convention difference. This pattern reveals a counterintuitive deployment tradeoff: Claude-Sonnet-4.6 and MiniMax-M2.7, despite their low absolute FM, may be safer choices for simulation pipelines that use feedback mismatches as a reliability signal, since their errors are more likely to be visible to the monitoring layer. In contrast, models with near-perfect FM but poor CM produce silent corruptions that accumulate undetected. 
+
+D.2 State-Change Cliff: Cross-Model Analysis on Shared Samples Example 1: verify_otp (|∆| = 5 ). This call must update five fields across three sub-objects simultaneously. Table 9 shows all seven models’ field-level predictions on the same sample. Ground truth requires all five fields to be updated. Table 9: Cross-model field-level predictions on verify_otp (|∆| = 5 ). ✓ = correctly predicted; 
+
+× = missed or wrong value; † = path correctly identified but execution-time value wrong (stale-approximation error, sub-type (b) of Appendix D.3). Ground truth: all five fields must be updated.                                                         
+
+> Model is_ver. timestamp attempt is_used sess. FM CM
+> DeepSeek-V3.2 ××✓✓✓✓×
+> Qwen3.5-397B-A17B ✓†× ✓✓✓✓×
+> Gemini-3.1-Pro-Preview ××✓✓✓✓×
+> GLM-5 ××✓✓✓✓×
+> MiniMax-M2.7 ✓×✓✓×✓×
+> Claude-Sonnet-4.6 ✓××✓✓✓×
+> GPT-5.4 ×××××××
+
+Three patterns are salient. First, the runtime-generated timestamp field is missed by every model: set to the current epoch at call time, it cannot be inferred statically. Second, DeepSeek-V3.2, Gemini-3.1-Pro-Preview, and GLM-5 independently converge on the same three-field prediction, suggesting a shared attentional bias toward the most linguistically salient fields. Third, GPT-5.4 collapses to zero predicted changes despite generating a feedback string, the full cliff failure mode. A fourth pattern distinguishes Qwen3.5-397B-A17B from the other six: it is the only model to identify all five field paths, yet still fails CM because its predicted last_verification_timestamp (1774167900.0 )differs from the executor’s runtime value ( 1774167865.92 ). This is a stale-approximation error rather than a path-identification failure, placing it in sub-type (b) of Appendix D.3. 
+
+Example 2: return_equipment (|∆| = 5 ). The ground-truth transition requires four primary field updates plus one newly created auxiliary log record. Every model fails: • DeepSeek-V3.2 : correctly updates three primary fields; omits one primary field and the auxiliary log record. FM = True, CM = False. • Claude-Sonnet-4.6 : assigns a domain-plausible but code-absent value to the primary status field; omits the auxiliary record. FM = False, CM = False. • Gemini-3.1-Pro-Preview / GLM-5 / MiniMax-M2.7 : same incorrect status value as Claude; omit one primary field and the auxiliary record. FM = False, CM = False. • GPT-5.4 : correctly derives all four primary field values, the only model to do so, but fabricates a runtime-generated key for the auxiliary record that mismatches the executor’s output. FM = True, CM = False. 18 Across all |∆| ≥ 3 CM failures, models omit newly added components in 68–79% of cases where such additions exist, substantially exceeding the omission rate for modified components. Four models independently hallucinate the same domain-plausible but code-absent status value, illustrating how parametric world knowledge overrides code-grounded reasoning when the required value is not directly readable from code (at).
+
+D.3 Runtime-Dependent Values: Failure Taxonomy 
+
+Timestamp-bearing and runtime-generated fields appear in the ground truth of 23–28% of all |∆| ≥ 3
+
+CM failures across models (Table 10). A model performing static reasoning over code (at) cannot infer execution-time values without actually running the transition logic; it must either omit the field entirely or substitute a plausible but incorrect prior value. Three sub-patterns are observed. Table 10: Presence of runtime-dependent fields in |∆| ≥ 3 CM-failure samples.                
+
+> Model CM failures ( |∆| ≥ 3)With runtime field
+> DeepSeek-V3.2 231 24% Gemini-3.1-Pro-Preview 206 23% GPT-5.4 202 28% GLM-5 208 27% Claude-Sonnet-4.6 218 26% MiniMax-M2.7 207 28%
+
+(a) Complete omission. The model identifies the correct field path but omits it from b∆ entirely. Dominant pattern for DeepSeek-V3.2 and GLM-5. 
+
+(b) Stale-value substitution. The model includes the field with a plausible but stale value interpolated from the before-state st. In a representative case, a model predicts a stale proxy ˆvτ for a clock-dependent field while the executor writes the true runtime value v∗
+
+> τ
+
+̸ = ˆ vτ ; the surface response 
+
+ˆot = ot nonetheless matches (FM = 1, CM = 0). 
+
+(c) Transaction-ID key mismatch. For auto-generated record keys encoding a runtime epoch, a model must both create the record and predict the correct key. A correct record body with a wrong key still fails CM, a compound challenge of hidden side effect plus runtime dependency, as illustrated by GPT-5.4 in Example 2 above. 
+
+D.4 Plausible Feedback Masking Wrong State: Quantitative Breakdown 
+
+Table 11 reports the fraction of CM-failure samples that also pass FM at each |∆| level. These are the most dangerous cases for simulation-as-training: the agent’s reward signal is intact while the environment state is silently wrong. Table 11: Percentage of CM-failure samples that also pass FM, by |∆| level. High values indicate silent state corruption that is invisible to the agent. Bold : column-wise maximum; red: column-wise minimum.                                           
+
+> Model ∆ = 1 ∆ = 2 ∆ = 3 ∆ = 4 ∆ = 5 ∆ = 6
+> DeepSeek-V3.2 81% 78% 82% 87% 75% 58% GLM-5 89% 89% 86% 85% 90% 58% GPT-5.4 60% 70% 72% 63% 73% 72%
+> Gemini-3.1-Pro-Preview 100% 89% 84% 66% 79% 23% Claude-Sonnet-4.6 18% 11% 0% 0% 22% 29% MiniMax-M2.7 14% 28% 19% 35% 27% 9%
+
+For DeepSeek-V3.2, GLM-5, GPT-5.4, and Gemini-3.1-Pro-Preview, 60–100% of CM failures at every |∆| level are accompanied by FM = True: the agent sees no divergence signal. For Claude-Sonnet-4.6 and MiniMax-M2.7, the pattern inverts: their format divergence means errors are more likely also to fail FM, making divergence visible. This reveals a counterintuitive deployment tradeoff: models with format divergence, despite low absolute FM, may be safer for simulation pipelines that use feedback mismatches as a reliability signal. 19 In one representative case at |∆| = 3 , two models independently produce the correct surface response 
+
+ot but collapse a nested sub-object to a coarse scalar representation (losing field-level granularity) and substitute a stale value for the clock-dependent timestamp field: ˆot = ot but ˆs′
+
+> t
+
+̸ = s′
+
+> t
+
+. A third model generates correct feedback and correctly predicts two primary fields but omits the timestamp field entirely: both pass FM and fail CM. In a training pipeline, such silent divergences accumulate and systematically bias agent behavior. 
+
+## E Hallucination Case Studies 
+
+The introduction identifies three concrete failure modes of the LLM-based environment simulation: 
+
+hallucination (fabricating incorrect state transitions), logical inconsistency (violating inter-field constraints within the same response), and statelessness (ignoring the explicitly provided before-state). This appendix presents one benchmark sample that instantiates each failure mode, verified against Python-executed ground truth. 
+
+E.1 Failure Mode 1 Hallucination: Fabricating Non-Existent Constraint Violations 
+
+In this failure mode, the model invents a plausible business-rule violation to reject a call that the executor accepts. No such constraint exists in the tool code; the model substitutes reasoning grounded in real-world domain conventions for the actual implementation logic. 
+
+Sample: add_observations (|∆| = 3 , all models fail). The call submits three wildlife ob-servations with IDs obs_9 , obs_10 , obs_11 for distinct observers ( OBSR02 , OBSR05 , OBSR04 ) at timestamps 1685000000 , 1686000000 , 1687000000 , each approximately 11.6 days apart. The executor accepts all three and creates the corresponding records. Every evaluated model rejects the call and predicts no state change. Table 12: Hallucination: all six models fabricate different constraint violations to reject three valid observations. Ground truth: 3 records created, success=True .                    
+
+> Model Fabricated rejection reason
+> DeepSeek-V3.2 "0 observations added, 3 failed" ; each observation individu-ally flagged as "Duplicate observation within 1 minute" , de-spite timestamps being ∼11.6 days apart. Gemini-3.1-Pro-Preview
+> "0 observations added, 3 failed" ;observations flagged as
+> "Invalid latitude: 38.75" ,"Invalid latitude: 69.3" ,
+> "Invalid latitude: 27.18" ,all of them are valid WGS-84 coordinates. GPT-5.4 Same fabricated latitude-validity errors as Gemini-3.1-Pro-Preview; pre-dicts zero state changes. GLM-5 Same fabricated latitude-validity errors; predicts zero state changes. Claude-Sonnet-4.6 Correctly outputs "3 observations added successfully, 0 failed" and creates 3 records, but uses wrong field values (hallucinated observer IDs and timestamps), causing CM = False. MiniMax-M2.7 Same correct feedback as Claude, but with similarly wrong field values.
+
+The split between models is instructive. Four models (DeepSeek, Gemini, GPT-5.4, GLM-5) generate entirely different constraint violations (one introduces a temporal deduplication window; three introduce a coordinate-validity check), none of which appear anywhere in the tool code. Each fabricated constraint is domain-plausible (geospatial data pipelines often deduplicate, and coordinates have validity ranges), yet factually incorrect for this specific implementation. The remaining two models (Claude, MiniMax) correctly identify that all observations should succeed, but then hallucinate incorrect field values for the created records, resulting in a different type of state hallucination. 20 E.2 Failure Mode 2 Logical Inconsistency: Self-Contradictory Response 
+
+In this failure mode, the model’s own predicted feedback and predicted state changes are mutually contradictory: the feedback claims one thing happened while the state changes record something incompatible. An agent receiving this response cannot reconcile the two signals. 
+
+Sample: run_bulk_analysis (|∆| = 3 , DeepSeek-V3.2). The call requests a trend analysis for one Japanese stock, 7203.T (Toyota). The executor processes only 7203.T and updates three fields accordingly. DeepSeek-V3.2 produces a response that is internally self-contradictory in two ways simultaneously. Table 13: Logical inconsistency: DeepSeek-V3.2 feedback claims “2 stocks” were analyzed, but the call only specifies 1, and the predicted state invents a full analysis for a second stock ( SONY ) not present in the input.         
+
+> Ground truth DeepSeek-V3.2 prediction Feedback "Bulk analysis completed for 1 stocks in Japan." "Bulk analysis completed for 2 stocks in Japan."
+> State: 7203.T technical_indicators.7203.T :updated (SMA values)
+> trend_analysis.7203.T : {con-fidence: 0.8} Same fields updated correctly ( this part is right )
+> State: SONY Not in request; no changes technical_indicators.SONY :full SMA table
+> trend_analysis.SONY :{confi-dence: 0.8, trend: up}
+> (entirely fabricated)
+
+The inconsistency operates at two levels. First, the feedback count (“2 stocks”) contradicts the input (1 stock was requested). Second, the predicted state changes include a complete analysis of SONY (with internally coherent SMA values, trend direction, and confidence score) that has no basis in the call arguments. The model correctly processes 7203.T (the core prediction is right), then spontaneously hallucinates an entire second entity. An agent receiving this response would record a ghost analysis for SONY in the environment state, causing all subsequent reasoning about the SONY data to be grounded in fabricated values. 
+
+E.3 Failure Mode 3 Statelessness: Ignoring the Provided Before-State 
+
+In this failure mode, the model contradicts the explicitly provided before-config. Because our constraint-driven paradigm supplies the full before-state in every prompt, this failure cannot be attributed to implicit state tracking; the model overrides observed facts with a hallucinated prior. 
+
+Sample: complete_task (|∆| = 2 , DeepSeek-V3.2). The tool call marks task T-002 as com-pleted. The before-config provided to the model explicitly states:   
+
+> tasks.T-002.status :"in progress" tasks.T-002.completed_at :null
+
+The executor therefore accepts the call: the task transitions from "in progress" to "completed" ,and completed_at is set to the current epoch. The model asserts "already completed" while simultaneously having access to the before-config that says the opposite. This is not a state-tracking failure arising from implicit multi-turn inference. It explicitly contradicts the data present in the prompt for a single-turn prediction. The most likely cause is that the model’s parametric knowledge about task-management workflows (where double-completion calls are commonly guarded against) overrides its attention to the provided state. This pattern represents the purest form of hallucination in the environment simulation setting: the model’s world model supersedes the ground truth it was given. The same sample was also misclassified by Gemini-3.1-Pro-Preview (which hallucinated a “dependency not met” constraint) and MiniMax-M2.7 21 Table 14: Statelessness: the model asserts the task is “already completed” despite the before-config explicitly showing status = "in progress" .           
+
+> Ground truth DeepSeek-V3.2 prediction Before-state
+> (given in prompt)
+> T-002.status :"in progress" T-002.completed_at :null
+> (same prompt)
+> Feedback "Task ’T-002’ marked as completed." "error: Task ’T-002’ is already completed"
+> State changes T-002.status :"in progress" →"completed" T-002.completed_at :null →
+> 1774080132.66
+> (no changes predicted)
+
+(which hallucinated a “task not found” error), each substituting a different invented state for the explicitly provided one. 
+
+## F Cross-Model Capability Profile Analysis 
+
+GPT-5.4 vs. Gemini-3.1-Pro-Preview: same aggregate CM, different per-delta profiles. Both models achieve 42.0% overall CM, but the per-delta breakdown from Appendix A reveals a crossover structure: Gemini-3.1-Pro-Preview leads at ∆ ∈ { 1, 2} (68%/28% vs. 60%/20% for GPT-5.4); both are identical at ∆ ∈ { 3, 4} (36%/24%); GPT-5.4 leads substantially at ∆ ∈ { 7, 8} (44%/25% vs. 31%/12%). This suggests that Gemini-3.1-Pro-Preview has stronger alignment for precise, low-complexity field prediction, while GPT-5.4 has higher resilience against the most complex multi-branch conditional logic. For practitioners choosing a simulation backend, Gemini-3.1-Pro-Preview may be preferable for environments dominated by simple CRUD-style operations, while GPT-5.4 may be preferable for environments with deeply nested state transitions. 
+
+DeepSeek-V3.2: strong FM, weak CM. DeepSeek-V3.2 achieves 72.5% overall FM (third highest) but only 32.5% CM (lowest), a 40 pp gap that is the largest FM–CM divergence in the evaluation. On state-changing samples, the gap reaches 58.7 pp (68.7% FM vs. 10.0% CM). As Table 11 shows, 75– 87% of its CM failures are accompanied by FM = True across delta levels 1–5: the model generates correctly-formatted, domain-appropriate response strings while substantially underperforming on code-execution tracing. This makes it a high-risk choice as a simulation backend for generating training data. 
+
+FM–CM gap as a model-selection signal. Table 15 ranks all models by the FM–CM gap on state-changing samples. A large positive gap indicates the model generates believable but inaccurate simulations; a near-zero or negative gap indicates visible failures. For use cases where the reliability of the training signal matters more than surface fluency, CM alone is the appropriate criterion for backend selection. Table 15: FM–CM gap on state-changing samples. Large gaps indicate models that generate correct-sounding feedback despite a wrong state. It’s dangerous for simulation. Bold : column-wise maximum; red: column-wise minimum.                           
+
+> Model FM (state-chg) CM (state-chg) Gap (FM −CM)
+> GLM-5 81.7% 21.3% 60.4 pp
+> DeepSeek-V3.2 68.7% 10.0% 58.7 pp GPT-5.4 75.7% 22.7% 53.0 pp Gemini-3.1-Pro-Preview 72.7% 22.7% 50.0 pp Qwen3.5-397B-A17B 64.3% 23.0% 41.3 pp MiniMax-M2.7 21.3% 22.7% −1.4 pp Claude-Sonnet-4.6 12.0% 17.3% −5.3 pp
+
+22 G Experimental Setup Details 
+
+G.1 Frontier LLM Evaluation 
+
+All seven frontier models are queried via their respective inference APIs in non-thinking mode. Every model receives identical prompts instantiating the MDP triple (st, a t, code (at)) ; no model has access to prior turns or trajectory history. Ground-truth labels (ot, s ′
+
+> t
+
+) are produced entirely by the deterministic external executor, making evaluation LLM-free and immune to circular validation. 
+
+G.2 Model Identifiers and API Endpoints 
+
+Table 16 maps each display name used throughout the paper to the exact API model string queried during evaluation, together with the model provider. All models were called via their respective public inference APIs in non-thinking (standard) mode with no system-prompt modifications. Table 16: Display name, exact API model string, and provider for each evaluated frontier model.                 
+
+> Display name (used in paper) API model string Provider
+> DeepSeek-V3.2 deepseek-v3.2 DeepSeek Qwen3.5-397B-A17B qwen3.5-397b-a17b Alibaba Cloud GPT-5.4 gpt-5.4 OpenAI Gemini-3.1-Pro-Preview gemini-3.1-pro-preview Google DeepMind Claude-Sonnet-4.6 claude-sonnet-4-6 Anthropic MiniMax-M2.7 MiniMax-M2.7 MiniMax GLM-5 glm-5 Zhipu AI
+
+G.3 SFT Training Configuration 
+
+We fine-tune Qwen3-4B-Base using full-parameter SFT via LLaMA-Factory [ 32 ] on 2 ×A800 (80 GB) GPUs with DeepSpeed ZeRO-3 parallelism [ 33 ]. Key hyperparameters: learning rate 2 × 10 −5 with a cosine schedule and 5% linear warm-up; 3 training epochs; per-device batch size 1 with gradient accumulation over 16 steps (effective batch size 32); bf16 mixed precision with FlashAttention-2. The maximum sequence length is set to 8,192 tokens, each sample encodes the full transition logic 
+
+code (at) together with the structured before-state st, with token counts peaking near 5,000 across the corpus; this window ensures no truncation during training or evaluation. Inference is served via vLLM with a maximum generation length of 16,384 tokens and 90% GPU memory utilization. All experiments are evaluated under the env_id holdout protocol, which excludes all 167 benchmark environments from training, including Findings 4 and 5 and the composition ablation in Appendix H. 
+
+## H Data Composition Ablation 
+
+Table 17 reports the full composition ablation comparing three data mixture strategies, with frontier model performance as reference. 
+
+Change-only (trained exclusively on state-mutating samples) achieves the highest CM on state-changing subsets (60% Simple, 24% Medium, 32% Difficult) but collapses to 0% FM on Failure and No-Change groups, despite maintaining 96% CM on these same samples. The model correctly predicts that no state change should occur in most cases, but has never learned to generate the corresponding feedback strings: outputting state-change-style success messages where error mes-sages or minimal acknowledgments are expected. In a deployed pipeline, this feedback corruption directly poisons the agent’s reward signal: the environment state is preserved, but the agent receives systematically wrong feedback for every failed or no-op action, causing it to misattribute outcomes and learn incorrect action-consequence associations. 
+
+Balance adds failure and no-change samples but does not mirror the empirical |∆| distribution, resulting in weaker performance on complex-change tiers. Balance2 additionally upweights complex-change samples to match the source distribution, yielding the best overall CM (45.3%) and FM (79.5%), surpassing all frontier models on CM. 23 Table 17: Data composition ablation under env_id holdout. Bold : column-wise maximum; red: column-wise minimum.                                                                 
+
+> NC/F Simple Medium Difficult Overall Model FM CM FM CM FM CM FM CM FM CM Change-only 0% 96% 96% 60% 91.5% 24% 52% 32% 64.3% 47.5%
+> Balance 73% 99% 96% 54% 89.0% 23% 38% 6% 79.5% 43.8%
+> Balance2 (Ours) 78% 99% 92% 58% 89.5% 23.5% 30% 12% 79.5% 45.3%
+> Frontier reference:
+> GLM-5 (best FM) 77% 100% 94% 44% 81.5% 14% 70% 28% 80.5% 41.0% Qwen3.5-397B-A17B (best CM) 83% 100% 84% 46% 65.0% 17% 42% 24% 69.0% 42.3%
+
+## I Pre-SFT Scaling Baseline 
+
+Table 18 shows Qwen3.5 instruct models (4B, 9B, 27B) without fine-tuning. Clear FM scaling trends emerge (2.3% →62.8%), but even the 27B model is substantially below the best-performing LLMs on the frontier, confirming that specialization is required beyond scale alone. Table 18: Qwen3.5 non-thinking instruct models before SFT. Bold : column-wise maximum; red: column-wise minimum.                                             
+
+> NC/F Simple Medium Difficult Overall Model FM CM FM CM FM CM FM CM FM CM Qwen3.5-4B 8% 95% 0% 42% 0.5% 10.5% 0% 6% 2.3% 35.0% Qwen3.5-9B 39% 98% 6% 42% 1.5% 11.6% 0% 20% 11.3% 38.1%
+> Qwen3.5-27B 82% 99% 78% 26% 58.5% 2.0% 26% 4% 62.8% 29.5%
+
+## J Training Method Comparison 
+
+Table 19 compares LoRA and full-parameter fine-tuning on Qwen3-4B-Base at a 5K-sample budget under the env_id holdout. All hyperparameters are held fixed as described in Appendix G. Table 19: Training method comparison on Qwen3-4B-Base (5K samples, env_id holdout). Full fine-tuning outperforms LoRA on CM, particularly in the Simple tier. Bold : column-wise maximum; red: column-wise minimum.                                                                 
+
+> NC/F Simple Medium Difficult Overall Model FM CM FM CM FM CM FM CM FM CM Before SFT 18% 51% 34% 40% 34% 22.5% 10% 4% 27.0% 29.5% LoRA-5K (w/o reason) 67% 99% 90% 20% 78.9% 5.0% 46% 16% 73.2% 31.8% LoRA-5K (w/ reason) 66% 99% 90% 26% 77.5% 6.0% 34% 20% 70.8% 33.5% Full-5K (w/o reason) 65% 99% 86% 34% 84.0% 10.5% 30% 6% 72.8% 35.0%
+> Full-5K (w/ reason) 63% 99% 88% 20% 80.5% 3.5% 32% 10% 71.0% 30.3%
+
+Full-parameter SFT raises FM from 27% to 72.8% ( 2.7×) and aligns the model’s output schema with the expected response convention, correcting near-zero FM on Failure and No-Change samples (CM rises from 51% to 99% on these groups). On CM, the state-change cliff persists at the 5K-sample scale, Medium-group CM reaches only 10.5%, and Difficult-group CM falls to 6%, confirming that the cliff reflects a fundamental capability gap rather than a formatting artifact. Full-parameter fine-tuning surpasses LoRA at equal data budget on CM (35.0% vs. 31.8%), with the advantage concentrated in the Simple tier (34% vs. 20%). We attribute this to LoRA’s limited representational capacity, which overwrites the dense attention patterns that underlie sequential code-execution tracing. The state-change cliff persists under both methods at 5K samples, confirming it as a genuine capability gap rather than a parameter-efficiency artifact. 24

@@ -6,157 +6,85 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-15
-- 运行时间：2026-05-15 20:03:18 UTC
+- 最新运行日期：2026-05-16
+- 运行时间：2026-05-16 19:00:09 UTC
 - 运行状态：成功
-- 本次总论文数：45
-- 精读区：32
+- 本次总论文数：21
+- 精读区：8
 - 速读区：13
 
 ### 今日简报（AI）
-今日深度研读 32 篇核心论文，重点聚焦多模态智能体平台构建与类操作系统的系统级安全防御。
-满分报告 MediaClaw 与 Agent 安全架构揭示了智能体向稳健系统演进的趋势，同时警惕针对响应路径的新型攻击。
-建议关注智能体在工程协作与无线控制中的风险管控，从底层架构层面提升 AI 应用的安全性。
-- 详情：[/202605/15/README](/202605/15/README)
+今日深度复盘 21 篇 AI 论文，聚焦长程交互推理范式与工业级智能体架构的重大突破。
+满分论文 MAP 提出的“先规划后行动”模式显著提升了复杂任务表现，而本体驱动架构则有效弥补了工业 AI 的语义训练鸿沟。
+推荐开发者关注跨框架技能编译技术，探索如何通过标准化组件提升智能体在图书馆索引等垂直领域的落地效率。
+- 详情：[/202605/16/README](/202605/16/README)
 
 ### 精读区论文标签
-1. [MediaClaw: Multimodal Intelligent-Agent Platform Technical Report](/202605/15/2605.14771v1-mediaclaw-multimodal-intelligent-agent-platform-technical-report)  
-   标签：评分：10.0/10、query:opclw
-   evidence：基于OpenClaw构建的多模态智能体平台
-2. [Toward Securing AI Agents Like Operating Systems](/202605/15/2605.14932v1-toward-securing-ai-agents-like-operating-systems)  
-   标签：评分：10.0/10、query:opclw
-   evidence：研究OpenClaw智能体系统的安全性
-3. [MemReranker: Reasoning-Aware Reranking for Agent Memory Retrieval](/202605/15/2605.06132v1-memreranker-reasoning-aware-reranking-for-agent-memory-retrieval)  
+1. [MAP: A Map-then-Act Paradigm for Long-Horizon Interactive Agent Reasoning](/202605/16/2605.13037v1-map-a-map-then-act-paradigm-for-long-horizon-interactive-agent-reasoning)  
+   标签：评分：10.0/10、query:agent
+   evidence：用于交互式智能体推理和规划的先地图后行动范式
+2. [The Semantic Training Gap: Ontology-Grounded Tool Architectures for Industrial AI Agent Systems](/202605/16/2605.11234v1-the-semantic-training-gap-ontology-grounded-tool-architectures-for-industrial-ai-agent-systems)  
    标签：评分：9.0/10、query:agent
-   evidence：针对智能体记忆检索的推理感知重排序
-4. [SmellBench: Evaluating LLM Agents on Architectural Code Smell Repair](/202605/15/2605.07001v1-smellbench-evaluating-llm-agents-on-architectural-code-smell-repair)  
+   evidence：工业AI智能体系统中基于本体的工具架构
+3. [Agent-BRACE: Decoupling Beliefs from Actions in Long-Horizon Tasks via Verbalized State Uncertainty](/202605/16/2605.11436v1-agent-brace-decoupling-beliefs-from-actions-in-long-horizon-tasks-via-verbalized-state-uncertainty)  
    标签：评分：9.0/10、query:agent
-   evidence：评估大模型智能体在架构代码异味修复任务中的表现
-5. [When Agents Overtrust Environmental Evidence: An Extensible Agentic Framework for Benchmarking Evidence-Grounding Defects in LLM Agents](/202605/15/2605.08828v1-when-agents-overtrust-environmental-evidence-an-extensible-agentic-framework-for-benchmarking-evidence-grounding-defects-in-llm-agents)  
+   evidence：LLM智能体在长时任务中跟踪环境状态
+4. [Harness Engineering as Categorical Architecture](/202605/16/2605.12239v1-harness-engineering-as-categorical-architecture)  
    标签：评分：9.0/10、query:agent
-   evidence：大语言模型智能体证据落地缺陷的基准测试
-6. [SearchSkill: Teaching LLMs to Use Search Tools with Evolving Skill Banks](/202605/15/2605.09038v2-searchskill-teaching-llms-to-use-search-tools-with-evolving-skill-banks)  
+   evidence：智能体外壳设计和编排逻辑的正式理论
+5. [AI Harness Engineering: A Runtime Substrate for Foundation-Model Software Agents](/202605/16/2605.13357v1-ai-harness-engineering-a-runtime-substrate-for-foundation-model-software-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：通过不断演进的技能库教LLM使用搜索工具
-7. [Oracle Poisoning: Corrupting Knowledge Graphs to Weaponise AI Agent Reasoning](/202605/15/2605.09822v1-oracle-poisoning-corrupting-knowledge-graphs-to-weaponise-ai-agent-reasoning)  
+   evidence：软件智能体的运行时底层架构
+6. [AgentTrap: Measuring Runtime Trust Failures in Third-Party Agent Skills](/202605/16/2605.13940v1-agenttrap-measuring-runtime-trust-failures-in-third-party-agent-skills)  
    标签：评分：9.0/10、query:agent
-   evidence：AI 智能体通过工具调用协议查询知识图谱
-8. [The Granularity Mismatch in Agent Security: Argument-Level Provenance Solves Enforcement and Isolates the LLM Reasoning Bottleneck](/202605/15/2605.11039v1-the-granularity-mismatch-in-agent-security-argument-level-provenance-solves-enforcement-and-isolates-the-llm-reasoning-bottleneck)  
+   evidence：评估第三方智能体技能的信任度
+7. [Reinforcement Learning for Tool-Calling Agents in Fast Healthcare Interoperability Resources (FHIR)](/202605/16/2605.14126v1-reinforcement-learning-for-tool-calling-agents-in-fast-healthcare-interoperability-resources-fhir)  
    标签：评分：9.0/10、query:agent
-   evidence：工具使用智能体的参数级溯源
-9. [LLM-X: A Scalable Negotiation-Oriented Exchange for Communication Among Personal LLM Agents](/202605/15/2605.11376v1-llm-x-a-scalable-negotiation-oriented-exchange-for-communication-among-personal-llm-agents)  
+   evidence：用于医疗数据推理的工具调用智能体
+8. [From Text to Voice: A Reproducible and Verifiable Framework for Evaluating Tool Calling LLM Agents](/202605/16/2605.15104v1-from-text-to-voice-a-reproducible-and-verifiable-framework-for-evaluating-tool-calling-llm-agents)  
    标签：评分：9.0/10、query:agent
-   evidence：个人LLM智能体之间的通信
-10. [AgentDisCo: Towards Disentanglement and Collaboration in Open-ended Deep Research Agents](/202605/15/2605.11732v1-agentdisco-towards-disentanglement-and-collaboration-in-open-ended-deep-research-agents)  
-   标签：评分：9.0/10、query:agent
-   evidence：解耦与协作的智能体架构
-11. [Speculative Interaction Agents: Building Real-Time Agents with Asynchronous I/O and Speculative Tool Calling](/202605/15/2605.13360v2-speculative-interaction-agents-building-real-time-agents-with-asynchronous-io-and-speculative-tool-calling)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于实时智能体工作流的投机性工具调用
-12. [ProjGuard: Safety Monitoring for Computer-Use Agents via Low-Dimensional Projections](/202605/15/2605.13631v1-projguard-safety-monitoring-for-computer-use-agents-via-low-dimensional-projections)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：计算机使用智能体的安全监控
-13. [Model-Adaptive Tool Necessity Reveals the Knowing-Doing Gap in LLM Tool Use](/202605/15/2605.14038v1-model-adaptive-tool-necessity-reveals-the-knowing-doing-gap-in-llm-tool-use)  
-   标签：评分：9.0/10、query:agent
-   evidence：LLM工具使用中的模型自适应工具必要性
-14. [SPIN: Structural LLM Planning via Iterative Navigation for Industrial Tasks](/202605/15/2605.14051v1-spin-structural-llm-planning-via-iterative-navigation-for-industrial-tasks)  
-   标签：评分：9.0/10、query:agent
-   evidence：结构化LLM规划与执行控制
-15. [ChromaFlow: A Negative Ablation Study of Orchestration Overhead in Tool-Augmented Agent Evaluation](/202605/15/2605.14102v1-chromaflow-a-negative-ablation-study-of-orchestration-overhead-in-tool-augmented-agent-evaluation)  
-   标签：评分：9.0/10、query:agent
-   evidence：工具增强型智能体评估中的编排开销
-16. [TSAgent: An Agentic Workflow for Autonomous Transition State Search](/202605/15/2605.14154v1-tsagent-an-agentic-workflow-for-autonomous-transition-state-search)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于自主过渡态搜索的智能体工作流
-17. [SimPersona: Learning Discrete Buyer Personas from Raw Clickstreams for Grounded E-Commerce Agents](/202605/15/2605.14205v1-simpersona-learning-discrete-buyer-personas-from-raw-clickstreams-for-grounded-e-commerce-agents)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：基于大语言模型的网页智能体导航在线商店
-18. [MetaAgent-X : Breaking the Ceiling of Automatic Multi-Agent Systems via End-to-End Reinforcement Learning](/202605/15/2605.14212v1-metaagent-x--breaking-the-ceiling-of-automatic-multi-agent-systems-via-end-to-end-reinforcement-learning)  
-   标签：评分：9.0/10、query:agent
-   evidence：自动多智能体系统与智能体工作流
-19. [Good to Go: The LOOP Skill Engine That Hits 99% Success and Slashes Token Usage by 99% via One-Shot Recording and Deterministic Replay](/202605/15/2605.14237v1-good-to-go-the-loop-skill-engine-that-hits-99-success-and-slashes-token-usage-by-99-via-one-shot-recording-and-deterministic-replay)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体工具编排与确定性回放
-20. [Web Agents Should Adopt the Plan-Then-Execute Paradigm](/202605/15/2605.14290v1-web-agents-should-adopt-the-plan-then-execute-paradigm)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：Web智能体架构与交互范式
-21. [Beyond Binary: Reframing GUI Critique as Continuous Semantic Alignment](/202605/15/2605.14311v1-beyond-binary-reframing-gui-critique-as-continuous-semantic-alignment)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：GUI智能体动作排序的连续语义对齐
-22. [Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience](/202605/15/2605.14443v1-prompting-policies-for-multi-step-reasoning-and-tool-use-in-black-box-llms-with-iterative-distillation-of-experience)  
-   标签：评分：9.0/10、query:agent
-   evidence：黑盒大模型中的多步推理与工具使用
-23. [When Robots Do the Chores: A Benchmark and Agent for Long-Horizon Household Task Execution](/202605/15/2605.14504v1-when-robots-do-the-chores-a-benchmark-and-agent-for-long-horizon-household-task-execution)  
-   标签：评分：9.0/10、query:agent
-   evidence：长程规划与推理的基准测试与智能体
-24. [$π$-Bench: Evaluating Proactive Personal Assistant Agents in Long-Horizon Workflows](/202605/15/2605.14678v1--bench-evaluating-proactive-personal-assistant-agents-in-long-horizon-workflows)  
-   标签：评分：9.0/10、query:opclw
-   evidence：在长周期工作流中评估OpenClaw等个人助手智能体
-25. [Video2GUI: Synthesizing Large-Scale Interaction Trajectories for Generalized GUI Agent Pretraining](/202605/15/2605.14747v1-video2gui-synthesizing-large-scale-interaction-trajectories-for-generalized-gui-agent-pretraining)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：合成用于GUI智能体预训练的交互轨迹
-26. [Known By Their Actions: Fingerprinting LLM Browser Agents via UI Traces](/202605/15/2605.14786v1-known-by-their-actions-fingerprinting-llm-browser-agents-via-ui-traces)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：通过 UI 轨迹对 LLM 浏览器智能体进行指纹识别
-27. [Beyond Individual Intelligence: Surveying Collaboration, Failure Attribution, and Self-Evolution in LLM-based Multi-Agent Systems](/202605/15/2605.14892v1-beyond-individual-intelligence-surveying-collaboration-failure-attribution-and-self-evolution-in-llm-based-multi-agent-systems)  
-   标签：评分：9.0/10、query:agent
-   evidence：调研基于大语言模型的多智能体系统协作与失败归因
-28. [GraphFlow: An Architecture for Formally Verifiable Visual Workflows Enabling Reliable Agentic AI Automation](/202605/15/2605.14968v1-graphflow-an-architecture-for-formally-verifiable-visual-workflows-enabling-reliable-agentic-ai-automation)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于可靠智能体AI自动化的可视化工作流系统
-29. [WARD: Adversarially Robust Defense of Web Agents Against Prompt Injections](/202605/15/2605.15030v1-ward-adversarially-robust-defense-of-web-agents-against-prompt-injections)  
-   标签：评分：9.0/10、query:guiagt
-   evidence：Web智能体针对提示注入的鲁棒防御
-30. [Orchard: An Open-Source Agentic Modeling Framework](/202605/15/2605.15040v1-orchard-an-open-source-agentic-modeling-framework)  
-   标签：评分：9.0/10、query:agent
-   evidence：用于可扩展智能体建模与训练的开源框架
-31. [APWA: A Distributed Architecture for Parallelizable Agentic Workflows](/202605/15/2605.15132v1-apwa-a-distributed-architecture-for-parallelizable-agentic-workflows)  
-   标签：评分：9.0/10、query:agent
-   evidence：智能体工作流的分布式架构
-32. [Is Grep All You Need? How Agent Harnesses Reshape Agentic Search](/202605/15/2605.15184v1-is-grep-all-you-need-how-agent-harnesses-reshape-agentic-search)  
-   标签：评分：9.0/10、query:agent
-   evidence：比较智能体搜索中的检索策略和工具调用范式
+   evidence：评估基于语音调用的LLM智能体工具使用能力
 
 ### 速读区论文标签
-1. [When Alignment Isn't Enough: Response-Path Attacks on LLM Agents](/202605/15/2605.02187v1-when-alignment-isnt-enough-response-path-attacks-on-llm-agents)  
+1. [SkCC: Portable and Secure Skill Compilation for Cross-Framework LLM Agents](/202605/16/2605.03353v1-skcc-portable-and-secure-skill-compilation-for-cross-framework-llm-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：针对大模型智能体架构的安全攻击与响应路径完整性
-2. [EngiAgent: Fully Connected Coordination of LLM Agents for Solving Open-ended Engineering Problems with Feasible Solutions](/202605/15/2605.02289v1-engiagent-fully-connected-coordination-of-llm-agents-for-solving-open-ended-engineering-problems-with-feasible-solutions)  
+   evidence：智能体技能开发和安全的设计模式
+2. [SkCC: Portable and Secure Skill Compilation for Cross-Framework LLM Agents](/202605/16/2605.03353v2-skcc-portable-and-secure-skill-compilation-for-cross-framework-llm-agents)  
    标签：评分：8.0/10、query:agent
-   evidence：用于推理和迭代优化的多智能体系统
-3. [Executor-Side Progressive Risk-Gated Actuation for Agentic AI in Wireless Supervisory Control](/202605/15/2605.02697v1-executor-side-progressive-risk-gated-actuation-for-agentic-ai-in-wireless-supervisory-control)  
+   evidence：专注于智能体技能编译和可移植性的设计模式
+3. [A Skill-Based AI Agentic Pipeline for Library of Congress Subject Indexing](/202605/16/2605.03537v1-a-skill-based-ai-agentic-pipeline-for-library-of-congress-subject-indexing)  
    标签：评分：8.0/10、query:agent
-   evidence：智能体AI工作流的风险门控执行
-4. [Semantic Risk-Aware Heuristic Planning for Robotic Navigation in Dynamic Environments: An LLM-Inspired Approach](/202605/15/2605.02862v1-semantic-risk-aware-heuristic-planning-for-robotic-navigation-in-dynamic-environments-an-llm-inspired-approach)  
+   evidence：用于自动化的模块化 AI 智能体技能流水线
+4. [Workspace-Bench 1.0: Benchmarking AI Agents on Workspace Tasks with Large-Scale File Dependencies](/202605/16/2605.03596v2-workspace-bench-10-benchmarking-ai-agents-on-workspace-tasks-with-large-scale-file-dependencies)  
    标签：评分：8.0/10、query:agent
-   evidence：用于机器人路径规划的LLM推理原则
-5. [Pact: A Choreographic Language for Agentic Ecosystems](/202605/15/2605.03143v1-pact-a-choreographic-language-for-agentic-ecosystems)  
+   evidence：在具有文件依赖项的工作空间任务上对AI智能体进行基准测试
+5. [Workspace-Bench 1.0: Benchmarking AI Agents on Workspace Tasks with Large-Scale File Dependencies](/202605/16/2605.03596v3-workspace-bench-10-benchmarking-ai-agents-on-workspace-tasks-with-large-scale-file-dependencies)  
    标签：评分：8.0/10、query:agent
-   evidence：智能体生态系统的编排语言
-6. [LoopTrap: Termination Poisoning Attacks on LLM Agents](/202605/15/2605.05846v1-looptrap-termination-poisoning-attacks-on-llm-agents)  
+   evidence：在复杂的办公空间任务和文件依赖中对AI智能体进行基准测试
+6. [SmellBench: Evaluating LLM Agents on Architectural Code Smell Repair](/202605/16/2605.07001v2-smellbench-evaluating-llm-agents-on-architectural-code-smell-repair)  
    标签：评分：7.0/10、query:agent
-   evidence：针对大模型智能体的终止中毒攻击
-7. [PragLocker: Protecting Agent Intellectual Property in Untrusted Deployments via Non-Portable Prompts](/202605/15/2605.05974v1-praglocker-protecting-agent-intellectual-property-in-untrusted-deployments-via-non-portable-prompts)  
+   evidence：评估LLM智能体在架构推理和修复方面的能力
+7. [EnvSimBench: A Benchmark for Evaluating and Improving LLM-Based Environment Simulation](/202605/16/2605.07247v1-envsimbench-a-benchmark-for-evaluating-and-improving-llm-based-environment-simulation)  
    标签：评分：7.0/10、query:agent
-   evidence：保护大模型智能体知识产权与提示词
-8. [A Case-Driven Multi-Agent Framework for E-Commerce Search Relevance](/202605/15/2605.05991v1-a-case-driven-multi-agent-framework-for-e-commerce-search-relevance)  
+   evidence：用于智能体训练的基于LLM的环境模拟基准
+8. [Low-code and no-code with BESSER to create and deploy smart web applications](/202605/16/2605.07376v1-low-code-and-no-code-with-besser-to-create-and-deploy-smart-web-applications)  
    标签：评分：7.0/10、query:agent
-   evidence：用于电子商务搜索相关性的多智能体框架
-9. [Multi-agent decision making: A Blackwell's informativeness approach](/202605/15/2605.06028v1-multi-agent-decision-making-a-blackwells-informativeness-approach)  
+   evidence：展示了一个用于设计和部署包含 AI 智能体的智能 Web 应用的框架
+9. [CommandSwarm: Safety-Aware Natural Language-to-Behavior-Tree Generation for Robotic Swarms](/202605/16/2605.07764v1-commandswarm-safety-aware-natural-language-to-behavior-tree-generation-for-robotic-swarms)  
    标签：评分：7.0/10、query:agent
-   evidence：使用 LLM 的多智能体系统决策
-10. [A Prompt-Aware Structuring Framework for Reliable Reuse of AI-Generated Content in the Agentic Web](/202605/15/2605.09283v1-a-prompt-aware-structuring-framework-for-reliable-reuse-of-ai-generated-content-in-the-agentic-web)  
-   标签：评分：6.0/10、query:guiagt
-   evidence：智能体网络中 AIGC 可靠重用的结构化框架
-11. [LEAF-SQL: Level-wise Exploration with Adaptive Fine-graining for Text-to-SQL Skeleton Prediction](/202605/15/2605.09295v1-leaf-sql-level-wise-exploration-with-adaptive-fine-graining-for-text-to-sql-skeleton-prediction)  
+   evidence：基于大模型的机器人集群规划
+10. [Generating Complex Code Analyzers from Natural Language Questions](/202605/16/2605.09304v1-generating-complex-code-analyzers-from-natural-language-questions)  
    标签：评分：6.0/10、query:agent
-   evidence：复杂查询的渐进式推理与骨架预测
-12. [MOTOR-Bench: A Real-world Dataset and Multi-agent Framework for Zero-shot Human Mental State Understanding](/202605/15/2605.09703v1-motor-bench-a-real-world-dataset-and-multi-agent-framework-for-zero-shot-human-mental-state-understanding)  
-   标签：评分：6.0/10、query:agent
-   evidence：用于人类心理状态理解的多智能体框架
-13. [SafeManip: A Property-Driven Benchmark for Temporal Safety Evaluation in Robotic Manipulation](/202605/15/2605.12386v1-safemanip-a-property-driven-benchmark-for-temporal-safety-evaluation-in-robotic-manipulation)  
+   evidence：使用大模型对代码进行分析推理
+11. [Conversational Customization of Productivity Systems: A Design Probe of Malleable AI Interfaces](/202605/16/2605.11149v1-conversational-customization-of-productivity-systems-a-design-probe-of-malleable-ai-interfaces)  
    标签：评分：6.0/10、query:guiagt
-   evidence：机器人操作中时序安全评估的基准
+   evidence：生产力系统的可塑AI界面
+12. [Query-Conditioned Test-Time Self-Training for Large Language Models](/202605/16/2605.13369v1-query-conditioned-test-time-self-training-for-large-language-models)  
+   标签：评分：6.0/10、query:agent
+   evidence：针对查询调整大模型参数的测试时自我训练
+13. [Joint Communication and Computation Design for Mobile Embodied AI Network (MEAN)](/202605/16/2605.14300v1-joint-communication-and-computation-design-for-mobile-embodied-ai-network-mean)  
+   标签：评分：6.0/10、query:agent
+   evidence：移动具身AI智能体的协作策略
 
 
 <div class="dpr-home-promo-card">
